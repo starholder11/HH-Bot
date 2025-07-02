@@ -28,6 +28,8 @@ export default function Chat() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return
 
+    console.log('🔵 Frontend: Sending message:', input.trim())
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -40,6 +42,7 @@ export default function Chat() {
     setIsLoading(true)
 
     try {
+      console.log('🔵 Frontend: Making API request to /api/chat')
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -51,12 +54,16 @@ export default function Chat() {
         }),
       })
 
+      console.log('🔵 Frontend: API response status:', response.status)
       if (!response.ok) {
+        console.log('🔴 Frontend: API response not ok')
         throw new Error('Failed to send message')
       }
 
       const reader = response.body?.getReader()
       if (!reader) throw new Error('No response body')
+
+      console.log('🔵 Frontend: Starting to read response stream')
 
       let assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -68,20 +75,29 @@ export default function Chat() {
       setMessages(prev => [...prev, assistantMessage])
 
       const decoder = new TextDecoder()
+      let chunkCount = 0
       
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) {
+          console.log('🔵 Frontend: Stream complete, total chunks:', chunkCount)
+          break
+        }
 
+        chunkCount++
         const chunk = decoder.decode(value)
+        console.log('🔵 Frontend: Chunk', chunkCount, 'received:', chunk)
+        
         const lines = chunk.split('\n')
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6))
+              console.log('🔵 Frontend: Parsed data:', data)
               
               if (data.type === 'content') {
+                console.log('🔵 Frontend: Adding content delta:', data.delta)
                 assistantMessage.content += data.delta
                 setMessages(prev => 
                   prev.map(msg => 
@@ -91,10 +107,13 @@ export default function Chat() {
                   )
                 )
               } else if (data.type === 'response_id') {
+                console.log('🔵 Frontend: Setting response ID:', data.response_id)
                 setLastResponseId(data.response_id)
+              } else if (data.type === 'done') {
+                console.log('🔵 Frontend: Received done signal')
               }
             } catch (e) {
-              // Ignore malformed JSON
+              console.log('🔴 Frontend: Failed to parse JSON:', line.slice(6))
             }
           }
         }
