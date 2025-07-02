@@ -65,29 +65,22 @@ export async function POST(req: NextRequest) {
               eventCount++
               console.log('🔵 API: Event', eventCount, 'received:', JSON.stringify(event, null, 2))
               
-              if (event.output && event.output[0] && event.output[0].content) {
-                const contentArray = event.output[0].content
-                console.log('🔵 API: Content array:', JSON.stringify(contentArray, null, 2))
-                
-                for (const contentItem of contentArray) {
-                  if (contentItem.type === 'text' && contentItem.text_delta) {
-                    console.log('🔵 API: Sending text delta:', contentItem.text_delta)
-                    // Send content delta
-                    const data = {
-                      type: 'content',
-                      delta: contentItem.text_delta
-                    }
-                    controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
-                  }
+              // Handle text delta events
+              if (event.type === 'response.output_text.delta' && event.delta) {
+                console.log('🔵 API: Sending text delta:', event.delta)
+                const data = {
+                  type: 'content',
+                  delta: event.delta
                 }
+                controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
               }
-
-              // Send response ID when available
-              if (event.id) {
-                console.log('🔵 API: Sending response ID:', event.id)
+              
+              // Handle response ID from completed response
+              if (event.type === 'response.completed' && event.response && event.response.id) {
+                console.log('🔵 API: Sending response ID:', event.response.id)
                 const data = {
                   type: 'response_id',
-                  response_id: event.id
+                  response_id: event.response.id
                 }
                 controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
               }
