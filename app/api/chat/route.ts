@@ -48,16 +48,44 @@ export async function POST(req: NextRequest) {
           } as any)
 
           // Handle streaming response
-          for await (const event of response) {
+          if (response && typeof response[Symbol.asyncIterator] === 'function') {
+            for await (const event of response as any) {
+              if (event.output && event.output[0] && event.output[0].content) {
+                const contentArray = event.output[0].content
+                
+                for (const contentItem of contentArray) {
+                  if (contentItem.type === 'text' && contentItem.text_delta) {
+                    // Send content delta
+                    const data = {
+                      type: 'content',
+                      delta: contentItem.text_delta
+                    }
+                    controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
+                  }
+                }
+              }
+
+              // Send response ID when available
+              if (event.id) {
+                const data = {
+                  type: 'response_id',
+                  response_id: event.id
+                }
+                controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
+              }
+            }
+          } else {
+            // Handle non-streaming response
+            const event = response as any
             if (event.output && event.output[0] && event.output[0].content) {
               const contentArray = event.output[0].content
               
               for (const contentItem of contentArray) {
-                if (contentItem.type === 'text' && contentItem.text_delta) {
-                  // Send content delta
+                if (contentItem.type === 'text' && contentItem.text) {
+                  // Send content
                   const data = {
                     type: 'content',
-                    delta: contentItem.text_delta
+                    delta: contentItem.text
                   }
                   controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
                 }
