@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
             max_output_tokens: 2048,
             store: true,
             stream: true
-          })
+          } as any)
 
           // Handle streaming response
           for await (const event of response) {
