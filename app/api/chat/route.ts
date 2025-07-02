@@ -8,7 +8,7 @@ const openai = new OpenAI({
 
 // Your specific prompt ID and vector store ID from the provided code
 const PROMPT_ID = "pmpt_6860145bd5908196b230e507ed5d77a604ffb6d8d850b993"
-const PROMPT_VERSION = "8"
+const PROMPT_VERSION = "9"
 const VECTOR_STORE_ID = "vs_6860128217f08191bacd30e1475d8566"
 
 export async function POST(req: NextRequest) {
