@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
           } as any)
 
           // Handle streaming response
-          if (response && typeof response[Symbol.asyncIterator] === 'function') {
+          try {
             for await (const event of response as any) {
               if (event.output && event.output[0] && event.output[0].content) {
                 const contentArray = event.output[0].content
@@ -74,8 +74,8 @@ export async function POST(req: NextRequest) {
                 controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
               }
             }
-          } else {
-            // Handle non-streaming response
+          } catch (error) {
+            // If streaming fails, try non-streaming
             const event = response as any
             if (event.output && event.output[0] && event.output[0].content) {
               const contentArray = event.output[0].content
