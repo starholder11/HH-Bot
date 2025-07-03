@@ -23,6 +23,7 @@
     "lucide-react": "^0.294.0",
     "tinacms": "^1.5.0",
     "@tinacms/cli": "^1.5.0",
+    "@tinacms/admin": "^1.5.0",
     "gray-matter": "^4.0.3",
     "@tailwindcss/typography": "^0.5.10"
   },
