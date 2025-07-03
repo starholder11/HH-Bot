@@ -114,30 +114,31 @@ A Next.js chat application that integrates with OpenAI's Responses API and file 
 - **Streaming Problems:** Check network configuration and CORS settings
 - **Prompt/Vector Store Errors:** Verify IDs are correct and accessible with your API key 
 
-## TinaCMS Content Management (File-based)
+## TinaCMS Content Management (Local Mode)
 
-This project uses a file-based approach for content management, leveraging TinaCMS configuration for content structure.
+This project uses TinaCMS in local/self-hosted mode for content management.
 
 ### How the Admin Interface Works
-- The admin interface at `/admin` provides a dashboard for content management.
+- The TinaCMS admin interface at `/admin` provides full visual editing capabilities.
 - Content is stored as markdown files in the `/content` directory.
-- Changes are made through git commits and pushes.
+- Changes are made through the visual editor and saved to files.
 
 ### Local Development
-1. **Run the development server:**
+1. **Run the development server with TinaCMS:**
    ```bash
    npm run dev
    ```
+   This starts both TinaCMS dev server and Next.js together.
 
 2. **Access the admin interface:**
-   - Visit [http://localhost:3000/admin](http://localhost:3000/admin) to view content management dashboard.
+   - Visit [http://localhost:3000/admin](http://localhost:3000/admin) for the full TinaCMS admin interface.
 
 ### Production (Vercel)
+- The `postbuild` script automatically builds the TinaCMS admin interface.
 - The admin interface is available at `/admin` on your deployed site.
-- Content changes require git commits and pushes to take effect.
+- Content changes are made through the visual editor.
 
 ### Content Editing
+- Use the full TinaCMS admin interface at `/admin` for visual content editing.
 - All content is stored in the `/content` directory as markdown files.
-- Use the admin interface at `/admin` to view content structure and get templates.
-- Create new content by adding markdown files to the appropriate directories.
 - Changes are committed to your git repository and deployed automatically. 

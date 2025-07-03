@@ -1,16 +1,15 @@
-import { defineConfig } from "tinacms";
+import { defineConfig } from 'tinacms'
 
 export default defineConfig({
-  local: true,
-  branch: process.env.HEAD || process.env.VERCEL_GIT_COMMIT_REF || "main",
+  branch: 'main',
   build: {
-    outputFolder: "admin",
-    publicFolder: "public",
+    outputFolder: 'admin',
+    publicFolder: 'public',
   },
   media: {
     tina: {
-      mediaRoot: "uploads",
-      publicFolder: "public",
+      mediaRoot: '',
+      publicFolder: 'public',
     },
   },
   // See docs on content modeling for more info on how to setup new content models: https://tina.io/docs/schema/
