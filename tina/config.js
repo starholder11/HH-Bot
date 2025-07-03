@@ -19,6 +19,17 @@ export default defineConfig({
       publicFolder: "public",
     },
   },
+  admin: {
+    auth: {
+      onLogin: async ({ token }) => {
+        // For open source, we can implement custom auth here if needed
+        return { token };
+      },
+      onLogout: async () => {
+        // Handle logout
+      },
+    },
+  },
   // See docs on content modeling for more info on how to setup new content models: https://tina.io/docs/schema/
   schema: {
     collections: [
