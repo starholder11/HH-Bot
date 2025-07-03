@@ -1,14 +1,8 @@
 import { defineConfig } from "tinacms";
 
-// Your hosting provider likely exposes this as an environment variable
-const branch = process.env.HEAD || process.env.VERCEL_GIT_COMMIT_REF || "main";
-
 export default defineConfig({
-  branch,
-  
-  // Open source TinaCMS - no external authentication required
-  // Local development setup for admin interface
-
+  local: true,
+  branch: process.env.HEAD || process.env.VERCEL_GIT_COMMIT_REF || "main",
   build: {
     outputFolder: "admin",
     publicFolder: "public",
@@ -17,17 +11,6 @@ export default defineConfig({
     tina: {
       mediaRoot: "uploads",
       publicFolder: "public",
-    },
-  },
-  admin: {
-    auth: {
-      onLogin: async ({ token }) => {
-        // For open source, we can implement custom auth here if needed
-        return { token };
-      },
-      onLogout: async () => {
-        // Handle logout
-      },
     },
   },
   // See docs on content modeling for more info on how to setup new content models: https://tina.io/docs/schema/
