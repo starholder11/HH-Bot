@@ -1,7 +1,8 @@
 import { defineConfig } from 'tinacms'
 
 export default defineConfig({
-  branch: 'main',
+  branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
+  contentApiUrlOverride: '/api/tina/gql',
   build: {
     outputFolder: 'admin',
     publicFolder: 'public',
@@ -12,84 +13,41 @@ export default defineConfig({
       publicFolder: 'public',
     },
   },
-  // See docs on content modeling for more info on how to setup new content models: https://tina.io/docs/schema/
   schema: {
     collections: [
       {
-        name: "post",
-        label: "Posts",
-        path: "content/posts",
-        format: "mdx",
+        name: 'timeline',
+        label: 'Timeline',
+        path: 'content/timeline',
+        format: 'md',
         fields: [
           {
-            type: "string",
-            name: "title",
-            label: "Title",
+            type: 'string',
+            name: 'title',
+            label: 'Title',
             isTitle: true,
             required: true,
           },
           {
-            type: "string",
-            name: "description",
-            label: "Description",
+            type: 'string',
+            name: 'slug',
+            label: 'Slug',
             required: true,
           },
           {
-            type: "datetime",
-            name: "date",
-            label: "Date",
+            type: 'datetime',
+            name: 'date',
+            label: 'Date',
             required: true,
           },
           {
-            type: "rich-text",
-            name: "body",
-            label: "Body",
+            type: 'rich-text',
+            name: 'body',
+            label: 'Content',
             isBody: true,
-          },
-        ],
-      },
-      {
-        name: "timeline",
-        label: "Timeline",
-        path: "content/timeline",
-        format: "md",
-        ui: {
-          router: ({ document }) => {
-            return `/timeline/${document._sys.filename}`;
-          },
-        },
-        fields: [
-          {
-            type: "string",
-            name: "title",
-            label: "Title",
-            isTitle: true,
-            required: true,
-          },
-          {
-            type: "string",
-            name: "slug",
-            label: "Slug",
-            required: true,
-            description: "URL-friendly identifier (e.g., 'first-milestone')",
-          },
-          {
-            type: "datetime",
-            name: "date",
-            label: "Date",
-            required: true,
-            description: "When this milestone occurred",
-          },
-          {
-            type: "rich-text",
-            name: "body",
-            label: "Description",
-            isBody: true,
-            required: true,
-            description: "Rich text description of this timeline entry",
           },
         ],
       },
     ],
   },
-}); 
+}) 
