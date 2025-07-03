@@ -3,14 +3,12 @@ import { defineConfig } from 'tinacms'
 export default defineConfig({
   branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
   contentApiUrlOverride: '/api/tina/gql',
-  clientId: '',
-  token: '',
+  clientId: null,
+  token: null,
   useLocalAuth: true,
-  // Force local mode
-  localContentApiUrl: '/api/tina/gql',
-  build: {
-    outputFolder: 'admin',
-    publicFolder: 'public',
+  // Disable cloud features completely
+  cloud: {
+    enabled: false,
   },
   media: {
     tina: {
