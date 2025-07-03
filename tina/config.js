@@ -3,6 +3,8 @@ import { defineConfig } from 'tinacms'
 export default defineConfig({
   branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
   contentApiUrlOverride: '/api/tina/gql',
+  clientId: null,
+  token: null,
   build: {
     outputFolder: 'admin',
     publicFolder: 'public',
