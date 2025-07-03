@@ -28,7 +28,7 @@ export default function CreateAdmin() {
       if (response.ok) {
         setMessage('Admin user created successfully! You can now go to /admin to log in.')
       } else {
-        setMessage(data.error || 'Failed to create admin user')
+        setMessage(`${data.error || 'Failed to create admin user'}${data.details ? `: ${data.details}` : ''}`)
       }
     } catch (error) {
       setMessage('An error occurred')
