@@ -1,3 +1,5 @@
+'use client'
+
 import { TinaAdmin } from 'tinacms'
 import config from '../../../tina/config'
 
