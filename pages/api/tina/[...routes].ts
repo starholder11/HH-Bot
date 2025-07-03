@@ -4,9 +4,10 @@ import databaseClient from '../../../tina/__generated__/databaseClient'
 import database from '../../../tina/database'
 
 const isLocal = process.env.TINA_PUBLIC_IS_LOCAL === 'true'
+const hasRequiredConfig = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN && process.env.GITHUB_PERSONAL_ACCESS_TOKEN
 
 const handler = TinaNodeBackend({
-  authProvider: isLocal
+  authProvider: isLocal || !hasRequiredConfig
     ? LocalBackendAuthProvider()
     : AuthJsBackendAuthProvider({
         authOptions: TinaAuthJSOptions({
