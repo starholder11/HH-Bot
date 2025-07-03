@@ -17,7 +17,6 @@ const handler = TinaNodeBackend({
         }),
       }),
   databaseClient,
-  databaseAdapter: database,
 })
 
 export default (req, res) => {
