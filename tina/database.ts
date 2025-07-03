@@ -19,16 +19,16 @@ export default isLocal
   : hasRedisConfig && hasGitHubConfig
   ? createDatabase({
       gitProvider: new GitHubProvider({
-        repo: process.env.GITHUB_REPO || process.env.VERCEL_GIT_REPO_SLUG,
-        owner: process.env.GITHUB_OWNER || process.env.VERCEL_GIT_REPO_OWNER,
-        token: process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+        repo: (process.env.GITHUB_REPO || process.env.VERCEL_GIT_REPO_SLUG) || 'HH-Bot',
+        owner: (process.env.GITHUB_OWNER || process.env.VERCEL_GIT_REPO_OWNER) || 'starholder11',
+        token: process.env.GITHUB_PERSONAL_ACCESS_TOKEN || '',
         branch,
       }),
       databaseAdapter: new RedisLevel({
         namespace: branch,
         redis: {
-          url: process.env.KV_REST_API_URL,
-          token: process.env.KV_REST_API_TOKEN,
+          url: process.env.KV_REST_API_URL || '',
+          token: process.env.KV_REST_API_TOKEN || '',
         },
         debug: process.env.DEBUG === 'true' || false,
       }),
