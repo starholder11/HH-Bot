@@ -17,10 +17,10 @@ const hasGitHubConfig = process.env.GITHUB_PERSONAL_ACCESS_TOKEN
 // For production with authentication, we need both Redis and GitHub config
 if (process.env.NODE_ENV === 'production' && !isLocal) {
   if (!hasRedisConfig) {
-    throw new Error('KV_REST_API_URL and KV_REST_API_TOKEN are required for production')
+    console.warn('KV_REST_API_URL and KV_REST_API_TOKEN are missing, falling back to local database')
   }
   if (!hasGitHubConfig) {
-    throw new Error('GITHUB_PERSONAL_ACCESS_TOKEN is required for production')
+    console.warn('GITHUB_PERSONAL_ACCESS_TOKEN is missing, falling back to local database')
   }
 }
 
