@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "tinacms dev -c \"next dev\"",
     "build": "next build",
+    "postbuild": "tinacms build --local",
     "start": "next start",
     "lint": "next lint"
   },
