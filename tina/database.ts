@@ -14,6 +14,16 @@ if (!branch) {
 const hasRedisConfig = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
 const hasGitHubConfig = process.env.GITHUB_PERSONAL_ACCESS_TOKEN
 
+// For production with authentication, we need both Redis and GitHub config
+if (process.env.NODE_ENV === 'production' && !isLocal) {
+  if (!hasRedisConfig) {
+    throw new Error('KV_REST_API_URL and KV_REST_API_TOKEN are required for production')
+  }
+  if (!hasGitHubConfig) {
+    throw new Error('GITHUB_PERSONAL_ACCESS_TOKEN is required for production')
+  }
+}
+
 export default isLocal
   ? createLocalDatabase()
   : hasRedisConfig && hasGitHubConfig
