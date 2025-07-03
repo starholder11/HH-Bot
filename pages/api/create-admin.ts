@@ -13,10 +13,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Username, email, and password are required' })
     }
 
+    // Check environment variables
+    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+      return res.status(500).json({ 
+        error: 'Redis configuration missing',
+        details: 'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set'
+      })
+    }
+
     // Initialize Redis connection
     const redis = new Redis({
-      url: process.env.KV_REST_API_URL!,
-      token: process.env.KV_REST_API_TOKEN!,
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
     })
 
     // Check if admin user already exists
