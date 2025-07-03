@@ -3,7 +3,7 @@ import { GitHubProvider } from 'tinacms-gitprovider-github'
 import { Redis } from '@upstash/redis'
 import { RedisLevel } from 'upstash-redis-level'
 
-const isLocal = process.env.TINA_PUBLIC_IS_LOCAL === 'true'
+const isLocal = process.env.TINA_PUBLIC_IS_LOCAL === 'true' || !process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN
 const branch = process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main'
 
 if (!branch) {
