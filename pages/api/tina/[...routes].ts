@@ -16,5 +16,4 @@ export default TinaNodeBackend({
     }),
   }),
   databaseClient,
-  database,
 }) 
