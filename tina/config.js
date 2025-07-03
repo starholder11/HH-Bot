@@ -58,6 +58,48 @@ export default defineConfig({
           },
         ],
       },
+      {
+        name: "timeline",
+        label: "Timeline",
+        path: "content/timeline",
+        format: "md",
+        ui: {
+          router: ({ document }) => {
+            return `/timeline/${document._sys.filename}`;
+          },
+        },
+        fields: [
+          {
+            type: "string",
+            name: "title",
+            label: "Title",
+            isTitle: true,
+            required: true,
+          },
+          {
+            type: "string",
+            name: "slug",
+            label: "Slug",
+            required: true,
+            description: "URL-friendly identifier (e.g., 'first-milestone')",
+          },
+          {
+            type: "datetime",
+            name: "date",
+            label: "Date",
+            required: true,
+            description: "When this milestone occurred",
+          },
+          {
+            type: "rich-text",
+            name: "body",
+            label: "Description",
+            isBody: true,
+            required: true,
+            description: "Rich text description of this timeline entry",
+          },
+        ],
+      },
     ],
   },
 }); 
