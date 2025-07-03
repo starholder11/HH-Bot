@@ -27,6 +27,7 @@
     "tinacms-gitprovider-github": "^2.0.19",
     "tinacms-authjs": "^10.0.9",
     "next-auth": "^4.24.5",
+    "bcryptjs": "^2.4.3",
     "upstash-redis-level": "^1.1.1",
     "@upstash/redis": "^1.28.4",
     "gray-matter": "^4.0.3",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
-    "@types/node": "^20"
+    "@types/node": "^20",
+    "@types/bcryptjs": "^2.4.6"
   }
 } 

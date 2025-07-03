@@ -1,13 +1,12 @@
 import { defineConfig } from 'tinacms'
+import { UsernamePasswordAuthJSProvider } from 'tinacms-authjs/dist/tinacms'
 
 export default defineConfig({
   branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
   contentApiUrlOverride: '/api/tina/gql',
 
-  // Simple local authentication - no complex setup needed
-  clientId: null,
-  token: null,
-  useLocalAuth: true,
+  // Use real authentication - NOT clientId/token
+  authProvider: new UsernamePasswordAuthJSProvider(),
 
   build: {
     outputFolder: 'admin',
