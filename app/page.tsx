@@ -1,4 +1,4 @@
-import Chat from '@/components/Chat'
+import Link from 'next/link'
 
 export default function Home() {
   return (
@@ -7,13 +7,28 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <header className="text-center mb-8">
             <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-200 mb-2">
-              HH Bot Chat
+              Hyperreal Hospitality
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
-              Chat with your AI assistant powered by OpenAI
+              A retreat and sanctuary on the digital frontier
             </p>
           </header>
-          <Chat />
+          
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
+            <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200 mb-4">
+              Content Coming Soon
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              We're preparing our knowledge base and content library. 
+              In the meantime, you can chat with our AI assistant to explore the Starholder timeline.
+            </p>
+            <Link 
+              href="/chat" 
+              className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+            >
+              Start Chatting
+            </Link>
+          </div>
         </div>
       </div>
     </main>
