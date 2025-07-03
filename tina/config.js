@@ -6,6 +6,8 @@ export default defineConfig({
   clientId: '',
   token: '',
   useLocalAuth: true,
+  // Force local mode
+  localContentApiUrl: '/api/tina/gql',
   build: {
     outputFolder: 'admin',
     publicFolder: 'public',
