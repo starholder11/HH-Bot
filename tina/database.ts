@@ -10,9 +10,14 @@ if (!branch) {
   throw new Error('No branch found. Make sure that you have set the GITHUB_BRANCH or process.env.VERCEL_GIT_COMMIT_REF environment variable.')
 }
 
+// Check if required environment variables are available
+const hasRedisConfig = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
+const hasGitHubConfig = process.env.GITHUB_PERSONAL_ACCESS_TOKEN
+
 export default isLocal
   ? createLocalDatabase()
-  : createDatabase({
+  : hasRedisConfig && hasGitHubConfig
+  ? createDatabase({
       gitProvider: new GitHubProvider({
         repo: process.env.GITHUB_REPO || process.env.VERCEL_GIT_REPO_SLUG,
         owner: process.env.GITHUB_OWNER || process.env.VERCEL_GIT_REPO_OWNER,
@@ -27,4 +32,5 @@ export default isLocal
         },
         debug: process.env.DEBUG === 'true' || false,
       }),
-    }) 
+    })
+  : createLocalDatabase() 
