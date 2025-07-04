@@ -1,12 +1,11 @@
 import { defineConfig } from 'tinacms'
 
 export default defineConfig({
-  // Local mode with client ID
-  clientId: 'local',
-  branch: 'main',
-  contentApiUrlOverride: '/api/tina/gql',
-
-  // No authentication for testing - use LocalBackendAuthProvider
+  // TinaCMS Cloud configuration
+  branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
+  clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID,
+  token: process.env.TINA_TOKEN,
+  // Remove contentApiUrlOverride for cloud mode
 
   build: {
     outputFolder: 'admin',
