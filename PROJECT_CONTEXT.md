@@ -1,65 +1,40 @@
+# PROJECT RULES - READ FIRST BEFORE ANY IMPLEMENTATION
 
 ## Project Overview
-We are adding content management to an existing Next.js chatbot application to create an AI-powered knowledge base multiplication system. The existing chatbot MUST remain fully functional throughout this process.
+We are implementing Keystatic CMS in an existing Next.js chatbot application to create an AI-powered content multiplication system. The goal is to create a feedback loop where AI generates content based on existing knowledge base articles.
 
-## What we're building:
-- Adding content management to existing Next.js chatbot
-- Creating AI content generation pipeline
-- Establishing feedback loop between CMS and OpenAI vector store
-- Preserving ALL existing chatbot functionality
+## Technology Stack - KEYSTATIC FOCUSED
+- **CMS**: Keystatic (git-based, truly self-hosted)
+- **Frontend**: Next.js 14 (App Router)
+- **AI Integration**: OpenAI API
+- **Deployment**: Vercel
+- **Content Storage**: Git-based markdown files (required for AI integration)
+- **Authentication**: Keystatic built-in authentication
 
-## Current Project Structure (DO NOT MODIFY):
-├── app/
-│ ├── api/chat/route.ts # EXISTING OpenAI chatbot - DO NOT TOUCH
-│ ├── page.tsx # EXISTING home page with chatbot
-│ ├── layout.tsx # EXISTING root layout
-│ └── globals.css # EXISTING global styles
-├── components/
-│ └── Chat.tsx # EXISTING chatbot component - DO NOT TOUCH
-├── .env.local # EXISTING environment variables
-├── .env.example # EXISTING template
-└── README.md # EXISTING documentation
+## Architecture Overview
+- **Frontend**: Next.js app serving both chatbot and content
+- **Content Management**: Keystatic admin interface at /keystatic
+- **Content Storage**: Markdown files in /content/timeline/
+- **AI Pipeline**: OpenAI reads markdown files → generates new content → saves as new markdown
+- **Chatbot**: Existing OpenAI integration at /chat
 
-## Technology Stack:
-- **Framework**: Next.js 14 (existing)
-- **CMS**: Markdown-based content management
-- **Deployment**: Vercel (existing setup)
-- **Styling**: Tailwind CSS (existing)
-- **AI Integration**: OpenAI API (existing)
-- **Media Storage**: AWS S3 (to be added)
-- **Content Storage**: Git-based markdown files
+## Critical Requirements
+1. **Git-based content storage** - Essential for OpenAI file search integration
+2. **Working authentication** - Admin must be protected
+3. **Vercel deployment** - Must work on serverless platform
+4. **AI feedback loop** - Content must be accessible to OpenAI for content generation
 
-## Critical Constraints:
-- **PRESERVE existing chatbot functionality** - move to `/chat` page, don't break it
-- **NEVER modify components/Chat.tsx** - just move it to a new page
-- **NEVER modify app/api/chat/route.ts** - API stays the same
-- **SAFELY modify app/page.tsx** - transform from chatbot to content homepage
-- **ALWAYS test locally** before considering a task complete
-- **ALWAYS preserve existing environment variables** and add new ones
+## CRITICAL CONSTRAINTS
+- **NEVER modify**: app/api/chat/route.ts, components/Chat.tsx
+- **PRESERVE**: All existing chatbot functionality
+- **MAINTAIN**: Git-based content storage (essential for AI)
+- **ENSURE**: Working authentication (no open admin)
+- **TEST**: Vercel deployment compatibility
 
-## Architecture Goals:
-- `/` = New content homepage (articles/blog)
-- `/chat` = Existing chatbot (moved to dedicated page)
-- `/admin` = Content management interface (future)
-- `/content/` = New content directory for articles
-- `/tina/` = Content configuration (future)
-
-## File Creation Rules:
-- Content files go in `/content/posts/`
-- Content config goes in `/lib/content-manager.ts`
-- Admin interface at `/app/admin/page.tsx`
-- Chatbot moves to `/app/chat/page.tsx`
-- Homepage becomes content display at `/app/page.tsx`
-- New API routes for content sync at `/app/api/content/`
-
-## OpenAI Integration Context:
-- Existing vector store ID: `vs_6860128217f08191bacd30e1475d8566`
-- Existing prompt ID: `pmpt_6860145bd5908196b230e507ed5d77a604ffb6d8d850b993`
-- These will be used for content synchronization
-
-## Success Criteria for Each Task:
-- [ ] `npm run dev` works without errors
-- [ ] Existing chatbot at `/` functions perfectly
-- [ ] No TypeScript compilation errors
-- [ ] No console errors in browser
-- [ ] Git status is clean (no unintended file modifications)
+## Success Criteria
+- [ ] Keystatic admin accessible at /keystatic with authentication
+- [ ] Timeline content manageable through admin interface
+- [ ] Content stored as markdown files in git repository
+- [ ] Existing chatbot functionality preserved at /chat
+- [ ] AI can read/write content files for content generation
+- [ ] Deploys successfully to Vercel
