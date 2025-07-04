@@ -49,14 +49,29 @@ export async function POST(request: NextRequest) {
     // Parse webhook payload
     const payload: GitHubWebhookPayload = JSON.parse(rawBody);
     
+    // Debug: Log all changed files
+    const allChangedFiles = payload.commits.flatMap(commit => [
+      ...commit.added,
+      ...commit.modified,
+      ...commit.removed
+    ]);
+
+    console.log('🔍 All files changed in this webhook:', allChangedFiles);
+    console.log('📁 Looking for files starting with: content/timeline/');
+    console.log('📋 Webhook payload commits:', payload.commits.length);
+    
     // Only process timeline content changes
     const timelineFiles = new Set<string>();
     
     for (const commit of payload.commits) {
+      console.log('🔍 Commit:', commit.id, 'added:', commit.added, 'modified:', commit.modified);
+      
       // Check added and modified files
       [...commit.added, ...commit.modified].forEach(file => {
+        console.log('🔍 Checking file:', file, 'starts with content/timeline/:', file.startsWith('content/timeline/'), 'ends with .md:', file.endsWith('.md'));
         if (file.startsWith('content/timeline/') && file.endsWith('.md')) {
           timelineFiles.add(file);
+          console.log('✅ Added to timeline files:', file);
         }
       });
       
