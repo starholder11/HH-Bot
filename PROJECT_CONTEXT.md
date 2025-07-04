@@ -1,9 +1,9 @@
 
 ## Project Overview
-We are adding TinaCMS to an existing Next.js chatbot application to create an AI-powered knowledge base multiplication system. The existing chatbot MUST remain fully functional throughout this process.
+We are adding content management to an existing Next.js chatbot application to create an AI-powered knowledge base multiplication system. The existing chatbot MUST remain fully functional throughout this process.
 
 ## What we're building:
-- Adding TinaCMS content management to existing Next.js chatbot
+- Adding content management to existing Next.js chatbot
 - Creating AI content generation pipeline
 - Establishing feedback loop between CMS and OpenAI vector store
 - Preserving ALL existing chatbot functionality
@@ -22,7 +22,7 @@ We are adding TinaCMS to an existing Next.js chatbot application to create an AI
 
 ## Technology Stack:
 - **Framework**: Next.js 14 (existing)
-- **CMS**: TinaCMS (open source version, NOT TinaCMS Cloud)
+- **CMS**: Markdown-based content management
 - **Deployment**: Vercel (existing setup)
 - **Styling**: Tailwind CSS (existing)
 - **AI Integration**: OpenAI API (existing)
@@ -38,15 +38,15 @@ We are adding TinaCMS to an existing Next.js chatbot application to create an AI
 - **ALWAYS preserve existing environment variables** and add new ones
 
 ## Architecture Goals:
-- `/` = New TinaCMS content homepage (articles/blog)
+- `/` = New content homepage (articles/blog)
 - `/chat` = Existing chatbot (moved to dedicated page)
-- `/admin` = New TinaCMS admin interface
+- `/admin` = Content management interface (future)
 - `/content/` = New content directory for articles
-- `/tina/` = TinaCMS configuration
+- `/tina/` = Content configuration (future)
 
 ## File Creation Rules:
 - Content files go in `/content/posts/`
-- TinaCMS config goes in `/tina/config.js`
+- Content config goes in `/lib/content-manager.ts`
 - Admin interface at `/app/admin/page.tsx`
 - Chatbot moves to `/app/chat/page.tsx`
 - Homepage becomes content display at `/app/page.tsx`
