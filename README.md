@@ -9,6 +9,7 @@ A Next.js chat application that integrates with OpenAI's Responses API and file 
 - 🎨 Modern, responsive UI with dark mode support
 - ⚡ Streaming responses for better user experience
 - 🔒 Secure API key management
+- 🔄 Auto-sync timeline content to OpenAI vector store via GitHub webhooks
 
 ## Prerequisites
 
