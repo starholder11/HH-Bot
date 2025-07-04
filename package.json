@@ -1,6 +1,6 @@
 {
-  "name": "hh-bot-chat",
-  "version": "0.1.0",
+  "name": "timeline-with-chatbot",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -21,9 +21,10 @@
     "tailwindcss": "^3.3.0",
     "typescript": "^5",
     "lucide-react": "^0.400.0",
-
     "gray-matter": "^4.0.3",
-    "@tailwindcss/typography": "^0.5.10"
+    "@tailwindcss/typography": "^0.5.10",
+    "@keystatic/core": "^0.5.47",
+    "@keystatic/next": "^5.0.4"
   },
   "devDependencies": {
     "eslint": "^8",
