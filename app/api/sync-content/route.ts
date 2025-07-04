@@ -82,19 +82,11 @@ export async function POST(request: NextRequest) {
           payload.commits[0].id
         );
         
-        // Create temporary file for upload
+        // Get filename from path
         const fileName = filePath.split('/').pop() || 'unknown.md';
-        const tempFilePath = `/tmp/${fileName}`;
         
-        // Write content to temp file
-        const fs = require('fs');
-        fs.writeFileSync(tempFilePath, fileContent);
-        
-        // Sync to vector store
-        await syncTimelineFile(tempFilePath, fileName);
-        
-        // Clean up temp file
-        fs.unlinkSync(tempFilePath);
+        // Sync to vector store with file content
+        await syncTimelineFile(fileContent, fileName);
         
         syncResults.push({
           file: fileName,
