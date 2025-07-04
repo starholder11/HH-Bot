@@ -1,12 +1,20 @@
 import { defineConfig } from 'tinacms'
-import { UsernamePasswordAuthJSProvider } from 'tinacms-authjs/dist/tinacms'
 
 export default defineConfig({
   branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
   contentApiUrlOverride: '/api/tina/gql',
 
-  // Use real authentication
-  authProvider: new UsernamePasswordAuthJSProvider(),
+  // Use TinaCMS's built-in authentication
+  authProvider: {
+    type: 'credentials',
+    users: [
+      {
+        name: 'spaceman',
+        email: 'cfurlong@gmail.com',
+        password: 'admin123',
+      },
+    ],
+  },
 
   build: {
     outputFolder: 'admin',
