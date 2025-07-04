@@ -1,11 +1,7 @@
 import { TinaNodeBackend } from '@tinacms/datalayer'
 import { AuthJsBackendAuthProvider, TinaAuthJSOptions } from 'tinacms-authjs'
 import databaseClient from '../../../tina/__generated__/databaseClient'
-
-// Validate required environment variables
-if (!process.env.NEXTAUTH_SECRET) {
-  throw new Error('NEXTAUTH_SECRET environment variable is required')
-}
+import database from '../../../tina/database'
 
 export default TinaNodeBackend({
   authProvider: AuthJsBackendAuthProvider({
@@ -15,4 +11,5 @@ export default TinaNodeBackend({
     }),
   }),
   databaseClient,
+  database,
 }) 
