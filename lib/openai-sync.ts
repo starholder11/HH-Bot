@@ -26,8 +26,9 @@ export async function uploadFileToVectorStore(
     // Convert string content to Buffer for upload
     const buffer = Buffer.from(fileContent, 'utf8');
     
-    // Create a File object for upload
-    const file = new File([buffer], fileName, { type: 'text/markdown' });
+    // Change .mdoc to .md for OpenAI compatibility
+    const uploadFileName = fileName.replace('.mdoc', '.md');
+    const file = new File([buffer], uploadFileName, { type: 'text/markdown' });
     
     // Upload to vector store using the researched API method
     const vectorStoreFile = await openai.vectorStores.files.upload(
