@@ -31,7 +31,7 @@
 
 ## Safe to Create:
 - Anything in `/content/`
-- Anything in `/tina/`
+- Content configuration files (future)
 - New files in `/app/admin/`
 - New files in `/app/api/content/`
 - New component files in `/components/`

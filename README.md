@@ -114,31 +114,31 @@ A Next.js chat application that integrates with OpenAI's Responses API and file 
 - **Streaming Problems:** Check network configuration and CORS settings
 - **Prompt/Vector Store Errors:** Verify IDs are correct and accessible with your API key 
 
-## TinaCMS Content Management (Local Mode)
+## Content Management
 
-This project uses TinaCMS in local/self-hosted mode for content management.
+This project uses markdown-based content management.
 
-### How the Admin Interface Works
-- The TinaCMS admin interface at `/admin` provides full visual editing capabilities.
+### How Content Management Works
 - Content is stored as markdown files in the `/content` directory.
-- Changes are made through the visual editor and saved to files.
+- Changes are made by editing markdown files directly.
+- Content is automatically processed and displayed on the site.
 
 ### Local Development
-1. **Run the development server with TinaCMS:**
+1. **Run the development server:**
    ```bash
    npm run dev
    ```
-   This starts both TinaCMS dev server and Next.js together.
 
-2. **Access the admin interface:**
-   - Visit [http://localhost:3000/admin](http://localhost:3000/admin) for the full TinaCMS admin interface.
+2. **Edit content:**
+   - Edit markdown files directly in the `/content` directory.
+   - Changes are reflected immediately in development.
 
 ### Production (Vercel)
-- The `postbuild` script automatically builds the TinaCMS admin interface.
-- The admin interface is available at `/admin` on your deployed site.
-- Content changes are made through the visual editor.
+- Content is served statically from markdown files.
+- No additional build steps required for content.
+- Changes are deployed when you push to git.
 
 ### Content Editing
-- Use the full TinaCMS admin interface at `/admin` for visual content editing.
-- All content is stored in the `/content` directory as markdown files.
+- Edit markdown files directly in the `/content` directory.
+- All content is stored as markdown files.
 - Changes are committed to your git repository and deployed automatically. 

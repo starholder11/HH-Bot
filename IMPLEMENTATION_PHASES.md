@@ -1,16 +1,16 @@
 # IMPLEMENTATION PHASES - Sequential Task Breakdown
 
-## Phase 1: TinaCMS Foundation (Week 1)
+## Phase 1: Content Management Foundation (Week 1)
 ### Task 1.1: Restructure App Layout
 - Create `/app/chat/page.tsx` and move chatbot there
 - Transform `/app/page.tsx` into content homepage placeholder
 - Update navigation to include chat link
 - Verify chatbot works at `/chat`
 
-### Task 1.2: Install TinaCMS
-- Install TinaCMS packages
-- Create basic tina/config.js
-- Add admin route
+### Task 1.2: Set Up Content Management
+- Set up markdown content management
+- Create content directory structure
+- Set up basic markdown template
 - Verify no conflicts with existing code
 
 ### Task 1.3: Create Content Schema
@@ -18,8 +18,8 @@
 - Create content directory structure
 - Set up basic markdown template
 
-### Task 1.4: Test Admin Interface
-- Verify admin interface loads
+### Task 1.4: Test Content System
+- Verify content system loads
 - Test basic content creation
 - Ensure chatbot at `/chat` unaffected
 
@@ -31,7 +31,7 @@
 
 ### Task 2.2: Configure S3 Media
 - Set up S3 bucket configuration
-- Integrate TinaCMS with S3
+- Integrate content management with S3
 - Test media upload workflow
 
 ### Task 2.3: Content Migration

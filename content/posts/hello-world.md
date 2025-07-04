@@ -6,7 +6,7 @@ date: "2025-01-01T00:00:00.000Z"
 
 # Welcome to Hyperreal Hospitality
 
-This is a sample post to test the TinaCMS content management system.
+This is a sample post to test the content management system.
 
 ## About This Site
 
