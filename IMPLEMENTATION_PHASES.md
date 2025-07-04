@@ -1,67 +1,80 @@
-# IMPLEMENTATION PHASES - Sequential Task Breakdown
+## 4. IMPLEMENTATION_PHASES.md
 
-## Phase 1: Content Management Foundation (Week 1)
-### Task 1.1: Restructure App Layout
-- Create `/app/chat/page.tsx` and move chatbot there
-- Transform `/app/page.tsx` into content homepage placeholder
-- Update navigation to include chat link
-- Verify chatbot works at `/chat`
+```markdown
+# IMPLEMENTATION PHASES - KEYSTATIC CMS INTEGRATION
 
-### Task 1.2: Set Up Content Management
-- Set up markdown content management
-- Create content directory structure
-- Set up basic markdown template
-- Verify no conflicts with existing code
+## Phase 1: Clean Up and Setup (30 minutes)
 
-### Task 1.3: Create Content Schema
-- Define post collection structure
-- Create content directory structure
-- Set up basic markdown template
+### Task 1.1: Remove TinaCMS Completely
+- Remove all TinaCMS packages from package.json
+- Delete tina/ directory
+- Delete pages/api/tina/ directory  
+- Remove any TinaCMS imports and references
+- Clean up environment variables related to TinaCMS
 
-### Task 1.4: Test Content System
-- Verify content system loads
-- Test basic content creation
-- Ensure chatbot at `/chat` unaffected
+### Task 1.2: Install Keystatic
+- Install @keystatic/core and @keystatic/next packages
+- Verify installation and dependencies
 
-## Phase 2: Content Integration (Week 2)
-### Task 2.1: Build Content Display
-- Create blog listing page
-- Create individual post pages
-- Add navigation between sections
+### Task 1.3: Basic Keystatic Configuration
+- Create keystatic.config.tsx in project root
+- Set up basic timeline collection schema
+- Configure git-based storage
 
-### Task 2.2: Configure S3 Media
-- Set up S3 bucket configuration
-- Integrate content management with S3
-- Test media upload workflow
+## Phase 2: Admin Interface Setup (45 minutes)
 
-### Task 2.3: Content Migration
-- Import existing articles
-- Verify content rendering
-- Test internal linking
+### Task 2.1: Create Admin Route
+- Create app/keystatic/[[...params]]/page.tsx
+- Set up Keystatic route handler
+- Test admin interface accessibility
 
-## Phase 3: AI Integration (Week 3-4)
-### Task 3.1: Content Sync Pipeline
-- Create API route for OpenAI sync
-- Implement webhook for content changes
-- Update vector store with new content
+### Task 2.2: Configure Authentication
+- Implement Keystatic authentication
+- Secure admin access
+- Test login functionality
 
-### Task 3.2: AI Content Generation
-- Build separate admin interface
-- Create content generation workflow
-- Implement review process
+### Task 2.3: Content Schema Configuration  
+- Define timeline collection fields
+- Configure markdown format
+- Set up proper URL routing
 
-### Task 3.3: Feedback Loop
-- Auto-sync generated content
-- Test complete content cycle
-- Add quality controls
+## Phase 3: Content Migration and Display (30 minutes)
 
-## Phase 4: Production (Week 5)
-### Task 4.1: Deployment
-- Configure production environment
-- Test full system in production
-- Monitor and optimize
+### Task 3.1: Content Directory Setup
+- Migrate existing timeline content to Keystatic format
+- Ensure proper markdown formatting
+- Test content accessibility
 
-## Current Status: Ready for Phase 1, Task 1.1 (App Restructure)
+### Task 3.2: Content Display Pages
+- Update timeline display for Keystatic compatibility
+- Test content rendering
+- Ensure internal linking works
 
-## Next Task Template:
-When ready for the next task, use this format:
+### Task 3.3: Navigation Updates
+- Update navigation for new admin interface
+- Test user flow between sections
+
+## Phase 4: Testing and Deployment (30 minutes)
+
+### Task 4.1: Local Testing
+- Test all functionality locally
+- Verify admin interface works
+- Test content creation and editing
+
+### Task 4.2: Vercel Deployment
+- Deploy to Vercel
+- Test production deployment
+- Verify admin access in production
+
+### Task 4.3: AI Integration Prep
+- Verify content files accessible for OpenAI
+- Document structure for AI pipeline
+- Prepare for content generation workflow
+
+## Success Metrics
+- [ ] Keystatic admin accessible with authentication
+- [ ] Content manageable through visual interface
+- [ ] Markdown files properly stored in git
+- [ ] Existing chatbot functionality preserved
+- [ ] Production deployment working
+- [ ] Ready for AI content integration
