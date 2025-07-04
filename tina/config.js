@@ -1,8 +1,8 @@
 import { defineConfig } from 'tinacms'
 
 export default defineConfig({
-  clientId: process.env.NEXT_PUBLIC_TINA_CLIENT_ID,
-  branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
+  // Pure local mode - no cloud configuration
+  branch: 'main',
   contentApiUrlOverride: '/api/tina/gql',
 
   // No authentication for testing - use LocalBackendAuthProvider
