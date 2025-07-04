@@ -1,11 +1,12 @@
 import { defineConfig } from 'tinacms'
+import { UsernamePasswordAuthJSProvider } from 'tinacms-authjs/dist/tinacms'
 
 export default defineConfig({
   branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
   contentApiUrlOverride: '/api/tina/gql',
 
-  // Disable authentication for now to get the admin interface working
-  // We'll handle auth through NextAuth.js separately
+  // Use real authentication
+  authProvider: new UsernamePasswordAuthJSProvider(),
 
   build: {
     outputFolder: 'admin',
