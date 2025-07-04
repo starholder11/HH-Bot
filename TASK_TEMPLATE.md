@@ -8,6 +8,13 @@
 ### Context:
 [Brief explanation of why this task is needed and how it fits into the overall Keystatic implementation]
 
+### CRITICAL RESEARCH REQUIREMENTS:
+- [ ] **NEVER invent imports, functions, or patterns** - Only use documented APIs
+- [ ] **Verify all imports exist** - Check actual package exports before using
+- [ ] **Research official documentation** - Find real examples, not assumptions
+- [ ] **No lazy workarounds** - If something doesn't work, research the correct approach
+- [ ] **Ask for clarification** - Don't guess when uncertain about implementation
+
 ### Constraints:
 - [ ] Do not modify files listed in DONT_TOUCH.md
 - [ ] Follow project structure defined in PROJECT_CONTEXT.md  
@@ -38,13 +45,33 @@
 ### Implementation Notes:
 [Any specific technical details, Keystatic configuration requirements, or implementation guidance]
 
+### When Implementation Fails:
+**If imports don't work:**
+1. STOP immediately - do not invent alternatives
+2. Research official documentation for correct imports
+3. Check actual package exports in node_modules
+4. Report findings and ask for guidance
+
+**If patterns don't work:**
+1. STOP immediately - do not create workarounds  
+2. Research official examples and documentation
+3. Verify you're following documented patterns exactly
+4. Report what you found and ask for clarification
+
+**NEVER:**
+- Invent function names or import paths
+- Delete code that doesn't work without understanding why
+- Assume patterns without verification
+- Create custom solutions when official ones should exist
+
 ### Validation Steps:
-1. [Step 1 to verify the task is complete]
-2. [Step 2 to verify the task is complete] 
-3. [Step 3 to verify the task is complete]
-4. Test chatbot functionality at /chat
-5. Verify no console errors
-6. Confirm content structure maintains AI integration compatibility
+1. **FIRST: Verify all imports exist** - Check node_modules and package exports
+2. **Research validation** - Confirm patterns match official documentation
+3. [Step 3 to verify the task is complete] 
+4. [Step 4 to verify the task is complete]
+5. Test chatbot functionality at /chat
+6. Verify no console errors
+7. Confirm content structure maintains AI integration compatibility
 
 ---
 
@@ -58,6 +85,12 @@ Add Keystatic CMS packages to the project and remove TinaCMS dependencies
 ### Context:
 This is the foundation step to replace TinaCMS with Keystatic for truly self-hosted content management that works with our AI integration requirements.
 
+### CRITICAL RESEARCH REQUIREMENTS:
+- [ ] **Research exact package names** - Verify @keystatic/core and @keystatic/next exist
+- [ ] **Check compatibility** - Ensure packages work with Next.js 14
+- [ ] **No assumptions** - Use only documented package names and versions
+- [ ] **Verify installation** - Confirm packages actually install and import correctly
+
 ### Constraints:
 - [ ] Do not modify files listed in DONT_TOUCH.md
 - [ ] Only modify package.json for dependency changes
@@ -70,7 +103,9 @@ This is the foundation step to replace TinaCMS with Keystatic for truly self-hos
 - [ ] Existing chatbot at /chat still works perfectly
 
 ### Validation Steps:
-1. Run npm install successfully
-2. Run npm run dev without errors
-3. Test chatbot at /chat works normally
-4. Verify no TinaCMS references remain
+1. **FIRST: Verify packages exist** - Check npm registry for real package names
+2. **Research validation** - Confirm packages are officially maintained
+3. Run npm install successfully
+4. Run npm run dev without errors
+5. Test chatbot at /chat works normally
+6. Verify no TinaCMS references remain
