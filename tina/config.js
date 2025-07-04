@@ -1,7 +1,8 @@
 import { defineConfig } from 'tinacms'
 
 export default defineConfig({
-  // Pure local mode - no cloud configuration
+  // Local mode with client ID
+  clientId: 'local',
   branch: 'main',
   contentApiUrlOverride: '/api/tina/gql',
 
