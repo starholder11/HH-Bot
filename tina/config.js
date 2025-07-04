@@ -4,17 +4,7 @@ export default defineConfig({
   branch: process.env.GITHUB_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || 'main',
   contentApiUrlOverride: '/api/tina/gql',
 
-  // Use TinaCMS's built-in authentication
-  authProvider: {
-    type: 'credentials',
-    users: [
-      {
-        name: 'spaceman',
-        email: 'cfurlong@gmail.com',
-        password: 'admin123',
-      },
-    ],
-  },
+  // No authentication for testing - use LocalBackendAuthProvider
 
   build: {
     outputFolder: 'admin',
