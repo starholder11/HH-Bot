@@ -66,14 +66,14 @@ export async function POST(request: NextRequest) {
     for (const commit of payload.commits) {
       console.log('🔍 Commit:', commit.id, 'added:', commit.added, 'modified:', commit.modified);
       
-      // Check added and modified files
-      [...commit.added, ...commit.modified].forEach(file => {
-        console.log('🔍 Checking file:', file, 'starts with content/timeline/:', file.startsWith('content/timeline/'), 'ends with .md:', file.endsWith('.md'));
-        if (file.startsWith('content/timeline/') && file.endsWith('.md')) {
-          timelineFiles.add(file);
-          console.log('✅ Added to timeline files:', file);
-        }
-      });
+              // Check added and modified files
+        [...commit.added, ...commit.modified].forEach(file => {
+          console.log('🔍 Checking file:', file, 'starts with content/timeline/:', file.startsWith('content/timeline/'), 'ends with .mdoc:', file.endsWith('.mdoc'));
+          if (file.startsWith('content/timeline/') && file.endsWith('.mdoc')) {
+            timelineFiles.add(file);
+            console.log('✅ Added to timeline files:', file);
+          }
+        });
       
       // Note: We'll handle deletions separately if needed
       // For now, we'll let files remain in the vector store
