@@ -19,33 +19,6 @@ export default defineConfig({
   },
   schema: {
     collections: [
-      // TinaCMS user collection for authentication
-      {
-        name: 'users',
-        label: 'Users',
-        path: 'content/users',
-        format: 'json',
-        fields: [
-          {
-            type: 'string',
-            name: 'name',
-            label: 'Name',
-            required: true,
-          },
-          {
-            type: 'string',
-            name: 'email',
-            label: 'Email',
-            required: true,
-          },
-          {
-            type: 'password',
-            name: 'password',
-            label: 'Password',
-            required: true,
-          },
-        ],
-      },
       // Your existing timeline collection
       {
         name: 'timeline',
