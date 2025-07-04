@@ -12,32 +12,28 @@ const VECTOR_STORE_ID = 'vs_6860128217f08191bacd30e1475d8566';
 
 /**
  * Upload a markdown file to the OpenAI vector store
- * @param filePath - Path to the markdown file
+ * @param fileContent - The file content as string
  * @param fileName - Name for the file in the vector store
  * @returns Promise<VectorStoreFile>
  */
 export async function uploadFileToVectorStore(
-  filePath: string,
+  fileContent: string,
   fileName: string
 ) {
   try {
     console.log(`📤 Uploading ${fileName} to vector store...`);
     
-    // Read the file content
-    const fileContent = fs.readFileSync(filePath, 'utf8');
+    // Convert string content to Buffer for upload
+    const buffer = Buffer.from(fileContent, 'utf8');
     
-    // Create a temporary file for upload
-    const tempFilePath = path.join('/tmp', fileName);
-    fs.writeFileSync(tempFilePath, fileContent);
+    // Create a File object for upload
+    const file = new File([buffer], fileName, { type: 'text/markdown' });
     
     // Upload to vector store using the researched API method
     const vectorStoreFile = await openai.vectorStores.files.upload(
       VECTOR_STORE_ID,
-      fs.createReadStream(tempFilePath)
+      file
     );
-    
-    // Clean up temp file
-    fs.unlinkSync(tempFilePath);
     
     console.log(`✅ Successfully uploaded ${fileName} to vector store`);
     return vectorStoreFile;
@@ -86,10 +82,10 @@ export async function deleteFileFromVectorStore(fileId: string) {
 
 /**
  * Sync a timeline file to the vector store (handles updates)
- * @param filePath - Path to the markdown file
+ * @param fileContent - The file content as string
  * @param fileName - Name for the file in the vector store
  */
-export async function syncTimelineFile(filePath: string, fileName: string) {
+export async function syncTimelineFile(fileContent: string, fileName: string) {
   try {
     // Check if file already exists
     const existingFileId = await findExistingFile(fileName);
@@ -101,7 +97,7 @@ export async function syncTimelineFile(filePath: string, fileName: string) {
     }
     
     // Upload new/updated file
-    await uploadFileToVectorStore(filePath, fileName);
+    await uploadFileToVectorStore(fileContent, fileName);
     
   } catch (error) {
     console.error(`❌ Error syncing ${fileName}:`, error);
