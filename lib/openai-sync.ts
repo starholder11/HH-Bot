@@ -110,28 +110,52 @@ export async function syncTimelineFile(fileContent: string, fileName: string) {
  * Get file content from GitHub API (for webhook processing)
  * @param filePath - Path to the file in the repository
  * @param commitSha - Commit SHA for the file version
- * @returns Promise<string> - File content
+ * @param isBinary - Whether the file is binary (for images)
+ * @returns Promise<string> - File content (base64 for binary, text for text)
  */
 export async function getFileContentFromGitHub(
   filePath: string,
-  commitSha: string
+  commitSha: string,
+  isBinary: boolean = false
 ): Promise<string> {
   try {
-    const response = await fetch(
-      `https://api.github.com/repos/starholder11/HH-Bot/contents/${filePath}?ref=${commitSha}`,
-      {
-        headers: {
-          'Accept': 'application/vnd.github.v3.raw',
-          'User-Agent': 'HH-Bot-Sync'
-        }
+    console.log('🔍 Downloading file from GitHub:', filePath);
+    console.log('🔍 Is binary file:', isBinary);
+    console.log('🔍 Commit SHA:', commitSha);
+    
+    // URL encode the file path to handle spaces
+    const encodedPath = encodeURIComponent(filePath);
+    console.log('🔍 Encoded path:', encodedPath);
+    
+    const url = `https://api.github.com/repos/starholder11/HH-Bot/contents/${encodedPath}?ref=${commitSha}`;
+    console.log('🔍 GitHub API URL:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': isBinary ? 'application/vnd.github.v3+json' : 'application/vnd.github.v3.raw',
+        'User-Agent': 'HH-Bot-Sync'
       }
-    );
+    });
     
     if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
+      console.error('❌ GitHub API error:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('❌ Error response:', errorText);
+      throw new Error(`GitHub API error: ${response.status} - ${errorText}`);
     }
     
-    return await response.text();
+    if (isBinary) {
+      // For binary files, get JSON response with base64 content
+      const data = await response.json();
+      console.log('📊 Downloaded binary file size:', data.size, 'bytes');
+      console.log('📋 File type from GitHub:', data.type);
+      return data.content;
+    } else {
+      // For text files, get raw content
+      const content = await response.text();
+      console.log('📊 Downloaded text file size:', content.length, 'bytes');
+      return content;
+    }
   } catch (error) {
     console.error(`❌ Error fetching file content from GitHub:`, error);
     throw error;

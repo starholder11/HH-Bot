@@ -37,6 +37,8 @@ async function processImage(
   buffer: Buffer,
   options: ImageUploadOptions = {}
 ): Promise<{ buffer: Buffer; contentType: string; extension: string }> {
+  console.log('🖼️ Starting Sharp image processing...');
+  
   const {
     quality = 85,
     maxWidth = 1920,
@@ -44,16 +46,24 @@ async function processImage(
     format = 'jpeg'
   } = options;
 
+  console.log('⚙️ Processing options:', { quality, maxWidth, maxHeight, format });
+
   let sharpInstance = sharp(buffer);
 
   // Resize if needed
+  console.log('📏 Getting image metadata...');
   const metadata = await sharpInstance.metadata();
+  console.log('📊 Image metadata:', metadata);
+  
   if (metadata.width && metadata.height) {
     if (metadata.width > maxWidth || metadata.height > maxHeight) {
+      console.log('📏 Resizing image from', metadata.width, 'x', metadata.height, 'to max', maxWidth, 'x', maxHeight);
       sharpInstance = sharpInstance.resize(maxWidth, maxHeight, {
         fit: 'inside',
         withoutEnlargement: true
       });
+    } else {
+      console.log('📏 Image size OK, no resizing needed');
     }
   }
 
@@ -140,6 +150,9 @@ export async function uploadImage(
   options: ImageUploadOptions = {}
 ): Promise<UploadResult> {
   try {
+    console.log('🖼️ Starting S3 image upload process...');
+    console.log('📊 Input file type:', file instanceof File ? 'File' : 'Buffer');
+    
     // Convert File to Buffer if needed
     let buffer: Buffer;
     let originalName: string;
@@ -147,16 +160,27 @@ export async function uploadImage(
     if (file instanceof File) {
       buffer = Buffer.from(await file.arrayBuffer());
       originalName = file.name;
+      console.log('📊 File name:', originalName);
     } else {
       buffer = file;
       originalName = 'image';
+      console.log('📊 Buffer input, using default name');
     }
 
+    console.log('📊 Buffer size:', buffer.length, 'bytes');
+    console.log('📊 First 16 bytes (hex):', buffer.slice(0, 16).toString('hex'));
+
     // Detect file type
+    console.log('🔍 Detecting file type...');
     const fileType = await fileTypeFromBuffer(buffer);
+    console.log('📋 Detected file type:', fileType);
+    
     if (!fileType || !fileType.mime.startsWith('image/')) {
+      console.error('❌ Invalid file type detected:', fileType);
       throw new Error('Invalid image file');
     }
+    
+    console.log('✅ Valid image file detected:', fileType.mime);
 
     // Process image
     const { buffer: processedBuffer, contentType, extension } = await processImage(
