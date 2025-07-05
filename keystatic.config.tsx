@@ -32,12 +32,14 @@ export default config({
         }),
         featuredImage: fields.image({
           label: 'Featured Image',
-          directory: 'public/images'
+          directory: 'public/images',
+          publicPath: 'https://drbs5yklwtho3.cloudfront.net/images/'
         }),
         gallery: fields.array(
           fields.image({
             label: 'Gallery Image',
-            directory: 'public/images'
+            directory: 'public/images',
+            publicPath: 'https://drbs5yklwtho3.cloudfront.net/images/'
           }),
           {
             label: 'Image Gallery'
@@ -46,7 +48,8 @@ export default config({
         attachments: fields.array(
           fields.file({
             label: 'Attachment',
-            directory: 'public/files'
+            directory: 'public/files',
+            publicPath: 'https://drbs5yklwtho3.cloudfront.net/files/'
           }),
           {
             label: 'File Attachments'
