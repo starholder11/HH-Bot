@@ -29,7 +29,29 @@ export default config({
         }),
         body: fields.markdoc({ 
           label: 'Body' 
-        })
+        }),
+        featuredImage: fields.image({
+          label: 'Featured Image',
+          directory: 'public/images'
+        }),
+        gallery: fields.array(
+          fields.image({
+            label: 'Gallery Image',
+            directory: 'public/images'
+          }),
+          {
+            label: 'Image Gallery'
+          }
+        ),
+        attachments: fields.array(
+          fields.file({
+            label: 'Attachment',
+            directory: 'public/files'
+          }),
+          {
+            label: 'File Attachments'
+          }
+        )
       }
     })
   }
