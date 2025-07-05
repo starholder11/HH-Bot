@@ -62,6 +62,9 @@ function TimelineContent({ content }: { content: string }) {
     // Convert links
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-500 hover:text-blue-600 underline">$1</a>')
     
+    // Convert images (both with and without alt text)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg shadow-md my-4" />')
+    
     // Convert line breaks to paragraphs
     .split('\n\n')
     .map(paragraph => {
