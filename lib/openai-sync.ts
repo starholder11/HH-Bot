@@ -151,17 +151,43 @@ export async function getFileContentFromGitHub(
       console.log('📋 File type from GitHub:', data.type);
       console.log('📋 Encoding from GitHub:', data.encoding);
       console.log('📊 Base64 content length:', data.content?.length || 0);
-      console.log('📊 First 50 chars of base64:', data.content?.substring(0, 50));
+      console.log('📊 Download URL available:', !!data.download_url);
       
-      if (!data.content) {
-        throw new Error('No content received from GitHub API');
+      // Handle large files (>1MB) that don't have inline content
+      if (!data.content && data.download_url) {
+        console.log('📥 Large file detected, using download URL...');
+        console.log('🔗 Download URL:', data.download_url);
+        
+        const downloadResponse = await fetch(data.download_url);
+        if (!downloadResponse.ok) {
+          throw new Error(`Failed to download file: ${downloadResponse.status}`);
+        }
+        
+        const arrayBuffer = await downloadResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        console.log('📊 Downloaded file buffer size:', buffer.length, 'bytes');
+        console.log('📊 First 16 bytes (hex):', buffer.slice(0, 16).toString('hex'));
+        
+        // Convert buffer to base64 for consistency with existing code
+        const base64Content = buffer.toString('base64');
+        console.log('📊 Converted to base64 length:', base64Content.length);
+        
+        return base64Content;
       }
       
-      if (data.encoding !== 'base64') {
-        throw new Error(`Unexpected encoding: ${data.encoding}, expected base64`);
+      // Handle small files with inline base64 content
+      if (data.content) {
+        console.log('📥 Small file detected, using inline content...');
+        
+        if (data.encoding !== 'base64') {
+          throw new Error(`Unexpected encoding: ${data.encoding}, expected base64`);
+        }
+        
+        return data.content;
       }
       
-      return data.content;
+      throw new Error('No content or download URL available from GitHub API');
     } else {
       // For text files, get raw content
       const content = await response.text();
