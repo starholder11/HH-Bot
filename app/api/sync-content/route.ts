@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
     // Parse webhook payload
     const payload: GitHubWebhookPayload = JSON.parse(rawBody);
     
+    // 🔍 DEBUG: Add comprehensive logging to understand webhook structure
+    console.log('🔍 DEBUG: Full commit object:', JSON.stringify(payload.commits[0], null, 2));
+    console.log('🔍 DEBUG: All commits in payload:', payload.commits.length);
+    
     // Debug: Log all changed files
     const allChangedFiles = payload.commits.flatMap(commit => [
       ...commit.added,
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
       ...commit.removed
     ]);
 
-    console.log('🔍 All files changed in this webhook:', allChangedFiles);
+    console.log('🔍 DEBUG: All changed files from commits:', allChangedFiles);
     console.log('📁 Looking for files starting with: content/timeline/');
     console.log('📋 Webhook payload commits:', payload.commits.length);
     
@@ -85,6 +89,9 @@ export async function POST(request: NextRequest) {
         }
       });
     }
+    
+    console.log('🔍 DEBUG: Image files detected:', Array.from(imageFiles));
+    console.log('🔍 DEBUG: Content files detected:', Array.from(timelineFiles));
     
     // Process image files first (upload to S3)
     if (imageFiles.size > 0) {
