@@ -10,6 +10,7 @@ interface UpdateFileOptions {
   newContent: string;
   commitMessage: string;
   branch?: string;
+  ref?: string; // Add ref parameter for commit SHA
 }
 
 /**
@@ -20,7 +21,8 @@ export async function updateFileInGitHub(options: UpdateFileOptions): Promise<vo
     filePath,
     newContent,
     commitMessage,
-    branch = 'main'
+    branch = 'main',
+    ref
   } = options;
 
   try {
@@ -29,7 +31,7 @@ export async function updateFileInGitHub(options: UpdateFileOptions): Promise<vo
       owner: 'starholder11',
       repo: 'HH-Bot',
       path: filePath,
-      ref: branch,
+      ref: ref || branch, // Use commit SHA if provided, otherwise use branch
     });
 
     // Handle the response which can be an array or single file
