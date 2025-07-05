@@ -16,7 +16,12 @@ async function getPreviewData(slug: string) {
     
     const response = await fetch(
       `${baseUrl}/api/preview/timeline/${slug}`,
-      { cache: 'no-store' }
+      { 
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
     );
     
     if (!response.ok) {
@@ -24,6 +29,11 @@ async function getPreviewData(slug: string) {
         return { notFound: true };
       }
       throw new Error(`Preview API error: ${response.status}`);
+    }
+    
+    // Check if response is a redirect
+    if (response.redirected) {
+      return { redirect: true, url: response.url };
     }
     
     const data = await response.json();
@@ -44,12 +54,41 @@ export default async function PreviewPage({ params }: PreviewPageProps) {
       notFound();
     }
     
-    // If the API redirected to production, follow the redirect
-    if (data.redirect) {
-      redirect(`/timeline/${slug}`);
+    const entry: TimelineEntryType = data.entry;
+    
+    if (!entry) {
+      notFound();
     }
     
-    const entry: TimelineEntryType = data.entry;
+    // If the API indicates content is unchanged, show preview with redirect notice
+    if (data.redirect) {
+      // Show preview with a notice that content is unchanged
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            {/* Redirect notice */}
+            <div className="mb-4 p-3 bg-blue-100 border border-blue-300 rounded-lg">
+              <div className="flex items-center text-blue-800">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium">Content Unchanged</span>
+                <span className="ml-2 text-sm">
+                  (This content matches the production version)
+                </span>
+              </div>
+              <div className="mt-2 text-sm text-blue-700">
+                <a href={data.redirectUrl} className="underline hover:no-underline">
+                  View production version →
+                </a>
+              </div>
+            </div>
+            
+            <TimelineEntry entry={entry} />
+          </div>
+        </div>
+      );
+    }
     
     if (!entry) {
       notFound();

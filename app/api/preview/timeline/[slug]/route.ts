@@ -42,13 +42,34 @@ export async function GET(
     console.log(`🔄 Timeline entry ${slug} has changes:`, hasChanges);
     
     if (!hasChanges && deployState.isDeployed) {
-      // Content unchanged - redirect to production
-      console.log(`✅ Content unchanged, redirecting to production: /timeline/${slug}`);
+      // Content unchanged - return preview data with redirect flag
+      console.log(`✅ Content unchanged, returning preview data with redirect flag`);
       
-      return NextResponse.redirect(
-        new URL(`/timeline/${slug}`, request.url),
-        302
-      );
+      // Still fetch the entry for preview display
+      const latestCommit = deployState.latestCommit || 'main';
+      const entry = await getTimelineEntryFromGit(slug, latestCommit);
+      
+      if (!entry) {
+        return NextResponse.json(
+          { error: 'Failed to fetch timeline entry' },
+          { status: 500 }
+        );
+      }
+      
+      return NextResponse.json({
+        preview: true,
+        redirect: true,
+        redirectUrl: `/timeline/${slug}`,
+        slug,
+        entry,
+        deployState: {
+          isDeployed: deployState.isDeployed,
+          hasChanges: deployState.hasChanges,
+          deployedCommit: deployState.deployedCommit,
+          latestCommit: deployState.latestCommit,
+        },
+        renderedAt: new Date().toISOString(),
+      });
     }
     
     // Content has changes or not deployed - render from Git
