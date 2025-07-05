@@ -102,10 +102,14 @@ export async function POST(request: NextRequest) {
           // Get file content from GitHub API (binary file)
           const fileContent = await getFileContentFromGitHub(imagePath, payload.commits[0].id, true);
           
+          console.log('🔍 Base64 content received length:', fileContent.length);
+          console.log('🔍 First 50 chars of base64:', fileContent.substring(0, 50));
+          
           // Convert base64 to buffer
           const buffer = Buffer.from(fileContent, 'base64');
           console.log('🖼️ Starting Sharp processing...');
           console.log('📊 Buffer size:', buffer.length, 'bytes');
+          console.log('📊 Buffer first 16 bytes (hex):', buffer.slice(0, 16).toString('hex'));
           
           // Get filename for S3 key
           const fileName = imagePath.split('/').pop() || 'unknown.jpg';
