@@ -163,8 +163,8 @@ export async function POST(request: NextRequest) {
         // If we have S3 URL mappings, update the content file
         if (Object.keys(urlMappings).length > 0) {
           try {
-            // Get current content as string
-            const currentContent = await getFileContentAsString(filePath);
+            // Get current content as string (use same commit SHA as image download)
+            const currentContent = await getFileContentAsString(filePath, payload.commits[0].id);
             
             // Replace image references with S3 URLs
             const updatedContent = replaceImageReferences(currentContent, urlMappings);
