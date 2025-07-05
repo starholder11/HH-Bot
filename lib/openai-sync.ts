@@ -149,6 +149,18 @@ export async function getFileContentFromGitHub(
       const data = await response.json();
       console.log('📊 Downloaded binary file size:', data.size, 'bytes');
       console.log('📋 File type from GitHub:', data.type);
+      console.log('📋 Encoding from GitHub:', data.encoding);
+      console.log('📊 Base64 content length:', data.content?.length || 0);
+      console.log('📊 First 50 chars of base64:', data.content?.substring(0, 50));
+      
+      if (!data.content) {
+        throw new Error('No content received from GitHub API');
+      }
+      
+      if (data.encoding !== 'base64') {
+        throw new Error(`Unexpected encoding: ${data.encoding}, expected base64`);
+      }
+      
       return data.content;
     } else {
       // For text files, get raw content
