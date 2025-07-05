@@ -174,7 +174,8 @@ export async function POST(request: NextRequest) {
               await updateFileInGitHub({
                 filePath,
                 newContent: updatedContent,
-                commitMessage: `Auto-update: Replace local images with S3 URLs in ${fileName}`
+                commitMessage: `Auto-update: Replace local images with S3 URLs in ${fileName}`,
+                ref: payload.commits[0].id // Use commit SHA for consistency
               });
               
               console.log(`🔄 Updated ${fileName} with S3 URLs`);
