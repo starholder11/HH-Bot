@@ -78,6 +78,7 @@ export async function generateSearchIndex(): Promise<SearchIndex> {
  * Update the search index file in public directory
  */
 export async function updateSearchIndexFile(): Promise<void> {
+  console.log('[search-index] updateSearchIndexFile CALLED - VERCEL TEST');
   const index = await generateSearchIndex();
   const fs = await import('fs/promises');
   const path = await import('path');
