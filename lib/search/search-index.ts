@@ -81,10 +81,11 @@ export async function updateSearchIndexFile(): Promise<void> {
   const index = await generateSearchIndex();
   const fs = await import('fs/promises');
   const path = await import('path');
-  const indexPath = path.join(process.cwd(), 'public', 'search-index.json');
+  // In serverless (Vercel), only /tmp is writable at runtime
+  const indexPath = path.join('/tmp', 'search-index.json');
   await fs.mkdir(path.dirname(indexPath), { recursive: true });
   await fs.writeFile(indexPath, JSON.stringify(index, null, 2));
-  console.log(`✅ Search index updated with ${index.entries.length} entries`);
+  console.log(`✅ Search index updated with ${index.entries.length} entries at ${indexPath}`);
 }
 
 /**
