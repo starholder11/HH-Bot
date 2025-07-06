@@ -37,17 +37,19 @@ export function Search({
   const fuseRef = useRef<Fuse<SearchResult> | null>(null);
 
   useEffect(() => {
+    console.log('🔍 Loading search index...');
     fetch('/search-index.json')
       .then(res => {
         if (!res.ok) throw new Error('Index not found');
         return res.json();
       })
       .then(data => {
+        console.log('✅ Search index loaded:', data.entries.length, 'entries');
         fuseRef.current = new Fuse(data.entries, fuseOptions);
         setIndexLoaded(true);
       })
       .catch(error => {
-        console.error('Search index failed to load:', error);
+        console.error('❌ Search index failed to load:', error);
         setIndexError('Search temporarily unavailable');
       });
   }, []);
@@ -57,9 +59,11 @@ export function Search({
       setResults([]);
       return;
     }
+    console.log('🔍 Searching for:', query.trim());
     setLoading(true);
     const fuse = fuseRef.current;
     const fuseResults = fuse.search(query.trim(), { limit: maxResults });
+    console.log('📊 Found', fuseResults.length, 'results');
     setResults(fuseResults.map(r => ({ ...r.item, score: r.score })));
     setLoading(false);
   }, [query, indexLoaded, maxResults]);
@@ -76,39 +80,51 @@ export function Search({
 
   return (
     <div className={`relative ${className || ''}`.trim()}>
-      <div onClick={() => setOpen(true)}>
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          placeholder={placeholder}
-          className="border rounded px-2 py-1 w-48 text-sm"
-          debounce={300}
-        />
-      </div>
-      {variant === 'compact' && open && (
-        <div className="absolute left-0 z-50 w-full">
-          <SearchResults
-            results={results}
-            variant={variant}
-            loading={loading}
-            error={indexError}
-            onResultClick={result => {
-              window.location.href = result.url;
-              setOpen(false);
-            }}
+      {variant === 'compact' ? (
+        <>
+          <div onClick={() => setOpen(true)}>
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder={placeholder}
+              className="border rounded px-2 py-1 w-48 text-sm"
+              debounce={300}
+            />
+          </div>
+          {open && (
+            <div className="absolute left-0 z-50 w-full">
+              <SearchResults
+                results={results}
+                variant={variant}
+                loading={loading}
+                error={indexError}
+                onResultClick={result => {
+                  window.location.href = result.url;
+                  setOpen(false);
+                }}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder={placeholder}
+            className="border rounded px-4 py-2 w-full text-base"
+            debounce={300}
           />
-        </div>
-      )}
-      {variant === 'full' && (
-        <div className="mt-4">
-          <SearchResults
-            results={results}
-            variant={variant}
-            loading={loading}
-            error={indexError}
-            onResultClick={result => window.location.href = result.url}
-          />
-        </div>
+          <div className="mt-4">
+            <SearchResults
+              results={results}
+              variant={variant}
+              loading={loading}
+              error={indexError}
+              onResultClick={result => window.location.href = result.url}
+            />
+          </div>
+        </>
       )}
     </div>
   );
