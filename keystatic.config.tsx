@@ -1,7 +1,13 @@
 import { config, collection, fields } from '@keystatic/core';
 
 export default config({
-  storage: { kind: 'local' },
+  storage: 
+    process.env.NODE_ENV === 'production' 
+      ? {
+          kind: 'github',
+          repo: 'starholder11/HH-Bot'
+        }
+      : { kind: 'local' },
   
   collections: {
     timeline: collection({
