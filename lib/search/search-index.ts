@@ -72,37 +72,4 @@ export async function generateSearchIndex(): Promise<SearchIndex> {
     generatedAt: new Date().toISOString(),
     version: '1.0.0',
   };
-}
-
-/**
- * Update the search index file in public directory
- */
-export async function updateSearchIndexFile(): Promise<void> {
-  console.log('[search-index] updateSearchIndexFile CALLED - VERCEL TEST');
-  const index = await generateSearchIndex();
-  const fs = await import('fs/promises');
-  const path = await import('path');
-  // In serverless (Vercel), only /tmp is writable at runtime
-  const indexPath = path.join('/tmp', 'search-index.json');
-  await fs.mkdir(path.dirname(indexPath), { recursive: true });
-  await fs.writeFile(indexPath, JSON.stringify(index, null, 2));
-  console.log(`✅ Search index updated with ${index.entries.length} entries at ${indexPath}`);
-}
-
-/**
- * Load search index from file (for client-side use)
- */
-export async function loadSearchIndex(): Promise<SearchIndex | null> {
-  try {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    
-    const indexPath = path.join(process.cwd(), 'public', 'search-index.json');
-    const content = await fs.readFile(indexPath, 'utf-8');
-    
-    return JSON.parse(content) as SearchIndex;
-  } catch (error) {
-    console.error('Failed to load search index:', error);
-    return null;
-  }
 } 
