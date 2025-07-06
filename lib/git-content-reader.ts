@@ -7,6 +7,14 @@ const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
+interface ContentResponse {
+  content: string;
+  metadata: string;
+  title: string;
+  date: string;
+  slug: string;
+}
+
 /**
  * Find the folder name that matches a given slug by checking GitHub API
  */
@@ -187,4 +195,99 @@ export async function getAllTimelineEntriesFromGit(ref?: string): Promise<Timeli
 export async function timelineEntryExists(slug: string, ref?: string): Promise<boolean> {
   const folderName = await findFolderBySlug(slug);
   return folderName !== null;
+}
+
+/**
+ * Read content directly from GitHub for preview rendering
+ */
+export async function readContentFromGit(slug: string): Promise<ContentResponse> {
+  try {
+    console.log(`📖 Reading content from Git for slug: ${slug}`);
+    
+    // Read .mdoc file (content)
+    const contentResponse = await octokit.rest.repos.getContent({
+      owner: 'starholder11',
+      repo: 'HH-Bot',
+      path: `content/timeline/${slug}/body.mdoc`,
+    });
+
+    // Read .yaml file (metadata)
+    const metadataResponse = await octokit.rest.repos.getContent({
+      owner: 'starholder11',
+      repo: 'HH-Bot',
+      path: `content/timeline/${slug}.yaml`,
+    });
+
+    // Validate responses
+    if (Array.isArray(contentResponse.data) || Array.isArray(metadataResponse.data)) {
+      throw new Error('Expected file, got directory');
+    }
+
+    // Decode content
+    const content = Buffer.from((contentResponse.data as any).content, 'base64').toString('utf-8');
+    const metadata = Buffer.from((metadataResponse.data as any).content, 'base64').toString('utf-8');
+
+    // Parse YAML metadata
+    const parsedMetadata = parseYamlMetadata(metadata);
+    
+    console.log(`✅ Successfully read content for ${slug}`);
+    
+    return {
+      content,
+      metadata,
+      title: parsedMetadata.title || slug,
+      date: parsedMetadata.date || '',
+      slug
+    };
+  } catch (error) {
+    console.error(`❌ Error reading content from Git for ${slug}:`, error);
+    throw new Error(`Failed to read content for ${slug}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Parse YAML metadata from string
+ */
+function parseYamlMetadata(yamlString: string): Record<string, any> {
+  try {
+    // Simple YAML parser for basic key-value pairs
+    const lines = yamlString.split('\n');
+    const metadata: Record<string, any> = {};
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const colonIndex = trimmed.indexOf(':');
+        if (colonIndex > 0) {
+          const key = trimmed.substring(0, colonIndex).trim();
+          const value = trimmed.substring(colonIndex + 1).trim();
+          
+          // Remove quotes if present
+          const cleanValue = value.replace(/^["']|["']$/g, '');
+          metadata[key] = cleanValue;
+        }
+      }
+    }
+    
+    return metadata;
+  } catch (error) {
+    console.error('Error parsing YAML metadata:', error);
+    return {};
+  }
+}
+
+/**
+ * Check if content exists in Git
+ */
+export async function contentExistsInGit(slug: string): Promise<boolean> {
+  try {
+    await octokit.rest.repos.getContent({
+      owner: 'starholder11',
+      repo: 'HH-Bot',
+      path: `content/timeline/${slug}/body.mdoc`,
+    });
+    return true;
+  } catch (error) {
+    return false;
+  }
 } 

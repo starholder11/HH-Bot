@@ -176,4 +176,110 @@ export async function updateDeployedCommit(commitSha: string): Promise<void> {
   } catch (error) {
     console.error('Error creating deployment record:', error);
   }
+}
+
+/**
+ * Deploy State Utilities
+ * 
+ * Determines if content has been saved but not yet deployed by comparing
+ * the latest Git commit for a file against the current deployed commit.
+ */
+
+interface GitHubCommit {
+  sha: string;
+  commit: {
+    message: string;
+    author: {
+      date: string;
+    };
+  };
+}
+
+/**
+ * Get the latest commit SHA for a specific file from GitHub API
+ */
+export async function getLatestGitCommit(filePath: string): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/starholder11/HH-Bot/commits?path=${encodeURIComponent(filePath)}&per_page=1`,
+      {
+        headers: {
+          'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+    }
+
+    const commits: GitHubCommit[] = await response.json();
+    return commits[0]?.sha || '';
+  } catch (error) {
+    console.error('Error getting latest Git commit:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get the current deployed commit SHA from Vercel deployment
+ */
+export async function getCurrentDeployedCommit(): Promise<string> {
+  // Vercel automatically sets this environment variable
+  const deployedCommit = process.env.VERCEL_GIT_COMMIT_SHA;
+  
+  if (!deployedCommit) {
+    console.warn('VERCEL_GIT_COMMIT_SHA not set - assuming no deployed changes');
+    return '';
+  }
+  
+  return deployedCommit;
+}
+
+/**
+ * Check if a timeline entry has undeployed changes
+ */
+export async function hasUndeployedChanges(slug: string): Promise<boolean> {
+  try {
+    const contentPath = `content/timeline/${slug}/body.mdoc`;
+    const latestCommit = await getLatestGitCommit(contentPath);
+    const deployedCommit = await getCurrentDeployedCommit();
+    
+    // If no deployed commit, assume everything is "deployed"
+    if (!deployedCommit) {
+      return false;
+    }
+    
+    // If no latest commit, assume no changes
+    if (!latestCommit) {
+      return false;
+    }
+    
+    return latestCommit !== deployedCommit;
+  } catch (error) {
+    console.error('Error checking for undeployed changes:', error);
+    // On error, assume no changes to be safe
+    return false;
+  }
+}
+
+/**
+ * Get commit information for debugging
+ */
+export async function getCommitInfo(slug: string): Promise<{
+  latestCommit: string;
+  deployedCommit: string;
+  hasChanges: boolean;
+}> {
+  const contentPath = `content/timeline/${slug}/body.mdoc`;
+  const latestCommit = await getLatestGitCommit(contentPath);
+  const deployedCommit = await getCurrentDeployedCommit();
+  const hasChanges = latestCommit !== deployedCommit;
+  
+  return {
+    latestCommit,
+    deployedCommit,
+    hasChanges
+  };
 } 
