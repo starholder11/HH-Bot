@@ -3,6 +3,7 @@ import { validateGitHubWebhook, extractGitHubSignature } from '@/lib/webhook-sec
 import { syncTimelineFile, getFileContentFromGitHub } from '@/lib/openai-sync';
 import { uploadImage, uploadFile } from '@/lib/s3-upload';
 import { updateFileInGitHub, replaceImageReferences, getFileContentAsString } from '@/lib/github-file-updater';
+import { updateSearchIndexFile } from '@/lib/search/search-index';
 
 // GitHub webhook event types
 interface GitHubWebhookPayload {
@@ -208,6 +209,17 @@ export async function POST(request: NextRequest) {
     
     console.log(`🎉 Sync complete: ${successCount} successful, ${errorCount} errors`);
     
+    // Update search index when content changes
+    if (timelineFiles.size > 0) {
+      try {
+        await updateSearchIndexFile();
+        console.log('✅ Search index updated');
+      } catch (error) {
+        console.error('❌ Search index update failed:', error);
+        // Don't fail the entire webhook if search index fails
+      }
+    }
+    
     return NextResponse.json({
       message: 'Sync completed',
       results: syncResults,
@@ -220,7 +232,8 @@ export async function POST(request: NextRequest) {
         imagesProcessed: imageFiles.size,
         urlMappings: Object.keys(urlMappings).length,
         mappings: urlMappings
-      }
+      },
+      searchIndexUpdated: timelineFiles.size > 0
     });
     
   } catch (error) {
