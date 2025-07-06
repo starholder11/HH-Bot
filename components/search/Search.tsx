@@ -38,7 +38,7 @@ export function Search({
 
   useEffect(() => {
     console.log('🔍 Loading search index...');
-    fetch('/search-index.json')
+    fetch('/api/search-index')
       .then(res => {
         if (!res.ok) throw new Error('Index not found');
         return res.json();
