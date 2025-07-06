@@ -1,56 +1,81 @@
-import { createReader } from '@keystatic/core/reader';
-import config from '../../keystatic.config';
 import { processContent, generatePreview } from './content-processor';
 import type { SearchIndex, SearchIndexEntry } from './types';
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_REPO = process.env.GITHUB_REPO || 'HH-Bot';
+const GITHUB_OWNER = process.env.GITHUB_OWNER || 'starholder11';
+const GITHUB_REF = process.env.GITHUB_REF || 'main';
+
+async function fetchTimelineEntriesFromGitHub(): Promise<{slug: string, title: string, bodyPath: string}[]> {
+  // List directories in content/timeline
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/content/timeline?ref=${GITHUB_REF}`, {
+    headers: {
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+  });
+  if (!res.ok) throw new Error('Failed to list timeline entries');
+  const data = await res.json();
+  // Only directories
+  const dirs = data.filter((item: any) => item.type === 'dir');
+  return dirs.map((dir: any) => ({
+    slug: dir.name,
+    title: dir.name,
+    bodyPath: `content/timeline/${dir.name}/body.mdoc`,
+  }));
+}
+
+async function fetchFileContentFromGitHub(path: string): Promise<string> {
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(path)}?ref=${GITHUB_REF}`, {
+    headers: {
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github.v3.raw',
+    },
+  });
+  if (!res.ok) return '';
+  return await res.text();
+}
 
 /**
  * Generate search index from all timeline entries
  */
 export async function generateSearchIndex(): Promise<SearchIndex> {
+  const entries: SearchIndexEntry[] = [];
   try {
-    const reader = createReader(process.cwd(), config);
-    const entries = await reader.collections.timeline.all();
-    
-    const searchEntries: SearchIndexEntry[] = entries.map(({ slug, entry }) => ({
-      slug,
-      title: entry.title || slug,
-      url: `/timeline/${slug}`,
-      content: processContent(entry.body),
-      preview: generatePreview(entry.body, 150),
-      lastUpdated: new Date().toISOString()
-    }));
-
-    return {
-      entries: searchEntries,
-      generatedAt: new Date().toISOString(),
-      version: '1.0.0'
-    };
+    const timelineDirs = await fetchTimelineEntriesFromGitHub();
+    for (const entry of timelineDirs) {
+      const body = await fetchFileContentFromGitHub(entry.bodyPath);
+      const content = processContent(body);
+      entries.push({
+        slug: entry.slug,
+        title: entry.title,
+        url: `/timeline/${entry.slug}`,
+        content,
+        preview: generatePreview(content, 150),
+        lastUpdated: new Date().toISOString(),
+      });
+    }
   } catch (error) {
-    console.error('Error generating search index:', error);
-    throw error;
+    console.error('Error generating search index from GitHub:', error);
   }
+  return {
+    entries,
+    generatedAt: new Date().toISOString(),
+    version: '1.0.0',
+  };
 }
 
 /**
  * Update the search index file in public directory
  */
 export async function updateSearchIndexFile(): Promise<void> {
-  try {
-    const index = await generateSearchIndex();
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    
-    const indexPath = path.join(process.cwd(), 'public', 'search-index.json');
-    
-    // Ensure public directory exists
-    await fs.mkdir(path.dirname(indexPath), { recursive: true });
-    
-    await fs.writeFile(indexPath, JSON.stringify(index, null, 2));
-    console.log(`✅ Search index updated with ${index.entries.length} entries`);
-  } catch (error) {
-    console.error('❌ Failed to update search index file:', error);
-    throw error;
-  }
+  const index = await generateSearchIndex();
+  const fs = await import('fs/promises');
+  const path = await import('path');
+  const indexPath = path.join(process.cwd(), 'public', 'search-index.json');
+  await fs.mkdir(path.dirname(indexPath), { recursive: true });
+  await fs.writeFile(indexPath, JSON.stringify(index, null, 2));
+  console.log(`✅ Search index updated with ${index.entries.length} entries`);
 }
 
 /**
