@@ -142,4 +142,4 @@ This project uses markdown-based content management.
 ### Content Editing
 - Edit markdown files directly in the `/content` directory.
 - All content is stored as markdown files.
-- Changes are committed to your git repository and deployed automatically. 
+- Changes are committed to your git repository and deployed automatically. # Rollback complete - Keystatic restored to working state
