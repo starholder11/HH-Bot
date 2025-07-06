@@ -23,6 +23,11 @@ export default config({
           label: 'Slug',
           validation: { isRequired: true }
         }),
+        previewLinks: fields.text({
+          label: 'Preview Links',
+          description: 'Temporary field for cleanup. Do not use.',
+          validation: { isRequired: false }
+        }),
         date: fields.date({ 
           label: 'Date',
           validation: { isRequired: true }
