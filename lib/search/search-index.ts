@@ -58,7 +58,7 @@ export async function generateSearchIndex(): Promise<SearchIndex> {
       entries.push({
         slug: entry.slug,
         title: entry.title,
-        url: `/timeline/${entry.slug}`,
+        url: `/timeline/${encodeURIComponent(entry.slug)}`,
         content,
         preview: generatePreview(content, 150),
         lastUpdated: new Date().toISOString(),
