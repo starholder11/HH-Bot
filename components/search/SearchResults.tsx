@@ -12,33 +12,33 @@ interface SearchResultsProps {
 export function SearchResults({ results, variant, onResultClick, loading, error }: SearchResultsProps) {
   if (error) {
     return (
-      <div className="p-2 text-red-600 bg-red-50 rounded shadow text-sm">{error}</div>
+      <div className="p-4 text-red-600 bg-red-50 text-sm">{error}</div>
     );
   }
   if (loading) {
     return (
-      <div className="p-2 text-gray-500 bg-white rounded shadow text-sm">Searching...</div>
+      <div className="p-4 text-gray-500 text-sm">Searching...</div>
     );
   }
   if (!results.length) {
     return (
-      <div className="p-2 text-gray-400 bg-white rounded shadow text-sm">No results found</div>
+      <div className="p-4 text-gray-400 text-sm">No results found</div>
     );
   }
   return (
     <ul className={
       variant === 'compact'
-        ? 'bg-white rounded shadow mt-2 w-80 max-h-80 overflow-auto'
+        ? 'w-full'
         : 'mt-4'
     }>
       {results.map(result => (
         <li
           key={result.slug}
-          className="p-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0"
+          className="p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
           onClick={() => onResultClick?.(result)}
         >
-          <div className="font-semibold text-blue-700 truncate">{result.title}</div>
-          <div className="text-xs text-gray-500 truncate">{result.preview}</div>
+          <div className="font-medium text-gray-900 line-clamp-1">{result.title}</div>
+          <div className="text-sm text-gray-600 line-clamp-2 mt-1">{result.preview}</div>
         </li>
       ))}
     </ul>
