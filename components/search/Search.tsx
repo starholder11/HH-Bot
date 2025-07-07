@@ -92,7 +92,7 @@ export function Search({
             />
           </div>
           {open && (
-            <div className="absolute left-0 z-50 w-full">
+            <div className="absolute left-0 right-0 z-50 mt-2 w-80 min-w-[20rem] max-w-[90vw]">
               <SearchResults
                 results={results}
                 variant={variant}
