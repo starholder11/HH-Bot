@@ -5,7 +5,6 @@ export function Header() {
   return (
     <header className="bg-white w-full py-6">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6">
-        {/* Logo and Title */}
         <div className="flex items-center space-x-4">
           <img
             src="/logo.png"
@@ -17,10 +16,7 @@ export function Header() {
             Starholder
           </span>
         </div>
-        {/* Styled Search */}
-        <div className="flex items-center">
-          <Search variant="compact" maxResults={5} className="ml-8" />
-        </div>
+        <Search variant="compact" maxResults={5} className="ml-8" />
       </div>
     </header>
   );
