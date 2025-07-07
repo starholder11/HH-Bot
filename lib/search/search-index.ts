@@ -1,5 +1,6 @@
 import { processContent, generatePreview } from './content-processor';
 import type { SearchIndex, SearchIndexEntry } from './types';
+import { toSlug } from '../slug-utils';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO || 'HH-Bot';
@@ -58,7 +59,7 @@ export async function generateSearchIndex(): Promise<SearchIndex> {
       entries.push({
         slug: entry.slug,
         title: entry.title,
-        url: `/timeline/${encodeURIComponent(entry.slug)}`,
+        url: `/timeline/${toSlug(entry.slug)}`,
         content,
         preview: generatePreview(content, 150),
         lastUpdated: new Date().toISOString(),
