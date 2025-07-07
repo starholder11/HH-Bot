@@ -8,38 +8,24 @@ interface TimelineEntryProps {
 
 export default function TimelineEntry({ entry }: TimelineEntryProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <Link 
-              href="/" 
-              className="inline-flex items-center text-blue-500 hover:text-blue-600 transition-colors"
-            >
-              ← Back to Timeline
-            </Link>
-          </div>
-          
-          <article className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-8">
-            <header className="mb-6">
-              <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200 mb-2">
-                {entry.title}
-              </h1>
-              <time className="text-slate-500 dark:text-slate-400">
-                {new Date(entry.date).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </time>
-            </header>
-            
-            <div className="prose prose-lg dark:prose-invert max-w-none">
-              <TimelineContent content={entry.content} />
-            </div>
-          </article>
+    <div className="max-w-4xl mx-auto px-4 pt-8 pb-12">
+      <article className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+        <header className="mb-6">
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+            {entry.title}
+          </h1>
+          <time className="text-slate-500 dark:text-slate-400">
+            {new Date(entry.date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </time>
+        </header>
+        <div className="prose prose-lg dark:prose-invert max-w-none">
+          <TimelineContent content={entry.content} />
         </div>
-      </div>
+      </article>
     </div>
   );
 }
