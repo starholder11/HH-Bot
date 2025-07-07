@@ -35,7 +35,7 @@ export function SearchResults({ results, variant, onResultClick, loading, error 
         <li
           key={result.slug}
           className="p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
-          onClick={() => onResultClick?.(result)}
+          onMouseDown={() => onResultClick?.(result)}
         >
           <div className="font-medium text-gray-900 line-clamp-1">{result.title}</div>
           <div className="text-sm text-gray-600 line-clamp-2 mt-1">{result.preview}</div>
