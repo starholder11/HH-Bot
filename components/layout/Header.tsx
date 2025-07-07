@@ -17,7 +17,9 @@ export function Header() {
             Starholder
           </span>
         </div>
-        <Search variant="compact" maxResults={5} className="ml-8" />
+        <div className="relative w-80 ml-8">
+          <Search variant="compact" maxResults={5} />
+        </div>
       </div>
     </header>
   );

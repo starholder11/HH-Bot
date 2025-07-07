@@ -81,7 +81,7 @@ export function Search({
   }, [open, variant]);
 
   return (
-    <div className={`relative ${className || ''}`.trim()}>
+    <div className={`${className || ''}`.trim()}>
       {variant === 'compact' ? (
         <>
           <div onClick={() => setOpen(true)}>
