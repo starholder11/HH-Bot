@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Fuse from 'fuse.js';
 import type { SearchResult } from '../../lib/search/types';
 import { SearchInput } from './SearchInput';
@@ -35,7 +36,11 @@ export function Search({
   const [indexLoaded, setIndexLoaded] = useState(false);
   const [indexError, setIndexError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const fuseRef = useRef<Fuse<SearchResult> | null>(null);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     fetch('/api/search-index')
@@ -66,7 +71,8 @@ export function Search({
     setLoading(false);
   }, [query, indexLoaded, maxResults]);
 
-  const handleInputChange = (value: string) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
     setQuery(value);
     if (value.trim().length > 0) {
       setIsOpen(true);
@@ -75,58 +81,70 @@ export function Search({
     }
   };
 
+  // Calculate position for portal dropdown
+  const getDropdownStyle = () => {
+    if (!inputRef.current) return {};
+    
+    const rect = inputRef.current.getBoundingClientRect();
+    return {
+      position: 'fixed' as const,
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: '320px', // Fixed readable width
+      zIndex: 9999,
+    };
+  };
+
   return (
-    <div className="relative">
+    <>
       {variant === 'compact' ? (
-        <>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => handleInputChange(e.target.value)}
-            placeholder={placeholder}
-            className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          
-          {isOpen && results.length > 0 && (
-            <div 
-              className="absolute left-0 top-full mt-1 z-[60] bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden"
-              style={{ 
-                width: '320px',
-                maxHeight: '320px'
-              }}
-            >
-              <div className="overflow-y-auto max-h-80">
-                <SearchResults
-                  results={results}
-                  variant={variant}
-                  loading={loading}
-                  error={indexError}
-                  onResultClick={() => setIsOpen(false)}
-                />
-              </div>
-            </div>
-          )}
-        </>
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       ) : (
-        <>
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder={placeholder}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            debounce={300}
-          />
-          <div className="mt-4">
-            <SearchResults
-              results={results}
-              variant={variant}
-              loading={loading}
-              error={indexError}
-              onResultClick={() => {}}
-            />
-          </div>
-        </>
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder={placeholder}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          debounce={300}
+        />
       )}
-    </div>
+      
+      {/* Portal the dropdown to document.body */}
+      {mounted && isOpen && results.length > 0 && variant === 'compact' && createPortal(
+        <div
+          style={getDropdownStyle()}
+          className="bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-y-auto"
+        >
+          <SearchResults
+            results={results}
+            variant={variant}
+            loading={loading}
+            error={indexError}
+            onResultClick={() => setIsOpen(false)}
+          />
+        </div>,
+        document.body
+      )}
+
+      {/* Full variant results */}
+      {variant === 'full' && (
+        <div className="mt-4">
+          <SearchResults
+            results={results}
+            variant={variant}
+            loading={loading}
+            error={indexError}
+            onResultClick={() => {}}
+          />
+        </div>
+      )}
+    </>
   );
 } 
