@@ -6,10 +6,11 @@ interface SearchInputProps {
   placeholder?: string;
   className?: string;
   debounce?: number;
+  onFocus?: () => void;
 }
 
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
-  ({ value, onChange, placeholder, className, debounce = 300 }, ref) => {
+  ({ value, onChange, placeholder, className, debounce = 300, onFocus }, ref) => {
     const [inputValue, setInputValue] = useState(value);
 
     useEffect(() => {
@@ -35,6 +36,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         aria-label={placeholder || 'Search'}
         autoComplete="off"
         ref={ref}
+        onFocus={onFocus}
       />
     );
   }
