@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from '@/components/search/Search';
 
+// Force redeploy: header and search results styling
 export function Header() {
   return (
     <header className="bg-white w-full py-6">
