@@ -26,15 +26,19 @@ export function SearchResults({ results, variant, onResultClick, loading, error 
     );
   }
   return (
-    <ul className={variant === 'compact' ? 'bg-white rounded shadow mt-2 w-80 max-h-80 overflow-auto' : 'mt-4'}>
+    <ul className={
+      variant === 'compact'
+        ? 'bg-white rounded shadow-lg mt-2 w-64 min-w-[16rem] max-h-80 overflow-auto border border-gray-200'
+        : 'mt-4'
+    }>
       {results.map(result => (
         <li
           key={result.slug}
-          className="p-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0"
+          className="p-4 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 text-base"
           onClick={() => onResultClick?.(result)}
         >
-          <div className="font-semibold text-blue-700 truncate">{result.title}</div>
-          <div className="text-xs text-gray-500 truncate">{result.preview}</div>
+          <div className="font-semibold text-blue-700 truncate text-base">{result.title}</div>
+          <div className="text-xs text-gray-500 truncate mt-1">{result.preview}</div>
         </li>
       ))}
     </ul>
