@@ -3,8 +3,9 @@ import { Search } from '@/components/search/Search';
 
 export function Header() {
   return (
-    <header className="bg-white w-full py-6">
+    <header className="bg-white w-full py-6 border-b border-gray-100">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6">
+        {/* Logo and title */}
         <div className="flex items-center space-x-4">
           <img
             src="/logo.png"
@@ -17,9 +18,14 @@ export function Header() {
           </span>
         </div>
         
-        {/* Search with enough space to expand */}
-        <div className="relative min-w-0 ml-8">
+        {/* Search with proper spacing */}
+        <div className="flex-1 max-w-md mx-8">
           <Search variant="compact" maxResults={5} />
+        </div>
+        
+        {/* Navigation placeholder for future use */}
+        <div className="flex items-center space-x-6">
+          {/* Future navigation items can go here */}
         </div>
       </div>
     </header>
