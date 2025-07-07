@@ -5,6 +5,8 @@ import type { SearchResult } from '../../lib/search/types';
 import { SearchInput } from './SearchInput';
 import { SearchResults } from './SearchResults';
 
+// Vercel redeploy: ensure search dropdown width fix is live
+
 const fuseOptions = {
   keys: [
     { name: 'title', weight: 0.7 },
