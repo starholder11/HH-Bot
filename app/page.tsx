@@ -13,21 +13,7 @@ export default function Home() {
 
   return (
     <BaseLayout>
-      <Header>
-        <div className="flex items-center justify-between">
-          <SiteTitle>
-            <a href="/" className="no-underline hover:text-wp-contrast-2">
-              Starholder
-            </a>
-          </SiteTitle>
-          <nav className="wp-nav">
-            <a href="/timeline">Timeline</a>
-            <a href="/about">About</a>
-            <a href="/search">Search</a>
-            <a href="/manage">Admin</a>
-          </nav>
-        </div>
-      </Header>
+      <Header />
       <main className="py-12">
         <ContentContainer>
           <section className="text-center mb-16">
