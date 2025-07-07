@@ -18,14 +18,12 @@ export function Header() {
           </span>
         </div>
         
-        {/* Search with proper spacing */}
-        <div className="flex-1 max-w-md mx-8">
+        {/* Spacer to push search to the right */}
+        <div className="flex-1" />
+
+        {/* Right-aligned search */}
+        <div className="flex items-center justify-end pr-2 min-w-[400px]">
           <Search variant="compact" maxResults={5} />
-        </div>
-        
-        {/* Navigation placeholder for future use */}
-        <div className="flex items-center space-x-6">
-          {/* Future navigation items can go here */}
         </div>
       </div>
     </header>
