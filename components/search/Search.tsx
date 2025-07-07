@@ -76,6 +76,15 @@ export function Search({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, width: number} | null>(null);
 
+  // Auto-open dropdown when there are results or when typing
+  useEffect(() => {
+    if (variant === 'compact' && (results.length > 0 || query.trim().length > 0)) {
+      setOpen(true);
+    } else if (variant === 'compact' && results.length === 0 && query.trim().length === 0) {
+      setOpen(false);
+    }
+  }, [results, query, variant]);
+
   useEffect(() => {
     if (variant === 'compact' && open && inputRef.current) {
       inputRef.current.focus();
@@ -105,20 +114,25 @@ export function Search({
     };
   }, [open]);
 
+  const handleInputFocus = () => {
+    if (variant === 'compact') {
+      setOpen(true);
+    }
+  };
+
   return (
     <div className={`${className || ''}`.trim()}>
       {variant === 'compact' ? (
         <>
-          <div onClick={() => setOpen(true)}>
-            <SearchInput
-              value={query}
-              onChange={setQuery}
-              placeholder={placeholder}
-              className="search-input border rounded px-2 py-1 w-48 text-sm"
-              debounce={300}
-              ref={inputRef}
-            />
-          </div>
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder={placeholder}
+            className="search-input border rounded px-2 py-1 w-48 text-sm"
+            debounce={300}
+            ref={inputRef}
+            onFocus={handleInputFocus}
+          />
           {open && dropdownPos && createPortal(
             <div
               className="search-dropdown"
