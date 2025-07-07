@@ -15,13 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
-            <nav>{/* ...existing nav... */}</nav>
-            <Search variant="compact" maxResults={5} />
-          </div>
-        </header>
-        <main>{children}</main>
+        {children}
       </body>
     </html>
   )
