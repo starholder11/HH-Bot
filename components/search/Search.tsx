@@ -4,6 +4,7 @@ import Fuse from 'fuse.js';
 import type { SearchResult } from '../../lib/search/types';
 import { SearchInput } from './SearchInput';
 import { SearchResults } from './SearchResults';
+import { createPortal } from 'react-dom';
 
 // Vercel redeploy: ensure search dropdown width fix is live
 
@@ -73,12 +74,36 @@ export function Search({
   // Dropdown open/close for compact variant
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, width: number} | null>(null);
 
   useEffect(() => {
     if (variant === 'compact' && open && inputRef.current) {
       inputRef.current.focus();
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: Math.max(320, rect.width)
+      });
+    } else {
+      setDropdownPos(null);
     }
   }, [open, variant]);
+
+  // Close dropdown on click outside or ESC
+  useEffect(() => {
+    if (!open) return;
+    function handle(e: MouseEvent | KeyboardEvent) {
+      if (e instanceof KeyboardEvent && e.key === 'Escape') setOpen(false);
+      if (e instanceof MouseEvent && inputRef.current && !inputRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handle);
+    document.addEventListener('keydown', handle);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('keydown', handle);
+    };
+  }, [open]);
 
   return (
     <div className={`${className || ''}`.trim()}>
@@ -89,12 +114,20 @@ export function Search({
               value={query}
               onChange={setQuery}
               placeholder={placeholder}
-              className="border rounded px-2 py-1 w-48 text-sm"
+              className="search-input border rounded px-2 py-1 w-48 text-sm"
               debounce={300}
+              ref={inputRef}
             />
           </div>
-          {open && (
-            <div className="absolute left-0 right-0 z-50 mt-2 w-80 min-w-[20rem] max-w-[90vw]">
+          {open && dropdownPos && createPortal(
+            <div
+              className="search-dropdown"
+              style={{
+                top: dropdownPos.top,
+                left: dropdownPos.left,
+                width: dropdownPos.width,
+              }}
+            >
               <SearchResults
                 results={results}
                 variant={variant}
@@ -105,7 +138,8 @@ export function Search({
                   setOpen(false);
                 }}
               />
-            </div>
+            </div>,
+            document.body
           )}
         </>
       ) : (

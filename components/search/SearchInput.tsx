@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef } from 'react';
 
 interface SearchInputProps {
   value: string;
@@ -8,31 +8,36 @@ interface SearchInputProps {
   debounce?: number;
 }
 
-export function SearchInput({ value, onChange, placeholder, className, debounce = 300 }: SearchInputProps) {
-  const [inputValue, setInputValue] = useState(value);
+export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
+  ({ value, onChange, placeholder, className, debounce = 300 }, ref) => {
+    const [inputValue, setInputValue] = useState(value);
 
-  useEffect(() => {
-    setInputValue(value);
-  }, [value]);
+    useEffect(() => {
+      setInputValue(value);
+    }, [value]);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (inputValue !== value) {
-        onChange(inputValue);
-      }
-    }, debounce);
-    return () => clearTimeout(handler);
-  }, [inputValue, value, onChange, debounce]);
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        if (inputValue !== value) {
+          onChange(inputValue);
+        }
+      }, debounce);
+      return () => clearTimeout(handler);
+    }, [inputValue, value, onChange, debounce]);
 
-  return (
-    <input
-      type="text"
-      value={inputValue}
-      onChange={e => setInputValue(e.target.value)}
-      placeholder={placeholder}
-      className={className}
-      aria-label={placeholder || 'Search'}
-      autoComplete="off"
-    />
-  );
-} 
+    return (
+      <input
+        type="text"
+        value={inputValue}
+        onChange={e => setInputValue(e.target.value)}
+        placeholder={placeholder}
+        className={className}
+        aria-label={placeholder || 'Search'}
+        autoComplete="off"
+        ref={ref}
+      />
+    );
+  }
+);
+
+SearchInput.displayName = 'SearchInput'; 
