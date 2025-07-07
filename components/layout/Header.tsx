@@ -1,7 +1,6 @@
 import React from 'react';
 import { Search } from '@/components/search/Search';
 
-// Force redeploy: header and search results styling
 export function Header() {
   return (
     <header className="bg-white w-full py-6">
@@ -17,7 +16,9 @@ export function Header() {
             Starholder
           </span>
         </div>
-        <div className="relative w-80 ml-8">
+        
+        {/* Search with enough space to expand */}
+        <div className="relative min-w-0 ml-8">
           <Search variant="compact" maxResults={5} />
         </div>
       </div>
