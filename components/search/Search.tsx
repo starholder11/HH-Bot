@@ -173,9 +173,9 @@ export function Search({
       {mounted && isOpen && variant === 'compact' && createPortal(
         <div
           style={getDropdownStyle()}
-          className="bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden"
+          className="bg-white border border-gray-200 rounded-lg shadow-xl"
         >
-          <div className="overflow-y-auto max-h-80">
+          <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
             <SearchResults
               results={results}
               variant={variant}
