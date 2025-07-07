@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { Search } from '@/components/search/Search'
+import { Header } from '@/components/layout/Header'
 
 export const metadata: Metadata = {
   title: 'HH Bot Chat',
@@ -15,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <Header />
         {children}
       </body>
     </html>
