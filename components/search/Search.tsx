@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Fuse from 'fuse.js';
 import type { SearchResult } from '../../lib/search/types';
@@ -40,8 +40,10 @@ export function Search({
   const inputRef = useRef<HTMLInputElement>(null);
   const fuseRef = useRef<Fuse<SearchResult> | null>(null);
 
+  // Mount check for portal
   useEffect(() => setMounted(true), []);
 
+  // Load search index
   useEffect(() => {
     fetch('/api/search-index')
       .then(res => {
@@ -57,20 +59,76 @@ export function Search({
       });
   }, []);
 
+  // Search logic with debouncing
   useEffect(() => {
     if (!indexLoaded || !fuseRef.current || !query.trim()) {
       setResults([]);
       setIsOpen(false);
       return;
     }
-    setLoading(true);
-    const fuse = fuseRef.current;
-    const fuseResults = fuse.search(query.trim(), { limit: maxResults });
-    setResults(fuseResults.map(r => ({ ...r.item, score: r.score })));
-    setIsOpen(fuseResults.length > 0);
-    setLoading(false);
+
+    const timeoutId = setTimeout(() => {
+      setLoading(true);
+      const fuse = fuseRef.current;
+      const fuseResults = fuse!.search(query.trim(), { limit: maxResults });
+      setResults(fuseResults.map(r => ({ ...r.item, score: r.score })));
+      setIsOpen(fuseResults.length > 0);
+      setLoading(false);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
   }, [query, indexLoaded, maxResults]);
 
+  // Calculate dropdown position
+  const getDropdownStyle = useCallback(() => {
+    if (!inputRef.current) return {};
+    
+    const rect = inputRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    
+    // Ensure dropdown doesn't go off-screen
+    let left = rect.left;
+    if (left + 400 > viewportWidth) {
+      left = viewportWidth - 420; // 400px width + 20px margin
+    }
+    if (left < 20) left = 20; // Minimum left margin
+    
+    return {
+      position: 'fixed' as const,
+      top: rect.bottom + 4,
+      left: left,
+      width: '400px',
+      zIndex: 99999,
+    };
+  }, []);
+
+  // Handle click outside
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        inputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
@@ -81,18 +139,11 @@ export function Search({
     }
   };
 
-  // Calculate position for portal dropdown
-  const getDropdownStyle = () => {
-    if (!inputRef.current) return {};
-    
-    const rect = inputRef.current.getBoundingClientRect();
-    return {
-      position: 'fixed' as const,
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: '320px', // Fixed readable width
-      zIndex: 9999,
-    };
+  // Handle input focus
+  const handleInputFocus = () => {
+    if (query.trim().length > 0 && results.length > 0) {
+      setIsOpen(true);
+    }
   };
 
   return (
@@ -103,32 +154,39 @@ export function Search({
           type="text"
           value={query}
           onChange={handleInputChange}
+          onFocus={handleInputFocus}
           placeholder={placeholder}
-          className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          autoComplete="off"
         />
       ) : (
         <SearchInput
           value={query}
           onChange={setQuery}
           placeholder={placeholder}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           debounce={300}
         />
       )}
       
-      {/* Portal the dropdown to document.body */}
-      {mounted && isOpen && results.length > 0 && variant === 'compact' && createPortal(
+      {/* Portal dropdown for compact variant */}
+      {mounted && isOpen && variant === 'compact' && createPortal(
         <div
           style={getDropdownStyle()}
-          className="bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-y-auto"
+          className="bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden"
         >
-          <SearchResults
-            results={results}
-            variant={variant}
-            loading={loading}
-            error={indexError}
-            onResultClick={() => setIsOpen(false)}
-          />
+          <div className="overflow-y-auto max-h-80">
+            <SearchResults
+              results={results}
+              variant={variant}
+              loading={loading}
+              error={indexError}
+              onResultClick={(result) => {
+                window.location.href = result.url;
+                setIsOpen(false);
+              }}
+            />
+          </div>
         </div>,
         document.body
       )}
@@ -141,7 +199,7 @@ export function Search({
             variant={variant}
             loading={loading}
             error={indexError}
-            onResultClick={() => {}}
+            onResultClick={(result) => window.location.href = result.url}
           />
         </div>
       )}
