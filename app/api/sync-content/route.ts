@@ -156,9 +156,11 @@ export async function POST(request: NextRequest) {
         );
         
         // Get filename and base name
-        const fileNameWithExt = filePath.split('/').pop() || 'unknown.mdoc';
-        const baseName = fileNameWithExt.replace(/\.mdoc$/, '').replace(/\s+/g, '-').toLowerCase();
-        const fileName = fileNameWithExt; // preserve for messages below
+        const segments = filePath.split('/');
+        const fileNameWithExt = segments.pop() || 'body.mdoc';
+        const entrySlugRaw = segments.pop() || 'unknown-entry';
+        const baseName = entrySlugRaw.replace(/\s+/g, '-').toLowerCase();
+        const fileName = fileNameWithExt; // keep for later log / commit messages
 
         // Sync to vector store with file content
         await syncTimelineEntry(baseName, fileContent);
