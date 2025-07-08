@@ -34,6 +34,7 @@
     "typescript": "^5"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",
     "eslint": "^8",
     "eslint-config-next": "14.0.4"
