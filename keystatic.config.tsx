@@ -54,7 +54,32 @@ export default config({
           {
             label: 'File Attachments'
           }
-        )
+        ),
+        
+        // ✅ NEW: Add OpenAI tracking fields
+        openaiFileId: fields.text({ 
+          label: 'OpenAI File ID (Internal)',
+          description: 'Auto-populated by sync process - do not edit manually',
+          validation: { isRequired: false }
+        }),
+        
+        openaiFileName: fields.text({
+          label: 'OpenAI File Name (Internal)', 
+          description: 'Auto-populated by sync process - do not edit manually',
+          validation: { isRequired: false }
+        }),
+        
+        lastSyncedAt: fields.text({
+          label: 'Last Synced (Internal)',
+          description: 'Auto-populated by sync process - do not edit manually', 
+          validation: { isRequired: false }
+        }),
+        
+        contentHash: fields.text({
+          label: 'Content Hash (Internal)',
+          description: 'Auto-populated by sync process - do not edit manually',
+          validation: { isRequired: false }
+        })
       }
     })
   }
