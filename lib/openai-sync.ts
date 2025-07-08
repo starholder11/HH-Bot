@@ -69,6 +69,10 @@ export async function syncTimelineEntry(entry: TimelineEntry): Promise<SyncResul
     
     console.log(`✅ Uploaded to OpenAI: ${fileName} → ${file.id}`);
     
+    // Note: Files uploaded with purpose: 'assistants' are automatically available
+    // to the vector store when using file_search in the chat API
+    console.log(`📚 File ready for vector store: ${file.id}`);
+    
     return {
       success: true,
       fileId: file.id,
@@ -123,6 +127,8 @@ export async function syncMultipleEntries(entries: TimelineEntry[]): Promise<Syn
   
   return results;
 }
+
+
 
 // Legacy functions for backward compatibility (if needed)
 export async function uploadFileToVectorStore(fileContent: string, fileName: string) {

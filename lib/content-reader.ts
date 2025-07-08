@@ -8,6 +8,10 @@ export interface TimelineEntry {
   date: string;
   content: string;
   metadata?: Record<string, any>;
+  openaiFileId?: string;
+  openaiFileName?: string;
+  lastSyncedAt?: string;
+  contentHash?: string;
 }
 
 const TIMELINE_DIR = path.join(process.cwd(), 'content', 'timeline');
@@ -112,7 +116,11 @@ export async function getTimelineEntry(slug: string): Promise<TimelineEntry | nu
       title: folderName,
       date: metadata.date || new Date().toISOString(),
       content,
-      metadata
+      metadata,
+      openaiFileId: metadata.openaiFileId,
+      openaiFileName: metadata.openaiFileName,
+      lastSyncedAt: metadata.lastSyncedAt,
+      contentHash: metadata.contentHash
     };
   } catch (error) {
     console.error('Error reading timeline entry:', error);
