@@ -50,32 +50,36 @@ export async function syncTimelineEntry(entry: TimelineEntry): Promise<SyncResul
       };
     }
     
-    // If we have an existing file ID, delete the old file first
+    // If we have an existing file ID, delete the old file from vector store first
     if (entry.openaiFileId) {
       try {
-        await openai.files.del(entry.openaiFileId);
-        console.log(`🗑️  Deleted old file: ${entry.openaiFileId}`);
+        const VECTOR_STORE_ID = "vs_6860128217f08191bacd30e1475d8566";
+        await openai.vectorStores.files.del(VECTOR_STORE_ID, entry.openaiFileId);
+        console.log(`🗑️  Deleted old file from vector store: ${entry.openaiFileId}`);
       } catch (error: any) {
         console.warn(`⚠️  Could not delete old file ${entry.openaiFileId}:`, error.message);
         // Continue anyway - file might already be deleted
       }
     }
     
-    // Upload new file to OpenAI
-    const file = await openai.files.create({
-      file: new File([content], fileName, { type: 'text/markdown' }),
-      purpose: 'assistants'
-    });
+    // Upload directly to vector store (like the original implementation)
+    const VECTOR_STORE_ID = "vs_6860128217f08191bacd30e1475d8566";
     
-    console.log(`✅ Uploaded to OpenAI: ${fileName} → ${file.id}`);
+    // Convert string content to Buffer for upload
+    const buffer = Buffer.from(content, 'utf8');
+    const file = new File([buffer], fileName, { type: 'text/markdown' });
     
-    // Note: Files uploaded with purpose: 'assistants' are automatically available
-    // to the vector store when using file_search in the chat API
-    console.log(`📚 File ready for vector store: ${file.id}`);
+    // Upload to vector store using the original API method
+    const vectorStoreFile = await openai.vectorStores.files.upload(
+      VECTOR_STORE_ID,
+      file
+    );
+    
+    console.log(`✅ Uploaded to vector store: ${fileName} → ${vectorStoreFile.id}`);
     
     return {
       success: true,
-      fileId: file.id,
+      fileId: vectorStoreFile.id,
       fileName: fileName,
       action: entry.openaiFileId ? 'updated' : 'created'
     };
