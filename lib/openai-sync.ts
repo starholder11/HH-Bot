@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
+import crypto from 'crypto';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -9,6 +10,11 @@ const openai = new OpenAI({
 
 // Use existing vector store ID
 const VECTOR_STORE_ID = 'vs_6860128217f08191bacd30e1475d8566';
+
+/** Utility: SHA-256 hash (hex) */
+function sha256(data: string) {
+  return crypto.createHash('sha256').update(data).digest('hex').slice(0, 8); // short hash for filename
+}
 
 /**
  * Upload a markdown file to the OpenAI vector store
@@ -87,23 +93,64 @@ export async function deleteFileFromVectorStore(fileId: string) {
  * @param fileName - Name for the file in the vector store
  */
 export async function syncTimelineFile(fileContent: string, fileName: string) {
+  // Normalize filename: always use .md extension
+  const normalizedName = fileName.endsWith('.mdoc') ? fileName.replace('.mdoc', '.md') : fileName;
   try {
-    // Check if file already exists
-    const existingFileId = await findExistingFile(fileName);
-    
+    // Check if file already exists (using normalized name)
+    const existingFileId = await findExistingFile(normalizedName);
     if (existingFileId) {
-      console.log(`🔄 File ${fileName} exists, updating...`);
-      // Delete existing file
+      console.log(`🔄 File ${normalizedName} exists, replacing...`);
       await deleteFileFromVectorStore(existingFileId);
     }
-    
-    // Upload new/updated file
-    await uploadFileToVectorStore(fileContent, fileName);
-    
+    // Upload using normalized name
+    await uploadFileToVectorStore(fileContent, normalizedName);
   } catch (error) {
-    console.error(`❌ Error syncing ${fileName}:`, error);
+    console.error(`❌ Error syncing ${normalizedName}:`, error);
     throw error;
   }
+}
+
+/**
+ * Sync a timeline entry (by logical base name).
+ * Creates filename  <base>-body-<hash>.md
+ * Deletes any older versions whose prefix matches <base>-body- and whose hash differs.
+ */
+export async function syncTimelineEntry(baseName: string, fileContent: string) {
+  const hash = sha256(fileContent);
+  const vectorName = `${baseName}-body-${hash}.md`;
+  console.log(`📝 Syncing ${baseName} → ${vectorName}`);
+
+  // Collect existing versions for this entry
+  const toDelete: string[] = [];
+  let alreadyExists = false;
+  try {
+    const files = await openai.vectorStores.files.list(VECTOR_STORE_ID);
+    for await (const file of files) {
+      const fname = file.attributes?.filename as string | undefined;
+      if (!fname) continue;
+      if (fname.startsWith(`${baseName}-body-`)) {
+        if (fname === vectorName) {
+          alreadyExists = true;
+        } else {
+          toDelete.push(file.id);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('⚠️ Failed to list vector store files:', e);
+  }
+
+  // Delete stale versions
+  for (const id of toDelete) {
+    await deleteFileFromVectorStore(id).catch(() => {/* ignore */});
+  }
+
+  if (alreadyExists) {
+    console.log('✔️ Up-to-date; no upload needed');
+    return;
+  }
+
+  await uploadFileToVectorStore(fileContent, vectorName);
 }
 
 /**

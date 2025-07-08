@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateGitHubWebhook, extractGitHubSignature } from '@/lib/webhook-security';
-import { syncTimelineFile, getFileContentFromGitHub } from '@/lib/openai-sync';
+import { syncTimelineEntry, getFileContentFromGitHub } from '@/lib/openai-sync';
 import { uploadImage, uploadFile } from '@/lib/s3-upload';
 import { updateFileInGitHub, replaceImageReferences, getFileContentAsString } from '@/lib/github-file-updater';
 // import { updateSearchIndexFile } from '@/lib/search/search-index';
@@ -155,11 +155,13 @@ export async function POST(request: NextRequest) {
           payload.commits[0].id
         );
         
-        // Get filename from path
-        const fileName = filePath.split('/').pop() || 'unknown.md';
-        
+        // Get filename and base name
+        const fileNameWithExt = filePath.split('/').pop() || 'unknown.mdoc';
+        const baseName = fileNameWithExt.replace(/\.mdoc$/, '').replace(/\s+/g, '-').toLowerCase();
+        const fileName = fileNameWithExt; // preserve for messages below
+
         // Sync to vector store with file content
-        await syncTimelineFile(fileContent, fileName);
+        await syncTimelineEntry(baseName, fileContent);
         
         // If we have S3 URL mappings, update the content file
         if (Object.keys(urlMappings).length > 0) {
