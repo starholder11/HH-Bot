@@ -1,6 +1,5 @@
 import { getTimelineEntries } from '@/lib/timeline';
 import { BaseLayout } from '@/components/layout/BaseLayout';
-import { Header } from '@/components/layout/Header';
 import { SiteTitle } from '@/components/layout/SiteTitle';
 import { ContentContainer } from '@/components/layout/ContentContainer';
 import { Heading } from '@/components/typography/Heading';
@@ -13,7 +12,6 @@ export default function Home() {
 
   return (
     <BaseLayout>
-      <Header />
       <main className="py-12">
         <ContentContainer>
           <section className="text-center mb-16">
