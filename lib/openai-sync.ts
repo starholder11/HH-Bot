@@ -283,7 +283,7 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
 
   // 5. Final safety sweep: delete any raw uploads that are no longer referenced
   try {
-    const result = await nukeOrphanRawUploads([upToDateId!]);
+    const result = await nukeOrphanRawUploads();
     if (result.deleted) {
       console.log(`🧨 Auto-cleanup removed ${result.deleted} orphan raw uploads.`);
     }
@@ -425,11 +425,10 @@ async function listAllRawFiles(): Promise<any[]> {
  * and whose filename follows our timeline pattern (contains `-body-`).
  * Returns a summary of the deletion results.
  */
-export async function nukeOrphanRawUploads(excludeIds: string[] = []) {
+export async function nukeOrphanRawUploads() {
   // 1. Gather all referenced raw ids from the vector store
   const vectorFiles = await listAllVectorStoreFiles();
   const referenced = new Set<string>(vectorFiles.map((f: any) => f.file_id).filter(Boolean));
-  for (const id of excludeIds) referenced.add(id);
 
   // 2. List every raw upload in the account
   const rawFiles = await listAllRawFiles();
