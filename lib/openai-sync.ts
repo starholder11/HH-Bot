@@ -375,3 +375,78 @@ export async function getFileContentFromGitHub(
     throw error;
   }
 }
+
+/**
+ * Robustly list *all* raw files in the account. Needed to track orphan uploads that
+ * are no longer referenced by any vector-store file.
+ */
+async function listAllRawFiles(): Promise<any[]> {
+  try {
+    const pageSize = 100 as const;
+    let page: any = await openai.files.list({ limit: pageSize } as any);
+
+    // Prefer the modern iterator helper if present.
+    if (typeof page?.iter === 'function') {
+      const out: any[] = [];
+      for await (const file of (openai.files.list({ limit: pageSize } as any) as any).iter()) {
+        out.push(file);
+      }
+      return out;
+    }
+
+    // Fallback to classic pagination using `has_more`.
+    const all: any[] = [];
+    all.push(...(page.data || []));
+    while (page.has_more) {
+      const lastId = page.data?.[page.data.length - 1]?.id;
+      page = await openai.files.list({ limit: pageSize, after: lastId } as any);
+      all.push(...(page.data || []));
+    }
+    return all;
+  } catch (err) {
+    console.error('⚠️  Failed to list raw uploads:', err);
+    return [];
+  }
+}
+
+/**
+ * Delete *orphan* raw uploads – any file in the /files endpoint whose `id` is not
+ * referenced by a vector-store file. Only touches files with `purpose==='assistants'`
+ * and whose filename follows our timeline pattern (contains `-body-`).
+ * Returns a summary of the deletion results.
+ */
+export async function nukeOrphanRawUploads() {
+  // 1. Gather all referenced raw ids from the vector store
+  const vectorFiles = await listAllVectorStoreFiles();
+  const referenced = new Set<string>(vectorFiles.map((f: any) => f.file_id).filter(Boolean));
+
+  // 2. List every raw upload in the account
+  const rawFiles = await listAllRawFiles();
+
+  // 3. Filter to orphan uploads that look like timeline markdown bodies
+  const candidates = rawFiles.filter((f: any) => {
+    if (!f || !f.id) return false;
+    if (referenced.has(f.id)) return false; // still in use
+    if (f.purpose !== 'assistants') return false; // leave other purposes alone
+    if (!f.filename || typeof f.filename !== 'string') return false;
+    return f.filename.includes('-body-') && f.filename.endsWith('.md');
+  });
+
+  console.log(`🧨 Found ${candidates.length} orphan raw uploads to delete...`);
+  const results = await Promise.allSettled(
+    candidates.map((f: any) => openai.files.del(f.id))
+  );
+
+  const summary = results.map((r, idx) => ({
+    id: candidates[idx].id,
+    filename: candidates[idx].filename,
+    status: r.status,
+    reason: (r as any).reason?.message || undefined,
+  }));
+
+  console.log('🧨 Orphan deletion complete:', summary);
+  return { deleted: candidates.length, summary };
+}
+
+// Export internal helpers for debugging routes
+export { listAllRawFiles };
