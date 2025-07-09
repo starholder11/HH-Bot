@@ -55,8 +55,9 @@ async function listAllVectorStoreFiles(): Promise<any[]> {
 
 /** Given a vector-store file record (which may omit `filename`), fetch its details to get the filename */
 async function ensureFilename(file: any): Promise<{ id: string; filename: string }> {
-  if (file.filename) {
-    return { id: file.id, filename: file.filename };
+  const attrName = (file.attributes as any)?.filename as string | undefined;
+  if (file.filename || attrName) {
+    return { id: file.id, filename: (file.filename as string) || attrName || '' };
   }
   try {
     const detailed = await openai.vectorStores.files.retrieve(
@@ -100,18 +101,26 @@ export async function uploadFileToVectorStore(
     
     // Convert string content to Buffer for upload
     const buffer = Buffer.from(fileContent, 'utf8');
-    
-    // Change .mdoc to .md for OpenAI compatibility
+
+    // Ensure .md extension for the File object
     const uploadFileName = fileName.replace('.mdoc', '.md');
     const file = new File([buffer], uploadFileName, { type: 'text/markdown' });
-    
-    // Upload to vector store using the researched API method
-    const vectorStoreFile = await openai.vectorStores.files.upload(
+
+    // Step 1 – upload raw file to /files endpoint
+    const fileInfo = await openai.files.create({ file, purpose: 'assistants' } as any);
+
+    // Step 2 – attach file to vector store and set attributes so we can later query by filename
+    const vectorStoreFile = await openai.vectorStores.files.create(
       VECTOR_STORE_ID,
-      file
+      {
+        file_id: fileInfo.id,
+        attributes: {
+          filename: uploadFileName,
+        },
+      } as any
     );
-    
-    console.log(`✅ Successfully uploaded ${fileName} to vector store`);
+
+    console.log(`✅ Successfully uploaded ${fileName} to vector store (file_id=${fileInfo.id})`);
     return vectorStoreFile;
     
   } catch (error) {
