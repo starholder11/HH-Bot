@@ -44,10 +44,9 @@ export default function TimelineTable({ entries }: TimelineTableProps) {
       cell: ({ row }) => {
         const title = row.original.title;
         const slug = row.original.slug;
-        const encodedTitle = encodeURIComponent(title);
         return (
           <div className="flex gap-2">
-            <a href={`/keystatic/branch/main/collection/timeline/item/${encodedTitle}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Edit</a>
+            <a href={`/keystatic/branch/main/collection/timeline/item/${slug}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Edit</a>
             <a href={`/timeline/${slug}`} target="_blank" rel="noopener noreferrer" className="text-green-600 underline">Live</a>
           </div>
         );
