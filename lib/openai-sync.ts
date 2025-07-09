@@ -434,21 +434,11 @@ export async function nukeOrphanRawUploads() {
   const rawFiles = await listAllRawFiles();
 
   // 3. Filter to orphan uploads that look like timeline markdown bodies
-  const RECENT_MS = 10 * 60 * 1000; // 10 minutes grace period for eventual consistency
-  const now = Date.now();
-
   const candidates = rawFiles.filter((f: any) => {
     if (!f || !f.id) return false;
     if (referenced.has(f.id)) return false; // still in use
     if (f.purpose !== 'assistants') return false; // leave other purposes alone
     if (!f.filename || typeof f.filename !== 'string') return false;
-    // Skip very recent uploads to avoid race conditions where the vector-store
-    // pointer isn’t visible yet (OpenAI list endpoint is eventually consistent)
-    try {
-      const createdMs = new Date((f as any).created_at as string).getTime();
-      if (now - createdMs < RECENT_MS) return false;
-    } catch {}
-
     return f.filename.includes('-body-') && f.filename.endsWith('.md');
   });
 
