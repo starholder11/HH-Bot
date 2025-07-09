@@ -16,10 +16,12 @@
     "@octokit/rest": "^22.0.0",
     "@tailwindcss/typography": "^0.5.10",
     "@tanstack/react-table": "^8.21.3",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "fast-glob": "^3.3.3",
     "file-type": "^21.0.0",
     "fuse.js": "^7.1.0",
     "gray-matter": "^4.0.3",
@@ -35,10 +37,7 @@
     "typescript": "^5"
   },
   "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20",
     "eslint": "^8",
-    "eslint-config-next": "14.0.4",
-    "fast-glob": "^3.3.3"
+    "eslint-config-next": "14.0.4"
   }
 }
