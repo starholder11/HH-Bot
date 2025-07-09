@@ -241,6 +241,20 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
   // 3. Delete stale
   const results = await Promise.allSettled(staleIds.map(id => deleteFileFromVectorStore(id)));
   console.log('🧹 Final cleanup results:', results);
+
+  // 4. Extra safety: remove any *anonymous* files (missing filename) – these are
+  // legacy uploads created before we started setting attributes.filename. They
+  // can never be matched again, so purge them to keep the store lean.
+  try {
+    const currentFiles = await listAllFilesWithNames();
+    const anonymous = currentFiles.filter(f => !f.filename);
+    if (anonymous.length) {
+      console.log(`🧹 Deleting ${anonymous.length} legacy nameless files...`);
+      await Promise.allSettled(anonymous.map(f => deleteFileFromVectorStore(f.id)));
+    }
+  } catch (err) {
+    console.error('⚠️ Error during anonymous file cleanup:', err);
+  }
 }
 
 /**
