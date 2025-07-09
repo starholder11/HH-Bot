@@ -27,6 +27,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ count: named.length, named }, { status: 200 });
     }
 
+    // Probe single file if ?id=<fileId>
+    const probeId = searchParams.get('id');
+    if (probeId) {
+      try {
+        const detail = await openai.vectorStores.files.retrieve(VECTOR_STORE_ID, probeId);
+        return NextResponse.json(detail, { status: 200 });
+      } catch (err: any) {
+        return NextResponse.json({ error: err?.message || 'unknown' }, { status: 500 });
+      }
+    }
+
     // Only return lightweight info
     const slim = files.map(f => ({ id: f.id, attrs: f.attributes, status: f.status }));
     return NextResponse.json({ count: files.length, slim }, { status: 200 });
