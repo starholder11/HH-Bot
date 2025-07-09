@@ -27,6 +27,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ count: named.length, named }, { status: 200 });
     }
 
+    // Bulk delete nameless files if ?nukeNameless=1
+    if (searchParams.get('nukeNameless') === '1') {
+      const named = await listAllFilesWithNames();
+      const nameless = named.filter(f => !f.filename);
+      const results = await Promise.allSettled(
+        nameless.map(f => openai.vectorStores.files.del(VECTOR_STORE_ID, f.id))
+      );
+      const summary = results.map((r, idx) => ({ id: nameless[idx].id, status: r.status }));
+      return NextResponse.json({ deleted: summary.length, summary }, { status: 200 });
+    }
+
     // Probe single file if ?id=<fileId>
     const probeId = searchParams.get('id');
     if (probeId) {
