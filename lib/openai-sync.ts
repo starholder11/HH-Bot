@@ -280,16 +280,6 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
   } catch (err) {
     console.error('⚠️ Error during anonymous file cleanup:', err);
   }
-
-  // 5. Final safety sweep: delete any raw uploads that are no longer referenced
-  try {
-    const result = await nukeOrphanRawUploads();
-    if (result.deleted) {
-      console.log(`🧨 Auto-cleanup removed ${result.deleted} orphan raw uploads.`);
-    }
-  } catch (err) {
-    console.warn('⚠️ Auto orphan-raw cleanup failed:', err);
-  }
 }
 
 /**
