@@ -53,6 +53,38 @@ async function listAllVectorStoreFiles(): Promise<any[]> {
   }
 }
 
+/** Given a vector-store file record (which may omit `filename`), fetch its details to get the filename */
+async function ensureFilename(file: any): Promise<{ id: string; filename: string }> {
+  if (file.filename) {
+    return { id: file.id, filename: file.filename };
+  }
+  try {
+    const detailed = await openai.vectorStores.files.retrieve(
+      VECTOR_STORE_ID,
+      file.id
+    );
+    const fname = (detailed as any).filename || (detailed as any).attributes?.filename || '';
+    return { id: file.id, filename: fname };
+  } catch (err) {
+    console.error('⚠️  Failed to retrieve filename for file', file.id, err);
+    return { id: file.id, filename: '' };
+  }
+}
+
+/** Convenience helper – returns array of {id, filename} for every file */
+async function listAllFilesWithNames(): Promise<{ id: string; filename: string }[]> {
+  const raw = await listAllVectorStoreFiles();
+  // Parallel retrieval (but cap concurrency to avoid rate limits)
+  const concurrency = 5;
+  const results: { id: string; filename: string }[] = [];
+  for (let i = 0; i < raw.length; i += concurrency) {
+    const slice = raw.slice(i, i + concurrency);
+    const detailed = await Promise.all(slice.map(ensureFilename));
+    results.push(...detailed);
+  }
+  return results;
+}
+
 /**
  * Upload a markdown file to the OpenAI vector store
  * @param fileContent - The file content as string
@@ -95,12 +127,10 @@ export async function uploadFileToVectorStore(
  */
 export async function findExistingFile(fileName: string): Promise<string | null> {
   try {
-    const files = await listAllVectorStoreFiles();
-    for (const file of files) {
-      // According to the 2024-07 OpenAI TS definitions, the filename lives directly on the object
-      const fname = (file as any).filename as string | undefined;
-      if (fname === fileName) {
-        return file.id;
+    const files = await listAllFilesWithNames();
+    for (const f of files) {
+      if (f.filename === fileName) {
+        return f.id;
       }
     }
 
@@ -163,14 +193,14 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
   const staleIds: string[] = [];
   let upToDateId: string | null = null;
   try {
-    const files = await listAllVectorStoreFiles();
-    for (const file of files) {
-      const fname = (file as any).filename as string | undefined || '';
+    const files = await listAllFilesWithNames();
+    for (const f of files) {
+      const fname = f.filename || '';
       if (!fname.startsWith(`${baseName}-body-`)) continue;
       if (fname === vectorName) {
-        upToDateId = file.id;
+        upToDateId = f.id;
       } else {
-        staleIds.push(file.id);
+        staleIds.push(f.id);
       }
     }
   } catch (e) {
