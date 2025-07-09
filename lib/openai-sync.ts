@@ -64,8 +64,19 @@ async function ensureFilename(file: any): Promise<{ id: string; filename: string
       VECTOR_STORE_ID,
       file.id
     );
-    const fname = (detailed as any).filename || (detailed as any).attributes?.filename || '';
-    return { id: file.id, filename: fname };
+    let fname: string | undefined = (detailed as any).attributes?.filename as string | undefined;
+    if (!fname && (detailed as any).filename) {
+      fname = (detailed as any).filename as string;
+    }
+    if (!fname && (detailed as any).file_id) {
+      try {
+        const meta = await openai.files.retrieve((detailed as any).file_id);
+        fname = (meta as any).filename as string | undefined || fname;
+      } catch (e) {
+        // ignore
+      }
+    }
+    return { id: file.id, filename: fname || '' };
   } catch (err) {
     console.error('⚠️  Failed to retrieve filename for file', file.id, err);
     return { id: file.id, filename: '' };
