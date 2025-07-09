@@ -91,11 +91,8 @@ export async function getTimelineEntry(slug: string): Promise<TimelineEntry | nu
       }
     }
 
-    // Metadata YAML may be in slug directory (preferred) or timeline root (legacy)
-    let yamlPath = path.join(folderPath, `${folderName}.yaml`);
-    if (!fs.existsSync(yamlPath)) {
-      yamlPath = path.join(TIMELINE_DIR, `${folderName}.yaml`);
-    }
+    // Read metadata from YAML file (now located at content/timeline/slug.yaml)
+    const yamlPath = path.join(TIMELINE_DIR, `${folderName}.yaml`);
     let metadata: Record<string, any> = {};
     
     if (fs.existsSync(yamlPath)) {
