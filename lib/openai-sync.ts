@@ -58,14 +58,17 @@ export async function uploadFileToVectorStore(
  */
 export async function findExistingFile(fileName: string): Promise<string | null> {
   try {
-    const files = await openai.vectorStores.files.list(VECTOR_STORE_ID);
-    
-    for await (const file of files) {
-      if (file.attributes?.filename === fileName) {
+    // Use the iterator so that we scan **all** pages, not just the first one
+    const pageIter = (openai.vectorStores.files.list(VECTOR_STORE_ID) as any).iter();
+
+    for await (const file of pageIter) {
+      // According to the 2024-07 OpenAI TS definitions, the filename lives directly on the object
+      const fname = (file as any).filename as string | undefined;
+      if (fname === fileName) {
         return file.id;
       }
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error checking existing files:', error);
@@ -125,8 +128,9 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
   const staleIds: string[] = [];
   let upToDateId: string | null = null;
   try {
-    const files = await openai.vectorStores.files.list(VECTOR_STORE_ID);
-    for await (const file of files) {
+    // ⚠️  IMPORTANT: list() only returns the first page; we must iterate all pages
+    const pageIter = (openai.vectorStores.files.list(VECTOR_STORE_ID) as any).iter();
+    for await (const file of pageIter) {
       const fname = (file as any).filename as string | undefined || '';
       if (!fname.startsWith(`${baseName}-body-`)) continue;
       if (fname === vectorName) {
