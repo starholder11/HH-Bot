@@ -170,11 +170,36 @@ export async function findExistingFile(fileName: string): Promise<string | null>
  */
 export async function deleteFileFromVectorStore(fileId: string) {
   try {
+    // 1. Retrieve the vector-store file to learn its underlying upload id
+    let rawId: string | undefined;
+    try {
+      const info: any = await openai.vectorStores.files.retrieve(
+        VECTOR_STORE_ID,
+        fileId
+      );
+      rawId = info?.file_id as string | undefined;
+    } catch (e) {
+      // If retrieve fails we still attempt the pointer deletion below
+      console.warn(`⚠️ Could not retrieve vector file ${fileId}:`, e);
+    }
+
+    // 2. Delete the vector-store pointer
     await openai.vectorStores.files.del(VECTOR_STORE_ID, fileId);
-    console.log(`🗑️ Deleted file ${fileId} from vector store`);
+    console.log(`🗑️ Deleted vector-store file ${fileId}`);
+
+    // 3. Delete the raw file (best-effort)
+    if (rawId) {
+      try {
+        await openai.files.del(rawId);
+        console.log(`🗑️ Deleted raw file ${rawId}`);
+      } catch (e) {
+        console.warn(`⚠️ Failed to delete raw file ${rawId}:`, e);
+      }
+    }
+
     return true;
   } catch (error) {
-    console.error(`❌ Error deleting file ${fileId}:`, error);
+    console.error(`❌ Error deleting vector-store file ${fileId}:`, error);
     return false;
   }
 }
@@ -349,4 +374,4 @@ export async function getFileContentFromGitHub(
     console.error(`❌ Error fetching file content from GitHub:`, error);
     throw error;
   }
-} 
+}
