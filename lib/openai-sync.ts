@@ -81,9 +81,10 @@ export async function deleteFileFromVectorStore(fileId: string) {
   try {
     await openai.vectorStores.files.del(VECTOR_STORE_ID, fileId);
     console.log(`🗑️ Deleted file ${fileId} from vector store`);
+    return true;
   } catch (error) {
     console.error(`❌ Error deleting file ${fileId}:`, error);
-    throw error;
+    return false;
   }
 }
 
@@ -149,7 +150,7 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
   // Re-list and delete every older version whose prefix matches but id differs
   try {
     const again = await openai.vectorStores.files.list(VECTOR_STORE_ID);
-    const deletions: Promise<any>[] = [];
+    const deletions: Promise<boolean>[] = [];
     for await (const file of again) {
       const fname = file.attributes?.filename as string | undefined;
       if (!fname) continue;
@@ -158,7 +159,8 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
         deletions.push(deleteFileFromVectorStore(file.id));
       }
     }
-    await Promise.allSettled(deletions);
+    const results = await Promise.allSettled(deletions);
+    console.log(`🧹 Cleanup results:`, results);
   } catch (e) {
     console.error('⚠️ Cleanup pass failed:', e);
   }
