@@ -32,9 +32,21 @@ export async function GET(req: Request) {
       const named = await listAllFilesWithNames();
       const nameless = named.filter(f => !f.filename);
       const results = await Promise.allSettled(
-        nameless.map(f => openai.vectorStores.files.del(VECTOR_STORE_ID, f.id))
+        nameless.map(async f => {
+          try {
+            const detail: any = await openai.vectorStores.files.retrieve(VECTOR_STORE_ID, f.id);
+            if (detail?.file_id) {
+              // Delete underlying upload first
+              await openai.files.del(detail.file_id as string);
+            }
+            await openai.vectorStores.files.del(VECTOR_STORE_ID, f.id);
+            return { ok: true };
+          } catch (err) {
+            return { ok: false, err: (err as any)?.message || 'unknown' };
+          }
+        })
       );
-      const summary = results.map((r, idx) => ({ id: nameless[idx].id, status: r.status }));
+      const summary = results.map((r, idx) => ({ id: nameless[idx].id, status: r.status, value: (r as any).value }));
       return NextResponse.json({ deleted: summary.length, summary }, { status: 200 });
     }
 
