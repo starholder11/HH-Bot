@@ -127,7 +127,7 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
   try {
     const files = await openai.vectorStores.files.list(VECTOR_STORE_ID);
     for await (const file of files) {
-      const fname = (file.attributes?.filename as string | undefined) || '';
+      const fname = (file as any).filename as string | undefined || '';
       if (!fname.startsWith(`${baseName}-body-`)) continue;
       if (fname === vectorName) {
         upToDateId = file.id;
