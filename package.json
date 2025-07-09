@@ -36,6 +36,9 @@
   "devDependencies": {
     "@types/node": "^20",
     "eslint": "^8",
-    "eslint-config-next": "14.0.4"
+    "eslint-config-next": "14.0.4",
+    "fast-glob": "^3.3.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3"
   }
 }

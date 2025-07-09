@@ -12,7 +12,7 @@ export default config({
   collections: {
     timeline: collection({
       label: 'Timeline',
-      path: 'content/timeline/*',
+      path: 'content/timeline/**',
       slugField: 'slug',
       schema: {
         title: fields.text({ 
@@ -29,6 +29,9 @@ export default config({
         }),
         body: fields.markdoc({ 
           label: 'Body' 
+        }),
+        categories: fields.text({
+          label: 'Categories (comma-separated)'
         }),
         featuredImage: fields.image({
           label: 'Featured Image',
