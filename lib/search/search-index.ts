@@ -21,11 +21,35 @@ async function fetchTimelineEntriesFromGitHub(): Promise<{slug: string, title: s
   }
   const data = await res.json();
   const dirs = data.filter((item: any) => item.type === 'dir');
-  return dirs.map((dir: any) => ({
-    slug: dir.name,
-    title: dir.name,
-    bodyPath: `content/timeline/${dir.name}/body.mdoc`,
-  }));
+  
+  const entries = [];
+  for (const dir of dirs) {
+    const slug = dir.name; // Directory name is already in slug-case
+    const yamlPath = `content/timeline/${slug}/${slug}.yaml`;
+    
+    // Try to fetch the title from the YAML file
+    let title = slug; // Fallback to slug
+    try {
+      const yamlContent = await fetchFileContentFromGitHub(yamlPath);
+      if (yamlContent) {
+        // Parse YAML to extract title
+        const titleMatch = yamlContent.match(/^title:\s*(.+)$/m);
+        if (titleMatch) {
+          title = titleMatch[1].trim().replace(/^['"]|['"]$/g, ''); // Remove quotes
+        }
+      }
+    } catch (error) {
+      console.warn(`[search-index] Could not fetch title for ${slug}, using slug as title`);
+    }
+    
+    entries.push({
+      slug,
+      title,
+      bodyPath: `content/timeline/${slug}/body.mdoc`,
+    });
+  }
+  
+  return entries;
 }
 
 async function fetchFileContentFromGitHub(path: string): Promise<string> {
@@ -59,7 +83,7 @@ export async function generateSearchIndex(): Promise<SearchIndex> {
       entries.push({
         slug: entry.slug,
         title: entry.title,
-        url: `/timeline/${toSlug(entry.slug)}`,
+        url: `/timeline/${entry.slug}`, // Use slug directly, it's already in slug-case
         content,
         preview: generatePreview(content, 150),
         lastUpdated: new Date().toISOString(),
