@@ -1,10 +1,11 @@
 import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
+import { listAllFilesWithNames } from '@/lib/openai-sync';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const VECTOR_STORE_ID = 'vs_6860128217f08191bacd30e1475d8566';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     // Fetch up to 100 files (first page)
     const page: any = await openai.vectorStores.files.list(VECTOR_STORE_ID, { limit: 100 } as any);
@@ -17,6 +18,13 @@ export async function GET() {
       }
     } else {
       files = page.data || [];
+    }
+
+    // If caller requests detailed filenames use helper
+    const { searchParams } = new URL(req.url);
+    if (searchParams.get('detailed') === '1') {
+      const named = await listAllFilesWithNames();
+      return NextResponse.json({ count: named.length, named }, { status: 200 });
     }
 
     // Only return lightweight info

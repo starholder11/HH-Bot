@@ -97,6 +97,9 @@ async function listAllFilesWithNames(): Promise<{ id: string; filename: string }
   return results;
 }
 
+// Exported for debug utilities only – not part of public API
+export { listAllFilesWithNames };
+
 /**
  * Upload a markdown file to the OpenAI vector store
  * @param fileContent - The file content as string
