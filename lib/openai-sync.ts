@@ -17,6 +17,43 @@ function sha256(data: string) {
 }
 
 /**
+ * Robustly list *all* files in a vector store, even if the SDK version
+ * doesn’t support the experimental `.iter()` helper. Falls back to the
+ * classic OpenAI pagination pattern (`has_more` + `after`).
+ */
+async function listAllVectorStoreFiles(): Promise<any[]> {
+  try {
+    // First request (max 100 per docs)
+    const pageSize = 100 as const;
+    let page: any = await openai.vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize } as any);
+
+    // Newer SDKs may return a PagePromise with `.iter()` – use it if present & functional
+    if (typeof page?.iter === 'function') {
+      const out: any[] = [];
+      // NB: Need to re-request because the first call returned a *promise* we already awaited.
+      const iter = (openai.vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize } as any) as any).iter();
+      for await (const file of iter) {
+        out.push(file);
+      }
+      return out;
+    }
+
+    // Fallback: old-style list response with `data` + `has_more`
+    const all: any[] = [];
+    all.push(...(page.data || []));
+    while (page.has_more) {
+      const lastId = page.data?.[page.data.length - 1]?.id;
+      page = await openai.vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize, after: lastId } as any);
+      all.push(...(page.data || []));
+    }
+    return all;
+  } catch (err) {
+    console.error('⚠️  Failed to list vector store files:', err);
+    return [];
+  }
+}
+
+/**
  * Upload a markdown file to the OpenAI vector store
  * @param fileContent - The file content as string
  * @param fileName - Name for the file in the vector store
@@ -58,10 +95,8 @@ export async function uploadFileToVectorStore(
  */
 export async function findExistingFile(fileName: string): Promise<string | null> {
   try {
-    // Use the iterator so that we scan **all** pages, not just the first one
-    const pageIter = (openai.vectorStores.files.list(VECTOR_STORE_ID) as any).iter();
-
-    for await (const file of pageIter) {
+    const files = await listAllVectorStoreFiles();
+    for (const file of files) {
       // According to the 2024-07 OpenAI TS definitions, the filename lives directly on the object
       const fname = (file as any).filename as string | undefined;
       if (fname === fileName) {
@@ -128,9 +163,8 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
   const staleIds: string[] = [];
   let upToDateId: string | null = null;
   try {
-    // ⚠️  IMPORTANT: list() only returns the first page; we must iterate all pages
-    const pageIter = (openai.vectorStores.files.list(VECTOR_STORE_ID) as any).iter();
-    for await (const file of pageIter) {
+    const files = await listAllVectorStoreFiles();
+    for (const file of files) {
       const fname = (file as any).filename as string | undefined || '';
       if (!fname.startsWith(`${baseName}-body-`)) continue;
       if (fname === vectorName) {
