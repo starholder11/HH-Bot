@@ -120,37 +120,48 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
   const vectorName = `${baseName}-body-${hash}.md`;
   console.log(`📝 Syncing ${baseName} → ${vectorName}`);
 
-  // Collect existing versions for this entry
-  const toDelete: string[] = [];
-  let alreadyExists = false;
+  // First list existing files once to see whether current hash is already there
+  let newFileId: string | null = null;
   try {
     const files = await openai.vectorStores.files.list(VECTOR_STORE_ID);
     for await (const file of files) {
       const fname = file.attributes?.filename as string | undefined;
       if (!fname) continue;
-      if (fname.startsWith(`${baseName}-body-`)) {
-        if (fname === vectorName) {
-          alreadyExists = true;
-        } else {
-          toDelete.push(file.id);
-        }
+      if (fname === vectorName) {
+        newFileId = file.id; // up-to-date version already exists
       }
     }
   } catch (e) {
     console.error('⚠️ Failed to list vector store files:', e);
   }
 
-  // Delete stale versions
-  for (const id of toDelete) {
-    await deleteFileFromVectorStore(id).catch(() => {/* ignore */});
+  // Upload only if we didn’t find an identical version already
+  if (!newFileId) {
+    const uploaded = await uploadFileToVectorStore(fileContent, vectorName).catch((err) => {
+      console.error('❌ Upload failed:', err);
+      throw err;
+    });
+    newFileId = uploaded.id;
+  } else {
+    console.log('✔️ Latest version already present, will just clean up old ones');
   }
 
-  if (alreadyExists) {
-    console.log('✔️ Up-to-date; no upload needed');
-    return;
+  // Re-list and delete every older version whose prefix matches but id differs
+  try {
+    const again = await openai.vectorStores.files.list(VECTOR_STORE_ID);
+    const deletions: Promise<any>[] = [];
+    for await (const file of again) {
+      const fname = file.attributes?.filename as string | undefined;
+      if (!fname) continue;
+      if (fname.startsWith(`${baseName}-body-`) && file.id !== newFileId) {
+        console.log(`🗑️ Removing stale ${fname}`);
+        deletions.push(deleteFileFromVectorStore(file.id));
+      }
+    }
+    await Promise.allSettled(deletions);
+  } catch (e) {
+    console.error('⚠️ Cleanup pass failed:', e);
   }
-
-  await uploadFileToVectorStore(fileContent, vectorName);
 }
 
 /**
