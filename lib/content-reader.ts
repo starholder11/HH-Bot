@@ -91,25 +91,23 @@ export async function getTimelineEntry(slug: string): Promise<TimelineEntry | nu
       }
     }
 
-    // Read metadata from YAML file if it exists
-    const yamlPath = path.join(folderPath, `${folderName}.yaml`);
+    // Read metadata from YAML file (now located at content/timeline/slug.yaml)
+    const yamlPath = path.join(TIMELINE_DIR, `${folderName}.yaml`);
     let metadata: Record<string, any> = {};
     
     if (fs.existsSync(yamlPath)) {
       const yamlContent = fs.readFileSync(yamlPath, 'utf-8');
-      // Simple YAML parsing for basic metadata
-      const lines = yamlContent.split('\n');
-      for (const line of lines) {
-        const match = line.match(/^(\w+):\s*(.+)$/);
-        if (match) {
-          metadata[match[1]] = match[2].trim();
-        }
+      try {
+        const yaml = require('js-yaml');
+        metadata = yaml.load(yamlContent) || {};
+      } catch (e) {
+        console.error('Error parsing YAML for', yamlPath, e);
       }
     }
 
     return {
       slug,
-      title: folderName,
+      title: metadata.title || folderName,
       date: metadata.date || new Date().toISOString(),
       content,
       metadata

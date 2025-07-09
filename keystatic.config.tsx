@@ -27,6 +27,10 @@ export default config({
           label: 'Date',
           validation: { isRequired: true }
         }),
+        categories: fields.array(
+          fields.text({ label: 'Category' }),
+          { label: 'Categories' }
+        ),
         body: fields.markdoc({ 
           label: 'Body' 
         }),
