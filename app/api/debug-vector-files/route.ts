@@ -5,6 +5,9 @@ import { listAllFilesWithNames } from '@/lib/openai-sync';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const VECTOR_STORE_ID = 'vs_6860128217f08191bacd30e1475d8566';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   try {
     // Fetch up to 100 files (first page)

@@ -1,15 +1,25 @@
 import { config, collection, fields } from '@keystatic/core';
 
+// Determine storage mode based on environment
+const getStorageConfig = () => {
+  // Use local storage for development or when GitHub config is missing
+  if (process.env.NODE_ENV !== 'production' || 
+      !process.env.KEYSTATIC_GITHUB_CLIENT_ID || 
+      !process.env.KEYSTATIC_GITHUB_CLIENT_SECRET || 
+      !process.env.KEYSTATIC_SECRET) {
+    return { kind: 'local' as const };
+  }
+  
+  // Use GitHub storage for production when properly configured
+  return {
+    kind: 'github' as const,
+    repo: { owner: 'starholder11', name: 'HH-Bot' },
+    experimental_forceFullCommit: true
+  };
+};
+
 export default config({
-  storage: 
-    process.env.NODE_ENV === 'production' 
-      ? {
-          kind: 'github',
-          repo: { owner: 'starholder11', name: 'HH-Bot' },
-          // @ts-expect-error – flag isn't in typings yet but works in runtime
-          experimental_forceFullCommit: true
-        }
-      : { kind: 'local' },
+  storage: getStorageConfig(),
   
   collections: {
     timeline: collection({
