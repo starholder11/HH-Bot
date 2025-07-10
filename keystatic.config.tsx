@@ -17,7 +17,7 @@ export default config({
       schema: {
         title: fields.text({ label: 'Title' }),
         slug: fields.slug({ name: { label: 'Slug' } }),
-        date: fields.text({ label: 'Date' }),
+        date: fields.date({ label: 'Date' }),
         categories: fields.array(
           fields.text({ label: 'Category' }),
           { label: 'Categories' }
