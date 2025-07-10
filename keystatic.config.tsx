@@ -22,6 +22,14 @@ export default config({
           fields.text({ label: 'Category' }),
           { label: 'Categories' }
         ),
+        gallery: fields.array(
+          fields.text({ label: 'Gallery Item' }),
+          { label: 'Gallery' }
+        ),
+        attachments: fields.array(
+          fields.text({ label: 'Attachment' }),
+          { label: 'Attachments' }
+        ),
         body: fields.mdx({ label: 'Body' }),
       },
     }),
