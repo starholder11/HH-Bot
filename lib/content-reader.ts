@@ -71,28 +71,18 @@ export async function getTimelineEntry(slug: string): Promise<TimelineEntry | nu
 
     const folderPath = path.join(TIMELINE_DIR, folderName);
     
-    // Read the body.mdoc file
-    const bodyPath = path.join(folderPath, 'body.mdoc');
+    // Read the content.mdx file (new structure)
+    const contentPath = path.join(folderPath, 'content.mdx');
     let content = '';
     
-    if (fs.existsSync(bodyPath)) {
-      content = fs.readFileSync(bodyPath, 'utf-8');
+    if (fs.existsSync(contentPath)) {
+      content = fs.readFileSync(contentPath, 'utf-8');
     } else {
-      // Fallback: look for body.mdoc in a subdirectory
-      const subdirs = fs.readdirSync(folderPath, { withFileTypes: true });
-      for (const subdir of subdirs) {
-        if (subdir.isDirectory()) {
-          const subBodyPath = path.join(folderPath, subdir.name, 'body.mdoc');
-          if (fs.existsSync(subBodyPath)) {
-            content = fs.readFileSync(subBodyPath, 'utf-8');
-            break;
-          }
-        }
-      }
+      console.warn(`Content file not found for ${slug}: ${contentPath}`);
     }
 
-    // Read metadata from YAML file (now located at content/timeline/slug.yaml)
-    const yamlPath = path.join(TIMELINE_DIR, `${folderName}.yaml`);
+    // Read metadata from index.yaml file (new structure)
+    const yamlPath = path.join(folderPath, 'index.yaml');
     let metadata: Record<string, any> = {};
     
     if (fs.existsSync(yamlPath)) {
@@ -103,6 +93,8 @@ export async function getTimelineEntry(slug: string): Promise<TimelineEntry | nu
       } catch (e) {
         console.error('Error parsing YAML for', yamlPath, e);
       }
+    } else {
+      console.warn(`Metadata file not found for ${slug}: ${yamlPath}`);
     }
 
     return {

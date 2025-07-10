@@ -25,7 +25,7 @@ async function fetchTimelineEntriesFromGitHub(): Promise<{slug: string, title: s
   const entries = [];
   for (const dir of dirs) {
     const slug = dir.name; // Directory name is already in slug-case
-    const yamlPath = `content/timeline/${slug}/${slug}.yaml`;
+    const yamlPath = `content/timeline/${slug}/index.yaml`;
     
     // Try to fetch the title from the YAML file
     let title = slug; // Fallback to slug
@@ -45,7 +45,7 @@ async function fetchTimelineEntriesFromGitHub(): Promise<{slug: string, title: s
     entries.push({
       slug,
       title,
-      bodyPath: `content/timeline/${slug}/body.mdoc`,
+      bodyPath: `content/timeline/${slug}/content.mdx`,
     });
   }
   
