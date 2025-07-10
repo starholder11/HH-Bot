@@ -12,9 +12,8 @@ export default config({
   collections: {
     timeline: collection({
       label: 'Timeline',
-      path: 'content/timeline/*/',
+      path: 'content/timeline/*',
       slugField: 'slug',
-      format: { contentField: 'body' },
       schema: {
         title: fields.text({ label: 'Title' }),
         slug: fields.slug({ name: { label: 'Slug' } }),
@@ -31,7 +30,6 @@ export default config({
           fields.text({ label: 'Attachment' }),
           { label: 'Attachments', itemLabel: props => props.value }
         ),
-        body: fields.mdx({ label: 'Body Content' }),
       },
     }),
   },
