@@ -31,10 +31,10 @@ export default config({
       schema: {
         title: fields.slug({ name: { label: 'Title' } }),
         date: fields.date({ label: 'Date' }),
+        content: fields.mdx({ label: 'Content' }),
         categories: fields.array(fields.text({ label: 'Category' }), { label: 'Categories' }),
         gallery: fields.array(fields.text({ label: 'Gallery Item' }), { label: 'Gallery' }),
         attachments: fields.array(fields.text({ label: 'Attachment' }), { label: 'Attachments' }),
-        content: fields.mdx({ label: 'Content' }),
       },
     }),
   },
