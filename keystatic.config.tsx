@@ -14,6 +14,7 @@ export default config({
       label: 'Timeline',
       path: 'content/timeline/*',
       slugField: 'slug',
+      format: { data: 'yaml', contentField: 'body' },
       schema: {
         title: fields.text({ label: 'Title' }),
         slug: fields.slug({ name: { label: 'Slug' } }),
@@ -30,6 +31,7 @@ export default config({
           fields.text({ label: 'Attachment' }),
           { label: 'Attachments' }
         ),
+        body: fields.mdx({ label: 'Body Content' }),
       },
     }),
   },
