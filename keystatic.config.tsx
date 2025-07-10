@@ -5,7 +5,9 @@ export default config({
     process.env.NODE_ENV === 'production' 
       ? {
           kind: 'github',
-          repo: 'starholder11/HH-Bot'
+          repo: 'starholder11/HH-Bot',
+          // @ts-expect-error – flag isn’t in typings yet but works in runtime
+          experimental_forceFullCommit: true
         }
       : { kind: 'local' },
   
