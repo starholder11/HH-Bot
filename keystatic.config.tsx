@@ -12,8 +12,9 @@ export default config({
   collections: {
     timeline: collection({
       label: 'Timeline',
-      path: 'content/timeline/*',
+      path: 'content/timeline/*/',
       slugField: 'slug',
+      format: { contentField: 'body' },
       schema: {
         title: fields.text({ label: 'Title' }),
         slug: fields.slug({ name: { label: 'Slug' } }),
@@ -24,12 +25,13 @@ export default config({
         ),
         gallery: fields.array(
           fields.text({ label: 'Gallery Item' }),
-          { label: 'Gallery', itemLabel: item => item.value || 'Gallery Item' }
+          { label: 'Gallery', itemLabel: props => props.value }
         ),
         attachments: fields.array(
           fields.text({ label: 'Attachment' }),
-          { label: 'Attachments', itemLabel: item => item.value || 'Attachment' }
+          { label: 'Attachments', itemLabel: props => props.value }
         ),
+        body: fields.mdx({ label: 'Body Content' }),
       },
     }),
   },
