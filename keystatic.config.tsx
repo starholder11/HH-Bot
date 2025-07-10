@@ -18,18 +18,18 @@ export default config({
       schema: {
         title: fields.text({ label: 'Title' }),
         slug: fields.slug({ name: { label: 'Slug' } }),
-        date: fields.date({ label: 'Date' }),
+        date: fields.text({ label: 'Date' }),
         categories: fields.array(
           fields.text({ label: 'Category' }),
           { label: 'Categories' }
         ),
         gallery: fields.array(
           fields.text({ label: 'Gallery Item' }),
-          { label: 'Gallery' }
+          { label: 'Gallery', itemLabel: props => props.value || 'Gallery Item' }
         ),
         attachments: fields.array(
           fields.text({ label: 'Attachment' }),
-          { label: 'Attachments' }
+          { label: 'Attachments', itemLabel: props => props.value || 'Attachment' }
         ),
         body: fields.mdx({ label: 'Body Content' }),
       },
