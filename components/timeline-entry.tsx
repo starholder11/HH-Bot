@@ -45,25 +45,22 @@ export default function TimelineEntry({ entry }: TimelineEntryProps) {
 }
 
 function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
-  // Extract the first paragraph as intro text
-  const lines = entry.content.split('\n').filter(line => line.trim());
-  const introLine = lines.find(line => 
-    line.trim() && 
-    !line.startsWith('#') && 
-    !line.startsWith('*') && 
-    !line.startsWith('-') &&
-    line.length > 50
-  );
-
-  // Extract sections after the intro
-  const contentLines = entry.content.split('\n');
+  // Parse the markdown content more carefully
+  const lines = entry.content.split('\n');
+  
+  // Extract the first paragraph (intro text)
+  let introText = '';
+  let currentSection = '';
   let yearInReviewContent = '';
   let articlesContent = '';
-  let currentSection = '';
   
-  for (let i = 0; i < contentLines.length; i++) {
-    const line = contentLines[i];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
     
+    // Skip image lines and empty lines
+    if (line.startsWith('![') || line === '') continue;
+    
+    // Check for section headers
     if (line.includes('## The Year In Review:')) {
       currentSection = 'yearInReview';
       continue;
@@ -72,81 +69,174 @@ function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
       continue;
     }
     
-    if (currentSection === 'yearInReview' && line.trim() && !line.startsWith('#')) {
-      yearInReviewContent += line + '\n';
-    } else if (currentSection === 'articles' && line.trim() && !line.startsWith('#')) {
-      articlesContent += line + '\n';
+    // Extract intro text (first substantial paragraph)
+    if (!introText && !line.startsWith('#') && line.length > 50) {
+      introText = line;
+      continue;
+    }
+    
+    // Add content to appropriate sections
+    if (currentSection === 'yearInReview' && line && !line.startsWith('#')) {
+      yearInReviewContent += line + '\n\n';
+    } else if (currentSection === 'articles' && line && !line.startsWith('#')) {
+      articlesContent += line + '\n\n';
     }
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Large top hero section matching blockstar.com */}
-      {introLine && (
-        <div className="bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200 py-16 px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-                  Explore {entry.title} in Starholder:
-                </h1>
-                <p className="text-lg lg:text-xl text-gray-700 leading-relaxed">
-                  {introLine}
-                </p>
-              </div>
-              <div className="flex justify-center lg:justify-end">
-                <img 
-                  src="https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png"
-                  alt="2079 Cloned Humans"
-                  className="w-full max-w-lg h-80 object-cover rounded-lg shadow-lg"
-                />
-              </div>
+    <div className="min-h-screen" style={{ backgroundColor: '#f5f5f5' }}>
+      {/* Hero section matching blockstar.com exactly */}
+      <div 
+        style={{ 
+          background: 'linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%)',
+          padding: '80px 40px',
+          borderBottom: '1px solid #c3e6cb'
+        }}
+      >
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '60px', alignItems: 'center' }}>
+            {/* Left side - Text content */}
+            <div>
+              <h1 style={{ 
+                fontSize: '48px', 
+                fontWeight: '700', 
+                color: '#2c3e50',
+                lineHeight: '1.2',
+                marginBottom: '24px',
+                fontFamily: 'Georgia, serif'
+              }}>
+                Explore {entry.title} in Starholder:
+              </h1>
+              <p style={{ 
+                fontSize: '18px', 
+                color: '#495057',
+                lineHeight: '1.6',
+                margin: '0',
+                fontFamily: 'Georgia, serif'
+              }}>
+                {introText}
+              </p>
+            </div>
+            
+            {/* Right side - Image */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <img 
+                src="https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png"
+                alt="2079 Cloned Humans"
+                style={{ 
+                  width: '100%',
+                  maxWidth: '400px',
+                  height: '280px',
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+                }}
+              />
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Main content with two-column layout */}
-      <div className="max-w-6xl mx-auto px-8 py-16">
-        {/* Year In Review Section */}
+      {/* Main content section */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '60px 40px' }}>
+        
+        {/* The Year In Review Section */}
         {yearInReviewContent && (
-          <div className="mb-16">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              <div className="lg:col-span-1">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4 lg:mb-0">
-                  The Year In Review:
+          <div style={{ marginBottom: '80px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '40px', alignItems: 'start' }}>
+              {/* Left column - Header */}
+              <div>
+                <h2 style={{ 
+                  fontSize: '24px', 
+                  fontWeight: '700', 
+                  color: '#2c3e50',
+                  margin: '0',
+                  fontFamily: 'Georgia, serif',
+                  lineHeight: '1.3'
+                }}>
+                  The Year In<br />Review:
                 </h2>
               </div>
-              <div className="lg:col-span-3">
-                <div className="prose prose-lg max-w-none text-gray-700">
-                  <ReactMarkdown>{yearInReviewContent.trim()}</ReactMarkdown>
-                </div>
+              
+              {/* Right column - Content */}
+              <div style={{ 
+                fontSize: '16px', 
+                lineHeight: '1.7', 
+                color: '#495057',
+                fontFamily: 'Georgia, serif'
+              }}>
+                <ReactMarkdown>{yearInReviewContent.trim()}</ReactMarkdown>
               </div>
             </div>
           </div>
         )}
 
         {/* Articles and Topics Section */}
-        {articlesContent && (
-          <div className="mb-16">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              <div className="lg:col-span-1">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4 lg:mb-0">
+        {articlesContent ? (
+          <div style={{ marginBottom: '60px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '40px', alignItems: 'start' }}>
+              {/* Left column - Header */}
+              <div>
+                <h2 style={{ 
+                  fontSize: '24px', 
+                  fontWeight: '700', 
+                  color: '#2c3e50',
+                  margin: '0',
+                  fontFamily: 'Georgia, serif',
+                  lineHeight: '1.3'
+                }}>
                   Articles and Topics:
                 </h2>
               </div>
-              <div className="lg:col-span-3">
-                <div className="prose prose-lg max-w-none text-gray-700">
-                  <ReactMarkdown>{articlesContent.trim()}</ReactMarkdown>
-                </div>
+              
+              {/* Right column - Content */}
+              <div style={{ 
+                fontSize: '16px', 
+                lineHeight: '1.7', 
+                color: '#495057',
+                fontFamily: 'Georgia, serif'
+              }}>
+                <ReactMarkdown>{articlesContent.trim()}</ReactMarkdown>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Show placeholder when Articles section is empty
+          <div style={{ marginBottom: '60px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '40px', alignItems: 'start' }}>
+              <div>
+                <h2 style={{ 
+                  fontSize: '24px', 
+                  fontWeight: '700', 
+                  color: '#2c3e50',
+                  margin: '0',
+                  fontFamily: 'Georgia, serif',
+                  lineHeight: '1.3'
+                }}>
+                  Articles and Topics:
+                </h2>
+              </div>
+              <div style={{ 
+                fontSize: '16px', 
+                lineHeight: '1.7', 
+                color: '#6c757d',
+                fontFamily: 'Georgia, serif',
+                fontStyle: 'italic'
+              }}>
+                <p>Content for this section is being developed.</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Fallback if no structured content */}
+        {/* Fallback if no structured content found */}
         {!yearInReviewContent && !articlesContent && (
-          <div className="prose prose-lg max-w-none text-gray-700">
+          <div style={{ 
+            fontSize: '16px', 
+            lineHeight: '1.7', 
+            color: '#495057',
+            fontFamily: 'Georgia, serif'
+          }}>
             <ReactMarkdown>{entry.content}</ReactMarkdown>
           </div>
         )}
