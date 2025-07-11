@@ -62,45 +62,59 @@ export default function TimelineEntry({ entry }: TimelineEntryProps) {
  * Year-specific timeline entry component matching blockstar.com layout
  */
 function YearTimelineEntry({ entry }: TimelineEntryProps) {
+  // Split content to handle intro paragraph separately
+  const contentLines = entry.content.split('\n');
+  const introLine = contentLines.find(line => line.includes('Explore') && line.includes('Starholder'));
+  const restOfContent = contentLines.filter(line => line !== introLine).join('\n');
+
   return (
     <div className="min-h-screen bg-white">
-      {/* Header matching blockstar.com */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-black">
-              Starholder
-            </h1>
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">Search</div>
-              <div className="text-sm text-gray-600">Menu</div>
-              <div className="text-sm text-gray-600">About</div>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Introductory paragraph */}
-        <div className="mb-8">
-          <p className="text-lg text-gray-700 leading-relaxed">
-            In {entry.title}, explore the Starholder timeline where personal struggles with imposter syndrome and societal tensions from omnipotent surveillance paint a year of introspection and revolt against digital dominance.
-          </p>
-        </div>
-
-        {/* The Year In Review section */}
-        <section className="mb-12">
-          <h2 className="text-xl font-bold text-black mb-6">The Year In Review:</h2>
-          <div className="prose prose-lg prose-gray max-w-none">
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <ReactMarkdown>{entry.content}</ReactMarkdown>
+        {/* Intro section with green background and side-by-side layout */}
+        {introLine && (
+          <div className="relative bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6 mb-8 overflow-hidden">
+            <div className="flex items-start gap-6">
+              <div className="flex-1 pr-56 md:pr-0">
+                <p className="text-lg text-gray-700 leading-relaxed m-0">
+                  {introLine}
+                </p>
+              </div>
+            </div>
+            {/* Image positioned absolutely in the top-right (hidden on mobile) */}
+            <div className="absolute top-5 right-5 w-48 h-28 rounded-lg overflow-hidden shadow-lg hidden md:block">
+              <img 
+                src="https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png"
+                alt="2079 Cloned Humans"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
-        </section>
+        )}
+
+        {/* Rest of the content */}
+        <div className="prose prose-lg prose-gray max-w-none">
+          <ReactMarkdown
+            components={{
+              h2: ({ children, ...props }) => (
+                <h2 className="text-xl font-bold text-black mb-6 mt-8" {...props}>
+                  {children}
+                </h2>
+              ),
+              p: ({ children, ...props }) => (
+                <p className="text-gray-700 leading-relaxed mb-4" {...props}>
+                  {children}
+                </p>
+              ),
+              img: () => null, // Hide images since we handle them separately
+            }}
+          >
+            {restOfContent}
+          </ReactMarkdown>
+        </div>
 
         {/* Articles and Topics section */}
-        <section>
+        <section className="mt-12">
           <h2 className="text-xl font-bold text-black mb-6">Articles and Topics:</h2>
           <div className="space-y-6">
             {/* This would be populated with related articles */}
