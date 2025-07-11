@@ -278,3 +278,84 @@ header {
   transform: translateY(-4px);
   transition: opacity 150ms ease-in, transform 150ms ease-in;
 } 
+
+/* Year Timeline Specific Styles */
+@keyframes yearHeroFade {
+  from { 
+    opacity: 0; 
+    transform: translateY(30px) scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+@keyframes starPulse {
+  0%, 100% { 
+    opacity: 0.4; 
+    transform: scale(1); 
+  }
+  50% { 
+    opacity: 1; 
+    transform: scale(1.2); 
+  }
+}
+
+.year-timeline-hero {
+  animation: yearHeroFade 1s ease-out;
+}
+
+.year-timeline-star {
+  animation: starPulse 3s ease-in-out infinite;
+}
+
+.year-timeline-content {
+  animation: fadeIn 0.8s ease-out 0.3s both;
+}
+
+/* Enhanced backdrop blur for year pages */
+.year-timeline-backdrop {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Custom scrollbar for year pages */
+.year-timeline-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.year-timeline-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.year-timeline-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.year-timeline-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Year-specific gradient overlays */
+.year-gradient-1999-2010 {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+}
+
+.year-gradient-2011-2030 {
+  background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+}
+
+.year-gradient-2031-2050 {
+  background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+}
+
+.year-gradient-2051-2070 {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+}
+
+.year-gradient-2071-2079 {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+} 
