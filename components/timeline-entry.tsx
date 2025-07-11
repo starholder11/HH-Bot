@@ -21,35 +21,21 @@ export default function TimelineEntry({ entry }: TimelineEntryProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 pt-8 pb-12">
-        <article className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+        <article className="bg-white rounded-lg shadow-sm p-8">
           <header className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-              {entry.title}
-            </h1>
-            <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-              <time dateTime={entry.date}>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">{entry.title}</h1>
+            {entry.date && (
+              <time className="text-sm text-gray-500 font-medium">
                 {new Date(entry.date).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
                 })}
               </time>
-              {entry.metadata?.categories && entry.metadata.categories.length > 0 && (
-                <div className="flex gap-2">
-                  {entry.metadata.categories.map((category: string) => (
-                    <span
-                      key={category}
-                      className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs"
-                    >
-                      {category}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
           </header>
-
-          <div className="prose prose-slate dark:prose-invert max-w-none">
+          
+          <div className="prose prose-lg max-w-none">
             <ReactMarkdown>{entry.content}</ReactMarkdown>
           </div>
         </article>
@@ -58,79 +44,108 @@ export default function TimelineEntry({ entry }: TimelineEntryProps) {
   );
 }
 
-/**
- * Year-specific timeline entry component matching blockstar.com layout
- */
-function YearTimelineEntry({ entry }: TimelineEntryProps) {
-  // Split content to handle intro paragraph separately
+function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
+  // Extract the first paragraph as intro text
+  const lines = entry.content.split('\n').filter(line => line.trim());
+  const introLine = lines.find(line => 
+    line.trim() && 
+    !line.startsWith('#') && 
+    !line.startsWith('*') && 
+    !line.startsWith('-') &&
+    line.length > 50
+  );
+
+  // Extract sections after the intro
   const contentLines = entry.content.split('\n');
-  const introLine = contentLines.find(line => line.includes('Explore') && line.includes('Starholder'));
-  const restOfContent = contentLines.filter(line => line !== introLine).join('\n');
+  let yearInReviewContent = '';
+  let articlesContent = '';
+  let currentSection = '';
+  
+  for (let i = 0; i < contentLines.length; i++) {
+    const line = contentLines[i];
+    
+    if (line.includes('## The Year In Review:')) {
+      currentSection = 'yearInReview';
+      continue;
+    } else if (line.includes('## Articles and Topics:')) {
+      currentSection = 'articles';
+      continue;
+    }
+    
+    if (currentSection === 'yearInReview' && line.trim() && !line.startsWith('#')) {
+      yearInReviewContent += line + '\n';
+    } else if (currentSection === 'articles' && line.trim() && !line.startsWith('#')) {
+      articlesContent += line + '\n';
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Main content */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Intro section with green background and side-by-side layout */}
-        {introLine && (
-          <div className="relative bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6 mb-8 overflow-hidden">
-            <div className="flex items-start gap-6">
-              <div className="flex-1 pr-56 md:pr-0">
-                <p className="text-lg text-gray-700 leading-relaxed m-0">
-                  {introLine}
-                </p>
-              </div>
+      {/* Top intro section - much smaller and simpler */}
+      {introLine && (
+        <div className="bg-green-100 border-b border-green-200 py-4 px-6">
+          <div className="max-w-2xl mx-auto flex items-center gap-4">
+            <div className="flex-1">
+              <p className="text-sm text-gray-700 leading-relaxed m-0">
+                {introLine}
+              </p>
             </div>
-            {/* Image positioned absolutely in the top-right (hidden on mobile) */}
-            <div className="absolute top-5 right-5 w-48 h-28 rounded-lg overflow-hidden shadow-lg hidden md:block">
+            <div className="flex-shrink-0">
               <img 
                 src="https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png"
                 alt="2079 Cloned Humans"
-                className="w-full h-full object-cover"
+                className="w-16 h-10 object-cover rounded"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main content with two-column layout */}
+      <div className="max-w-2xl mx-auto px-6 py-8">
+        {/* Year In Review Section */}
+        {yearInReviewContent && (
+          <div className="mb-12">
+            <div className="grid grid-cols-4 gap-8">
+              <div className="col-span-1">
+                <h2 className="text-lg font-semibold text-gray-900 mb-0">
+                  The Year In Review:
+                </h2>
+              </div>
+              <div className="col-span-3">
+                <div className="prose prose-sm max-w-none text-gray-700">
+                  <ReactMarkdown>{yearInReviewContent.trim()}</ReactMarkdown>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Rest of the content */}
-        <div className="prose prose-lg prose-gray max-w-none">
-          <ReactMarkdown
-            components={{
-              h2: ({ children, ...props }) => (
-                <h2 className="text-xl font-bold text-black mb-6 mt-8" {...props}>
-                  {children}
+        {/* Articles and Topics Section */}
+        {articlesContent && (
+          <div className="mb-12">
+            <div className="grid grid-cols-4 gap-8">
+              <div className="col-span-1">
+                <h2 className="text-lg font-semibold text-gray-900 mb-0">
+                  Articles and Topics:
                 </h2>
-              ),
-              p: ({ children, ...props }) => (
-                <p className="text-gray-700 leading-relaxed mb-4" {...props}>
-                  {children}
-                </p>
-              ),
-              img: () => null, // Hide images since we handle them separately
-            }}
-          >
-            {restOfContent}
-          </ReactMarkdown>
-        </div>
-
-        {/* Articles and Topics section */}
-        <section className="mt-12">
-          <h2 className="text-xl font-bold text-black mb-6">Articles and Topics:</h2>
-          <div className="space-y-6">
-            {/* This would be populated with related articles */}
-            <div className="border-l-4 border-gray-200 pl-4">
-              <h3 className="font-semibold text-black mb-2">
-                <Link href="#" className="hover:underline">
-                  Related Timeline Entry
-                </Link>
-              </h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {entry.title}: Exploring the key events and developments that shaped this pivotal year in the Starholder timeline...
-              </p>
+              </div>
+              <div className="col-span-3">
+                <div className="prose prose-sm max-w-none text-gray-700">
+                  <ReactMarkdown>{articlesContent.trim()}</ReactMarkdown>
+                </div>
+              </div>
             </div>
           </div>
-        </section>
-      </main>
+        )}
+
+        {/* Fallback if no structured content */}
+        {!yearInReviewContent && !articlesContent && (
+          <div className="prose prose-sm max-w-none text-gray-700">
+            <ReactMarkdown>{entry.content}</ReactMarkdown>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 
