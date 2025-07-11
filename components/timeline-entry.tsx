@@ -19,20 +19,35 @@ export default function TimelineEntry({ entry }: TimelineEntryProps) {
   return (
     <div className="max-w-4xl mx-auto px-4 pt-8 pb-12">
       <article className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-8">
-        <header className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
             {entry.title}
           </h1>
-          <time className="text-slate-500 dark:text-slate-400">
-            {new Date(entry.date).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </time>
+          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+            <time dateTime={entry.date}>
+              {new Date(entry.date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </time>
+            {entry.metadata?.categories && entry.metadata.categories.length > 0 && (
+              <div className="flex gap-2">
+                {entry.metadata.categories.map((category: string) => (
+                  <span
+                    key={category}
+                    className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs"
+                  >
+                    {category}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </header>
-        <div className="prose prose-lg dark:prose-invert max-w-none">
-          <TimelineContent content={entry.content} />
+
+        <div className="prose prose-slate dark:prose-invert max-w-none">
+          {entry.content}
         </div>
       </article>
     </div>
@@ -40,65 +55,64 @@ export default function TimelineEntry({ entry }: TimelineEntryProps) {
 }
 
 /**
- * Year-specific timeline entry component with clean, simple layout
+ * Year-specific timeline entry component matching blockstar.com layout
  */
 function YearTimelineEntry({ entry }: TimelineEntryProps) {
   return (
-    <article className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-8">
-      <header className="mb-8 text-center">
-        <h1 className="text-6xl font-bold text-slate-800 dark:text-slate-200 mb-4">
-          {entry.title}
-        </h1>
-        <time className="text-slate-500 dark:text-slate-400 text-lg">
-          {new Date(entry.date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-        </time>
+    <div className="min-h-screen bg-white">
+      {/* Header matching blockstar.com */}
+      <header className="border-b border-gray-200 bg-white">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-black">
+              Starholder
+            </h1>
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">Search</div>
+              <div className="text-sm text-gray-600">Menu</div>
+              <div className="text-sm text-gray-600">About</div>
+            </div>
+          </div>
+        </div>
       </header>
-      <div className="prose prose-lg dark:prose-invert max-w-none">
-        <TimelineContent content={entry.content} />
-      </div>
-    </article>
-  );
-}
 
-/**
- * Component to render timeline content with proper markdown and image handling
- */
-function TimelineContent({ content }: { content: string }) {
-  // Simple markdown-like processing for basic formatting
-  const processedContent = content
-    // Convert markdown headers
-    .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-6 mb-3">$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-semibold mt-8 mb-4">$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-8 mb-4">$1</h1>')
-    
-    // Convert bold and italic
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    
-    // Convert links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-500 hover:text-blue-600 underline">$1</a>')
-    
-    // Convert images (both with and without alt text)
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg shadow-md my-4" />')
-    
-    // Convert line breaks to paragraphs
-    .split('\n\n')
-    .map(paragraph => {
-      if (paragraph.trim()) {
-        return `<p class="mb-4 leading-relaxed">${paragraph.trim()}</p>`;
-      }
-      return '';
-    })
-    .join('');
+      {/* Main content */}
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Introductory paragraph */}
+        <div className="mb-8">
+          <p className="text-lg text-gray-700 leading-relaxed">
+            In {entry.title}, explore the Starholder timeline where personal struggles with imposter syndrome and societal tensions from omnipotent surveillance paint a year of introspection and revolt against digital dominance.
+          </p>
+        </div>
 
-  return (
-    <div 
-      className="timeline-content"
-      dangerouslySetInnerHTML={{ __html: processedContent }}
-    />
+        {/* The Year In Review section */}
+        <section className="mb-12">
+          <h2 className="text-xl font-bold text-black mb-6">The Year In Review:</h2>
+          <div className="prose prose-lg prose-gray max-w-none">
+            <div className="text-gray-700 leading-relaxed space-y-4">
+              {entry.content}
+            </div>
+          </div>
+        </section>
+
+        {/* Articles and Topics section */}
+        <section>
+          <h2 className="text-xl font-bold text-black mb-6">Articles and Topics:</h2>
+          <div className="space-y-6">
+            {/* This would be populated with related articles */}
+            <div className="border-l-4 border-gray-200 pl-4">
+              <h3 className="font-semibold text-black mb-2">
+                <Link href="#" className="hover:underline">
+                  Related Timeline Entry
+                </Link>
+              </h3>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {entry.title}: Exploring the key events and developments that shaped this pivotal year in the Starholder timeline...
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 } 
