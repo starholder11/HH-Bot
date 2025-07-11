@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import ReactMarkdown from 'react-markdown';
 import type { TimelineEntry } from '@/lib/content-reader';
 
 interface TimelineEntryProps {
@@ -49,7 +50,7 @@ export default function TimelineEntry({ entry }: TimelineEntryProps) {
           </header>
 
           <div className="prose prose-slate dark:prose-invert max-w-none">
-            {entry.content}
+            <ReactMarkdown>{entry.content}</ReactMarkdown>
           </div>
         </article>
       </div>
@@ -93,7 +94,7 @@ function YearTimelineEntry({ entry }: TimelineEntryProps) {
           <h2 className="text-xl font-bold text-black mb-6">The Year In Review:</h2>
           <div className="prose prose-lg prose-gray max-w-none">
             <div className="text-gray-700 leading-relaxed space-y-4">
-              {entry.content}
+              <ReactMarkdown>{entry.content}</ReactMarkdown>
             </div>
           </div>
         </section>
