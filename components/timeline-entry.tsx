@@ -69,113 +69,48 @@ function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
          .join('\n\n') : '';
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
-      {/* Hero section with proper blockstar.com green background */}
-      <div 
-        style={{ 
-          background: '#4a7c59',  // Rich forest green matching blockstar.com
-          padding: '60px 40px',
-          borderBottom: '1px solid #3d5a3d'
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 400px', gap: '40px', alignItems: 'center' }}>
+    <div className="year-page min-h-screen">
+      {/* Hero */}
+      <div className="year-hero">
+        <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_400px] gap-10 items-center">
           <div>
-            <h1 style={{ 
-              fontSize: '48px', 
-              fontWeight: '700', 
-              color: '#ffffff',
-              lineHeight: '1.2',
-              marginBottom: '24px',
-              fontFamily: 'Georgia, serif'
-            }}>
-              Explore {entry.title} in Starholder:
-            </h1>
-            <p style={{ 
-              fontSize: '18px', 
-              color: '#e8f5e8',
-              lineHeight: '1.6',
-              margin: '0',
-              fontFamily: 'Georgia, serif'
-            }}>
-              {introLine || 'A pivotal year in the Starholder timeline.'}
-            </p>
+            <h1>Explore {entry.title} in Starholder:</h1>
+            <p>{introLine || 'A pivotal year in the Starholder timeline.'}</p>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <img 
+          <div className="text-center">
+            <img
               src="https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png"
               alt={`${entry.title} Cloned Humans`}
-              style={{ 
-                width: '100%', 
-                maxWidth: '400px',
-                height: '280px',
-                objectFit: 'cover',
-                borderRadius: '8px',
-                border: '2px solid #ffffff'
-              }}
+              className="w-full max-w-[400px] h-[280px] object-cover rounded-md border-2 border-white mx-auto"
             />
           </div>
         </div>
       </div>
 
-      {/* Main content area */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '40px' }}>
-          {/* Left sidebar with section headers */}
-          <div style={{ paddingTop: '20px' }}>
-            <h2 style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold', 
-              color: '#2c3e50',
-              marginBottom: '30px',
-              fontFamily: 'Georgia, serif'
-            }}>
-              The Year In Review:
-            </h2>
-            
-            <h2 style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold', 
-              color: '#2c3e50',
-              marginBottom: '30px',
-              fontFamily: 'Georgia, serif'
-            }}>
-              Articles and Topics:
-            </h2>
+      {/* Main grid */}
+      <div className="year-grid">
+        {/* Sidebar */}
+        <div className="year-sidebar pt-5">
+          <h2>The Year In Review:</h2>
+          <h2>Articles and Topics:</h2>
+        </div>
+
+        {/* Content */}
+        <div className="pt-5">
+          <div className="mb-16 year-copy">
+            {yearInReviewContent ? (
+              <ReactMarkdown>{yearInReviewContent}</ReactMarkdown>
+            ) : (
+              <p>The comprehensive review for {entry.title} chronicles the significant events and developments that shaped this pivotal year in the Starholder timeline.</p>
+            )}
           </div>
 
-          {/* Right content area */}
-          <div style={{ paddingTop: '20px' }}>
-            {/* Year in Review content */}
-            <div style={{ marginBottom: '60px' }}>
-              <div style={{ 
-                fontSize: '16px', 
-                color: '#495057',
-                lineHeight: '1.8',
-                fontFamily: 'Georgia, serif'
-              }}>
-                {yearInReviewContent ? (
-                  <ReactMarkdown>{yearInReviewContent}</ReactMarkdown>
-                ) : (
-                  <p>The comprehensive review for {entry.title} chronicles the significant events and developments that shaped this pivotal year in the Starholder timeline.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Articles and Topics content */}
-            <div>
-              <div style={{ 
-                fontSize: '16px', 
-                color: '#495057',
-                lineHeight: '1.8',
-                fontFamily: 'Georgia, serif'
-              }}>
-                {articlesContent ? (
-                  <ReactMarkdown>{articlesContent}</ReactMarkdown>
-                ) : (
-                  <p>Content for this section is being developed. Check back soon for detailed articles and topics related to {entry.title}.</p>
-                )}
-              </div>
-            </div>
+          <div className="year-copy">
+            {articlesContent ? (
+              <ReactMarkdown>{articlesContent}</ReactMarkdown>
+            ) : (
+              <p>Content for this section is being developed. Check back soon for detailed articles and topics related to {entry.title}.</p>
+            )}
           </div>
         </div>
       </div>
