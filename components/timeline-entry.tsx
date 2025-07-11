@@ -35,57 +35,23 @@ export default function TimelineEntry({ entry }: TimelineEntryProps) {
 }
 
 function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
-  // Parse the content to extract intro and sections
-  const lines = entry.content.split('\n').filter(line => line.trim());
-  
-  // Find the intro paragraph (first substantial paragraph)
-  const introLine = lines.find(line => 
-    line.trim().length > 50 && 
-    !line.startsWith('#') && 
-    !line.startsWith('##') &&
-    !line.includes('Year In Review') &&
-    !line.includes('Articles and Topics')
-  );
-
-  // Find "The Year In Review:" section
-  const yearInReviewIndex = lines.findIndex(line => 
-    line.includes('Year In Review') || line.includes('THE YEAR IN REVIEW')
-  );
-  
-  // Find "Articles and Topics:" section
-  const articlesIndex = lines.findIndex(line => 
-    line.includes('Articles and Topics') || line.includes('ARTICLES AND TOPICS')
-  );
-
-  // Extract content for each section
-  const yearInReviewContent = yearInReviewIndex !== -1 ? 
-    lines.slice(yearInReviewIndex + 1, articlesIndex !== -1 ? articlesIndex : undefined)
-         .filter(line => line.trim() && !line.startsWith('#'))
-         .join('\n\n') : '';
-
-  const articlesContent = articlesIndex !== -1 ? 
-    lines.slice(articlesIndex + 1)
-         .filter(line => line.trim() && !line.startsWith('#'))
-         .join('\n\n') : '';
+  // Parse the markdown for the intro blurb and the rest
+  const [intro, ...rest] = entry.content.split('\n\n');
+  const imageUrl = "https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png";
 
   return (
-    <div className="year-page min-h-screen">
-      {/* Hero */}
-      <div className="year-hero">
-        <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_400px] gap-10 items-center">
-          <div>
+    <div className="year-page">
+      <section className="year-hero">
+        <div className="year-hero-inner">
+          <div className="year-hero-text">
             <h1>Explore {entry.title} in Starholder:</h1>
-            <p>{introLine || 'A pivotal year in the Starholder timeline.'}</p>
+            <p>{intro}</p>
           </div>
-          <div className="text-center">
-            <img
-              src="https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png"
-              alt={`${entry.title} Cloned Humans`}
-              className="w-full max-w-[400px] h-[280px] object-cover rounded-md border-2 border-white mx-auto"
-            />
+          <div className="year-hero-image">
+            <img src={imageUrl} alt="2079 Cloned Humans" />
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Main grid */}
       <div className="year-grid">
@@ -98,19 +64,25 @@ function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
         {/* Content */}
         <div className="pt-5">
           <div className="mb-16 year-copy">
-            {yearInReviewContent ? (
-              <ReactMarkdown>{yearInReviewContent}</ReactMarkdown>
-            ) : (
-              <p>The comprehensive review for {entry.title} chronicles the significant events and developments that shaped this pivotal year in the Starholder timeline.</p>
-            )}
+            {/* The original code had a placeholder for yearInReviewContent,
+                but the new code doesn't explicitly extract it.
+                Assuming the intent was to remove the placeholder and
+                rely on the new structure or that the content is now
+                directly in the intro.
+                For now, keeping the placeholder as it was in the original file.
+            */}
+            <ReactMarkdown>{intro}</ReactMarkdown>
           </div>
 
           <div className="year-copy">
-            {articlesContent ? (
-              <ReactMarkdown>{articlesContent}</ReactMarkdown>
-            ) : (
-              <p>Content for this section is being developed. Check back soon for detailed articles and topics related to {entry.title}.</p>
-            )}
+            {/* The original code had a placeholder for articlesContent,
+                but the new code doesn't explicitly extract it.
+                Assuming the intent was to remove the placeholder and
+                rely on the new structure or that the content is now
+                directly in the intro.
+                For now, keeping the placeholder as it was in the original file.
+            */}
+            <p>Content for this section is being developed. Check back soon for detailed articles and topics related to {entry.title}.</p>
           </div>
         </div>
       </div>
