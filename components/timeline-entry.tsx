@@ -81,39 +81,44 @@ function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Top intro section - much smaller and simpler */}
+      {/* Large top hero section matching blockstar.com */}
       {introLine && (
-        <div className="bg-green-100 border-b border-green-200 py-4 px-6">
-          <div className="max-w-2xl mx-auto flex items-center gap-4">
-            <div className="flex-1">
-              <p className="text-sm text-gray-700 leading-relaxed m-0">
-                {introLine}
-              </p>
-            </div>
-            <div className="flex-shrink-0">
-              <img 
-                src="https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png"
-                alt="2079 Cloned Humans"
-                className="w-16 h-10 object-cover rounded"
-              />
+        <div className="bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200 py-16 px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                  Explore {entry.title} in Starholder:
+                </h1>
+                <p className="text-lg lg:text-xl text-gray-700 leading-relaxed">
+                  {introLine}
+                </p>
+              </div>
+              <div className="flex justify-center lg:justify-end">
+                <img 
+                  src="https://www.blockstar.com/wp-content/uploads/2024/06/2079-clonedhumans.png"
+                  alt="2079 Cloned Humans"
+                  className="w-full max-w-lg h-80 object-cover rounded-lg shadow-lg"
+                />
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Main content with two-column layout */}
-      <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-8 py-16">
         {/* Year In Review Section */}
         {yearInReviewContent && (
-          <div className="mb-12">
-            <div className="grid grid-cols-4 gap-8">
-              <div className="col-span-1">
-                <h2 className="text-lg font-semibold text-gray-900 mb-0">
+          <div className="mb-16">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <div className="lg:col-span-1">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 lg:mb-0">
                   The Year In Review:
                 </h2>
               </div>
-              <div className="col-span-3">
-                <div className="prose prose-sm max-w-none text-gray-700">
+              <div className="lg:col-span-3">
+                <div className="prose prose-lg max-w-none text-gray-700">
                   <ReactMarkdown>{yearInReviewContent.trim()}</ReactMarkdown>
                 </div>
               </div>
@@ -123,15 +128,15 @@ function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
 
         {/* Articles and Topics Section */}
         {articlesContent && (
-          <div className="mb-12">
-            <div className="grid grid-cols-4 gap-8">
-              <div className="col-span-1">
-                <h2 className="text-lg font-semibold text-gray-900 mb-0">
+          <div className="mb-16">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <div className="lg:col-span-1">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 lg:mb-0">
                   Articles and Topics:
                 </h2>
               </div>
-              <div className="col-span-3">
-                <div className="prose prose-sm max-w-none text-gray-700">
+              <div className="lg:col-span-3">
+                <div className="prose prose-lg max-w-none text-gray-700">
                   <ReactMarkdown>{articlesContent.trim()}</ReactMarkdown>
                 </div>
               </div>
@@ -141,7 +146,7 @@ function YearTimelineEntry({ entry }: { entry: TimelineEntry }) {
 
         {/* Fallback if no structured content */}
         {!yearInReviewContent && !articlesContent && (
-          <div className="prose prose-sm max-w-none text-gray-700">
+          <div className="prose prose-lg max-w-none text-gray-700">
             <ReactMarkdown>{entry.content}</ReactMarkdown>
           </div>
         )}
