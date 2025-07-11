@@ -26,17 +26,6 @@ export default async function TimelinePage({ params }: TimelinePageProps) {
       notFound();
     }
 
-    // Check if this is a year entry (1999-2079)
-    const isYearEntry = /^(19|20)\d{2}$/.test(entry.title) && 
-                        parseInt(entry.title) >= 1999 && 
-                        parseInt(entry.title) <= 2079;
-
-    if (isYearEntry) {
-      // Year entries handle their own full-screen layout
-      return <TimelineEntry entry={entry} />;
-    }
-
-    // Standard timeline entries get the container layout
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-8">
