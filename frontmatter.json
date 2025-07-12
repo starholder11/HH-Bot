@@ -1,0 +1,121 @@
+{
+  "frontMatter.framework.id": "other",
+  "frontMatter.content.publicFolder": "public",
+  "frontMatter.content.pageFolders": [
+    {
+      "title": "Timeline",
+      "path": "content/timeline",
+      "excludeSubDir": false
+    }
+  ],
+  "frontMatter.taxonomy.contentTypes": [
+    {
+      "name": "timeline-year",
+      "previewPath": "timeline",
+      "filePrefix": null,
+      "fileType": "md",
+      "fields": [
+        {
+          "title": "Title",
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "title": "Year",
+          "name": "year",
+          "type": "number"
+        },
+        {
+          "title": "Layout Template",
+          "name": "layout",
+          "type": "choice",
+          "choices": [
+            "narrative-story",
+            "timeline-entry",
+            "character-profile",
+            "world-building"
+          ]
+        },
+        {
+          "title": "Styling Theme",
+          "name": "theme",
+          "type": "choice",
+          "choices": [
+            "dark-futuristic",
+            "light-minimal",
+            "cyberpunk",
+            "classic"
+          ]
+        },
+        {
+          "title": "Grid Layout",
+          "name": "grid",
+          "type": "choice",
+          "choices": [
+            "single-column",
+            "2-column",
+            "3-column",
+            "hero-content"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "timeline-entry",
+      "previewPath": "timeline",
+      "filePrefix": null,
+      "fileType": "md",
+      "fields": [
+        {
+          "title": "Title",
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "title": "Date",
+          "name": "date",
+          "type": "date"
+        },
+        {
+          "title": "Category",
+          "name": "category",
+          "type": "choice",
+          "choices": [
+            "event",
+            "character",
+            "location",
+            "technology",
+            "culture"
+          ]
+        },
+        {
+          "title": "Layout Template",
+          "name": "layout",
+          "type": "choice",
+          "choices": [
+            "narrative-story",
+            "timeline-entry",
+            "character-profile",
+            "world-building"
+          ]
+        },
+        {
+          "title": "Styling Theme",
+          "name": "theme",
+          "type": "choice",
+          "choices": [
+            "dark-futuristic",
+            "light-minimal",
+            "cyberpunk",
+            "classic"
+          ]
+        }
+      ]
+    }
+  ],
+  "frontMatter.content.supportedFileTypes": ["md", "markdown", "mdx"],
+  "frontMatter.content.wysiwyg": true,
+  "frontMatter.content.fmHighlight": true,
+  "frontMatter.content.hideFm": false,
+  "frontMatter.logging": "info"
+} 

@@ -1,0 +1,21 @@
+{
+  "frontMatter.content.wysiwyg": true,
+  "frontMatter.content.fmHighlight": true,
+  "frontMatter.content.hideFm": false,
+  "frontMatter.logging": "info",
+  "cursor.general.enableCursorTab": true,
+  "cursor.cpp.enableInlineCompletion": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "markdown.preview.breaks": true,
+  "markdown.preview.linkify": true,
+  "files.associations": {
+    "*.md": "markdown",
+    "*.mdx": "markdown"
+  },
+  "workbench.colorTheme": "Default Dark+",
+  "editor.wordWrap": "on",
+  "editor.rulers": [80, 120],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+} 
