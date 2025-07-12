@@ -4,7 +4,7 @@ export default config({
   storage: {
     kind: 'github',
     repo: {
-      owner: 'c-fur1',
+      owner: 'starholder11',
       name: 'HH-Bot',
     },
   },
