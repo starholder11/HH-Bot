@@ -8,7 +8,7 @@ export default config({
       name: 'HH-Bot',
     },
     // @ts-ignore -- branch is accepted by Keystatic storage config but not typed in older version
-    branch: 'keystatic-reset',
+    branch: 'keystatic-clean',
   },
   
   // @ts-ignore – experimental option not in typings yet
