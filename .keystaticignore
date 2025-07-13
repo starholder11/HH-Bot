@@ -1,1 +1,8 @@
-**/*://** 
+**/*://**
+**/http:*
+**/https:*
+http:*
+https:*
+*:///*
+content/timeline/*/content/http:*
+content/timeline/*/content/https:* 
