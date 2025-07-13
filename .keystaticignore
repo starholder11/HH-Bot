@@ -9,3 +9,5 @@ https:*
 *:///*
 content/timeline/*/content/http:*
 content/timeline/*/content/https:* 
+# Ignore Keystatic internal content dir that stores pseudo files
+content/timeline/*/content/** 
