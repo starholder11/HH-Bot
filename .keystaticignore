@@ -1,3 +1,6 @@
+# Ignore external-URL pseudo paths created by Keystatic
+content/timeline/*/content/https://**
+content/timeline/*/content/http://**
 **/*://**
 **/http:*
 **/https:*
