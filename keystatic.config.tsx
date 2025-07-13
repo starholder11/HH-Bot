@@ -11,10 +11,12 @@ export default config({
     branch: 'keystatic-reset',
   },
   
-  // Enable full file replacement commits to avoid stale delete paths
-  // IMPORTANT: Do NOT remove or alter the following block unless the repository owner explicitly requests it.
   // @ts-ignore – experimental option not in typings yet
-  experimental: { forceFullCommit: true },
+  experimental: { 
+    forceFullCommit: true,
+    // @ts-ignore – experimental option not in typings yet
+    disableFileTracking: true
+  },
   
   collections: {
     posts: collection({
