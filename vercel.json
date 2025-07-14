@@ -1,5 +1,7 @@
 {
-  "buildCommand": "npm install && npm run build",
-  "installCommand": "npm install",
-  "framework": "nextjs"
-} 
+  "functions": {
+    "app/api/sync-content/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}
