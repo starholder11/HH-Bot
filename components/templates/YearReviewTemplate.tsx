@@ -65,17 +65,19 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
           {/* Articles and Topics Section (seamless, no extra heading, no border, no indent) */}
           {relatedArticles.length > 0 && (
             <div className="p-8 pt-4">
-              {relatedArticles.map((article) => (
-                <div key={article.slug} className="mb-6">
-                  <a
-                    href={`/timeline/${article.slug}`}
-                    className="text-lg font-semibold text-blue-600 hover:text-blue-800 block mb-1"
-                  >
-                    {article.title}
-                  </a>
-                  <p className="text-gray-700 mb-0">{getFirstSentence(article.content)}</p>
-                </div>
-              ))}
+              <div style={{ marginTop: 20 }}>
+                {relatedArticles.map((article) => (
+                  <div key={article.slug} className="mb-6">
+                    <a
+                      href={`/timeline/${article.slug}`}
+                      className="text-lg font-semibold text-blue-600 hover:text-blue-800 block mb-1"
+                    >
+                      {article.title}
+                    </a>
+                    <p className="text-gray-700 mb-0">{getFirstSentence(article.content)}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </article>
