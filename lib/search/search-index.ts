@@ -5,6 +5,7 @@ import { toSlug } from '../slug-utils';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO || 'HH-Bot';
 const GITHUB_OWNER = process.env.GITHUB_OWNER || 'starholder11';
+// Default to main branch, but allow override for branch-specific deployments
 const GITHUB_REF = process.env.GITHUB_REF || 'main';
 
 async function fetchTimelineEntriesFromGitHub(): Promise<{slug: string, title: string, bodyPath: string}[]> {
@@ -21,12 +22,12 @@ async function fetchTimelineEntriesFromGitHub(): Promise<{slug: string, title: s
   }
   const data = await res.json();
   const dirs = data.filter((item: any) => item.type === 'dir');
-  
+
   const entries = [];
   for (const dir of dirs) {
     const slug = dir.name; // Directory name is already in slug-case
     const yamlPath = `content/timeline/${slug}/index.yaml`;
-    
+
     // Try to fetch the title from the YAML file
     let title = slug; // Fallback to slug
     try {
@@ -41,14 +42,14 @@ async function fetchTimelineEntriesFromGitHub(): Promise<{slug: string, title: s
     } catch (error) {
       console.warn(`[search-index] Could not fetch title for ${slug}, using slug as title`);
     }
-    
+
     entries.push({
       slug,
       title,
       bodyPath: `content/timeline/${slug}/content.mdx`,
     });
   }
-  
+
   return entries;
 }
 
@@ -97,4 +98,4 @@ export async function generateSearchIndex(): Promise<SearchIndex> {
     generatedAt: new Date().toISOString(),
     version: '1.0.0',
   };
-} 
+}

@@ -52,6 +52,10 @@ export async function POST(request: NextRequest) {
     // Parse webhook payload
     const payload: GitHubWebhookPayload = JSON.parse(rawBody);
 
+    // Extract branch from payload (e.g., "refs/heads/main" -> "main")
+    const branch = payload.ref.replace('refs/heads/', '');
+    console.log('🌿 Processing webhook for branch:', branch);
+
     // 🔍 DEBUG: Add comprehensive logging to understand webhook structure
     console.log('🔍 DEBUG: Full commit object:', JSON.stringify(payload.commits[0], null, 2));
     console.log('🔍 DEBUG: All commits in payload:', payload.commits.length);
@@ -100,8 +104,8 @@ export async function POST(request: NextRequest) {
 
       for (const imagePath of Array.from(imageFiles)) {
         try {
-          // Get file content from GitHub API (binary file)
-          const fileContent = await getFileContentFromGitHub(imagePath, payload.commits[0].id, true);
+          // Get file content from GitHub API (binary file) using branch instead of commit SHA
+          const fileContent = await getFileContentFromGitHub(imagePath, branch, true);
 
           console.log('🔍 Base64 content received length:', fileContent.length);
           console.log('🔍 First 50 chars of base64:', fileContent.substring(0, 50));
@@ -149,10 +153,10 @@ export async function POST(request: NextRequest) {
 
     for (const filePath of Array.from(timelineFiles)) {
       try {
-        // Get file content from GitHub API
+        // Get file content from GitHub API using branch
         const fileContent = await getFileContentFromGitHub(
           filePath,
-          payload.commits[0].id
+          branch
         );
 
         // Get filename and base name
@@ -168,20 +172,20 @@ export async function POST(request: NextRequest) {
         // If we have S3 URL mappings, update the content file
         if (Object.keys(urlMappings).length > 0) {
           try {
-            // Get current content as string (use same commit SHA as image download)
-            const currentContent = await getFileContentAsString(filePath, payload.commits[0].id);
+            // Get current content as string using branch
+            const currentContent = await getFileContentAsString(filePath, branch);
 
             // Replace image references with S3 URLs
             const updatedContent = replaceImageReferences(currentContent, urlMappings);
 
             // Only update if content actually changed
             if (updatedContent !== currentContent) {
-              await updateFileInGitHub({
-                filePath,
-                newContent: updatedContent,
-                commitMessage: `Auto-update: Replace local images with S3 URLs in ${fileName}`,
-                ref: payload.commits[0].id // Use commit SHA for consistency
-              });
+                              await updateFileInGitHub({
+                  filePath,
+                  newContent: updatedContent,
+                  commitMessage: `Auto-update: Replace local images with S3 URLs in ${fileName}`,
+                  branch: branch // Use dynamic branch instead of hardcoded main
+                });
 
               console.log(`🔄 Updated ${fileName} with S3 URLs`);
             }

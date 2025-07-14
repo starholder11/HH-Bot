@@ -112,7 +112,7 @@ export async function uploadFileToVectorStore(
 ) {
   try {
     console.log(`📤 Uploading ${fileName} to vector store...`);
-    
+
     // Convert string content to Buffer for upload
     const buffer = Buffer.from(fileContent, 'utf8');
 
@@ -136,7 +136,7 @@ export async function uploadFileToVectorStore(
 
     console.log(`✅ Successfully uploaded ${fileName} to vector store (file_id=${fileInfo.id})`);
     return vectorStoreFile;
-    
+
   } catch (error) {
     console.error(`❌ Error uploading ${fileName}:`, error);
     throw error;
@@ -285,41 +285,41 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
 /**
  * Get file content from GitHub API (for webhook processing)
  * @param filePath - Path to the file in the repository
- * @param commitSha - Commit SHA for the file version
+ * @param ref - Branch name or commit SHA for the file version
  * @param isBinary - Whether the file is binary (for images)
  * @returns Promise<string> - File content (base64 for binary, text for text)
  */
 export async function getFileContentFromGitHub(
   filePath: string,
-  commitSha: string,
+  ref: string,
   isBinary: boolean = false
 ): Promise<string> {
   try {
-    console.log('🔍 Downloading file from GitHub:', filePath);
+        console.log('🔍 Downloading file from GitHub:', filePath);
     console.log('🔍 Is binary file:', isBinary);
-    console.log('🔍 Commit SHA:', commitSha);
-    
+    console.log('🔍 Git ref (branch/commit):', ref);
+
     // URL encode the file path to handle spaces
     const encodedPath = encodeURIComponent(filePath);
     console.log('🔍 Encoded path:', encodedPath);
-    
-    const url = `https://api.github.com/repos/starholder11/HH-Bot/contents/${encodedPath}?ref=${commitSha}`;
+
+    const url = `https://api.github.com/repos/starholder11/HH-Bot/contents/${encodedPath}?ref=${ref}`;
     console.log('🔍 GitHub API URL:', url);
-    
+
     const response = await fetch(url, {
       headers: {
         'Accept': isBinary ? 'application/vnd.github.v3+json' : 'application/vnd.github.v3.raw',
         'User-Agent': 'HH-Bot-Sync'
       }
     });
-    
+
     if (!response.ok) {
       console.error('❌ GitHub API error:', response.status, response.statusText);
       const errorText = await response.text();
       console.error('❌ Error response:', errorText);
       throw new Error(`GitHub API error: ${response.status} - ${errorText}`);
     }
-    
+
     if (isBinary) {
       // For binary files, get JSON response with base64 content
       const data = await response.json();
@@ -328,41 +328,41 @@ export async function getFileContentFromGitHub(
       console.log('📋 Encoding from GitHub:', data.encoding);
       console.log('📊 Base64 content length:', data.content?.length || 0);
       console.log('📊 Download URL available:', !!data.download_url);
-      
+
       // Handle large files (>1MB) that don't have inline content
       if (!data.content && data.download_url) {
         console.log('📥 Large file detected, using download URL...');
         console.log('🔗 Download URL:', data.download_url);
-        
+
         const downloadResponse = await fetch(data.download_url);
         if (!downloadResponse.ok) {
           throw new Error(`Failed to download file: ${downloadResponse.status}`);
         }
-        
+
         const arrayBuffer = await downloadResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        
+
         console.log('📊 Downloaded file buffer size:', buffer.length, 'bytes');
         console.log('📊 First 16 bytes (hex):', buffer.slice(0, 16).toString('hex'));
-        
+
         // Convert buffer to base64 for consistency with existing code
         const base64Content = buffer.toString('base64');
         console.log('📊 Converted to base64 length:', base64Content.length);
-        
+
         return base64Content;
       }
-      
+
       // Handle small files with inline base64 content
       if (data.content) {
         console.log('📥 Small file detected, using inline content...');
-        
+
         if (data.encoding !== 'base64') {
           throw new Error(`Unexpected encoding: ${data.encoding}, expected base64`);
         }
-        
+
         return data.content;
       }
-      
+
       throw new Error('No content or download URL available from GitHub API');
     } else {
       // For text files, get raw content
