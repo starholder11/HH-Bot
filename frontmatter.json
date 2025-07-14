@@ -3,9 +3,17 @@
   "frontMatter.content.publicFolder": "public",
   "frontMatter.content.pageFolders": [
     {
-      "title": "Timeline",
-      "path": "content/timeline",
-      "excludeSubDir": false
+      "path": "[[workspace]]/scripts",
+      "title": "scripts"
+    },
+    {
+      "path": "[[workspace]]/content/posts"
+    },
+    {
+      "path": "[[workspace]]/.cursor/rules"
+    },
+    {
+      "path": "[[workspace]]/content/timeline"
     }
   ],
   "frontMatter.taxonomy.contentTypes": [
@@ -113,9 +121,13 @@
       ]
     }
   ],
-  "frontMatter.content.supportedFileTypes": ["md", "markdown", "mdx"],
+  "frontMatter.content.supportedFileTypes": [
+    "md",
+    "markdown",
+    "mdx"
+  ],
   "frontMatter.content.wysiwyg": true,
   "frontMatter.content.fmHighlight": true,
   "frontMatter.content.hideFm": false,
   "frontMatter.logging": "info"
-} 
+}
