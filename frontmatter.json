@@ -34,6 +34,23 @@
           "type": "number"
         },
         {
+          "title": "Template",
+          "name": "template",
+          "type": "choice",
+          "choices": [
+            "default",
+            "year-review",
+            "character-profile",
+            "event-story",
+            "world-building"
+          ]
+        },
+        {
+          "title": "Period",
+          "name": "period",
+          "type": "string"
+        },
+        {
           "title": "Layout Template",
           "name": "layout",
           "type": "choice",

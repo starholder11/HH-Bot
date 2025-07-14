@@ -1,6 +1,9 @@
 slug: year2040
 title: '2040'
 date: 2025-07-12
+template: 'year-review'
+period: 'The Great Disruption'
+year: 2040
 categories:
   - Year
 gallery: []
