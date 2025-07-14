@@ -25,7 +25,7 @@ function folderToSlug(folderName: string): string {
 export async function getAllTimelineSlugs(): Promise<string[]> {
   try {
     const entries = fs.readdirSync(TIMELINE_DIR, { withFileTypes: true });
-    
+
     return entries
       .filter(entry => entry.isDirectory())
       .map(entry => folderToSlug(entry.name))
@@ -42,7 +42,7 @@ export async function getAllTimelineSlugs(): Promise<string[]> {
 function findFolderBySlug(slug: string): string | null {
   try {
     const entries = fs.readdirSync(TIMELINE_DIR, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const entrySlug = folderToSlug(entry.name);
@@ -51,7 +51,7 @@ function findFolderBySlug(slug: string): string | null {
         }
       }
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error finding folder by slug:', error);
@@ -70,11 +70,11 @@ export async function getTimelineEntry(slug: string): Promise<TimelineEntry | nu
     }
 
     const folderPath = path.join(TIMELINE_DIR, folderName);
-    
+
     // Read the content.mdx file (new structure)
     const contentPath = path.join(folderPath, 'content.mdx');
     let content = '';
-    
+
     if (fs.existsSync(contentPath)) {
       content = fs.readFileSync(contentPath, 'utf-8');
     } else {
@@ -84,7 +84,7 @@ export async function getTimelineEntry(slug: string): Promise<TimelineEntry | nu
     // Read metadata from index.yaml file (new structure)
     const yamlPath = path.join(folderPath, 'index.yaml');
     let metadata: Record<string, any> = {};
-    
+
     if (fs.existsSync(yamlPath)) {
       const yamlContent = fs.readFileSync(yamlPath, 'utf-8');
       try {
@@ -116,13 +116,28 @@ export async function getTimelineEntry(slug: string): Promise<TimelineEntry | nu
 export async function getAllTimelineEntries(): Promise<TimelineEntry[]> {
   const slugs = await getAllTimelineSlugs();
   const entries: TimelineEntry[] = [];
-  
+
   for (const slug of slugs) {
     const entry = await getTimelineEntry(slug);
     if (entry) {
       entries.push(entry);
     }
   }
-  
+
   return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-} 
+}
+
+/**
+ * Get timeline entries that have a specific year in their categories
+ */
+export async function getTimelineEntriesByYear(year: number): Promise<TimelineEntry[]> {
+  const allEntries = await getAllTimelineEntries();
+
+  return allEntries.filter(entry => {
+    const categories = entry.metadata?.categories || [];
+    return categories.some((category: string) => {
+      const categoryYear = parseInt(category);
+      return !isNaN(categoryYear) && categoryYear === year;
+    });
+  }).sort((a, b) => a.title.localeCompare(b.title)); // Sort alphabetically by title
+}

@@ -6,7 +6,7 @@ interface TimelineEntryProps {
   entry: TimelineEntry;
 }
 
-export default function TimelineEntry({ entry }: TimelineEntryProps) {
+export default async function TimelineEntry({ entry }: TimelineEntryProps) {
   // Check if this should use year review template
   const isYearEntry = entry.metadata?.categories?.includes('Year');
   const titleAsNumber = parseInt(entry.title);
