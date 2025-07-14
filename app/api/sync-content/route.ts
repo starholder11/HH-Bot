@@ -4,6 +4,7 @@ import { syncTimelineEntry, getFileContentFromGitHub } from '@/lib/openai-sync';
 import { uploadImage, uploadFile } from '@/lib/s3-upload';
 import { updateFileInGitHub, replaceImageReferences, getFileContentAsString } from '@/lib/github-file-updater';
 // import { updateSearchIndexFile } from '@/lib/search/search-index';
+import path from 'path';
 
 // Ensure this route runs in the Node.js runtime (Edge runtime disallows `path` module)
 export const runtime = 'nodejs';
@@ -87,7 +88,13 @@ export async function POST(request: NextRequest) {
         console.log('🔍 Checking file:', file, 'starts with content/timeline/:', file.startsWith('content/timeline/'));
 
         if (file.startsWith('content/timeline/')) {
-          if (file.endsWith('.mdoc') || file.endsWith('.mdx')) {
+          console.log('🔍 DEBUG: File in timeline directory:', file);
+          console.log('🔍 DEBUG: File ends with .mdx:', file.endsWith('.mdx'));
+          console.log('🔍 DEBUG: File matches image pattern:', /\.(png|jpg|jpeg|gif|webp)$/i.test(file));
+
+          // Use path.extname to avoid false negatives (e.g. hidden unicode / whitespace)
+          const ext = path.extname(file).toLowerCase();
+          if (ext === '.mdx' || ext === '.mdoc') {
             timelineFiles.add(file);
             console.log('✅ Added to timeline files:', file);
           } else if (/\.(png|jpg|jpeg|gif|webp)$/i.test(file)) {
