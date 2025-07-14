@@ -5,6 +5,9 @@ import { uploadImage, uploadFile } from '@/lib/s3-upload';
 import { updateFileInGitHub, replaceImageReferences, getFileContentAsString } from '@/lib/github-file-updater';
 // import { updateSearchIndexFile } from '@/lib/search/search-index';
 
+// Ensure this route runs in the Node.js runtime (Edge runtime disallows `path` module)
+export const runtime = 'nodejs';
+
 // GitHub webhook event types
 interface GitHubWebhookPayload {
   ref: string;
@@ -24,7 +27,7 @@ interface GitHubWebhookPayload {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔔 Received webhook request');
+    console.log('🔔 WEBHOOK-LIVE (Node runtime)');
 
     // Get raw body for signature validation
     const rawBody = await request.text();
