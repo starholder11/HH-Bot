@@ -55,35 +55,30 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
         </div>
 
         {/* Content Section */}
-        <article className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-          <div className="p-8">
+        <article className="bg-white rounded-lg shadow-lg overflow-hidden mb-0">
+          <div className="p-8 pb-0">
             <div className="prose prose-lg max-w-none">
               <ReactMarkdown>{entry.content}</ReactMarkdown>
             </div>
           </div>
-        </article>
 
-        {/* Articles and Topics Section */}
-        {relatedArticles.length > 0 && (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div className="p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Articles and Topics:</h2>
-              <div className="space-y-4">
-                {relatedArticles.map((article) => (
-                  <div key={article.slug} className="border-l-4 border-blue-500 pl-4">
-                    <a
-                      href={`/timeline/${article.slug}`}
-                      className="text-lg font-semibold text-blue-600 hover:text-blue-800 block mb-2"
-                    >
-                      {article.title}
-                    </a>
-                    <p className="text-gray-700">{getFirstSentence(article.content)}</p>
-                  </div>
-                ))}
-              </div>
+          {/* Articles and Topics Section (seamless, no extra heading, no border, no indent) */}
+          {relatedArticles.length > 0 && (
+            <div className="p-8 pt-4">
+              {relatedArticles.map((article) => (
+                <div key={article.slug} className="mb-6">
+                  <a
+                    href={`/timeline/${article.slug}`}
+                    className="text-lg font-semibold text-blue-600 hover:text-blue-800 block mb-1"
+                  >
+                    {article.title}
+                  </a>
+                  <p className="text-gray-700 mb-0">{getFirstSentence(article.content)}</p>
+                </div>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+        </article>
 
         {/* Year Navigation */}
         <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
