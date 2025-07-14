@@ -7,9 +7,20 @@ interface YearReviewTemplateProps {
 }
 
 export default function YearReviewTemplate({ entry }: YearReviewTemplateProps) {
-  const year = entry.metadata?.year || parseInt(entry.title) || 2040;
-  const period = entry.metadata?.period || 'Unknown Period';
-  const theme = entry.metadata?.theme || 'default';
+  const year = parseInt(entry.title);
+
+  // Determine period based on year
+  const getPeriod = (year: number): string => {
+    if (year >= 1999 && year <= 2016) return 'The End Of History';
+    if (year >= 2017 && year <= 2033) return 'Networked Life Intensifies';
+    if (year >= 2034 && year <= 2049) return 'The Great Disruption';
+    if (year >= 2050 && year <= 2069) return 'Headlong Into The Hyperreal';
+    if (year >= 2070 && year <= 2079) return 'The Second Moon Event';
+    if (year >= 2080 && year <= 2099) return 'The Impending Collapse';
+    return 'Unknown Period';
+  };
+
+  const period = getPeriod(year);
 
   return (
     <div className="min-h-screen bg-gray-50">
