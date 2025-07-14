@@ -7,11 +7,13 @@ interface TimelineEntryProps {
 }
 
 export default function TimelineEntry({ entry }: TimelineEntryProps) {
-  // Check if this entry should use a template
-  const template = entry.metadata?.template;
+  // Check if this should use year review template
+  const isYearEntry = entry.metadata?.categories?.includes('Year');
+  const titleAsNumber = parseInt(entry.title);
+  const isYearInRange = titleAsNumber >= 1999 && titleAsNumber <= 2099;
 
-  // Use YearReviewTemplate if specified
-  if (template === 'year-review') {
+  // Use YearReviewTemplate if it's a year entry with a year title
+  if (isYearEntry && isYearInRange) {
     return <YearReviewTemplate entry={entry} />;
   }
 
