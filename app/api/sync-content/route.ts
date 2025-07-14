@@ -28,7 +28,7 @@ interface GitHubWebhookPayload {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔔 WEBHOOK-LIVE (Node runtime)');
+    console.log('🔔 WEBHOOK-LIVE (Node runtime) v2');
 
     // Get raw body for signature validation
     const rawBody = await request.text();
