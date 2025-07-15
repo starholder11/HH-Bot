@@ -153,14 +153,18 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
                 <ReactMarkdown>{textContent}</ReactMarkdown>
               </div>
 
-              {/* Right column: Image (if exists) */}
+                            {/* Right column: Image (if exists) */}
               <div className="flex justify-center items-start p-6">
                 {images.length > 0 && (
-                  <img
-                    src={images[0].src}
-                    alt={images[0].alt}
-                    className="max-w-full h-auto rounded-2xl shadow-md"
-                  />
+                  <div className="w-full relative rounded-2xl shadow-md overflow-hidden">
+                    <div className="w-full" style={{ paddingBottom: '87%' }}>
+                      <img
+                        src={images[0].src}
+                        alt={images[0].alt}
+                        className="absolute top-0 left-0 w-full h-full object-cover object-center"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
