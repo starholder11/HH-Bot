@@ -62,6 +62,42 @@ function extractImagesAndText(introContent: string) {
   return { textContent, images };
 }
 
+// Helper function to parse content by headers into sections
+function parseContentSections(content: string) {
+  if (!content.trim()) return [];
+
+  // Split content by headers (## or ###)
+  const sections = [];
+  const lines = content.split('\n');
+  let currentSection = { header: '', content: '' };
+
+  for (const line of lines) {
+    const headerMatch = line.match(/^(#{2,3})\s+(.+)$/);
+
+    if (headerMatch) {
+      // Save previous section if it has content
+      if (currentSection.header || currentSection.content.trim()) {
+        sections.push(currentSection);
+      }
+      // Start new section
+      currentSection = {
+        header: headerMatch[2].trim(),
+        content: ''
+      };
+    } else {
+      // Add line to current section content
+      currentSection.content += line + '\n';
+    }
+  }
+
+  // Add the last section
+  if (currentSection.header || currentSection.content.trim()) {
+    sections.push(currentSection);
+  }
+
+  return sections;
+}
+
 export default async function YearReviewTemplate({ entry }: YearReviewTemplateProps) {
   const year = parseInt(entry.title);
 
@@ -82,8 +118,27 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
   const { introContent, remainingContent } = parseIntroContent(entry.content);
   const { textContent, images } = extractImagesAndText(introContent);
 
-  // Get related articles for this year
+  // Parse remaining content into sections
+  const contentSections = parseContentSections(remainingContent);
+
+  // Get related articles for this year (but don't create separate section since it's in content)
   const relatedArticles = await getTimelineEntriesByYear(year);
+
+  // Populate Articles and Topics section with related articles if it exists
+  const populatedSections = contentSections.map(section => {
+    if (section.header.toLowerCase().includes('articles and topics')) {
+      const articlesContent = relatedArticles.map((article) => {
+        const firstSentence = getFirstSentence(article.content);
+        return `**[${article.title}](/timeline/${article.slug})**\n\n${firstSentence}`;
+      }).join('\n\n');
+
+      return {
+        ...section,
+        content: articlesContent
+      };
+    }
+    return section;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -94,7 +149,7 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
           {textContent && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8" style={{backgroundColor: '#b4bdbc'}}>
               {/* Left column: Text content */}
-              <div className="p-6" style={{fontSize: '32px', fontWeight: 'bold', lineHeight: '1.2'}}>
+              <div className="p-6" style={{fontSize: '32px', lineHeight: '1.2'}}>
                 <ReactMarkdown>{textContent}</ReactMarkdown>
               </div>
 
@@ -104,66 +159,71 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
                   <img
                     src={images[0].src}
                     alt={images[0].alt}
-                    className="max-w-full h-auto rounded-lg shadow-md"
+                    className="max-w-full h-auto rounded-2xl shadow-md"
                   />
                 )}
               </div>
             </div>
           )}
 
-          <div className="pt-8 px-4 pb-0">
-            {/* Remaining content */}
-            {remainingContent && (
+          {/* Two-column sections for remaining content */}
+          {populatedSections.map((section, index) => (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-[25%_75%] gap-8 p-8">
+              {/* Left column: Header */}
+              <div className="p-6">
+                <h2 className="text-3xl font-bold mb-4">{section.header}</h2>
+              </div>
+
+              {/* Right column: Content */}
+              <div className="p-6 pr-8">
+                <div className="prose prose-lg max-w-none">
+                  <ReactMarkdown>{section.content}</ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Fallback if no sections were created */}
+          {populatedSections.length === 0 && remainingContent && (
+            <div className="pt-8 px-4 pb-0">
               <div className="prose prose-lg max-w-none">
                 <ReactMarkdown>{remainingContent}</ReactMarkdown>
-              </div>
-            )}
-
-            {/* Fallback if no intro parsing worked */}
-            {!textContent && !remainingContent && (
-              <div className="prose prose-lg max-w-none">
-                <ReactMarkdown>{entry.content}</ReactMarkdown>
-              </div>
-            )}
-          </div>
-
-          {/* Articles and Topics Section (seamless, no extra heading, no border, no indent) */}
-          {relatedArticles.length > 0 && (
-            <div className="px-4 pt-4 pb-8">
-              <div style={{ marginTop: 20 }}>
-                {relatedArticles.map((article) => (
-                  <div key={article.slug} className="mb-6">
-                    <a
-                      href={`/timeline/${article.slug}`}
-                      className="text-lg font-semibold text-blue-600 hover:text-blue-800 block mb-1"
-                    >
-                      {article.title}
-                    </a>
-                    <p className="text-gray-700 mb-0">{getFirstSentence(article.content)}</p>
-                  </div>
-                ))}
               </div>
             </div>
           )}
         </article>
 
         {/* Year Navigation */}
-        <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
-          <div className="flex justify-between items-center">
+        <div className="bg-white rounded-lg shadow-lg px-6 pt-2 pb-6" style={{ paddingBottom: '55px' }}>
+          <div className="flex justify-center items-center text-lg">
             <a
               href={`/timeline/year${year - 1}`}
-              className="text-blue-600 hover:text-blue-800 font-semibold"
+              className="text-black hover:text-gray-700 no-underline"
+              style={{ paddingRight: '20px' }}
             >
               ← {year - 1}
             </a>
-            <span className="text-gray-500">Timeline Navigation</span>
+            <span className="text-black">Timeline Navigation</span>
             <a
               href={`/timeline/year${year + 1}`}
-              className="text-blue-600 hover:text-blue-800 font-semibold"
+              className="text-black hover:text-gray-700 no-underline"
+              style={{ paddingLeft: '20px' }}
             >
               {year + 1} →
             </a>
           </div>
+        </div>
+
+        {/* Footer Logo */}
+        <div className="mt-8 mb-8 flex justify-center">
+          <a href="/" className="inline-block">
+            <img
+              src="/logo.png"
+              alt="Starholder Logo"
+              className="w-16 h-16 rounded-full shadow-md object-cover hover:shadow-lg transition-shadow duration-200"
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
+            />
+          </a>
         </div>
       </div>
     </div>
