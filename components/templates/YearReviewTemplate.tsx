@@ -149,19 +149,28 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
           {textContent && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8" style={{backgroundColor: '#b4bdbc'}}>
               {/* Left column: Text content */}
-              <div className="p-6" style={{fontSize: '32px', lineHeight: '1.2'}}>
-                <ReactMarkdown>{textContent}</ReactMarkdown>
+                                                                                                  <div className="p-6 mb-4" style={{ fontSize: '1.4em', lineHeight: '1.4', fontFamily: 'Source Serif Pro, Georgia, serif' }}>
+                <ReactMarkdown
+                  components={{
+                    p: ({children}) => <p style={{ fontFamily: 'Source Serif Pro, Georgia, serif', fontSize: '1.4em', lineHeight: '1.4', margin: 0 }}>{children}</p>
+                  }}
+                >
+                  {textContent}
+                </ReactMarkdown>
               </div>
 
-                            {/* Right column: Image (if exists) */}
+                                                        {/* Right column: Image (if exists) */}
               <div className="flex justify-center items-start p-6">
                 {images.length > 0 && (
                   <div className="w-full relative rounded-2xl shadow-md overflow-hidden">
-                    <div className="w-full" style={{ paddingBottom: '87%' }}>
+                    <div
+                      className="w-full relative"
+                      style={{ paddingBottom: '80%' }}
+                    >
                       <img
                         src={images[0].src}
                         alt={images[0].alt}
-                        className="absolute top-0 left-0 w-full h-full object-cover object-center"
+                        className="absolute inset-0 w-full h-full object-cover object-center"
                       />
                     </div>
                   </div>
