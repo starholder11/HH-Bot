@@ -43,17 +43,7 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 pt-8 pb-12">
-        {/* Hero Section */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8">
-            <div className="text-center">
-              <h1 className="text-5xl font-bold mb-4">{entry.title}</h1>
-              <p className="text-xl opacity-90">{period}</p>
-            </div>
-          </div>
-        </div>
-
+      <div className="mx-auto px-20 pt-8 pb-12">
         {/* Content Section */}
         <article className="bg-white rounded-lg shadow-lg overflow-hidden mb-0">
           <div className="p-8 pb-0">
