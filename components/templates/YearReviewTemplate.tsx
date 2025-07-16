@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { TimelineEntry } from '@/lib/content-reader';
-import { getTimelineEntriesByYear } from '@/lib/content-reader';
+import { getTimelineEntriesByYear, getAllTimelineSlugs } from '@/lib/content-reader';
 
 interface YearReviewTemplateProps {
   entry: TimelineEntry;
@@ -101,6 +101,17 @@ function parseContentSections(content: string) {
 export default async function YearReviewTemplate({ entry }: YearReviewTemplateProps) {
   const year = parseInt(entry.title);
 
+  // Get all available years to determine navigation bounds
+  const allSlugs = await getAllTimelineSlugs();
+  const availableYears = allSlugs
+    .filter(slug => slug.startsWith('year'))
+    .map(slug => parseInt(slug.replace('year', '')))
+    .filter(year => !isNaN(year))
+    .sort((a, b) => a - b);
+
+  const minYear = availableYears.length > 0 ? Math.min(...availableYears) : year;
+  const maxYear = availableYears.length > 0 ? Math.max(...availableYears) : year;
+
   // Determine period based on year
   const getPeriod = (year: number): string => {
     if (year >= 1999 && year <= 2016) return 'The End Of History';
@@ -141,15 +152,15 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto px-4 sm:px-8 md:px-16 lg:px-24 xl:px-36 pt-8 pb-12">
-        {/* Content Section */}
-        <article className="bg-white rounded-lg shadow-lg overflow-hidden mb-0">
-          {/* Two-column intro layout if there's intro content */}
-          {textContent && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8" style={{backgroundColor: '#b4bdbc'}}>
-              {/* Left column: Text content */}
-                                                                                                  <div className="p-6 mb-4" style={{ fontSize: '1.4em', lineHeight: '1.4', fontFamily: 'Source Serif Pro, Georgia, serif' }}>
+    <div className="min-h-screen bg-white">
+      {/* Top Row: Full-width Hero Section */}
+      {textContent && (
+        <div className="w-full" style={{backgroundColor: '#b4bdbc'}}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 mx-auto px-4 sm:px-8 md:px-16 lg:px-24 xl:px-36">
+                        {/* Left column: Text content with fixed navigation bottom */}
+            <div className="p-6 mb-4 flex flex-col justify-between h-full">
+              {/* Top row: Text content */}
+              <div style={{ fontSize: '1.4em', lineHeight: '1.4', fontFamily: 'Source Serif Pro, Georgia, serif' }}>
                 <ReactMarkdown
                   components={{
                     p: ({children}) => <p style={{ fontFamily: 'Source Serif Pro, Georgia, serif', fontSize: '1.4em', lineHeight: '1.4', margin: 0 }}>{children}</p>
@@ -159,26 +170,55 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
                 </ReactMarkdown>
               </div>
 
-                                                        {/* Right column: Image (if exists) */}
-              <div className="flex justify-center items-start p-6">
-                {images.length > 0 && (
-                  <div className="w-full relative rounded-2xl shadow-md overflow-hidden">
-                    <div
-                      className="w-full relative"
-                      style={{ paddingBottom: '80%' }}
-                    >
-                      <img
-                        src={images[0].src}
-                        alt={images[0].alt}
-                        className="absolute inset-0 w-full h-full object-cover object-center"
-                      />
-                    </div>
-                  </div>
+              {/* Bottom row: Fixed navigation */}
+              <div className="mt-8 pt-6 text-center" style={{ fontSize: '1rem' }}>
+                {year > minYear && (
+                  <a
+                    href={`/timeline/year${year - 1}`}
+                    className="text-black hover:text-gray-700 no-underline"
+                    style={{ paddingRight: '20px' }}
+                  >
+                    ← {year - 1}
+                  </a>
+                )}
+                <span className="text-black">Timeline Navigation</span>
+                {year < maxYear && (
+                  <a
+                    href={`/timeline/year${year + 1}`}
+                    className="text-black hover:text-gray-700 no-underline"
+                    style={{ paddingLeft: '20px' }}
+                  >
+                    {year + 1} →
+                  </a>
                 )}
               </div>
             </div>
-          )}
 
+            {/* Right column: Image (if exists) */}
+            <div className="flex justify-center items-start p-6">
+              {images.length > 0 && (
+                <div className="w-full relative rounded-2xl shadow-md overflow-hidden">
+                  <div
+                    className="w-full relative"
+                    style={{ paddingBottom: '80%' }}
+                  >
+                    <img
+                      src={images[0].src}
+                      alt={images[0].alt}
+                      className="absolute inset-0 w-full h-full object-cover object-center"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Row: Contained Body Content and Navigation */}
+      <div className="mx-auto px-4 sm:px-8 md:px-16 lg:px-24 xl:px-36 pb-12">
+        {/* Content Section */}
+        <article className="bg-white mb-0">
           {/* Two-column sections for remaining content */}
           {populatedSections.map((section, index) => (
             <div key={index} className="grid grid-cols-1 md:grid-cols-[25%_75%] gap-8 p-8">
@@ -207,28 +247,32 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
         </article>
 
         {/* Year Navigation */}
-        <div className="bg-white rounded-lg shadow-lg px-6 pt-2 pb-6" style={{ paddingBottom: '55px' }}>
+        <div className="bg-white px-6 pt-2 pb-6" style={{ paddingBottom: '33px' }}>
           <div className="flex justify-center items-center text-lg">
-            <a
-              href={`/timeline/year${year - 1}`}
-              className="text-black hover:text-gray-700 no-underline"
-              style={{ paddingRight: '20px' }}
-            >
-              ← {year - 1}
-            </a>
+            {year > minYear && (
+              <a
+                href={`/timeline/year${year - 1}`}
+                className="text-black hover:text-gray-700 no-underline"
+                style={{ paddingRight: '20px' }}
+              >
+                ← {year - 1}
+              </a>
+            )}
             <span className="text-black">Timeline Navigation</span>
-            <a
-              href={`/timeline/year${year + 1}`}
-              className="text-black hover:text-gray-700 no-underline"
-              style={{ paddingLeft: '20px' }}
-            >
-              {year + 1} →
-            </a>
+            {year < maxYear && (
+              <a
+                href={`/timeline/year${year + 1}`}
+                className="text-black hover:text-gray-700 no-underline"
+                style={{ paddingLeft: '20px' }}
+              >
+                {year + 1} →
+              </a>
+            )}
           </div>
         </div>
 
         {/* Footer Logo */}
-        <div className="mt-8 mb-8 flex justify-center">
+        <div className="mt-4 mb-8 flex justify-center">
           <a href="/" className="inline-block">
             <img
               src="/logo.png"
