@@ -75,15 +75,6 @@ export default function Home() {
           </section>
         </ContentContainer>
       </main>
-      <footer className="bg-wp-contrast-3/5 py-12 mt-16">
-        <ContentContainer>
-          <div className="text-center">
-            <BodyText size="small" className="text-wp-contrast-2">
-              © 2025 Starholder. A worldbuilding project exploring networked media.
-            </BodyText>
-          </div>
-        </ContentContainer>
-      </footer>
     </BaseLayout>
   );
-} 
+}
