@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export function Footer() {
   return (
-    <div className="mt-8 mb-8 flex justify-center">
+    <div className="mt-5 pb-8 flex justify-center">
       <Link href="/" className="inline-block">
         <img
           src="/logo.png"
