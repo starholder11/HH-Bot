@@ -6,6 +6,7 @@ import { Heading } from '@/components/typography/Heading';
 import { BodyText } from '@/components/typography/BodyText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Footer } from '@/components/layout/Footer';
 
 export default function Home() {
   const timelineEntries = getTimelineEntries();
@@ -30,6 +31,7 @@ export default function Home() {
               </Button>
             </div>
           </section>
+
           <section className="mb-16">
             <Heading level={2} className="mb-8">Featured Entries</Heading>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -57,6 +59,7 @@ export default function Home() {
               )}
             </div>
           </section>
+
           <section className="wp-prose">
             <Heading level={2}>The Timeline Structure</Heading>
             <BodyText>
@@ -75,6 +78,7 @@ export default function Home() {
           </section>
         </ContentContainer>
       </main>
+      <Footer />
     </BaseLayout>
   );
 }

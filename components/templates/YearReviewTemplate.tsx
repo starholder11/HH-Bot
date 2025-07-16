@@ -2,6 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { TimelineEntry } from '@/lib/content-reader';
 import { getTimelineEntriesByYear, getAllTimelineSlugs } from '@/lib/content-reader';
+import { Footer } from '../layout/Footer';
 
 interface YearReviewTemplateProps {
   entry: TimelineEntry;
@@ -270,6 +271,9 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
             )}
           </div>
         </div>
+
+        {/* Footer within the content area */}
+        <Footer />
       </div>
     </div>
   );

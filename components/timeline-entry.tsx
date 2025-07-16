@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import type { TimelineEntry } from '@/lib/content-reader';
 import YearReviewTemplate from './templates/YearReviewTemplate';
+import { Footer } from './layout/Footer';
 
 interface TimelineEntryProps {
   entry: TimelineEntry;
@@ -82,6 +83,9 @@ export default async function TimelineEntry({ entry }: TimelineEntryProps) {
           </div>
         </article>
       </div>
+
+      {/* Footer within the grey-green background */}
+      <Footer />
     </div>
   );
 }

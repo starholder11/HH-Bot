@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getAllTimelineEntries, type TimelineEntry } from '@/lib/content-reader';
 import Link from 'next/link';
+import { Footer } from '@/components/layout/Footer';
 
 interface CategoryPageProps {
   params: {
@@ -116,6 +117,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             </div>
           ))}
         </div>
+
+        {/* Footer within the grey-green background */}
+        <Footer />
       </div>
     </div>
   );
