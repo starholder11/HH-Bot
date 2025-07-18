@@ -1,0 +1,64 @@
+{
+  "id": "f0f64f58-0aa7-46d5-8673-718b28bc028c",
+  "filename": "Longing Commuters.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752871176973-kb141p-Longing Commuters.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752871176973-kb141p-Longing Commuters.mp3",
+  "title": "Longing Commuters",
+  "prompt": "new romantic, vaporwave, tokyo lounge music, chopped and screwed",
+  "lyrics": "[Intro]\n\n[Pre-Verse]\nWeary Commuters\nEyeing each other\nLonging for better\nAlways longing\nMakes me think \nOf You\n\n[Verse (female torch)]\nWe used to smoke \nin the dining car\nThey had that minuet, \nit made me just melt\nTwo dry martinis, \nour hands wrapped around\n[Breathy Pause and Build]\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\n[Pre Verse]\nWhen you picked me \nup off the tracks\nPirouetting through the passengers\nForgetting our partners, \nforgetting our cares\n\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\n[Pre-Verse (breathy female lounge)] \nWeary Commuters\nEyeing each other\nLonging for better\nAlways longing\nMakes me think \nOf You\n\n[Verse (female torch)]\nWe used to smoke \nin the dining car\nThey had that minuet, \nit made me just melt\nTwo dry martinis, \nour hands wrapped around\n[Breathy Pause and Build]\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\n[Pre Verse (breathy female lounge)]\nWhen you picked me \nup off the tracks\nPirouetting through the passengers\nForgetting our partners, \nforgetting our cares\n\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\nThey had that minuet, \nit made me just melt\nTwo dry martinis, \nour hands wrapped around\n[Breathy Pause and Build]\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\n[Pre Verse (breathy female lounge)]\nWhen you picked me \nup off the tracks\nPirouetting through the passengers\nForgetting our partners, \nforgetting our cares\n\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Classical",
+      "styles": [
+        "Chillout",
+        "Vaporwave"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Nostalgic",
+        "Uplifting"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 310,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Vaporwave"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 310,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Classical",
+    "styles": [
+      "Chillout",
+      "Vaporwave"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Nostalgic",
+      "Uplifting"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.726Z",
+  "updated_at": "2025-07-18T20:39:40.220Z",
+  "labeling_complete": false
+}

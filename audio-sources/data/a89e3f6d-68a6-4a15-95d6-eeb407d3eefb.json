@@ -1,0 +1,62 @@
+{
+  "id": "a89e3f6d-68a6-4a15-95d6-eeb407d3eefb",
+  "filename": "The Ballad Of Ben & Claudia.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870936482-7u4gja-The Ballad Of Ben & Claudia.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870936482-7u4gja-The Ballad Of Ben & Claudia.mp3",
+  "title": "The Ballad of Ben & Claudia",
+  "prompt": "acoustic souk, deep slow resonant electronic percussion, fantasy folk",
+  "lyrics": "(inhale)\nmmm\n(slow exhale)\nmmm mmm mmm\nnow claudia is a friend\nof mine, we laugh \nwe drink\nand pass the time\nben's her guy\nnow he's my dude\njumps outta line\nbut gets back good\nI seen them up\non the hill one time\nlooking down the valleys\njust absolutely thrilled\nand it warms my heart\nto think of them\nand the choice they made\nto be \nall of our friends\n\nthe hyper real\nis sure hard sometimes\ncoming and going\nand sharing our minds\nto look across \nthe great group chat\nand feel and think\nin all of that\noh god, my god\nhow our minds grew\nbecause of what\nthey choose\nbeen up on the ridge\nmaking mistakes\ndrifting on down\noh oh ohhhhh mmm\nhmm hmm",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Electro"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 5,
+      "mood": [
+        "Aggressive",
+        "Atmospheric",
+        "Introspective",
+        "Romantic",
+        "Spiritual"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 130,
+      "sentiment_score": 0.7,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 130,
+    "sentiment_score": 0.7
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Electro"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 5,
+    "mood": [
+      "Aggressive",
+      "Atmospheric",
+      "Introspective",
+      "Romantic",
+      "Spiritual"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.793Z",
+  "updated_at": "2025-07-18T20:35:40.377Z",
+  "labeling_complete": false
+}

@@ -1,0 +1,71 @@
+{
+  "id": "b340e3f8-9aa3-490d-9754-3b9221c41f09",
+  "filename": "INDEMNIFY ME ELMO.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870961999-ypbpgx-INDEMNIFY ME ELMO.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870961999-ypbpgx-INDEMNIFY ME ELMO.mp3",
+  "title": "Indemnify Me Elmo",
+  "prompt": "heroic spacerock, lush shoegazer, 90's folkdrone",
+  "lyrics": "up there on the rooftop\njust past the balustrades\nstands the empress\nof the evening\nwith ravens in her hair\nshe calls out to the moonlight\nto sing a serenade\nbut the beams just\ngaze on back at her\nto shy to demonstrate\nso the crickets raise a clatter\nthey've gone on strike again\nthe grass ain't that sticky\nand the air has gotten thin\nI've falling out of origami\njust a plane upon the wind\naugust in its turbulence\nwishing for a friend\nand the ravens are all astronauts\nfrom the soviet cabal\nthere bolsheviks on mars you know\nthe shame of stalingrad\nbut the heaviest of derelicts\nfill the baskets of our farms\nso take a shot of whiskey\nand howl at the moment\nwe exist and that's complicit\nnothing else to do\nbernays can fix a deck\nand deal em as he likes\nshe's a bonaparte my cheri\nwho glistens and pretends\nvelveteen the rabbit\nhenrietta gold\necho of the footsteps\nbent upon the door\nin the barricaded sauna\nthey wear bermuda shorts \nindemnify me elmo\nthese things are forevermore\n\nvelveteen the rabbit\nharietta gold\naugust in its\nturbulence\njust waiting \non a friend \n[END]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Rock",
+      "styles": [
+        "Drone",
+        "Shoegaze"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Dark",
+        "Melancholic",
+        "Nostalgic",
+        "Romantic",
+        "Uplifting"
+      ],
+      "themes": [
+        "Existential Dread"
+      ],
+      "vocals": "both",
+      "word_count": 198,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Drone",
+        "Shoegaze"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 198,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Rock",
+    "styles": [
+      "Drone",
+      "Shoegaze"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Dark",
+      "Melancholic",
+      "Nostalgic",
+      "Romantic",
+      "Uplifting"
+    ],
+    "themes": [
+      "Existential Dread"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.704Z",
+  "updated_at": "2025-07-18T20:36:07.326Z",
+  "labeling_complete": false
+}

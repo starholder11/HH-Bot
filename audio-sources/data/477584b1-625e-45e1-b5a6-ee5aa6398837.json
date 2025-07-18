@@ -1,0 +1,66 @@
+{
+  "id": "477584b1-625e-45e1-b5a6-ee5aa6398837",
+  "filename": "On Another Chain.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870744486-2b6j9n-On Another Chain.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870744486-2b6j9n-On Another Chain.mp3",
+  "title": "On Another Chain",
+  "prompt": "sardonic piano ballad, future torch",
+  "lyrics": "[Verse]\nthe gecko broke the news\nwhat a funny way to choose\nwhat the world thinks of you\nbut who am I to say, \nafter all the things I said\ndismissing the meme ability of you\n[Short Pause]\n[Verse]\nIf only I knew, what'd they'd do\nto express their love for you\nas a token of appreciation\ntrading units of attention\n\n[Cloying Chorus]\nThe green candle's showing\nWhat we're all knowing\nThat the moment \nof your meme\nhas arrived\n\n[Verse]\nYou're a meme coin baby\noh yes it's true, my meme coin lady\nand it's time for your fifteen minutes\nin the exchange,\noh such a shame,\nthat I'm on another chain\ntrapped in max pain\nwithout a bridge to get exposure to you\nwhat to do,\nwhen you're so far away\non another chain\nit's a one way bridge to nowhere\nand without a show here\nI want to speculate to\nI want to place my bets\non you baby\n\n\n[Verse]\nI want to speculate Speculate\nI want to place my bets on you baby\nget leveraged up all crazy\nnothing else will do\nbut parasocial exposure\nto an E R C 20\nwith a goofy ass\npicture of you\n\n[Cloying Chorus]\nThe green candle is showing\nWhat we're all knowing\nThat the moment \nof your meme\nhas arrived\n\n[Fade]\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Melancholic",
+        "Aggressive",
+        "Chaotic",
+        "Euphoric",
+        "Rebellious"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Identity Crisis",
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 222,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 222,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Melancholic",
+      "Aggressive",
+      "Chaotic",
+      "Euphoric",
+      "Rebellious"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Identity Crisis",
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.752Z",
+  "updated_at": "2025-07-18T20:32:29.480Z",
+  "labeling_complete": false
+}

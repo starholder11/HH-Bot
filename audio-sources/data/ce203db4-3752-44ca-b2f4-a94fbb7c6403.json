@@ -1,0 +1,62 @@
+{
+  "id": "ce203db4-3752-44ca-b2f4-a94fbb7c6403",
+  "filename": "Gory Regards.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752871021838-fryi23-Gory Regards.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752871021838-fryi23-Gory Regards.mp3",
+  "title": "Gory Regards",
+  "prompt": "acid hip hop, muscle car stomp, sticky dank codeine drip, bad girl emcee",
+  "lyrics": "[Showroom Verse]\nthe selected ascend the stairs\nthe selected depend on mentioned stares\nfive eyes on \nnine lives gone\nnice try don\nheaven bound undress the wounds\nflex those scars tell me your story\nhow did they carve it? \nget all gory gory halelujah\nthey feng shui'ed you up\ndragon door cut clean\ncauterized traumatized \nascend on up\nclimb higher kid higher\nthe air passing through you\ndark neutrinos rushing through\nwhat's left of you\nwhat a mess they made of my boy\ngo on give god my regards\ngory gory hallelujah\n\n\n[Showroom Verse]\nthe clown college casino calling you \nmy boy crossing over\nan anointed angel of \nre re repressive tolerance\nfeel taller as they lift you up just like lizzo\nthey gonna use all those things \nthe kids laughed at you about\nthey gonna use the story of your pain\nyou know this, you're their son now\nthey gonna squeeze that pain\npackage it up all slick\nput you on some ellen trip\ngory gory hal leh lu jah\nmy son is selling out\nnow he's the special one\n\n[Showroom Chorus]\nfly high birdie boy\nfly high anointed one\nyou're an untapped market\nwaiting to erupt\n\n[Showroom Verse]\nGory gory hallelujah \nJericho Jones got the jubilee\nrunning right through the dragon door\nmy son is moving moving on\nthey lift him up so he do no wrong\n\n[Showroom Chorus]\nfly high birdie boy\nfly high anointed one\nfly high birdie boy\nfly high anointed one\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Hip Hop",
+      "styles": [
+        "Acid House"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Melancholic",
+        "Spiritual",
+        "Psychedelic",
+        "Uplifting"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 248,
+      "sentiment_score": 0.2,
+      "prompt": [
+        "Acid"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 248,
+    "sentiment_score": 0.2
+  },
+  "manual_labels": {
+    "primary_genre": "Hip Hop",
+    "styles": [
+      "Acid House"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Melancholic",
+      "Spiritual",
+      "Psychedelic",
+      "Uplifting"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.661Z",
+  "updated_at": "2025-07-18T20:37:05.737Z",
+  "labeling_complete": false
+}

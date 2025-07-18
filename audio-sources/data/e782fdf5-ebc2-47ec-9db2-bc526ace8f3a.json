@@ -1,0 +1,60 @@
+{
+  "id": "e782fdf5-ebc2-47ec-9db2-bc526ace8f3a",
+  "filename": "Wee Moe Mey.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752871157450-oh97pz-Wee Moe Mey.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752871157450-oh97pz-Wee Moe Mey.mp3",
+  "title": "Wee Moe Mey",
+  "prompt": "cobalt sophistipop, chopped and screwed, hentai donut beats",
+  "lyrics": "oooh oooh oooh\n ah ah ahh\noooh oooh oooh\n ah ah ahh\n\nwee moe may\nwee moe may\ndawn of the day\nits the dawn\nof the day\n\nI should walk out\nsilver studded\ndiamonds dusted\nacross my soles\n\nI should walk out\nsilver studded\ndiamonds dusted\nacross my soles\n\nwee moe may\nwee moe may\ndawn of the day\nits the dawn\nof the day\n\ngive me loving\ncall me cherished\nI will promise\nloves becoming\nin the direction\nof your hugging\n\nwee moe may\nwee moe may\ndawn of the day\nits the dawn\nof the day",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Breakbeat"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Euphoric",
+        "Romantic"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 99,
+      "sentiment_score": 0.6,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 99,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Breakbeat"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Euphoric",
+      "Romantic"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.816Z",
+  "updated_at": "2025-07-18T20:39:24.493Z",
+  "labeling_complete": false
+}

@@ -1,0 +1,67 @@
+{
+  "id": "09840a05-da81-4882-980d-d29e140a894b",
+  "filename": "End of Streams.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870639724-xaesu7-End of Streams.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870639724-xaesu7-End of Streams.mp3",
+  "title": "End Of Streams",
+  "prompt": "wagmicore, blissbomb, glitch afrobeat, petaflop ragga phonk",
+  "lyrics": "[Announcer (showroom voice)]\nAs we stand on the precipice \nOf this most momentous\nOccasion \nI would like to remember\nthe sacrifices all those e girls\nmade in the time\nbefore\nThe end of streams\n\n[Instrumental (building bounce)]\n\n[Pre-Verse]\nOh gawdddd\nwe're at the \nend of streams\nthe end of\nend of\nsend it\n\n[Verse]\nI'm a little bit\njust a little bit\ntripping my lines\nshowing my hand\njust a little bit\nlike an itty bit\nbut you don't\ngive a \ngive ahhh\nheh heh\nheh heh heh\nhe he heh\nto the left mate\nhe heh heh\nto the left mate\nit's the end of streams\noh gawd\nits the end\nof streams\n(laughter)\n(giggling)\n\n(girly bratty voice) oh god god\noh god god\nit's just\na little bit\njust a little bit\nlike an itty bit\ntake a \ngo on\ntake a hit\nhit hit hit, hit-hit-hit\njust a little\njust a bitty hit\nfeel the bliss\nyeah yeah\nfeel the bliss\nto the left mate\nhe heh heh\nto the left mate\nsurrender\nsurrender\njust a little bit\njust a little bit\nlike an itty bit\nheh heh heh",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Glitch",
+        "Phonk"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Blissful",
+        "Euphoric",
+        "Nostalgic",
+        "Psychedelic",
+        "Spiritual"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 192,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Glitch",
+        "Phonk"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 192,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Glitch",
+      "Phonk"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Blissful",
+      "Euphoric",
+      "Nostalgic",
+      "Psychedelic",
+      "Spiritual"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.604Z",
+  "updated_at": "2025-07-18T20:30:43.000Z",
+  "labeling_complete": false
+}

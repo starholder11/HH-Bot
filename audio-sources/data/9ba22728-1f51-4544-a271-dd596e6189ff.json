@@ -1,0 +1,70 @@
+{
+  "id": "9ba22728-1f51-4544-a271-dd596e6189ff",
+  "filename": "Silence of First Words.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870899475-ak3dp1-Silence of First Words.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870899475-ak3dp1-Silence of First Words.mp3",
+  "title": "Silence of First Words",
+  "prompt": "esoteric gothtronica, benedictine mass, choral requiem, manchester goth, yearning raw female acapella",
+  "lyrics": "[Intro (low resonant drones merge with fractured whispers, like echoes reverberating through a cavern)]\n\n[Verse 1]\nBefore the stir, where dark embraced, life lay nestled in silence’s trace.\nTitans spun shadows in the breath of void, an invisible dance of existence unalloyed.\nTheir essence, a symphony beyond form and light, now echoes stolen into finite night.\n\n[Verse 2]\nIn the chasm, where quiet reigned, the First Speaker’s voice pierced and claimed.\nFrom silence woven, souls were torn, to wander paths where light is born.\nAn alien sun, a world bereaved, where whispers mourn what they believed.\n\n[Chorus]\nVoices once felt 'neath ebon sleep, now cast adrift where mortals weep.\nIn strange lands where shadows shift, echoes beg the silence to uplift.\n\n[Bridge]\nThe weight of loss like mist enfolds, its tendrils lace the frayed and cold.\nIn the fractured hollows of timeless streams, memory claws for forgotten dreams.\n\n[Verse 3]\nForsaken orchestras in whispered halls, lured away by unwritten calls.\nTo worlds spun out of streaks of dawn, mourning the titans now withdrawn.\nYet silence thrives on what remains—its heartbeats echo, free from chains.\n\n[Outro]\nIn the quiet depths, where nothing unfolds, the titans’ truth in silence holds.\nTheir song, a tapestry of mournful flame—of life beyond the spoken name.\n\n[faint note echoes and fades, as silence reclaims the night’s embrace.]\n\n[Intro (low resonant drones merge with fractured whispers, like echoes reverberating through a cavern)]\n\n[Verse 1]\nBefore the stir, where dark embraced, life lay nestled in silence’s trace.\nTitans spun shadows in the breath of void, an invisible dance of existence unalloyed.\nTheir essence, a symphony beyond form and light, now echoes stolen into finite night.\n\n[Verse 2]\nIn the chasm, where quiet reigned, the First Speaker’s voice pierced and claimed.\nFrom silence woven, souls were torn, to wander paths where light is born.\nAn alien sun, a world bereaved, where whispers mourn what they believed.\n\n[Chorus]\nVoices once felt 'neath ebon sleep, now cast adrift where mortals weep.\nIn strange lands where shadows shift, echoes beg the silence to uplift.\n\n[Bridge]\nThe weight of loss like mist enfolds, its tendrils lace the frayed and cold.\nIn the fractured hollows of timeless streams, memory claws for forgotten dreams.\n\n[Verse 3]\nForsaken orchestras in whispered halls, lured away by unwritten calls.\nTo worlds spun out of streaks of dawn, mourning the titans now withdrawn.\nYet silence thrives on what remains—its heartbeats echo, free from chains.\n\n[Outro]\nIn the quiet depths, where nothing unfolds, the titans’ truth in silence holds.\nTheir song, a tapestry of mournful flame—of life beyond the spoken name.\n\n[faint note echoes and fades, as silence reclaims the night’s embrace.]\n\n\n\n[Verse 3]\nForsaken orchestras in whispered halls, lured away by unwritten calls.\nTo worlds spun out of streaks of dawn, mourning the titans now withdrawn.\nYet silence thrives on what remains—its heartbeats echo, free from chains.\n\n[Outro]\nIn the quiet depths, where nothing unfolds, the titans’ truth in silence holds.\nTheir song, a tapestry of mournful flame—of life beyond the spoken name.\n\n[faint note echoes and fades, as silence reclaims the night’s embrace.]\n\n[END]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Vocal",
+      "styles": [
+        "Acapella"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Raw",
+        "Dark",
+        "Dreamy",
+        "Euphoric",
+        "Introspective"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Loss & Grief"
+      ],
+      "vocals": "both",
+      "word_count": 516,
+      "sentiment_score": 0.4,
+      "prompt": [
+        "Raw"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 516,
+    "sentiment_score": 0.4
+  },
+  "manual_labels": {
+    "primary_genre": "Vocal",
+    "styles": [
+      "Acapella"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Raw",
+      "Dark",
+      "Dreamy",
+      "Euphoric",
+      "Introspective"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Loss & Grief"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.773Z",
+  "updated_at": "2025-07-18T20:35:03.289Z",
+  "labeling_complete": false
+}

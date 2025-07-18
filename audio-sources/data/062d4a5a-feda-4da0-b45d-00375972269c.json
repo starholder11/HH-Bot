@@ -1,0 +1,60 @@
+{
+  "id": "062d4a5a-feda-4da0-b45d-00375972269c",
+  "filename": "Endless Miles.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870633695-0sjkz3-Endless Miles.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870633695-0sjkz3-Endless Miles.mp3",
+  "title": "Endless Miles",
+  "prompt": "muscle car stomp, electro spycraft, camp reboot kick drum",
+  "lyrics": "[instrumental  introduction (dramatic build)]\n|~~~~|\n|~~~~|\n|~~~~|\n|~~~~|\n[pre-verse (rising chanting)]\nyeah yeah\nyeah yeah, yeah yeah\nsee you in the morning\ntea toast and yawning\ncrystal camo fuselage\n\n[Verse]\nenglish garden hidden riddles\nuntangle cables in the yard\nnumber station short bursts\nirrigate the petaflops\n\n{Chorus]\nI'm walking\nwalking back\nwalking\nwalking back\n\n[Verse]\nforking out the mainframe\nclearing bellows of the bats\nmaking up for lost time\ndropping packets in the stack\nwhen you see me on a tuesday\nI'm already off the end\nreality is for the nomads\ncamping out in the lapse\n\n[Chorus]\nThere's endless\nEndless miles\nThere's endless\nEndless files\n\n[Bridge (dramatic build)]\n|~~~~|\n|~~~~|\n|~~~~|\n|~~~~|\n\n[pre-verse (rising chanting)]\nyeah yeah\nyeah yeah, yeah yeah\nsee you in the morning\ntea toast and yawning\ncrystal camo fuselage",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Electro"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Melancholic",
+        "Mysterious",
+        "Psychedelic",
+        "Uplifting"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 133,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 133,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Electro"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Melancholic",
+      "Mysterious",
+      "Psychedelic",
+      "Uplifting"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.605Z",
+  "updated_at": "2025-07-18T20:30:36.112Z",
+  "labeling_complete": false
+}

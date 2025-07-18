@@ -1,0 +1,69 @@
+{
+  "id": "83fdd46c-e119-43d9-9071-3773ed51ecbe",
+  "filename": "Madchester-6.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870849792-k5evk5-Madchester-6.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870849792-k5evk5-Madchester-6.mp3",
+  "title": "Manchester-6",
+  "prompt": "heroic acid madchester, baggy, big beat psychedelia",
+  "lyrics": "[Introduction]\n[Sampled record featuring trumpets]\n((hissing record))\n[Deep french house vocal]\nIt's time to lose it love,\nIt's time to lose it love\n[Rolling baseline]\n[Acidhouse groove]\n[Downtempo female vocals]\nI know you want to be free baby\nI know you want out of the box\nIt's good here baby\nReal good here\nWalk with me me mee\n[Instrumental Bridge]\n[Repeater]\nIt's good here baby\nReal good here\nIt's good here baby\nReal good here\n[Guitar solo]\n[Sample from a film, female actress]\nI think I'm going under\ngoing under\ngoing under\n[Timestretch Bass Drop]\n[Chopped and Screwed track mixing]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Acid House",
+        "Big Beat"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Psychedelic",
+        "Euphoric",
+        "Romantic"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 100,
+      "sentiment_score": 0.7,
+      "prompt": [
+        "Acid",
+        "Baggy",
+        "Big Beat",
+        "Madchester"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 100,
+    "sentiment_score": 0.7
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Acid House",
+      "Big Beat"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Psychedelic",
+      "Euphoric",
+      "Romantic"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.737Z",
+  "updated_at": "2025-07-18T20:34:14.757Z",
+  "labeling_complete": false
+}

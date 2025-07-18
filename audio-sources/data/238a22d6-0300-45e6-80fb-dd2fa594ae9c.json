@@ -1,0 +1,67 @@
+{
+  "id": "238a22d6-0300-45e6-80fb-dd2fa594ae9c",
+  "filename": "Vampiric Health.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870687407-iarn2n-Vampiric Health.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870687407-iarn2n-Vampiric Health.mp3",
+  "title": "Vampiric Health",
+  "prompt": "tropical goth, glitchcore, hyperpop dubstep",
+  "lyrics": "[Jarring Intro]\n\n[Verse]\nthey put chips inside your eyes\nrecording all you see\neven as you sleep\ndo chips dream \nof reflections that you see\na collide a scope\nantennas phoning home\nI was once alive\nOn a Tuesday \nwalking down the lee side\nof a volcano\nthrough switchblade grass\nthinking this can't last\nonly to die a thousandth time\nI taste like vodka soda inside\nI'm so behind the times\nthat I flat circle around myself\nhere's to vampiric health\nbesides rising from the dead\nI ponder my old poetry\nto see traces of the soul\nthat never formed\n\n[Instrumental]\n\n[Bridge]\n[Tempo Shift Bedlam]\n\n[Chorus]\nCall me bedlam\nRocking Straitjacket\nCasual wear\n\n[Verse]\nI hit the highs\nAnd the lows\nOn a flat line\nFeelings are behind me\nI need to be reminded\nTo fake my relations\nBecause like the dead\nOne thing they still unite against\nis a sociopath, I need a pathway\nto passing as normal in unstable times\nHelps with the climb\nNot that I care except to survive\nthey raise the rates, rob us blind\nI'm in a taxi, that revolutionary\nCall it praxis, denying access to \nthe ride shares. I'm off location\nA mental vacation that I find \nsuits my mind\n\n[Verse]\nthey put chips inside your eyes\nrecording all you see\neven as you sleep\ndo chips dream \nof reflections that you see\na collide a scope\nantennas phoning home\nI was once alive\nOn a Tuesday \nwalking down the lee side\nof a volcano\nthrough switchblade grass\nthinking this can't last\nonly to die a thousandth time\nI taste like vodka soda inside\nI'm so behind the times\nthat I flat circle around myself\nhere's to vampiric health\nbesides rising from the dead\nI ponder my old poetry\nto see traces of the soul\nthat never formed\n\n\n[Verse]\nwhen I smile for myself\nI'm a joker, real al roker\nthe forecast for today\nis what we call good foreplay\nI'm beside myself\nI can't help myself\nOr help you, but how do you do?\nExpression of concern\nAre what I'm best at with a vacant stare\nAnd my head aside, while I'm beside (eye eye eye yeah)\nand how I let it ride\nit's as if I care and that's\nthe secret to vampiric health\n\n[Chorus]\nChips inside your\neyes eyes eyes\nCollide ide ide ide\nLet it ride ride ide\nAll this time eye eye immmeeeee\nA flat circle all around me\nAll around me\n\n[Instrumental]\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Dubstep",
+        "Glitch"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Introspective",
+        "Dreamy",
+        "Mysterious",
+        "Rebellious",
+        "Spiritual"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 416,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Dub",
+        "Glitch"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 416,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Dubstep",
+      "Glitch"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Introspective",
+      "Dreamy",
+      "Mysterious",
+      "Rebellious",
+      "Spiritual"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.808Z",
+  "updated_at": "2025-07-18T20:31:32.493Z",
+  "labeling_complete": false
+}

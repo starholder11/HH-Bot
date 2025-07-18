@@ -1,0 +1,64 @@
+{
+  "id": "9c541dd7-673d-42e0-9c18-6b6e50845a5f",
+  "filename": "Moment of Theft.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870903293-7rfdak-Moment of Theft.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870903293-7rfdak-Moment of Theft.mp3",
+  "title": "Moment of Theft",
+  "prompt": "chopped and screwed cubano dubstep syrup vaporwave shoegaze space rock",
+  "lyrics": "[Pre-Verse (light background chirping)]\nYou say\nGooooood bye\none more time\nthen make it happen\n\n[Verse]\nFalling\nFalling\nLet me breathe\na shortness of breathe\na moment of theft\n\n[Pre-Verse]\nYou say\nGooooood bye\none more time\nthen make it happen\n\n[Build]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Dubstep",
+        "Vaporwave",
+        "Shoegaze"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Atmospheric",
+        "Uplifting"
+      ],
+      "themes": [],
+      "vocals": "male",
+      "word_count": 42,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Dub",
+        "Shoegaze",
+        "Vaporwave"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 42,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Dubstep",
+      "Vaporwave",
+      "Shoegaze"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Atmospheric",
+      "Uplifting"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.744Z",
+  "updated_at": "2025-07-18T20:35:05.807Z",
+  "labeling_complete": false
+}

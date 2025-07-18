@@ -1,0 +1,58 @@
+{
+  "id": "a14debc6-600f-4038-9fd1-32a4f10e8985",
+  "filename": "Overlaid.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870911607-9lemf4-Overlaid.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870911607-9lemf4-Overlaid.mp3",
+  "title": "Overlaid",
+  "prompt": "new romantic, liquid blue night rock, overlaid future orchestral melody",
+  "lyrics": "[Verse (slick showroom delivery)]\nwilshire in december\ndriving empty nights\ndoing killer work\ncontract high on my own supply\nheavy hooded dark shades\nreflecting the night back out\nelectric lights soaking in my pulse\nI'm hunting you down\nyou know this\n\n[Chorus (new romantic croon)]\nyou know its tonight\nwe settle this\nonly one can survive\n\n[Bridge]\nthis collision course of cool\n\n[Chorus]\nyou know its tonight\nwe settle this\nonly one can survive\nthis collision course of cool\n\n[Verse]\nOverlays always linger\nthat last thing hanging around and around\nthat's you, that's me, that's the world baby\nalways one foot in memories\nthe other hoping to make some more\neverything on top of each other\neverything knotted up\nI'm strung out, stretched across\nall these overlays\nthe moons I obit\n\n[Chorus (new romantic croon)]\ncircle around me \nas I circle around you\nspinning across the ages\ntwisting ourselves in time\nlay yourself over me\nas I offer myself to you\n\n[Bridge]\n\n[Chorus (new romantic croon)]\nas I offer myself to you\n\n[Bridge]\n\n[Chorus]\nyou know its tonight\nwe settle this\nonly one can survive\nthis collision course of cool\n\n[Verse]\nCool me down baby\nI'm burning up inside\nHold me close baby\nIt's time we, it's time we\nLet it all go\nlet it all go\n\n[Chorus (new romantic croon)]\ncircle around me \nas I circle around you\nspinning across the ages\ntwisting ourselves in time\nlay yourself over me\nas I offer myself to you\n\n{End]\n\n[Chorus (new romantic croon)]\ncircle around me \nas I circle around you\nspinning across the ages\ntwisting ourselves in time\nlay yourself over me\nas I offer myself to you\n\n{End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Classical",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Aggressive",
+        "Introspective",
+        "Melancholic",
+        "Nostalgic",
+        "Uplifting"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 279,
+      "sentiment_score": 0.4,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 279,
+    "sentiment_score": 0.4
+  },
+  "manual_labels": {
+    "primary_genre": "Classical",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Aggressive",
+      "Introspective",
+      "Melancholic",
+      "Nostalgic",
+      "Uplifting"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.755Z",
+  "updated_at": "2025-07-18T20:35:16.494Z",
+  "labeling_complete": false
+}

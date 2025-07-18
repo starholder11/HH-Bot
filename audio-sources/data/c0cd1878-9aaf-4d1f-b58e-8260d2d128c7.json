@@ -1,0 +1,59 @@
+{
+  "id": "c0cd1878-9aaf-4d1f-b58e-8260d2d128c7",
+  "filename": "INITIATE COMPUTE.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870998101-xbf1v4-INITIATE COMPUTE.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870998101-xbf1v4-INITIATE COMPUTE.mp3",
+  "title": "Initiate Compute",
+  "prompt": "psychedelic cyphersynth mass bending time, codeine power slop, gravitational glitch hop",
+  "lyrics": "[Pre-Verse (psychadelic chanting)]\nzero zero three \n\n[Stop]\n[Break]\n[Instrumental (strings)]\n[Pre-Verse (psychadelic chanting)]\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\n[Chorus]\neliminate root\neliminate root\neliminate\n[Full Stop]\n[Cello solo]\n\n[Pre-Verse (psychadelic chanting)]\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\n\n[Bridge (scratching frenzy)]\n\n[Pre-Verse (psychadelic chanting)]\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\n\n[Chorus]\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\nzero zero three nine\nzero zero three nine\nzero zero",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Glitch"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Rebellious",
+        "Psychedelic"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 141,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Glitch",
+        "Psychedelic"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 141,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Glitch"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Rebellious",
+      "Psychedelic"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.705Z",
+  "updated_at": "2025-07-18T20:36:41.434Z",
+  "labeling_complete": false
+}

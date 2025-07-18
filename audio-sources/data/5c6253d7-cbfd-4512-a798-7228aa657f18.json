@@ -1,0 +1,70 @@
+{
+  "id": "5c6253d7-cbfd-4512-a798-7228aa657f18",
+  "filename": "Thatch Umbrella.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870781444-phxslx-Thatch Umbrella.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870781444-phxslx-Thatch Umbrella.mp3",
+  "title": "Thatch Umbrella",
+  "prompt": "tropicalia, colombian slow dubstep, nordic sweet bosanova vocals, clean horns",
+  "lyrics": "[Scat Intro]\nbee dee dee dee dat doo doo doo\nmmm mmm mmm miss iss ing you\nhow dee doo, i love you\n\n[Verse]\nUnder a thatch umbrealla view\nI sip my drink and thank of you\noh what do we do?\nIf only she knew\nJust how I feel for you.\nYou know we've shared a man before\nDon't you dare think we are whores\nIt's so convenient, if you're lenient\nIn who beds down with who\n\n[Chorus]\nComplications\nConsequences\nWe Broke Borders\nCan't Man Fences\nThere's No Way Around\nme and you\nand you and her\nand us all hating\nwhat we've become\n\n[Verse]\nI tried to keep an open mind\nBut an open book casts so much doubt\nI read you plainly the words aren't strong\nThat longing so hot but the outcomes so wrong\n\n[Pre-Chorus]\nAnd you ain't man enough to claim the mess we make\nYou ain't man enough to clean the mess we all make\n\n\n\n[Bridge]\n\n[Chorus]\nComplications\nConsequences\nWe Broke Borders\nCan't Man Fences\nThere's No Way Around\nme and you\nand you and her\nand us all hating\nwhat we've become\n\n[Verse]\nThat man child so sexy and wild\nMelts my cubes you know you do\nBut that's a just a dream with a drink\nMost you'll get is a how do you do?\nCuz the real me is just to good to be true\nWe tried baby, we tried, \nwith much stronger than you\n\n\n[Chorus]\nComplications\nConsequences\nWe Broke Borders\nCan't Man Fences\nThere's No Way Around\nme and you\nand you and her\nand us all hating\nwhat we've become\n\n[End]\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Dubstep",
+        "Acapella"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 8,
+      "mood": [
+        "Chaotic",
+        "Dreamy",
+        "Euphoric",
+        "Introspective",
+        "Melancholic"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 272,
+      "sentiment_score": 0.7,
+      "prompt": [
+        "Dub"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 272,
+    "sentiment_score": 0.7
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Dubstep",
+      "Acapella"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 8,
+    "mood": [
+      "Chaotic",
+      "Dreamy",
+      "Euphoric",
+      "Introspective",
+      "Melancholic"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.792Z",
+  "updated_at": "2025-07-18T20:33:06.668Z",
+  "labeling_complete": false
+}

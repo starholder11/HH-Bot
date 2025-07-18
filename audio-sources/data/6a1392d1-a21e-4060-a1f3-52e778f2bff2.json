@@ -1,0 +1,46 @@
+{
+  "id": "6a1392d1-a21e-4060-a1f3-52e778f2bff2",
+  "filename": "POLY1.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870803280-m6n2y1-POLY1.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870803280-m6n2y1-POLY1.mp3",
+  "title": "POLY1",
+  "prompt": "",
+  "lyrics": "",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [],
+      "themes": [],
+      "vocals": "none",
+      "word_count": 1,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Instrumental",
+    "word_count": 1,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "none",
+    "language": "english",
+    "explicit": false,
+    "instrumental": true,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.758Z",
+  "updated_at": "2025-07-18T20:33:26.371Z",
+  "labeling_complete": false
+}
