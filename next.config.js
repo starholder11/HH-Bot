@@ -14,6 +14,16 @@ const nextConfig = {
       }
     ],
   },
+  env: {
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    AWS_REGION: process.env.AWS_REGION,
+    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
+    CLOUDFLARE_DOMAIN: process.env.CLOUDFLARE_DOMAIN,
+  },
+  experimental: {
+    serverComponentsExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/lib-storage'],
+  },
   async headers() {
     // these are also defined in the root layout since github pages doesn't support headers
     const headers = [
@@ -33,7 +43,6 @@ const nextConfig = {
       },
     ];
   },
+}
 
-};
-
-module.exports = nextConfig; 
+module.exports = nextConfig
