@@ -1,0 +1,69 @@
+{
+  "id": "bf4df05e-b9ee-4cde-9543-aa11fc9dce80",
+  "filename": "Stick Em Up Fever.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870993739-m1v5la-Stick Em Up Fever.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870993739-m1v5la-Stick Em Up Fever.mp3",
+  "title": "Stick Em Up Fever (Live In Brixton)",
+  "prompt": "live punk, harsh raw distortion",
+  "lyrics": "he's just a lad\nwith a walking stick\nspent his life \nlaying bricks\nworked all day\nat father and sons\nuntil his mate \nflashed a gun\n\nthey got the (eh eh eh eeeh)\nstick em up fever\nwent robbing \nold men outside\nthe betting shops\n\nknocking over punters\nwas an easy thing to do\nrunning off with spare quid\nand buying quualudes\n\nlife was getting sloppy\nthey turned their action\nto the tracks\nfollow out the winners\nand whack em in the backs\n\nthey got the (eh eh eh eeeh)\nstick em up fever\nwent robbing \nracing fans for cash\n\nOne evening Billy said\nI know where real money is\nNot these track day punters\nBut the club on Silver Street\nWhere the posh toffs \ngo drinking\nwearing gold watches\nCatch em on the way home\nToo pissed to put up a fight\n\nout came\nbilly and the barneys\nwho only speak polari\ndandy queens and carnies\nrunning action in the baths\n\nThe wanna bees watched\nFrom a flophouse cross the street\nLook at 'em fancy lads\nsoft hands make easy marks\n\nLittle did they know\nThe queens had their own racket\nYears of street survival\nAnd knives hidden in jackets\nThe boy pulled his gun\nBut Billy didn't startle\nJust flashed a crooked smile\nAs the Barneys circled\n\nit went down\nas bad as you'd expect\nboy and his mate\ngot proper wrecked\nput in their place\nfor the lack of respect\n\na gun can give you power\nif someone fears the barrel\nbut what happens \nwhen they dont flinch?\n\nYou end up in a ditch\nneeding a walking stick\njust to drag yourself\non back home\n[Instrumental]\n[Guitar Solo]\nGood byeeeeeeee\nTo the stick em' up fever\nNothing cures a boy\nlike a good hard beating\nretreat on back to bricks\nbetter than getting \nthe shit kicked \nout of you\nout of yoouuuu\nout of you, you you\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Rock",
+      "styles": [
+        "Power Electronics"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Aggressive",
+        "Anxious",
+        "Introspective",
+        "Mysterious",
+        "Raw"
+      ],
+      "themes": [
+        "Existential Dread"
+      ],
+      "vocals": "both",
+      "word_count": 321,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Harsh",
+        "Raw"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 321,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Rock",
+    "styles": [
+      "Power Electronics"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Aggressive",
+      "Anxious",
+      "Introspective",
+      "Mysterious",
+      "Raw"
+    ],
+    "themes": [
+      "Existential Dread"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.779Z",
+  "updated_at": "2025-07-18T20:36:38.091Z",
+  "labeling_complete": false
+}

@@ -1,0 +1,72 @@
+{
+  "id": "a79fbd5e-b7fb-4939-9465-3185d2c5f9f9",
+  "filename": "Elephant Hole.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870932438-r6zvzq-Elephant Hole.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870932438-r6zvzq-Elephant Hole.mp3",
+  "title": "Elephant Hole",
+  "prompt": "chopped and screwed electro sub bass hyperpop",
+  "lyrics": "[Pre-Verse (Raspy Haunted Vocals)]\nSet me up another round of sorrows\nAll interconnected til the edge of tomorrow\nLinen suit man with the leather bag blues\nUnlicensed cash courier with time to kill\n\n[Verse (jamiacan roots)]\nWhy you see my dollar guy\nSmile, and ask him why...\nI cannot retire\nTil the edge\nOf Tomorrow\nAt the Bay\nOf Deep Sorrows\n\n[Chorus]\nEnclave special economic zone\nSupply chains, automated drones\nMiss Banana out front\nFascist in the back\nSmedley Butlering\nFull stack\n[Verse - Feverish Stream of Consciousness]\nSweat-dripping telex machine clicking codes through embassy walls corporate ghosts digital trails dissolve in acid rain FCPA phantoms stalking through back channels while I'm caught in crossfire compliance-man junkie law-sick shivering under palms five layers of shell companies interzone cutouts faceless men in tropical wool sweating through redactions yachting parties where nameless bureaucrats interface with CIA station chiefs dictator's bagman with Harvard credentials funneling kickbacks through Swiss tunnels economic hit-men leaving tracks in digital sand corporate assassins with accounting degrees no fixed moral position JUST BUSINESS documents shredded in real-time while diplomatic cables scream contradictions into the void five-star generals moonlighting as board members offshore entity nexus points blurring regulatory boundaries black-site accounting practices untraceable briefcases unmarked helicopter pads where NASDAQ meets jungle law FCPA jurisdiction smeared across time zones like a hallucination melting in the heat reality distortion field where third-world governance meets first-world extraction zonerunner compliance officer mainlining loopholes through system architecture while algorithms track bribes disguised as consulting fees quantum uncertainty principle applied to regulatory enforcement NOTHING IS FIXED nothing solid everything liquid asset stripped realities where even the enforcers are compromised Liminal space between law and lawlessness where power determines truth and truth determined by profit matrix\n[Pre-Verse (Raspy Haunted Vocals)]\nDrop the bag\nIn the Elephant Hole tonight\nFill a big bag\nOnly cash is accepted on sight\nElephant ain't got no soul\nLeaves a big hole\nWhere the money goes",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Electro"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Psychedelic",
+        "Introspective",
+        "Melancholic",
+        "Aggressive",
+        "Atmospheric"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Artificial Intelligence",
+        "Cyberpunk",
+        "Reality Distortion"
+      ],
+      "vocals": "both",
+      "word_count": 324,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 324,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Electro"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Psychedelic",
+      "Introspective",
+      "Melancholic",
+      "Aggressive",
+      "Atmospheric"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Artificial Intelligence",
+      "Cyberpunk",
+      "Reality Distortion"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.601Z",
+  "updated_at": "2025-07-18T20:35:36.477Z",
+  "labeling_complete": false
+}

@@ -1,0 +1,64 @@
+{
+  "id": "ad338a47-29c3-4d84-a37c-8482005cfdbd",
+  "filename": "Transmissions.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870950283-zpl2k3-Transmissions.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870950283-zpl2k3-Transmissions.mp3",
+  "title": "Transmissions",
+  "prompt": "",
+  "lyrics": "Transmissions\n\nPrompt:\nVocal direction: Voice becomes another texture in the mix - heavily processed, fragmented, often unintelligible, Words dissolve into phonetic patterns, breath becomes rhythm, meaning gets lost in reverb chambers, Think voice as environmental element rather than narrative vehicle - organic sounds feeding into digital processing chains, Musical behavior: Programmed beats that stutter and glitch like malfunctioning farm equipment, layered under guitars that have been fed through digital granular synthesis until they become weather patterns, Rural field recordings - wind through grain silos, electrical hum from irrigation systems - chopped and sequenced into rhythmic elements, The song should feel like a broken radio transmission from an abandoned agricultural research station, Structural approach: No traditional verses or choruses - instead, evolving soundscapes that breathe and pulse like living systems, Build through layering rather than dynamics, creating dense walls of processed sound, shimmering\n\n\n[Fragment 1 - chopped/looped vocal sample]\nSignal lost at 34.8639° North\n—mission log—static—\nWe were never\nWe were\nWe\n[Data stream - processed voice blending with text-to-speech]\nERROR: love.exe has stopped responding\nRetry? Cancel? Ignore?\nYour heartbeat: 78 bpm\nAcceptable parameters\nAcceptable\nAccept\n[Fragment 2 - heavily reverbed whisper]\nThe irrigation systems know our names\nThey spell them out in\nBinary moisture patterns across\nAcross\nCross\n[Glitched emotional break - raw/unprocessed]\nI can't\nI can't remember if you were real or just\nAnother frequency bleeding through the—\n[Fragment 3 - layered with radio static]\n//transmission interrupted//\nSomething moves between the grain silos\nSomething\nMoves\nBetween\n[Data corruption vocals - stuttering]\nSave file corrupted\nWould you like to:\nRemember? Y/N?\nRemember? Y/—\nRemem—\nRe—\n[Final fragment - dissolving into environmental sound]\nAll frequencies monitored\nAll hearts documented\nAll strangers\nCatalogued and\nFiled under:\nUnknown",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Melancholic",
+        "Rebellious",
+        "Romantic",
+        "Aggressive",
+        "Euphoric"
+      ],
+      "themes": [
+        "Glitch Aesthetics",
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 285,
+      "sentiment_score": 0.6,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 285,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Melancholic",
+      "Rebellious",
+      "Romantic",
+      "Aggressive",
+      "Euphoric"
+    ],
+    "themes": [
+      "Glitch Aesthetics",
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.799Z",
+  "updated_at": "2025-07-18T20:35:53.386Z",
+  "labeling_complete": false
+}

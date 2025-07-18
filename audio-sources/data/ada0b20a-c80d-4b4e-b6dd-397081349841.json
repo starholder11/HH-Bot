@@ -1,0 +1,61 @@
+{
+  "id": "ada0b20a-c80d-4b4e-b6dd-397081349841",
+  "filename": "Reports Filed.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870953391-g984ci-Reports Filed.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870953391-g984ci-Reports Filed.mp3",
+  "title": "Reports Filed",
+  "prompt": "glitchcore, sample shift, sonic collage, mashup",
+  "lyrics": "[Verse]\nCyan is the sound\nUltra violet counter cleaner\nHexi decimal vengeance\nRunning up my arms\nPawning the lucky charms\nYou'll see me as I see you\nA hit on facial recognition\nKey in the ignition\n\n[Chorus]\nAlways out for more\nOne more time\nJust to show you \nThat I mean\nBusiness\n\n\n[Bridge]\n\n[Verse]\nAm I getting through to you?\nHave reports been filed about me\nIs a team assembling?\nThere's an all points out on you\nCompromise your cloud\nIt's Hopeless hon\nI'm coming to the office\nTry to stop me\nin a server room \nshowdown\n\n[Tempo Change]\n\n[Chorus]\nAlways out for more\nOne more time\nJust to show you \nThat I mean\nBusiness\n\n\n[Tempo Change]\n\n[Chorus]\nAlways out for more\nOne more time\nJust to show you \nThat I mean\nBusiness",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Glitch",
+        "Sound Collage"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Uplifting",
+        "Rebellious"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 133,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Collage",
+        "Glitch"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 133,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Glitch",
+      "Sound Collage"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Uplifting",
+      "Rebellious"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.760Z",
+  "updated_at": "2025-07-18T20:35:55.994Z",
+  "labeling_complete": false
+}

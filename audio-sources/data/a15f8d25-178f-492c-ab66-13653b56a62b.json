@@ -1,0 +1,77 @@
+{
+  "id": "a15f8d25-178f-492c-ab66-13653b56a62b",
+  "filename": "HOMBRE.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870916499-anu61t-HOMBRE.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870916499-anu61t-HOMBRE.mp3",
+  "title": "Hombre",
+  "prompt": "phonk ragga glitchcore, crunk musclecar electroclash",
+  "lyrics": "Champion\nChampion\nWhoop Whoop\nGimme the \nBombastic\nDrop me \nAt the \nHighstepper\nRoll us down\nthe strip baby\nglittering with \nthe drip milady\nHeaven chopper\nVal Kilmery\nFlat Earthing\nLike I'm Kyrie\nAsking Questions\nYou can't answer\nSeriously\nStep off and spin it\nServe then volley\n\n\nPomegranates\nAt the Big \nSombrero\nJust Bad Hombres\nJack in the boxers\nReverse rug dubbing\nNothing troubling\nAbout the bass\nmace facebook\nall it took\nGot you hook\nLine and sinker\nIn my trapper \nKeeper \nI’m time hacking\nSee my Slack DM\nPM Dawn of\nMega mega tron\nWhoop Whoop\nGimme the Bombastic\nWhoop Whoop\n\nImma Bridge Over\nTroubled Saunas\nFranchise Owner\nOf Benihana\nPunky Brewsters\nMillions In \nTeenage debt\nSense of regret\nStack it high\nLet it fly and \nWalk on to the\nMorning dawn\nand see the AM calm\n\n[Chorus (shift to downtempo lovers)]\n(smooth voice)\nIn da club\nIn da mood\nSee you sway\nGirls you slay\nOh my gawd\nHow you floss\nBe my boss\n\n[Verse]\nWhoop Whoop\nGimme the \nBombastic\nDrop me \nAt the \nHighstepper\nRoll us down\nthe strip baby\nglittering with \nthe drip milady\nHeaven chopper\nVal Kilmery\nFlat Earthing\nLike I'm Kyrie\nAsking Questions\nYou can't answer\nSeriously\nStep off and spin it\nServe then volley",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Electro",
+        "Glitch",
+        "Phonk"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Anxious",
+        "Euphoric",
+        "Melancholic",
+        "Psychedelic",
+        "Romantic"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Love & Relationships",
+        "Loss & Grief"
+      ],
+      "vocals": "both",
+      "word_count": 210,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Glitch",
+        "Phonk"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 210,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Electro",
+      "Glitch",
+      "Phonk"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Anxious",
+      "Euphoric",
+      "Melancholic",
+      "Psychedelic",
+      "Romantic"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Love & Relationships",
+      "Loss & Grief"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.680Z",
+  "updated_at": "2025-07-18T20:35:19.477Z",
+  "labeling_complete": false
+}

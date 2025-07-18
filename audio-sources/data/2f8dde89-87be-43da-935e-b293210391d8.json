@@ -1,0 +1,70 @@
+{
+  "id": "2f8dde89-87be-43da-935e-b293210391d8",
+  "filename": "Zombie Slurpies.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870712530-hhstpk-Zombie Slurpies.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870712530-hhstpk-Zombie Slurpies.mp3",
+  "title": "Zombie Slurpies",
+  "prompt": "miami bass carneval zouk, mixmaster mashup, cut chemistry, voodoo circus exploitation",
+  "lyrics": "[Monologue (plain spoken british woman)]\nYou dress in such a way as to draw attention to yourself, big water, big water, anything sunk in the sea, eliciting unrestrained and vigorous responses. healing people, borrowing books, holding trials and collecting taxes, taxes, tax man yeah yeah, 293 Mega Watt coal fired power generation facility owned\n\n{Instrumental}\n~~~!~~~!~~~\n~~~!~~~!~~~\n~~~!~~~!~~~\n~~~!~~~!~~~\n\n[Showroom Casino Verse]\nPlush toy tanks forward deployed\nOn a search and destroy\nhunting counterfeit coupon makers\nSoccer mommy socios scamming\nBattle Creek high alerts\nOn this overt threat to est\n\n[pre-verse (machine gun delivery)]\npika pika pika pika chew\npika pika pika pika chew\n\n[Verse (high pitch schizo)]\nI disassociated for a second\nWoke up twenty seven\nDidn't pass kindergarten\nAnd I've forgotten the name\nOf my only imaginary friend\nBut I'm on Motor Trend\nIn the centerfold layout\nRuss Meyer weiner mobile\nwith a corn dog chain\nPraying for UBI to cover \nDOGGIE DAY CARE\nand rainbow flavored zyn\nDo they still have zombie slurpies\nor what that yet another thing\nthe patriot act killed?\n\n[static]\n{Instrumental}\n~~~!~~~!~~~\n~~~!~~~!~~~\n~~~!~~~!~~~\n~~~!~~~!~~~\n\n[pre-verse (machine gun delivery)]\npika pika pika pika chew\npika pika pika pika chew\npika pika pika pika chew\npika pika pika pika chew\n\n\n\n[Verse (high pitch schizo)]\nI disassociated for a second\nWoke up twenty seven\nDidn't pass kindergarten\nAnd I've forgotten the name\nOf my only imaginary friend\nBut I'm on Motor Trend\nIn the centerfold layout\nRuss Meyer weiner mobile\nwith a corn dog chain\nPraying for UBI to cover \nDOGGIE DAY CARE\nand rainbow flavored zyn\nDo they still have zombie slurpies?\n\n[pre-verse (machine gun delivery)]\npika pika pika pika chew\npika pika pika pika chew\npika pika pika pika chew\npika pika pika pika chew\n\n[Instrumental samples & scratching]\n\n[Chorus]\nZombie Slurpie\nDoggie Day Care\n293 Mega Watt\nZyn Fired\nPleasure (urre urre) Dome\n\n\n\n\n\n{Fade]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [
+        "Electro"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Aggressive",
+        "Violent",
+        "Uplifting",
+        "Raw"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 312,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 312,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Electro",
+      "Big Beat"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Aggressive",
+      "Violent",
+      "Uplifting",
+      "Raw"
+    ],
+    "themes": [
+      "chill"
+    ],
+    "tempo": 5,
+    "vocals": "female",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": [
+      "chill"
+    ]
+  },
+  "created_at": "2025-07-18T20:21:08.825Z",
+  "updated_at": "2025-07-18T21:06:23.654Z",
+  "labeling_complete": true,
+  "cover_art": {
+    "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/cover-art/2f8dde89-87be-43da-935e-b293210391d8.png",
+    "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/cover-art/2f8dde89-87be-43da-935e-b293210391d8.png",
+    "key": "cover-art/2f8dde89-87be-43da-935e-b293210391d8.png"
+  }
+}

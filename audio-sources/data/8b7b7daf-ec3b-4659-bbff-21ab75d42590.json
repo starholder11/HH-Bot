@@ -1,0 +1,54 @@
+{
+  "id": "8b7b7daf-ec3b-4659-bbff-21ab75d42590",
+  "filename": "Fool Out Of Me.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870864590-me9ej3-Fool Out Of Me.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870864590-me9ej3-Fool Out Of Me.mp3",
+  "title": "Fool Out Of Me",
+  "prompt": "70's prog rock: Synths, solos, cosmic odyssey",
+  "lyrics": "Xannah dew what can I do?\nWhen you have control of me\nAll this time I had thought\nthat I bought \nwhat I copped\nbut you made a fool\nout of me\nXannah dew, Xannah dew (ooh ooh)",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Rock",
+      "styles": [
+        "Progressive Rock"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Transcendent"
+      ],
+      "themes": [],
+      "vocals": "male",
+      "word_count": 38,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 38,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Rock",
+    "styles": [
+      "Progressive Rock"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Transcendent"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.628Z",
+  "updated_at": "2025-07-18T20:34:25.678Z",
+  "labeling_complete": false
+}

@@ -1,0 +1,62 @@
+{
+  "id": "5e7f3d30-3df7-46e9-996e-d771ff741b1e",
+  "filename": "Santa's Crypto Slop.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870786671-gehwaj-Santa's Crypto Slop.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870786671-gehwaj-Santa's Crypto Slop.mp3",
+  "title": "Santa’s Crypto Slop",
+  "prompt": "infinite holiday slop, girl group female vocals",
+  "lyrics": "<introduction>\n(jingling bells)\n\n<verse (girl group)>\nI'm scrolling your Christmas Tree\nliking stories about chimneys\nwishing Santa would hurry on up\nand lobotomize meeeeee\n\nthe chemicals in my lip gloss\ngot me in a holiday daze\nmy brain can't keep up\nwith the metas in the slop\n\n<<chorus>\nChristmas by Amazon Prime\nChristmas the season for\nonline crime\nMy favorite time of year\nto take a loan \non my N F T dearverse>\nAll I want is holiday dot fun\nsetting off an endless bull run\nwe're all gonna make it next year\ntrading shitcoins without fear\nno prosecution by the S E C\nnow that they've canned Gary\nput our seed phrases in the group chat\ninvite lazarus to get in on that\nI heard your bridge is a one of nine multi\nand leads to the land of milk and honey\nits too bad your a sexless incel\nbut I won't dwell \non what I'd do if you knew \nhow to use that dick\n\n<chorus>\nChristmas by Amazon Prime\nChristmas the season for\nonline crime\nMy favorite time of year\nto take a loan on my NFT deer\n\n<chorus>\nChristmas by Amazon Prime\nChristmas the season for\nonline crime\nMy favorite time of year\nto take a loan \non my N F T dear\n\n<verse>\nUber eats in my ring doorbell\nbuzz em in and waft the smell\negg nogged spiced oat lattes\nand a bucket \nof jalopeno chicken nuggets\nthe best benefit of \nbeing a  maxi\nis all my food \ncomes in a private taxi\n\n<verse>\nSanta has his \nnaughty and nice list\nbut I don't believe in slashing\nexcept when there's \nan intersubjective token\nhandling all of our\ndispute resoluuuuution\n\n<chorus>\nChristmas by Amazon Prime\nChristmas the season for\nonline crime\nMy favorite time of year\nto take a loan \non my N F T dear",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Vocal",
+      "styles": [
+        "Acapella"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Uplifting",
+        "Anxious",
+        "Transcendent"
+      ],
+      "themes": [
+        "Loss & Grief"
+      ],
+      "vocals": "both",
+      "word_count": 310,
+      "sentiment_score": 0.4,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 310,
+    "sentiment_score": 0.4
+  },
+  "manual_labels": {
+    "primary_genre": "Vocal",
+    "styles": [
+      "Acapella"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Uplifting",
+      "Anxious",
+      "Transcendent"
+    ],
+    "themes": [
+      "Loss & Grief"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.767Z",
+  "updated_at": "2025-07-18T20:33:09.707Z",
+  "labeling_complete": false
+}

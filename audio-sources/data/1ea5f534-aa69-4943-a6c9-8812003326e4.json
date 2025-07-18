@@ -1,0 +1,63 @@
+{
+  "id": "1ea5f534-aa69-4943-a6c9-8812003326e4",
+  "filename": "Senor Bobby.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870667822-xzmu2b-Senor Bobby.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870667822-xzmu2b-Senor Bobby.mp3",
+  "title": "Senor Bobby",
+  "prompt": "genre hopping, mashup, changing style & tempo, abrupt shifts, pop, hip hop, disco, nu metal, dub, norteno, IDM",
+  "lyrics": "[Intro (norteno horns with big beats)]\n\n[Pre-Verse (hazy lazy repititive mantra)]\nI had a sueno\nOf Senior Dylan\nStaggering in the streets\nI had a sueno \nOh such a dream \nThat Bob would write it down\nA dream in which dylan stalked mexico\nAs an NPC performing field research\nFor a thousand gigolo bars of songs\nSweet and wicked melodies of dreams\nThat happened down in old mexico\n\n[Drastic change to disco]\n\n[Chorus]\nSweet sweet suenos\nOf Senoritas and gigalos\nBell bottom baby mommas\nWorking hips, talking quick\nCause the sitter needs them home\n\n\n[Chorus]\nSweet sweet suenos\nOf Senoritas and gigalos\nBell bottom baby mommas\nWorking hips, talking quick\nCause the sitter needs them home\n\n[bridge]\n\n[Verse]\nYou, you always got the best of me\nAnd what about the rest of me\nleft like meetings on a monday morn\ncome out storming I'm always hoping\nthis can be something so much more\n\n[Tempo Change]\n\n[Verse (male rapper)]\nmy my my gigolo lies\nstagger free stagger lee\ndylan characters puppeted\nby lyric and verse, well rehearsed\nthe cadence and the flow\nthe melange so merry\nthe characters so low\nand in between the tale to tell\nalways romeo and juliet\nand a man down on his luck\nfar away is good, better on the road\nin the boundary zones between\nthat's where it happens see\nholed up mid scene looking rough\nfeeling betrayed or doubting one's sense\nsame thing in the end, same thing\ncall them friend\n\n[Chorus]\nSweet sweet suenos\nOf Senoritas and gigalos\nBell bottom baby mommas\nWorking hips, talking quick\nCause the sitter needs them home\n\n[Verse (call and response)]\nMister Bobby?\nYes Senora?\nOh Mister Bobby!\nSi, Senorita\nWrite me like those bad poets\nThe drunks and the slavers\nWho lost the light of genius\nand wandered tortured\nthe cobblestones of oaxaca\nin their own silent processions\nforbidden to seek confession\ncarrying the crosses \nno one could bare",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "IDM"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Uplifting",
+        "Dreamy",
+        "Melancholic",
+        "Rebellious"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 322,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Dub",
+        "IDM"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 322,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "IDM"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Uplifting",
+      "Dreamy",
+      "Melancholic",
+      "Rebellious"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.769Z",
+  "updated_at": "2025-07-18T20:31:12.187Z",
+  "labeling_complete": false
+}

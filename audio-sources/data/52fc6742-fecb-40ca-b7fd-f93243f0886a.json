@@ -1,0 +1,76 @@
+{
+  "id": "52fc6742-fecb-40ca-b7fd-f93243f0886a",
+  "filename": "Roman Candles.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870766438-q8yv2j-Roman Candles.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870766438-q8yv2j-Roman Candles.mp3",
+  "title": "Roman Candles",
+  "prompt": "loud quiet loud in folkdrone shoegazer, large lo-fi experimental bedroom recordings, rural psychedelica spacerock, looped and layered as melodic feedback",
+  "lyrics": "[//Lyrical metadata: Open with a walking to rolling inspirational //bassline that gets into a groove and then soars as the entire band //kicks in, Song tone is trippy goofy exploration of euphoric uplifting //featuring heavy harmonies, alternating male and female vocal //leads on the verses and a rambling shaggy vibe that bursts at the //seams \n\n// SECTION 1: INTRO - Walking Feel (Gentle, Inspirational) \n// NOTE: This is tab notation only, not lyrics\nG |-----------------------------------|-----------------------------------|\nD |-----------------------------------|-----------------------------------|\nA |-5-------7-------5-------3---------|-------5-------7-------------------|\nE |-----5-------5-------5-------5-----|---3-------3-------5-3-0-----------|\n    1 + 2 + 3 + 4 + 1 + 2 + 3 + 4 +   1 + 2 + 3 + 4 + 1 + 2 + 3 + 4 +\n\n\n\n[Bass Intro (groove and build)]\n\n[Dude Talking]\nHow's that groove Amanda? We feeling this?\n\n[Amanda Answeing]\nOh, I'm in it Ben. Let's roll\noooh I'm in it yessss\nThis blotter is a miracle\nblotter is a miracle \nooooh I'm in it\nyessss\nI'm in it yessss\nNever wanna lose your love\nnever wanna lose your love \nI'm in it, yessss\nooooh oooh ooooh\nI'm in it, yessss\n\n[talking over groove]\ngawd, I can't do the verse\ntake over for me baby\nthis is just too good\nlet me feel the drop!\n\n[Instrumental]\n\n[Verse (comedown)]\nNever wanna lose your love\nnever wanna lose your love \nI'm in it, yessss\nooooh oooh ooooh\nI'm in it, yessss\noooh I'm in it yessss\nThis blotter is a miracle\nthis blotter is a miracle \nooooh I'm in it\nyessss\nI'm in it yessss\nmmmmmm\nsun's shining on us\nsun's shining on us\nI'm in it yessss\n\n[Fade and End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [
+        "Drone",
+        "Shoegaze",
+        "Lowercase"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 2,
+      "mood": [
+        "Psychedelic",
+        "Euphoric",
+        "Romantic",
+        "Uplifting",
+        "Atmospheric"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "male",
+      "word_count": 268,
+      "sentiment_score": 0.7,
+      "prompt": [
+        "Drone",
+        "Experimental",
+        "Lo-Fi",
+        "Psychedelic",
+        "Shoegaze"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 268,
+    "sentiment_score": 0.7
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [
+      "Drone",
+      "Shoegaze",
+      "Lowercase"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 2,
+    "mood": [
+      "Psychedelic",
+      "Euphoric",
+      "Romantic",
+      "Uplifting",
+      "Atmospheric"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.761Z",
+  "updated_at": "2025-07-18T20:32:53.182Z",
+  "labeling_complete": false
+}

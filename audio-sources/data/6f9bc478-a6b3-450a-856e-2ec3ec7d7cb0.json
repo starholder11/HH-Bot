@@ -1,0 +1,59 @@
+{
+  "id": "6f9bc478-a6b3-450a-856e-2ec3ec7d7cb0",
+  "filename": "Radiation Postage.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870820775-edm206-Radiation Postage.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870820775-edm206-Radiation Postage.mp3",
+  "title": "Radiation Postage",
+  "prompt": "indie codeine, psychedelic twee, baroque pop orchestration",
+  "lyrics": "Add a Caption\nFebruary 19, 2025 at 12:42 AM\nv4\n\n[Introduction (raindrops)]\n<><><><><><><><><><>\n<><><><><><><><><><>\n<><><><><><><><><><>\n<><><><><><><><><><>\n[Bridge (backmasked orchestra)]\n[Pre-Verse (slow strum acoustic guitar)]\nDid you get the\ndepleted uranium\nthat I sent to you?\nIt has a half life\nof four point five\nbillion years.\nThat's a very low rate of decay\nA thing like that can just stay\nas it seeps through you\ntearing part your atoms\nand putting back the bits\ninto a brand new version\nof me and you.\n\n[Chorus]\njust a trace of \nu two three five\nlet you know\nthat I'm alive\nand missing you\n\n[Verse]\nsending you letters\nmarked with\nradiation postage\npop it in lead lining\noh how my heart is pining\na nuclear fueled reaction\npicking up traction\nspilling my words\nin the heaviest bits of stars\nI'm falling apart\nmuch faster than the \nrate of decay \nin this stamp\nthat travels your way\n\n\n[Chorus]\njust a trace of \nu two three five\nlet you know\nthat I'm alive\nand missing you",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Pop",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Melancholic",
+        "Romantic",
+        "Uplifting",
+        "Psychedelic"
+      ],
+      "themes": [],
+      "vocals": "male",
+      "word_count": 171,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Orchestration",
+        "Psychedelic"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 171,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Pop",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Melancholic",
+      "Romantic",
+      "Uplifting",
+      "Psychedelic"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.759Z",
+  "updated_at": "2025-07-18T20:33:44.130Z",
+  "labeling_complete": false
+}

@@ -1,0 +1,72 @@
+{
+  "id": "d35df2ed-ef1d-4841-afce-c3d09063a715",
+  "filename": "Days Piliing.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752871035856-zvds3g-Days Piliing.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752871035856-zvds3g-Days Piliing.mp3",
+  "title": "Days Piliing",
+  "prompt": "college rock space grunge elongated riffs, shoegazer, pulsing bass",
+  "lyrics": "[Female Verse]\nand I want to know\ndid you ever feel for me\nin a way that makes up\nfor all the days left behind\npiling up on my desk\nand forgotten\n\n[Chorus]\nFelt cape\ncloaked in\ninsecurity\na nothing\nthat consumes\n\n[Chorus]\ncloaked in\ninsecurity\na nothing\nthat consumes\n\n[Verse]\nThere's somebody new\nOr have they been old?\nHow much is untold?\nI want to remember\na time of trust and love\nI want to remember \na time of trust and love\nBut that's all beside us\nCast off to the tides\nSuch a waste of time\nWanting you\nWanting you\nWanting you ooh ooh\n\n[Verse]\nBut that's all beside us\nCast off to the tides\nSuch a waste of time\nWanting you\nWanting you\nWanting you ooh ooh\n\n[Angry Chorus]\nI'm sidelined babe\nHave a fine time babe\nNothing to say babe?\nGo on, go on\nGet out get out\nGo on, go on,\nGet out, get out\n\n[Searing Guitar Solo]\n\n[Angry Chorus]\nI'm sidelined babe\nHave a fine time babe\nNothing to say babe?\nGo on, go on\nGet out get out\nGo on, go on,\nGet out, get out\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Rock",
+      "styles": [
+        "Grunge",
+        "Shoegaze"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Euphoric",
+        "Nostalgic",
+        "Paranoid",
+        "Romantic",
+        "Uplifting"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 194,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Shoegaze"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 194,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Rock",
+    "styles": [
+      "Grunge",
+      "Shoegaze"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Euphoric",
+      "Nostalgic",
+      "Paranoid",
+      "Romantic",
+      "Uplifting"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.586Z",
+  "updated_at": "2025-07-18T20:37:37.745Z",
+  "labeling_complete": false
+}

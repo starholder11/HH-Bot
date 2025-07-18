@@ -1,0 +1,71 @@
+{
+  "id": "50ee458e-bfd0-4168-a1b0-ed9bae994107",
+  "filename": "Strange Slates.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870762893-xuzcnj-Strange Slates.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870762893-xuzcnj-Strange Slates.mp3",
+  "title": "Strange Slates",
+  "prompt": "big beat, electro psychedelica, wave function, new romantic fuzzbox",
+  "lyrics": "cookie puss n boots\nknocking back celebrity\ncall me to the stage\ndelivering the keys\nno notes,\nthis is a criminal conspiracy\n\nstrange love, you're left as memory reflecting on the surface a skipping stone of how it used to be when it was still you and me oooh oooh ooh\n\narthurian excalibur pull the sword eyes from my stoned serendipity because I refuse to see that there's no one looking back when I turn to find you\n\npersistent,\ndrift from reality\nmy life\nhas no cause ality\nrandom things\nacting on me\nhop scotch\ndeterritorializing\nstable concepts\ncan't find\ncommon ground\nwhen I'm around\n\nstrange love, you're left as memory reflecting on the surface, a skipping stone of how it used to be when it was still you and me oooh oooh ooh\n\nformulaic equations traded for occasions gorillas in sierra mist with a twist, a half cap enough to trigger relapse, put me on blast, cee cee everyone and announce my involuntary leave of absence \n\nI'm in my mind palace\nserenading the duchess of depravity\nbegging her to hook me up\nwith a healthy dose of gravity\nsendl me back to clown town\nand lets process my trauma\nthrough a critical interpretation\nof beverly hills chihuahua",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Big Beat",
+        "Electro"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Introspective",
+        "Psychedelic",
+        "Chaotic",
+        "Euphoric",
+        "Nostalgic"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 208,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Big Beat",
+        "Psychedelic"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 208,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Big Beat",
+      "Electro"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Introspective",
+      "Psychedelic",
+      "Chaotic",
+      "Euphoric",
+      "Nostalgic"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.781Z",
+  "updated_at": "2025-07-18T20:32:46.431Z",
+  "labeling_complete": false
+}

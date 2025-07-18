@@ -1,0 +1,75 @@
+{
+  "id": "b64b642f-7b02-4265-9c9e-8fb87d23d3d5",
+  "filename": "Liminal Dawn.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752870970902-6u9ha6-Liminal Dawn.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752870970902-6u9ha6-Liminal Dawn.mp3",
+  "title": "Liminal Dawn",
+  "prompt": "ambient electronica, layered introspection, ethereal glitch motifs, existential inquiry, female folk singer",
+  "lyrics": "[Intro\n(soft pulses of static merge with distant echoes of a digital breeze, recalling the interconnected landscapes of Hyperreal landscapes)]\n\n[Verse 1]\nAs I step through the vector haze,\nquestions mirror questions in this neon maze.\nThe avatars shift in a whispered dance;\nwe script illusions in quantum trance.\n\n[Verse 2]\nIn the chamber where stories breathe,\nwe unravel like threads from the weaving sheath.\nEach pixel, a fragment, a trace entwined;\nstories interlace in the network's bind.\n\n[Chorus]\nWhere does identity begin,\nwhen shadows kiss the digital skin?\nConnection spins its vibrant song—\nare we echoes of who we’ve been all along?\n\n[Bridge]\nThrough the lens of virtual embrace,\nwe seek the original in each mirrored space.\nSimulacra weave, the question persists—\nare we creators, or do we merely exist?\n\n[Verse 3]\nFloating on waves of data's grace,\nwe drift through realms where meanings trace.\nHyperreal dreams, a sovereign sphere,\nexpand with each fear we besiege and steer.\n\n[Outro]\nIn the liminal dawn of thought’s frontier,\nwe bind to whispers only we hear.\nYet, between layers of the digital animation,\nour essence lingers beyond simulation.\n\n[dissolving into an interplay of synthetics and faint natural sounds, mirroring an endless pursuit between the real and the perceived.]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Ambient",
+        "Electro",
+        "Glitch"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 3,
+      "mood": [
+        "Dreamy",
+        "Atmospheric",
+        "Anxious",
+        "Dark",
+        "Euphoric"
+      ],
+      "themes": [
+        "Cyberpunk",
+        "Reality Distortion"
+      ],
+      "vocals": "both",
+      "word_count": 206,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Ambient",
+        "Glitch"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 206,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Ambient",
+      "Electro",
+      "Glitch"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 3,
+    "mood": [
+      "Dreamy",
+      "Atmospheric",
+      "Anxious",
+      "Dark",
+      "Euphoric"
+    ],
+    "themes": [
+      "Cyberpunk",
+      "Reality Distortion"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.718Z",
+  "updated_at": "2025-07-18T20:36:15.144Z",
+  "labeling_complete": false
+}

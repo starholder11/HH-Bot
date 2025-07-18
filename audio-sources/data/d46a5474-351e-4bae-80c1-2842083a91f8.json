@@ -1,0 +1,71 @@
+{
+  "id": "d46a5474-351e-4bae-80c1-2842083a91f8",
+  "filename": "Gates of Dawn.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/1752871057755-zj8mbr-Gates of Dawn.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/1752871057755-zj8mbr-Gates of Dawn.mp3",
+  "title": "Gates Of Dawn",
+  "prompt": "lo-fi sample collage, DAW core, roman conquest, mindbreaker",
+  "lyrics": "chroma kickstart haunch drunk\n\n[Verse (laconic flow)]\nI'm oft to wander, lose track of time when inside my mind, the chemicals of my memories, in technicolor, a revolver, one bullet, so I pull it, the click as I drift, onwards falling behind, entering a nostalgic state of mind, the prism beam splitter, polarizing, a past of progression, just messin, kodachrome dripping down the smith and wesson, slow to the draw, a canvas wrapped around me, that's relativity, the weight of memory, here we go again, the ends touching, time turned into a circle, gone herky jerky, working me into an arc ending at the start, processing the new physics, asking how they did it, can to terms with uncertainty at the very center of the matter there's no fixed polarity and so I wonder how I'm supposed to carry consistency when all the things that make up me amount to vibrating oscillations which can only be known by degrees of probability \n\n[Verse (laconic flow)]\nsnipers at the gates of dawn, pee vee pee, the enemy of my enemy, that makes a worthy adversary, in a momentary lapse of reason, tenderize and season, thoughts of you, one plus one walking out in the morning dew, it's not an apocalypse if they miss the mark, off my shot yet they tell me to give it all I got, treat us all as after thoughts when the opportunity requires an aftermath, crash the future, put you in the past, that's the path they on, tenderize then vaporize and if you still left standing that's a pleasant surprise, just don't expect a hand up, cuz it's called a hand out, live the experience to know what they about, it's not your place to complain, just smile head down, thank the lord you lived another day to twist and shout\n\n[Verse (laconic flow)]\na contract requires me to tell you about the crippling jealousy embedded in the operating system called capitalism, to have requires have nots, programmed to dwell on what they don't got, everyone with nothing balances the scales of a fews something, forced to spit verse after verse, the cost of the chorus reserved for those  who can afford to ask, forcing the rest to stay on task, lashed to the mast, as the overclass sends their beatings, scolding those late to meetings, flogging will continue cuz we don't know how to build morality anymore than kindness, I'm constantly reminded when the simplicity of a bell meant the ice cream truck had a tale to tell of kids not private equity, that's what's expected of me, a kodachrome reminder, pictures in a binder from when we owned not rented, carry on those dreams as decomposing chemicals soon to be replaced by hexadecimals so the federal agencies can surveil me any day and any time to ensure the integrity of my rhymes",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Breakbeat",
+        "Sound Collage"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Melancholic",
+        "Nostalgic",
+        "Uplifting",
+        "Introspective",
+        "Rebellious"
+      ],
+      "themes": [
+        "Existential Dread"
+      ],
+      "vocals": "both",
+      "word_count": 478,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Collage",
+        "Lo-Fi"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 478,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Breakbeat",
+      "Sound Collage"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Melancholic",
+      "Nostalgic",
+      "Uplifting",
+      "Introspective",
+      "Rebellious"
+    ],
+    "themes": [
+      "Existential Dread"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-18T20:21:08.645Z",
+  "updated_at": "2025-07-18T20:37:42.655Z",
+  "labeling_complete": false
+}
