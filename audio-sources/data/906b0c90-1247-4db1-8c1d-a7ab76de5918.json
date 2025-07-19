@@ -1,0 +1,78 @@
+{
+  "id": "906b0c90-1247-4db1-8c1d-a7ab76de5918",
+  "filename": "Audrey.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Audrey.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Audrey.mp3",
+  "title": "Audrey",
+  "prompt": "loud quiet loud in folkdrone shoegazer, large lo-fi experimental bedroom recordings, rural psychedelica spacerock, looped and layered as melodic feedback",
+  "lyrics": "[Computer Terminal Speaking]\nSpecial Agent,\nSpecial Agent,\nIt's Audrey on the line\nWe need some damn good coffee\nAnd a slice of cherry pie.\n\n[Spaghetti Western Instrumental]\n\n[Pre-Verse]\nWho's afraid of the Great Northern?\nWith their saddle shoes and evil horns\nSomething's Troubling\n\n[Soaring Harmony]\nWhat do the owls know?\nWhere do they fly?\nThe lodge goes somewhere\nBeyond the great divide\n\n[Verse]\nWhat if love is not enough?\nTo tame the trouble in the night\nWhat if love is not enough?\nTo keep the dark away.\nStrike a match, tend the light\nTake a drag and shake the fright\nNothing else to do \nbut be\n the light all others see\n\n[Bridge (moody foggy guitars awash in processed feedback)]\n\n[Pre-Verse]\nSitting at the tee vee is an invitation to love\n\n\n[Verse]\nCome on up to the big log\nBy the old train station and watch\nEd and Norma carried the torch\nfor all of those years\nand now they tie the knot\nEverywhere we look is an invitation to love\nAsk anybody and that's all we want\nIn this strange fated world\nthe simplest thing to do\nis listen with our heart\n\n[Soaring Harmony]\nWhat do the owls know?\nWhere do they fly?\nThe lodge goes somewhere\nBeyond the great divide\n\n[Soaring Harmony]\nStrike a match, tend the light\nTake a drag and shake the fright\nNothing else to do \nbut be\n the light all others see\n[Fade slowly]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [
+        "Drone",
+        "Shoegaze",
+        "Lowercase"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 3,
+      "mood": [
+        "Romantic",
+        "Anxious",
+        "Dark",
+        "Euphoric",
+        "Melancholic"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 239,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Drone",
+        "Experimental",
+        "Lo-Fi",
+        "Psychedelic",
+        "Shoegaze"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 239,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [
+      "Drone",
+      "Shoegaze",
+      "Lowercase"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 3,
+    "mood": [
+      "Romantic",
+      "Anxious",
+      "Dark",
+      "Euphoric",
+      "Melancholic"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.318Z",
+  "updated_at": "2025-07-19T16:22:01.318Z",
+  "labeling_complete": false
+}

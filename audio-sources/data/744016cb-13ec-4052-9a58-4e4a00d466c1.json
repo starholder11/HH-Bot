@@ -1,0 +1,64 @@
+{
+  "id": "744016cb-13ec-4052-9a58-4e4a00d466c1",
+  "filename": "Terminal City Skank.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Terminal City Skank.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Terminal City Skank.mp3",
+  "title": "Terminal City Skank",
+  "prompt": "live ska from the paradise rock club in boston, open with cymbals joined by rising horns holding their notes before bursting into a classic ska beat with the full band on eighth notes, carrying a skacore energy into the song before launching into a tempo shift midway through the song, bringing it down, then taking it back up for the close",
+  "lyrics": "[Introduction\n(Crowd: Cheering wildly)\n(Singer: Speaking into the mic)]\nThank you!\nwe are brass\nto the future\nAnd this is a benefit show for our good friend Chaz\nFREE CHAZ GUNKLIN\n\n[Pre-Verse]\n(Horn section: starting slow and low, then building)\n(Drums: starting with cymbal rattles alongside horns)\n(Guitar: clipped skank on the offbeat)\n(Bass: Walking baseline)\n\nPick it up,\nPick it up\nHot diggity dog\nHOT DIGGITY DAWG!\nAre you ready to skank\nTerminal City?\n\n[Verse (full ska revival eighth notes)]\nI’m going tilt on leverage\nDown So bad, \nI need a beverage\n[Trombone: sliding]\nThe terminal \nIs the technology\nThe coins\nAre the new cash\nA G I It’s time to die\nCuz nothing here\nNothing here\nIs ever built to last\n[Chorus]\nI’m tripping terminal city\nMinting coins like crazy\nMy future? Beyond hazy\nWhen the economy\nIs autonomous \nMy net worth\nIs anonymous \n\n[Verse]\nQuants they come and go\nTrading desks fly high\nAnd then they blow\nEvery tick an up and down\nStart as kings\nAnd then turn \nto clowns\nThe only way to survive\nIs feel the beat and ride\nI don't wanna die\nOn a red dildo\nI just wanna fly\nOn a green candle\nLife comes fast\nLove the world\nAnd simulate the past\n\n\n[Chorus]\nI’m tripping terminal city\nMinting coins like crazy\nMy future? Beyond hazy\nWhen the economy\nIs autonomous \nMy net worth\nIs anonymous \n\n[BRIDGE: SKANKIN BREAK TEMPO SHIFT\n(drums: slow groove with rim and kick-snare syncopation <ska-dub>])\n(bass: locked loop, dub-inspired repetition <groove>)\n(guitar: clipped skank on the offbeat <minimal ska>)\n(tempo: drops into stoned groove breakdown)\n(mood: dubby, hypnotic, immersive)]\n\n[Pre-Verse\n(Singer: shouting out to the crowd)\n(Crowd: going crazy)]\nThe terminal boss won’t win\nChaz Gunklin will rise again\nHup! Hup! Hup!\nHup! Hup! Hup!\"\nLet me see you skank!\n\n[Instrumental \n(Trombone: wild solo)\n(Guitar: going off on a riff into solo)\n\n\n[Chorus]\nI’m tripping terminal city\nMinting coins like crazy\nMy future? Beyond hazy\nWhen the economy\nIs autonomous \nMy net worth\nIs anonymous",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 8,
+      "mood": [
+        "Uplifting",
+        "Chaotic",
+        "Aggressive",
+        "Atmospheric",
+        "Dreamy"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 338,
+      "sentiment_score": 0.6,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 338,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 8,
+    "mood": [
+      "Uplifting",
+      "Chaotic",
+      "Aggressive",
+      "Atmospheric",
+      "Dreamy"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.734Z",
+  "updated_at": "2025-07-19T16:22:01.734Z",
+  "labeling_complete": false
+}

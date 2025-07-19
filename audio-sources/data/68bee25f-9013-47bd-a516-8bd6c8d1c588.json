@@ -1,0 +1,70 @@
+{
+  "id": "68bee25f-9013-47bd-a516-8bd6c8d1c588",
+  "filename": "Bottle of Gripes.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Bottle of Gripes.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Bottle of Gripes.mp3",
+  "title": "Bottle of Gripes",
+  "prompt": "celtic marching snare, bag pipes, rousing female vocalist, country irish like we used to do",
+  "lyrics": "Bartender,\nA bottle of\nyour finest gripes\nfrom the region of agrippa\nIt's time to\nturn up the house lights\nand draw a curtain\nover all the illusions.\n\nPencil me in\nfor the next merry go round\nI'll surely ride\nthe very next pony\nthey trot out\n\nNext time, I want a longer con\nNeither big, nor strong\nbut the slow come on\nwrapped in riddles \nthat withdraw when touched\nthat's such a rush\nI'd rather something stupid\nthat requires me to pursue.\n\nHey there, what about us?\nWe once touched\nThe way lovers do.\n\nGo on, pour another glass\nthe bubbles they're trapped\nand freedom seems \nlike the right thing to do.\n\nYour eyes are sharper than knives\nAt least you're alive\nLike a kick from a mule\nOr the crack of a slap\nOn my backside.\n\nI'm alright with the mean\nDoesn't bother me\nI once grew up hard\nI once wasn't seen\nYou ain't nothing\nI haven't already handled\n\nToo bad you're so beaten down\nI'm not so good with \npicking people back up\nbut maybe it'll be different\nthis time around\n\ncare to join me\nin a round of gripes?\nyour cause could be mine\nlets merge our quarrels\nand combine\n\nI bet you get\na great many\npropositions\nI'm upfront\nfar too blunt\nbut I could con you\nfor such a long time\nsuch a long time.",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Country",
+      "styles": [
+        "Acapella"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Romantic",
+        "Euphoric",
+        "Raw",
+        "Rebellious",
+        "Uplifting"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Love & Relationships",
+        "Reality Distortion"
+      ],
+      "vocals": "both",
+      "word_count": 232,
+      "sentiment_score": 0.7,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 232,
+    "sentiment_score": 0.7
+  },
+  "manual_labels": {
+    "primary_genre": "Country",
+    "styles": [
+      "Acapella"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Romantic",
+      "Euphoric",
+      "Raw",
+      "Rebellious",
+      "Uplifting"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Love & Relationships",
+      "Reality Distortion"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.328Z",
+  "updated_at": "2025-07-19T16:22:01.328Z",
+  "labeling_complete": false
+}

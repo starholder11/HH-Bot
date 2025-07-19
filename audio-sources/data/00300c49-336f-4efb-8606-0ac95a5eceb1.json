@@ -1,0 +1,58 @@
+{
+  "id": "00300c49-336f-4efb-8606-0ac95a5eceb1",
+  "filename": "TIB1.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/TIB1.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/TIB1.mp3",
+  "title": "Tibi1",
+  "prompt": "Tibetan throat chanting, onomatopoeia, acapella",
+  "lyrics": "[Intro: (Soft bells and low drone of a Tibetan horn)] Om-om-om-om, Oooom-om-om-oom...\n[Verse 1: (Rhythmic chanting with hand cymbals)] Mani-mani-ma, Mani-ma-mani-ma, Padme-padme-pum, Padme-pum-padme-pum, Hum-hum-hoo-hum, Hum-hoo-hum-hum.\n[Chorus: (Monks join in harmonic overtone singing)] Ah-ah-ah-ah, Ahhhh-ah-ah-ahhh, Om-mani-padme, Om-pad-me-ooooom, Hrih-hrih-hree-hree, Hree-hrih-hrih-hree.\n[Bridge: (Quiet, wind blowing through prayer flags)] Shhhh-shhhh-she-she, Shhh-she-shhhh-she...\n[Verse 2: (Deep throat singing, soft drumming)] Dhung-dhung-dhrum-dhrum, Dhung-dhrum-dhung-dhrum, Gya-gya-gyo-gyo, Gya-gyo-gya-gyo, Kye-kye-kay-kay, Kye-kay-kye-kay.\n[Chorus: (Overtone singing intensifies)] Ah-ah-ah-ah, Ahhhh-ah-ah-ahhh, Om-mani-padme, Om-pad-me-ooooom, Hrih-hrih-hree-hree, Hree-hrih-hrih-hree.\n[Verse 3: (Resonant metal bowls and light percussion)] Ring-ring-rung-rung, Ring-rung-ring-rung, De-de-dee-dee, De-dee-de-dee, Ya-ya-ye-ye, Ya-ye-ya-ye.\n[Chorus: (Full temple chant with depth and resonance)] Ah-ah-ah-ah, Ahhhh-ah-ah-ahhh, Om-mani-padme, Om-pad-me-ooooom, Hrih-hrih-hree-hree, Hree-hrih-hrih-hree.\n[Outro: (The chant slows, bells gently fade)] Om-om-om-om, Oooom-om-om-oom, Mani-mani-ma, Mani-ma-mani-ma...",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Vocal",
+      "styles": [
+        "Gregorian",
+        "Acapella"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 2,
+      "mood": [
+        "Spiritual"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 109,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Onomatopoeia"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 109,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Vocal",
+    "styles": [
+      "Gregorian",
+      "Acapella"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 2,
+    "mood": [
+      "Spiritual"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.725Z",
+  "updated_at": "2025-07-19T16:22:01.725Z",
+  "labeling_complete": false
+}

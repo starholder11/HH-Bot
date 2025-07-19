@@ -1,0 +1,46 @@
+{
+  "id": "635e4a4a-1810-4c80-96b1-23db22c5b7b5",
+  "filename": "Chupacabra Kai.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Chupacabra Kai.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Chupacabra Kai.mp3",
+  "title": "Chupacabra Kai",
+  "prompt": "",
+  "lyrics": "",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [],
+      "themes": [],
+      "vocals": "none",
+      "word_count": 1,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Instrumental",
+    "word_count": 1,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "none",
+    "language": "english",
+    "explicit": false,
+    "instrumental": true,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.348Z",
+  "updated_at": "2025-07-19T16:22:01.348Z",
+  "labeling_complete": false
+}

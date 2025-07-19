@@ -1,0 +1,78 @@
+{
+  "id": "1ed94e0c-0846-486d-b6ec-70dd816a7f1a",
+  "filename": "Here, There.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Here, There.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Here, There.mp3",
+  "title": "Here, There",
+  "prompt": "loud quiet loud in folkdrone shoegazer, large lo-fi experimental bedroom recordings, rural psychedelica spacerock, looped and layered as melodic feedback",
+  "lyrics": "[Fade In]\n[Backwards masked droning guitars]\n....\n[Rhythm section build]\n....\n[big Fuzzy Guitar kicks in]\n....\n[Verse]\nYou come to me when in season\nSummer boy you tell your girlfriends\nPose me against my neighbors farm stand\nLaugh and ask where have we been?\n[Chorus]\nHere, we are always right here\nThere, is a place for folks like you\nDon't think I don't see through\nThe condescending point of view\n[Verse]\nI get asked why I do it\nTrot around and be directed\nIt ain't class, It ain't a lack of self esteem\nIt's that you're shit, but novel too\nYeah, I look back down on you too\nA clash of point of views\nBeats repeating the same half dozen\nOther lovers we all cycle through\n[Chorus]\nHere, we are always right here\nThere, is a place for folks like you\nDon't think I don't see through\nThe condescending point of view\n[Guitar solo / Feedback freak]\n[Verse]\nAnd I'll trade notes with the next\nWhose pics you'll share with your bests\nI'll tell him how to push your buttons\nAnd where to touch and the secret switch\nThat shuts you up, there's a dossier on you\nDon't think about your upper hand\nOr that you got a master plan\nWe're both just someone new\nDifferent conversations to pass the time\nwhile we drive cuz there's nothing else to do\n[Shimmering processed looping guitars]\n[Chorus]\nHere, we are always right here\nThere, is a place for folks like you\nDon't think I don't see through\nThe condescending point of view",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [
+        "Drone",
+        "Shoegaze",
+        "Lowercase"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 3,
+      "mood": [
+        "Romantic",
+        "Aggressive",
+        "Euphoric",
+        "Mysterious",
+        "Uplifting"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 261,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Drone",
+        "Experimental",
+        "Lo-Fi",
+        "Psychedelic",
+        "Shoegaze"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 261,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [
+      "Drone",
+      "Shoegaze",
+      "Lowercase"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 3,
+    "mood": [
+      "Romantic",
+      "Aggressive",
+      "Euphoric",
+      "Mysterious",
+      "Uplifting"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.612Z",
+  "updated_at": "2025-07-19T16:22:01.612Z",
+  "labeling_complete": false
+}

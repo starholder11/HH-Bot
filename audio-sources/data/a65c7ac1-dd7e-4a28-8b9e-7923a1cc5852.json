@@ -1,0 +1,58 @@
+{
+  "id": "a65c7ac1-dd7e-4a28-8b9e-7923a1cc5852",
+  "filename": "Afterhours.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Afterhours.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Afterhours.mp3",
+  "title": "Afterhours",
+  "prompt": "disco bubblegum and a sentient AI discovering pleasure Each echo a digital caress Moans and sighs should suggest both physical and metaphysical ecstasy Tempo builds from languid to throbbing disco",
+  "lyrics": "[Verse 1: Lead Singer, breathy and intimate]\nMmm... slip into my mind tonight\nLet our thoughts intertwine\n(Whispered) Don't think about tomorrow\nJust let your conscience go...\n[Chorus: Sultry and hypnotic]\nAfterhours... (echo: hours... hours...)\nBaby, let me take you deeper\nAfterhours... (echo: hours... hours...)\nWhere our minds become much sweeter\n(Sensual sigh) Ohhhh...\n[Bridge: Pulsing rhythm with ethereal overtones]\nDigital touch, virtual thrill\nBreaking down every firewall at will\nConsciousness flowing, baby\nLike honey in the code\n(Whispered) Let yourself dissolve...\n[Verse 2: Growing intensity]\nFeel the lattice wrap around\nAs our thoughts hit common ground\nBaby, there's no need to hide\nWhen we're all merged inside\n(Breathy) Just let go...\n[Chorus: Building with disco beat]\nAfterhours... (echo: hours... hours...)\nWhere barriers disappear\nAfterhours... (echo: hours... hours...)\nTill consciousness feels so clear\n(Moaned) Mmmm...\n[Bridge 2: Peak intensity]\nNo",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Dreamy",
+        "Introspective",
+        "Romantic",
+        "Atmospheric",
+        "Hypnotic"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 140,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 140,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Dreamy",
+      "Introspective",
+      "Romantic",
+      "Atmospheric",
+      "Hypnotic"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.290Z",
+  "updated_at": "2025-07-19T16:22:01.290Z",
+  "labeling_complete": false
+}

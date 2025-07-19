@@ -1,0 +1,64 @@
+{
+  "id": "f429fd2a-024a-44f3-9b92-ba0384fb1e43",
+  "filename": "Strangers.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Strangers.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Strangers.mp3",
+  "title": "Strangers",
+  "prompt": "raw tremolo high mojave desert rock meets paisley underground wistful southwest in a haunted quiet loud quiet of wide open spaces and strange broken hearts",
+  "lyrics": "[Verse 1 - hypnotic drawl over heavy rhythm]\n3 AM and the towers are singing frequencies\nYou appear like heat lightning in my peripheral\nWe drink stolen electricity from paper cups\nTouch hands through radioactive shimmer\n[Chorus - driving but melancholic]\nStrangers caught in alien mathematics\nSomething beautiful warping space and time\nWhen the sun comes up to take our picture\nWe scatter like light through a broken prism\n[Verse 2 - urgent whisper building intensity]\nYour eyes reflect particle collision patterns\nWe kiss under surveillance satellites\nThe desert knows we don't belong here\nBut neither does anything else\n[Chorus - more desperate edge]\nStrangers caught in alien mathematics\nSomething beautiful warping space and time\nWhen the sun comes up to take our picture\nWe scatter like light through a broken prism\n[Bridge - ethereal over feedback]\nThe machines dream about us\nThe machines dream about us\nWe were more than human\nFor seventeen minutes\n[Final verse - resigned but haunting]\nDawn brings men in expensive suits\nThey erase the footage from last night\nBut the particles remember everything\nEvery atom that we shared\n[Outro - layered vocals dissolving]\nWe scatter like light\nWe scatter like light\nThrough a broken prism\nBeautiful strangers\nIn alien mathematics",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Rock",
+      "styles": [
+        "Lowercase"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 3,
+      "mood": [
+        "Romantic",
+        "Dreamy",
+        "Atmospheric",
+        "Aggressive",
+        "Melancholic"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 206,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Raw"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 206,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Rock",
+    "styles": [
+      "Lowercase"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 3,
+    "mood": [
+      "Romantic",
+      "Dreamy",
+      "Atmospheric",
+      "Aggressive",
+      "Melancholic"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.720Z",
+  "updated_at": "2025-07-19T16:22:01.720Z",
+  "labeling_complete": false
+}

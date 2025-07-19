@@ -1,0 +1,60 @@
+{
+  "id": "034e309a-0312-4e33-8f3f-00c93eaf7ed7",
+  "filename": "Dirt Road Casino.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Dirt Road Casino.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Dirt Road Casino.mp3",
+  "title": "Dirt Road Casino",
+  "prompt": "scuzz tempo, big muff pi, rockabiliy dub",
+  "lyrics": "[Intro]\n\n[Verse]\nTechnicals technicals hop on in the hilux\nour warlord needs protection, protection\nwe are off to the dirt road casino\nthe dirt road casino\n\n[Chorus]\nHeavy is the head\nWho invents a crown\nHeavy hangs the head\nOf He who \ninvents his crown\n\n[Intro]\n\n[Verse]\ncounterfeit kalashnakovs are shooting up the slots\nrussian roulette alphabets ringing out their shots\ndeer hunter, deer hunter how desperate your last cry\ndeer hunter, deer hunters, how desperate your final cries\n\n[Chorus]\nHeavy is the head\nWho invents a crown\nHeavy hangs the head\nOf He who \ninvents his crown\n\n[Verse]\ncrypto economic space jams\nunder the banner of Mars\nour pleasure palace ponzi\nmust be defended with arms\n\n[Chorus]\nHeavy is the head\nWho invents a crown\nHeavy hangs the head\nOf He who \ninvents his crown\n\n[Build]\n\n[Verse]\nAirdropping automatic fire from AMM clips\nBurying weak hands who never buy the dip\ntechnicals technicals we reign supreme\ntechnicals technicals fighting for the dream\n\n[Chorus]\nHeavy is the head\nWho invents a crown\nHeavy hangs the head\nOf He who \ninvents his crown",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Aggressive",
+        "Atmospheric",
+        "Dreamy",
+        "Melancholic",
+        "Rebellious"
+      ],
+      "themes": [],
+      "vocals": "male",
+      "word_count": 182,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Dub"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 182,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Aggressive",
+      "Atmospheric",
+      "Dreamy",
+      "Melancholic",
+      "Rebellious"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.387Z",
+  "updated_at": "2025-07-19T16:22:01.387Z",
+  "labeling_complete": false
+}

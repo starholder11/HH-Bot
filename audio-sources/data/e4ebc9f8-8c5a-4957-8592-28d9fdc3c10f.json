@@ -1,0 +1,76 @@
+{
+  "id": "e4ebc9f8-8c5a-4957-8592-28d9fdc3c10f",
+  "filename": "Yeti Romance.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Yeti Romance.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Yeti Romance.mp3",
+  "title": "Yeti Romance",
+  "prompt": "big beat psychedelica, IDM, chopped and screwed electro house",
+  "lyrics": "[Pre-Verse]\nCome with us \nOn a ride to\nThe tomorrows\nCome with us \nOn a ride to\nThe tomorrows\n\n[Verse]\nThere's a box of wonders\nMixed in with all the monsters\nYou keep under the bed\nWhere your parents check for pills\nBut the thrills you get aren't chemical\nThere's no better living through chemistry\nExcept the kind we feel\nWhen we touch noses\nAnd pretend to be eskimos\nIn our Indoor Igloo\nWith the heat cranked up\nAnd our onesies on\nWatching old movies\nGetting all dazed and confused\nOn the media stream eye beamed\nInto our open hearts\nNostalgic for the romance\nwe never had, \nthat friendly tension \nof will we won't we\ncuz we can't see\nwe can't see\nwhat is meant to be\nwith the kitchen tee vee \non all the time\nlife is going nowhere\nand we just stare endlessly\ninto the box\nboxing out possibilities\n\n\n[Verse]\nYou became an a bomb in able snowman overnight\none day you were all cut clean\nand the next you were posing\naround in piles of snow\nthinking you could ski\nye yo this and ye yo that\nfat stacks and filthy impressions\ngo on get that gold plated glock\nand stuff your socks with emergency money \nfunny how far you've gone from our igloo kisses\na part of me misses the old you\nbut a part of me just wants to pitchfork\nall the bull shit you've stuffed yourself full of\n\n[Chorus]\nYet I Yet I Yet I\nCan't let go\nOf Yester yester day\n\n[Verse]\nAlone in the igloo\nHiding from the monsters\nUnder your bed\nYou've become a big bad yeti\nAnd I cannot be the \nYukon Corn Neilious\nWho comes and saves you\nfrom yourself",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Big Beat",
+        "Electro",
+        "House",
+        "IDM"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Romantic",
+        "Melancholic",
+        "Paranoid",
+        "Uplifting",
+        "Psychedelic"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 291,
+      "sentiment_score": 0.4,
+      "prompt": [
+        "Big Beat",
+        "IDM",
+        "Psychedelic"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 291,
+    "sentiment_score": 0.4
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Big Beat",
+      "Electro",
+      "House",
+      "IDM"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Romantic",
+      "Melancholic",
+      "Paranoid",
+      "Uplifting",
+      "Psychedelic"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.777Z",
+  "updated_at": "2025-07-19T16:22:01.777Z",
+  "labeling_complete": false
+}

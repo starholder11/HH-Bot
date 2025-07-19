@@ -1,0 +1,64 @@
+{
+  "id": "0238bdd8-0216-4650-815b-7b07546fe378",
+  "filename": "Ghosted Plains.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Ghosted Plains.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Ghosted Plains.mp3",
+  "title": "Ghosted Plains",
+  "prompt": "indie, aggressive, power pop, weird, quiet loud quiet",
+  "lyrics": "[Verse]\nI'm driving on the clear channel as the summer ends\nthinking of you and when we were once friends\nhow many years have passed?\nhow many times have you reached out\nonly for me to return the coldest of shoulders\n\n[Pre-chorus]\nour year in boulder, gone like buffalo \nwhat remains are ghosts on the plains\n\n[Chorus]\nI remember you fondly\nBut as fixed inside my past\nThose days are over\nNothing in me lasts\nI'm hollow, \nWhy I begged you to\nNot follow (oh, oh oh)\n\n\n\n[Verse]\nThis city is big enough for you and me to not see each other\nMy brother, I've failed you though I'm not far away, just gone\nI'm gone to my past, so I say it again, nothing in me lasts\nIt's nothing that you've done, I'm just always on the run\n\n[Chorus]\nI remember you fondly\nBut as fixed inside my past\nThose days are over\nNothing in me lasts\nI'm hollow, \nWhy I begged you to\nNot follow (oh, oh oh)\n\n\n[Build]\n\n[Verse]\nSometimes I think I see you across the bar or in a car\nSo I look away then circle back to ensure I wont have to endure\nthe ever so awkward apology for why I've been so sketchy\nthis is who I am, a city drone, not that young hero from the hills\n\n[Pre-chorus]\nour year in boulder, gone like buffalo \nwhat remains are ghosts on the plains\n\n\n[Chorus]\nI remember you fondly\nBut as fixed inside my past\nThose days are over\nNothing in me lasts\nI'm hollow, \nWhy I begged you to\nNot follow (oh, oh oh)\n\n[End]\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Pop",
+      "styles": [
+        "Lowercase"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Nostalgic",
+        "Aggressive",
+        "Melancholic",
+        "Surreal"
+      ],
+      "themes": [
+        "Existential Dread"
+      ],
+      "vocals": "both",
+      "word_count": 273,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 273,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Pop",
+    "styles": [
+      "Lowercase"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Nostalgic",
+      "Aggressive",
+      "Melancholic",
+      "Surreal"
+    ],
+    "themes": [
+      "Existential Dread"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.574Z",
+  "updated_at": "2025-07-19T16:22:01.574Z",
+  "labeling_complete": false
+}

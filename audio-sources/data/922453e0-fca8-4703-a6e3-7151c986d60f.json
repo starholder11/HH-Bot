@@ -1,0 +1,76 @@
+{
+  "id": "922453e0-fca8-4703-a6e3-7151c986d60f",
+  "filename": "Vibe To Survive.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Vibe To Survive.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Vibe To Survive.mp3",
+  "title": "Vibe To Survive",
+  "prompt": "Lush dreamy shoegaze textures with dense reverb-washed guitars float over propulsive, anthemic drums and soaring synths in the verses, The chorus blooms into rich ensemble vocals and glimmering pads, then melts into a groovy acid yacht rock bridge with bright keys, wah guitar, and a steady funk-inflected bass, The outro layers ethereal synths and swirling effects, fading on a sea of ambient textures",
+  "lyrics": "hip cats with their backyard marg pitchers\nland yachts beached by the barbecue\nis it porch fest or the fourth of july?\nwhat are we celebrating besides being alive?\n\nthe suns out and she's ozempic fit\nstill too soon to get her face lift\nit's my week, split custody of the dogs\ncalifornia sober and calling rover on over\n\nwe got the duffy boat full on charge\njungle cruising the canals \nbumping de barge\nthis is the rhythm of the night\nand everything's all right\nit's life after the last chopper out\n\nall my options cashed\nso I refinanced divorce\nturn it to starboard\nand chart a new course\nvibe to survive\n\n\n\n[Bridge]\n[Guitar Solo]\n\nI used to be a freeway lizard\ncaught up in a commuting blizzard\ncovid came and we worked from home\nafter that I was free to roam\n\nthere was nothing on my end ever\nskipped deliverables \nand made teams miserable\nzero interest, yet won the lottery\nmet a girl, and got into pottery\n\nit's life after the last chopper out\nit's life after the last chopper out\n\nwe got the duffy boat full on charge\njungle cruising the canals \nbumping de barge\nthis is the rhythm of the night\nand everything's all right\nit's life after the last chopper out\n\n[Solo]\n[Fade]\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Ambient",
+        "Acid House",
+        "Shoegaze",
+        "Acapella"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 5,
+      "mood": [
+        "Dreamy",
+        "Uplifting",
+        "Atmospheric",
+        "Nostalgic",
+        "Psychedelic"
+      ],
+      "themes": [
+        "Existential Dread"
+      ],
+      "vocals": "both",
+      "word_count": 218,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Acid",
+        "Ambient",
+        "Shoegaze"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 218,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Ambient",
+      "Acid House",
+      "Shoegaze",
+      "Acapella"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 5,
+    "mood": [
+      "Dreamy",
+      "Uplifting",
+      "Atmospheric",
+      "Nostalgic",
+      "Psychedelic"
+    ],
+    "themes": [
+      "Existential Dread"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.760Z",
+  "updated_at": "2025-07-19T16:22:01.760Z",
+  "labeling_complete": false
+}

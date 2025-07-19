@@ -1,0 +1,67 @@
+{
+  "id": "60c9d32e-087e-48ca-b7f2-3c1b85ebdaf2",
+  "filename": "Astronaut Loop Instrumental.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Astronaut Loop Instrumental.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Astronaut Loop Instrumental.mp3",
+  "title": "Astronaut Loop Instrumental",
+  "prompt": "ambient dub, looping bass samples, mission control samples, astronaut vocals",
+  "lyrics": "space gave me strength\n\nspace gave me strength\n\ndark matter running through me\n\nbuilding I up, tearing I down\n\nradiation rule space nation\n\nstrength in dark matter\n\nstrength in the void\n\nI am slipping into stars\n\nreturning to returning home",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Ambient",
+        "Acapella"
+      ],
+      "energy_level": 3,
+      "emotional_intensity": 5,
+      "mood": [
+        "Uplifting",
+        "Atmospheric",
+        "Melancholic"
+      ],
+      "themes": [
+        "Existential Dread"
+      ],
+      "vocals": "male",
+      "word_count": 40,
+      "sentiment_score": 0.4,
+      "prompt": [
+        "Ambient",
+        "Dub"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 40,
+    "sentiment_score": 0.4
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Ambient",
+      "Acapella"
+    ],
+    "energy_level": 3,
+    "emotional_intensity": 5,
+    "mood": [
+      "Uplifting",
+      "Atmospheric",
+      "Melancholic"
+    ],
+    "themes": [
+      "Existential Dread"
+    ],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.316Z",
+  "updated_at": "2025-07-19T16:22:01.316Z",
+  "labeling_complete": false
+}

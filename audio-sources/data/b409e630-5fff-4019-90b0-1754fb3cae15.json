@@ -1,0 +1,70 @@
+{
+  "id": "b409e630-5fff-4019-90b0-1754fb3cae15",
+  "filename": "Jungle Surgery.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Jungle Surgery.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Jungle Surgery.mp3",
+  "title": "Jungle Surgery",
+  "prompt": "IDM grunge, big beat psychedelica, cyberpunk",
+  "lyrics": "v2\n[Showroom Verse]\nsahara monday \ncodeine pay days \nexpressway tuesday \nmissing may days\nshowroom antics\nmates rates\nheadlong bones\nI am a mouse\nYou are a paw\nlets see your thorn\n\n[Strong Chorus]\njungle surgery\nbloody marys\nit's all in hand\nthe bigger picture\nis in our touch\n\n[Showroom Verse]\nwhiskey sunsets\ncape canaveral\nrocket smugglers\ng force goons yeah\nhauling space dust\nfor my ladies (cha cha cha)\nllama city copper strip malls\n\n\n[Keytar Solo]\n\n[Strong Chorus]\njungle surgery\nbloody marys\nit's all in hand\nthe bigger picture\nit's looking up (yeah, yeah yeah yeah)\n\n[Showroom Verse]\ndim light fashion\nsoft seductions\nhula hoop king\ncheck my top scores\nyeah yeah yeah yeah yeah\nI the casbah instant action\nholy rollers get some traction\nyeah yeah yeah yeah\nmoving g strings international\ngo go boots assless chapstick\nyeah yeah yeah yeah\n\n[Strong Chorus]\njungle surgery\nbloody marys\nit's all in hand\nthe bigger picture\nit's looking up (yeah, yeah yeah yeah)\n\n[Strong Chorus]\njungle surgery\nbloody marys\nit's all in hand\nthe bigger picture\nit's looking up (yeah, yeah yeah yeah)\n\n[Showroom Verse]\npacked houses warm applause\ntriple encore ain't no fraud\nget my back pack, time to go\nget my back pack, another show\n\n[Strong Chorus]\njungle surgery\nbloody marys\nit's all in hand\nthe bigger picture\nit's looking up (yeah, yeah yeah yeah)\n\n[Refrain and Fade]\n\n[Strong Chorus]\njungle surgery\nbloody marys\nit's all in hand\nthe bigger picture\nit's looking up (yeah, yeah yeah yeah)\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Big Beat",
+        "IDM",
+        "Grunge"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Psychedelic",
+        "Aggressive",
+        "Atmospheric",
+        "Melancholic",
+        "Romantic"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 250,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Big Beat",
+        "IDM",
+        "Psychedelic"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 250,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Big Beat",
+      "IDM",
+      "Grunge"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Psychedelic",
+      "Aggressive",
+      "Atmospheric",
+      "Melancholic",
+      "Romantic"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.636Z",
+  "updated_at": "2025-07-19T16:22:01.636Z",
+  "labeling_complete": false
+}

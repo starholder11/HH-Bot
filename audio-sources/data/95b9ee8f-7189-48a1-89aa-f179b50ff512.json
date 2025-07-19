@@ -1,0 +1,62 @@
+{
+  "id": "95b9ee8f-7189-48a1-89aa-f179b50ff512",
+  "filename": "TRAUMA LLAMA.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/TRAUMA LLAMA.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/TRAUMA LLAMA.mp3",
+  "title": "Trauma Llama",
+  "prompt": "halftime barley, submarine electroclash, womrhole maple dub",
+  "lyrics": "[Introduction]\n[Verse (punky delivery)]\nI was walking\nIn my snow shoes \nI was walking\nIn my snow shoes\nThinking about\nSociety, So Cy Eh Tee\nWhy is ever ehhhh body\nbuying this B S from the Ceeeee  I A AAA?\nCome on,\nYou're feeling me\nYeah huh huh\nYou're feeling me\n\n[Verse]\nWaiting for the bomb\nto drop\nWaiting for the bomb\nto drop\nBop bop mmmmbop\nLove is \nCheap brain rot\nCome on,\nYou're feeling me\nYeah huh huh\nYou're feeling me\n\n[Verse (punky delivery)]\nThinking about\nNet Society, \nNet So Cy Eh Tee\nWhy is ever ehhhh body???\n\n[Chorus (backing harmony)]\nLet's talk it out\nLet's talk it out\nTalk talk it on out\n\n\n[Verse]\nCome on baby\ntell me bout\nyour trauma\nCome on baby\ntell me bout\nyour trauma\n\n[Chorus]\nCome on,\nYou're feeling me\nYeah huh huh\nYou're feeling me\nCome on,\nYou're feeling me\nYeah huh huh\nYou're feeling me",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Electro"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Euphoric",
+        "Romantic"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "male",
+      "word_count": 156,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Dub"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 156,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Electro"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Euphoric",
+      "Romantic"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.728Z",
+  "updated_at": "2025-07-19T16:22:01.729Z",
+  "labeling_complete": false
+}
