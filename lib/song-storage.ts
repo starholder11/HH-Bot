@@ -113,7 +113,12 @@ export async function saveSong(id: string, data: any): Promise<void> {
       );
       return;
     } catch (err) {
-      console.warn('saveSong: S3 write failed, writing locally instead', err);
+      console.error('saveSong: S3 write failed', err);
+      // If running in a read-only environment (e.g., Vercel), rethrow so caller returns 500
+      if (process.env.VERCEL) {
+        throw err;
+      }
+      console.warn('saveSong: falling back to local file write');
     }
   }
 
