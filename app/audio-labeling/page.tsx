@@ -57,6 +57,23 @@ interface SongData {
   labeling_complete: boolean;
 }
 
+function encodePath(url: string) {
+  try {
+    const u = new URL(url);
+    // If already percent-encoded, leave as-is
+    if (/%[0-9A-Fa-f]{2}/.test(u.pathname)) {
+      return url;
+    }
+    u.pathname = u.pathname
+      .split('/')
+      .map(part => encodeURIComponent(part))
+      .join('/');
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 export default function AudioLabelingPage() {
   const [songs, setSongs] = useState<SongData[]>([]);
   const [selectedSong, setSelectedSong] = useState<SongData | null>(null);
@@ -282,7 +299,7 @@ export default function AudioLabelingPage() {
     const existing = selectedSong.manual_labels[field];
     const currentValues = Array.isArray(existing) ? existing : [];
     const newValues = checked
-      ? [...currentValues, value]
+      ? Array.from(new Set([...currentValues, value]))
       : currentValues.filter(v => v !== value);
 
     handleUpdateLabels({ [field]: newValues });
@@ -619,10 +636,10 @@ export default function AudioLabelingPage() {
                 </div>
 
                 {/* Audio Player */}
-                {selectedSong.cloudflare_url && !selectedSong.cloudflare_url.includes('your-bucket') && (
+                {selectedSong.cloudflare_url && (
                   <div className="mb-4">
                     <audio controls className="w-full">
-                      <source src={selectedSong.cloudflare_url} type="audio/mpeg" />
+                      <source src={encodePath(selectedSong.cloudflare_url)} type="audio/mpeg" />
                       Your browser does not support the audio element.
                     </audio>
                   </div>
