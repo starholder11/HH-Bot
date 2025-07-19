@@ -1,8 +1,8 @@
 {
   "id": "4080c50f-4332-44bd-8b93-0d053ab0e5b1",
   "filename": "End of Streams.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/End of Streams.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/End of Streams.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/End%2520of%2520Streams.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/End%2520of%2520Streams.mp3",
   "title": "End Of Streams",
   "prompt": "wagmicore, blissbomb, glitch afrobeat, petaflop ragga phonk",
   "lyrics": "[Announcer (showroom voice)]\nAs we stand on the precipice \nOf this most momentous\nOccasion \nI would like to remember\nthe sacrifices all those e girls\nmade in the time\nbefore\nThe end of streams\n\n[Instrumental (building bounce)]\n\n[Pre-Verse]\nOh gawdddd\nwe're at the \nend of streams\nthe end of\nend of\nsend it\n\n[Verse]\nI'm a little bit\njust a little bit\ntripping my lines\nshowing my hand\njust a little bit\nlike an itty bit\nbut you don't\ngive a \ngive ahhh\nheh heh\nheh heh heh\nhe he heh\nto the left mate\nhe heh heh\nto the left mate\nit's the end of streams\noh gawd\nits the end\nof streams\n(laughter)\n(giggling)\n\n(girly bratty voice) oh god god\noh god god\nit's just\na little bit\njust a little bit\nlike an itty bit\ntake a \ngo on\ntake a hit\nhit hit hit, hit-hit-hit\njust a little\njust a bitty hit\nfeel the bliss\nyeah yeah\nfeel the bliss\nto the left mate\nhe heh heh\nto the left mate\nsurrender\nsurrender\njust a little bit\njust a little bit\nlike an itty bit\nheh heh heh",
@@ -62,6 +62,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.524Z",
-  "updated_at": "2025-07-19T16:22:01.524Z",
+  "updated_at": "2025-07-19T19:56:26.974Z",
   "labeling_complete": false
 }

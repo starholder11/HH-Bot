@@ -1,8 +1,8 @@
 {
   "id": "93f84d77-3a7e-4755-9884-24cb70899cf6",
   "filename": "Big City Now.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Big City Now.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Big City Now.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Big%2520City%2520Now.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Big%2520City%2520Now.mp3",
   "title": "Big City Now",
   "prompt": "heavy lovers dub, low languid horns, supercrunk chopped and screwed",
   "lyrics": "[Verse]\nmany years and\nmany moons ago\na patch of grass\nand dreams of you\nlaying out in morning dew\nsuch a smile is still \nbrings me now\nknowing that your\nstill around\nand I don't see you\nas much as I'd like\nbut that's just our\nlot in life\nwhat I know\nis what I feel\nthat's happy, happy to\nbe in your life\n[Chorus]\njust two kids\nfrom tumbledown\nliving free\nin the big city now",
@@ -57,6 +57,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.321Z",
-  "updated_at": "2025-07-19T16:22:01.321Z",
+  "updated_at": "2025-07-19T19:56:26.990Z",
   "labeling_complete": false
 }

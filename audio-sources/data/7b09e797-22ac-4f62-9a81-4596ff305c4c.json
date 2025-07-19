@@ -1,8 +1,8 @@
 {
   "id": "7b09e797-22ac-4f62-9a81-4596ff305c4c",
   "filename": "Madchester-6.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Madchester-6.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Madchester-6.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Madchester-6.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Madchester-6.mp3",
   "title": "Manchester-6",
   "prompt": "heroic acid madchester, baggy, big beat psychedelia",
   "lyrics": "[Introduction]\n[Sampled record featuring trumpets]\n((hissing record))\n[Deep french house vocal]\nIt's time to lose it love,\nIt's time to lose it love\n[Rolling baseline]\n[Acidhouse groove]\n[Downtempo female vocals]\nI know you want to be free baby\nI know you want out of the box\nIt's good here baby\nReal good here\nWalk with me me mee\n[Instrumental Bridge]\n[Repeater]\nIt's good here baby\nReal good here\nIt's good here baby\nReal good here\n[Guitar solo]\n[Sample from a film, female actress]\nI think I'm going under\ngoing under\ngoing under\n[Timestretch Bass Drop]\n[Chopped and Screwed track mixing]",
@@ -64,6 +64,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.656Z",
-  "updated_at": "2025-07-19T16:22:01.656Z",
+  "updated_at": "2025-07-19T19:56:26.987Z",
   "labeling_complete": false
 }

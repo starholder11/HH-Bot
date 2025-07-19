@@ -644,7 +644,7 @@ export default function AudioLabelingPage() {
                 {/* Audio Player */}
                 {selectedSong.cloudflare_url && (
                   <div className="mb-4">
-                    <audio controls className="w-full">
+                    <audio key={selectedSong.id} controls className="w-full">
                       {selectedSong.s3_url && (
                         <source src={encodePath(selectedSong.s3_url)} type="audio/mpeg" />
                       )}
@@ -744,11 +744,17 @@ export default function AudioLabelingPage() {
                       </span>
                       {(selectedSong.manual_labels.styles?.length > 0 || selectedSong.manual_labels.custom_styles?.length > 0) && (
                         <div className="text-xs text-gray-600 mt-1">
-                          <strong>Styles:</strong> {[
-                            ...(selectedSong.manual_labels.styles || []),
-                            ...(selectedSong.manual_labels.custom_styles || [])
-                          ].slice(0, 3).join(', ')}
-                          {[...(selectedSong.manual_labels.styles || []), ...(selectedSong.manual_labels.custom_styles || [])].length > 3 && '...'}
+                          <strong>Styles:</strong>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {[
+                              ...(selectedSong.manual_labels.styles || []),
+                              ...(selectedSong.manual_labels.custom_styles || [])
+                            ].map((style, index) => (
+                              <span key={index} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                {style}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -758,15 +764,22 @@ export default function AudioLabelingPage() {
                       </span>
                     </div>
                     <div>
-                      <strong>Mood:</strong> <span className="text-blue-700">
-                        {(() => {
-                          const allMoods = [
-                            ...(selectedSong.manual_labels.mood || []),
-                            ...(selectedSong.manual_labels.custom_moods || [])
-                          ];
-                          return allMoods.length > 0 ? allMoods.slice(0, 3).join(', ') : <em className="text-gray-400">Not set</em>;
-                        })()}
-                      </span>
+                      <strong>Mood:</strong>
+                      {(() => {
+                        const allMoods = [
+                          ...(selectedSong.manual_labels.mood || []),
+                          ...(selectedSong.manual_labels.custom_moods || [])
+                        ];
+                        return allMoods.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {allMoods.map((mood, index) => (
+                              <span key={index} className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                                {mood}
+                              </span>
+                            ))}
+                          </div>
+                        ) : <em className="text-gray-400">Not set</em>;
+                      })()}
                     </div>
                     <div>
                       <strong>Energy/Intensity/Tempo:</strong> <span className="text-red-700">
@@ -780,10 +793,14 @@ export default function AudioLabelingPage() {
                       ];
                       return allThemes.length > 0 && (
                         <div className="md:col-span-2">
-                          <strong>Themes:</strong> <span className="text-indigo-700">
-                            {allThemes.slice(0, 4).join(', ')}
-                            {allThemes.length > 4 && '...'}
-                          </span>
+                          <strong>Themes:</strong>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {allThemes.map((theme, index) => (
+                              <span key={index} className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
+                                {theme}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       );
                     })()}

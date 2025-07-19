@@ -1,8 +1,8 @@
 {
   "id": "d8b549f1-e42b-4141-bd8f-c27c1a2fd71a",
   "filename": "Alice Never Humbled.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Alice Never Humbled.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Alice Never Humbled.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Alice%2520Never%2520Humbled.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Alice%2520Never%2520Humbled.mp3",
   "title": "Alice Never Humbled",
   "prompt": "big beat, electro psychedelica, wave function, new romantic fuzzbox",
   "lyrics": "[Instrumental (sonic collage)]\n|~~~~~||~~~~~||~~~~~||~~~~~|\n|~~~~~||~~~~~||~~~~~||~~~~~|\n|~~~~~||~~~~~||~~~~~||~~~~~|\n|~~~~~||~~~~~||~~~~~||~~~~~|\n[Announcer (showroom voice)]\nDistinguished visitors from around the globe...the brightest minds...nobel prize runners up....shamanic researchers....para psychic astrologers....everyone is here to witness an epic confrontation between strategos maximus.\n\n[Pre-Verse (rising)]\nsweetie you are \nso saucer eyed\nhoney dripping bliss\nwords melting \noff your lips\ngentle euphoric waves\nechoing for days\nmy girl \nuntangling her life\nspooling out the lies\nputting them aside\ntruth is touching\nthere's gratitude in you\nquivering inside\nspilling out your mind\n\n[Chorus]\nWe're going places\nborderless beyonds\nlifting alongside\ngoing for the ride\n\n[Bridge]\nmelting down\ngiving in\nbutterscotch\nbubble past\nthe brim\n\n[Verse]\nThere's no sinning\nThere's no winning\nThere's no catches\nOr cheap clauses\nNo bad vibes\nto give us pauses\nonwards now\nwe hear the calling\ntumbling and falling\ninto the hole\nwe tumbled\nalice never humbled\nnothing else to do\nbut smile\nand melt with you\n\n[Chorus]\nWe're going places\nborderless beyonds\nlifting alongside\ngoing for the ride\n\n[Outro]\nTake me \nInside your mind\nTake me\nBehind the lines\nThat separate\nus from\nbecoming\nto the sweet\nhomecoming",
@@ -66,6 +66,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.300Z",
-  "updated_at": "2025-07-19T16:22:01.300Z",
+  "updated_at": "2025-07-19T19:56:27.063Z",
   "labeling_complete": false
 }

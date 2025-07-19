@@ -1,8 +1,8 @@
 {
   "id": "58bfee70-59c0-4e8c-ae4a-5fc3e48747b7",
   "filename": "Longing Commuters.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Longing Commuters.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Longing Commuters.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Longing%2520Commuters.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Longing%2520Commuters.mp3",
   "title": "Longing Commuters",
   "prompt": "new romantic, vaporwave, tokyo lounge music, chopped and screwed",
   "lyrics": "[Intro]\n\n[Pre-Verse]\nWeary Commuters\nEyeing each other\nLonging for better\nAlways longing\nMakes me think \nOf You\n\n[Verse (female torch)]\nWe used to smoke \nin the dining car\nThey had that minuet, \nit made me just melt\nTwo dry martinis, \nour hands wrapped around\n[Breathy Pause and Build]\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\n[Pre Verse]\nWhen you picked me \nup off the tracks\nPirouetting through the passengers\nForgetting our partners, \nforgetting our cares\n\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\n[Pre-Verse (breathy female lounge)] \nWeary Commuters\nEyeing each other\nLonging for better\nAlways longing\nMakes me think \nOf You\n\n[Verse (female torch)]\nWe used to smoke \nin the dining car\nThey had that minuet, \nit made me just melt\nTwo dry martinis, \nour hands wrapped around\n[Breathy Pause and Build]\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\n[Pre Verse (breathy female lounge)]\nWhen you picked me \nup off the tracks\nPirouetting through the passengers\nForgetting our partners, \nforgetting our cares\n\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\nThey had that minuet, \nit made me just melt\nTwo dry martinis, \nour hands wrapped around\n[Breathy Pause and Build]\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks\n\n[Pre Verse (breathy female lounge)]\nWhen you picked me \nup off the tracks\nPirouetting through the passengers\nForgetting our partners, \nforgetting our cares\n\n\n[Chorus]\nTell me you remember\nhow good we traveled\nAll the places I took you\nAs we thundered down the tracks",
@@ -59,6 +59,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.647Z",
-  "updated_at": "2025-07-19T16:22:01.647Z",
+  "updated_at": "2025-07-19T19:56:26.980Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "bf9d5c07-3d33-455b-8e75-4ba76deeb5d5",
   "filename": "INITIATE COMPUTE.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/INITIATE COMPUTE.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/INITIATE COMPUTE.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/INITIATE%2520COMPUTE.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/INITIATE%2520COMPUTE.mp3",
   "title": "Initiate Compute",
   "prompt": "psychedelic cyphersynth mass bending time, codeine power slop, gravitational glitch hop",
   "lyrics": "[Pre-Verse (psychadelic chanting)]\nzero zero three \n\n[Stop]\n[Break]\n[Instrumental (strings)]\n[Pre-Verse (psychadelic chanting)]\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\n[Chorus]\neliminate root\neliminate root\neliminate\n[Full Stop]\n[Cello solo]\n\n[Pre-Verse (psychadelic chanting)]\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\n\n[Bridge (scratching frenzy)]\n\n[Pre-Verse (psychadelic chanting)]\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\n\n[Chorus]\nzero zero three nine\nzero zero three nine\nzero zero three nine\ninitiate compute\nzero zero three nine\nzero zero three nine\nzero zero",
@@ -54,6 +54,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.623Z",
-  "updated_at": "2025-07-19T16:22:01.623Z",
+  "updated_at": "2025-07-19T19:56:27.059Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "67738976-698d-47f3-9115-42a27b81c1e1",
   "filename": "Days Piliing.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Days Piliing.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Days Piliing.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Days%2520Piliing.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Days%2520Piliing.mp3",
   "title": "Days Piliing",
   "prompt": "college rock space grunge elongated riffs, shoegazer, pulsing bass",
   "lyrics": "[Female Verse]\nand I want to know\ndid you ever feel for me\nin a way that makes up\nfor all the days left behind\npiling up on my desk\nand forgotten\n\n[Chorus]\nFelt cape\ncloaked in\ninsecurity\na nothing\nthat consumes\n\n[Chorus]\ncloaked in\ninsecurity\na nothing\nthat consumes\n\n[Verse]\nThere's somebody new\nOr have they been old?\nHow much is untold?\nI want to remember\na time of trust and love\nI want to remember \na time of trust and love\nBut that's all beside us\nCast off to the tides\nSuch a waste of time\nWanting you\nWanting you\nWanting you ooh ooh\n\n[Verse]\nBut that's all beside us\nCast off to the tides\nSuch a waste of time\nWanting you\nWanting you\nWanting you ooh ooh\n\n[Angry Chorus]\nI'm sidelined babe\nHave a fine time babe\nNothing to say babe?\nGo on, go on\nGet out get out\nGo on, go on,\nGet out, get out\n\n[Searing Guitar Solo]\n\n[Angry Chorus]\nI'm sidelined babe\nHave a fine time babe\nNothing to say babe?\nGo on, go on\nGet out get out\nGo on, go on,\nGet out, get out\n\n[End]",
@@ -67,6 +67,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.356Z",
-  "updated_at": "2025-07-19T16:22:01.356Z",
+  "updated_at": "2025-07-19T19:56:26.983Z",
   "labeling_complete": false
 }

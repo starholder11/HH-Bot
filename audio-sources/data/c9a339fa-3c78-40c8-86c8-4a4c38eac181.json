@@ -1,8 +1,8 @@
 {
   "id": "c9a339fa-3c78-40c8-86c8-4a4c38eac181",
   "filename": "INDEMNIFY ME ELMO.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/INDEMNIFY ME ELMO.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/INDEMNIFY ME ELMO.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/INDEMNIFY%2520ME%2520ELMO.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/INDEMNIFY%2520ME%2520ELMO.mp3",
   "title": "Indemnify Me Elmo",
   "prompt": "heroic spacerock, lush shoegazer, 90's folkdrone",
   "lyrics": "up there on the rooftop\njust past the balustrades\nstands the empress\nof the evening\nwith ravens in her hair\nshe calls out to the moonlight\nto sing a serenade\nbut the beams just\ngaze on back at her\nto shy to demonstrate\nso the crickets raise a clatter\nthey've gone on strike again\nthe grass ain't that sticky\nand the air has gotten thin\nI've falling out of origami\njust a plane upon the wind\naugust in its turbulence\nwishing for a friend\nand the ravens are all astronauts\nfrom the soviet cabal\nthere bolsheviks on mars you know\nthe shame of stalingrad\nbut the heaviest of derelicts\nfill the baskets of our farms\nso take a shot of whiskey\nand howl at the moment\nwe exist and that's complicit\nnothing else to do\nbernays can fix a deck\nand deal em as he likes\nshe's a bonaparte my cheri\nwho glistens and pretends\nvelveteen the rabbit\nhenrietta gold\necho of the footsteps\nbent upon the door\nin the barricaded sauna\nthey wear bermuda shorts \nindemnify me elmo\nthese things are forevermore\n\nvelveteen the rabbit\nharietta gold\naugust in its\nturbulence\njust waiting \non a friend \n[END]",
@@ -66,6 +66,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.620Z",
-  "updated_at": "2025-07-19T16:22:01.620Z",
+  "updated_at": "2025-07-19T19:56:27.061Z",
   "labeling_complete": false
 }

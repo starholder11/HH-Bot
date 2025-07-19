@@ -1,8 +1,8 @@
 {
   "id": "683a07ec-f09b-4a89-aa56-ed10c14e60c6",
   "filename": "CHNT1.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/CHNT1.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/CHNT1.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/CHNT1.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/CHNT1.mp3",
   "title": "CHNT1",
   "prompt": "acapella onomatopoeia accompanied by devotional orchestration",
   "lyrics": "[Bridge: (A slight increase in dynamics, indicating devotion and prayer)] Agnus De-i, Qui to-o-llis pec-ca-ta mundi, Miserere, Mi-i-se-rere nobis.\n\n[Verse 3: (Calm and contemplative atmosphere sustained)] Pax et bonum, Pacem re-li-inquit, Do-o-mini, Dom-i-ni vo-o-o-biscum.\n\n[Chorus: (The voices unite in clear harmony, reflecting the chant's liturgical character)] Ve-ni, Sa-ancte, Spi-i-ritus, Et e-mitte, Co-o-e-lite, Lumi-i-nare tuum.\n\n[Outro: (Voices gradually soften, returning to silence)] Amen, A-a-men, Aaaaa...",
@@ -56,6 +56,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.332Z",
-  "updated_at": "2025-07-19T16:22:01.332Z",
+  "updated_at": "2025-07-19T19:56:26.984Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "c97f46d2-af84-496e-adbb-e099c6de9f72",
   "filename": "Still Raw.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Still Raw.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Still Raw.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Still%2520Raw.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Still%2520Raw.mp3",
   "title": "Still Raw",
   "prompt": "intelligent dance torch music",
   "lyrics": "salted \na second too long,\n\nseasoned\nleft to shrivel\nin the wake\nof your tastes,\n\ntalk about me\nlike a piece of meat\nonce chewed\n\nI'm digested now\nyou'll be hungry again\n'cept there's nothing \nbut the bones\n\ndo I get a goodbye?\nscraps scattered\ncross fries\n\nthis is a diner song\npour the sugar\nstir the straw\nwash it down\n\nI'm still raw",
@@ -57,6 +57,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.717Z",
-  "updated_at": "2025-07-19T16:22:01.717Z",
+  "updated_at": "2025-07-19T19:56:27.061Z",
   "labeling_complete": false
 }

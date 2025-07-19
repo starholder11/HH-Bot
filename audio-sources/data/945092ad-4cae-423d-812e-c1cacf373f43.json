@@ -1,8 +1,8 @@
 {
   "id": "945092ad-4cae-423d-812e-c1cacf373f43",
   "filename": "We Work For Beavers Now.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/We Work For Beavers Now.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/We Work For Beavers Now.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/We%2520Work%2520For%2520Beavers%2520Now.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/We%2520Work%2520For%2520Beavers%2520Now.mp3",
   "title": "We Work For Beavers Now",
   "prompt": "loud quiet loud, guitar fuzz, folkdrone shoegazer, experimental bedroom recordings, rural psychedelica, space rock, dense layered sonics",
   "lyrics": "There was a mishap at the lab, last blood moon\nThe moths fell from the sky, crunched under feet for days\nWe boiled our water and waited for instructions\nThree days later a government train arrived\nThey positioned at the junction, halted traffic\nAfraid to enter the perimeter, sending drones instead\nWe made campfires, cooked hot dogs, drank coors\nIt was like being on holiday in your backyard, only quarantined\nInsurance cut everyone loose, policies were canceled \nAnd only then did the men in the hazmat suits approach\nGeiger counters clicking whirring, we just laughed and asked\nDid you go to college for this job? \nAre your wives nervous that you're here?\nHow good is hazard pay?\nThey cut benefits you know\nThis is an excluded zone now\nWe are stateless, can't serve anymore\nUncle Sam won't let us sign up\nYou know it's bad when the government\ndoesn't want you to kill for them anymore.\nBut the moths came back\nMillions upon millions of them\nSo did the deer and the bears\nSeems being outside everyone\nIs an attractive thing to animals\nSo we work for the beavers now\nBlocking off the water, keeping it for us\nWhen no one wants you there's a freedom\nMakes a person industrious\nHa ha, yeah we are pioneers plotting\nA takeover of the lab.\nLet's continue the work\nThey're all so scared of now.",
@@ -66,6 +66,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.765Z",
-  "updated_at": "2025-07-19T16:22:01.765Z",
+  "updated_at": "2025-07-19T19:56:26.996Z",
   "labeling_complete": false
 }

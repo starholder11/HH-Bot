@@ -1,8 +1,8 @@
 {
   "id": "635e4a4a-1810-4c80-96b1-23db22c5b7b5",
   "filename": "Chupacabra Kai.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Chupacabra Kai.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Chupacabra Kai.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Chupacabra%2520Kai.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Chupacabra%2520Kai.mp3",
   "title": "Chupacabra Kai",
   "prompt": "",
   "lyrics": "",
@@ -41,6 +41,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.348Z",
-  "updated_at": "2025-07-19T16:22:01.348Z",
+  "updated_at": "2025-07-19T19:56:26.983Z",
   "labeling_complete": false
 }

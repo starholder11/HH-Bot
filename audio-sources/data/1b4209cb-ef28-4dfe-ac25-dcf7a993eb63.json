@@ -1,8 +1,8 @@
 {
   "id": "1b4209cb-ef28-4dfe-ac25-dcf7a993eb63",
   "filename": "Anti Love Language.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Anti Love Language.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Anti Love Language.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Anti%2520Love%2520Language.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Anti%2520Love%2520Language.mp3",
   "title": "Anti Love Language",
   "prompt": "a chopped and screwed dub-influenced sub-bass treatment to music that fuses hypnotic Colombian cumbia and champeta rhythms with massive dub sub-bass drops, Layer organic percussion (hand drums, maracas) with crisp electronic beats, Add sparse, echo-drenched vocals floating in reverb clouds, Mix traditional Colombian instrumentation (accordion, gaita flutes) that suddenly dissolve into digital glitches, Maintain a danceable groove while experimental electronic elements create moments of beautiful disorientation, The result should feel like a tropical soundsystem broadcasting from the future",
   "lyrics": "[Pre-Verse (whispered longing)\nsafety is anti-love\nsafe words are \nanti-language\nlove is not safe\nuntil we are \nanti-language\n\n\n\n[Verse]\nup above it all and oh so lonely\ndisconnected from reality\nif only....why can't you call?\nwhy don't you write\nthis porch is a prison\nyou exiled me \nto a hill station\nin the cloud forests\nof Kampuchea \nI long for you\nIn the rainy season,\nmemories make due\nbut I need a reason\nto think you'll come back\n[Gunshot]\n[Sub bass dub drop]\n[Bridge: tempo shift selector riddim]\n[Dancehall Verse]\ntreacherous communications\ncutting us all down\nclandestine cells\ncompromised by spies\nsafe words are anti-language\nno one can speak plainly\nany thought I have of you\nmust be ciphered \nor they'll read me\nthen hunt you down\nI cannot live if love\nis just a point of leverage\nHow do I....\nFind my way back to you\n\n\n[Dub Echo]\n[Rimshots]\n[Immediate Genre Switch to hard ragga skanking]\n[Skanking tempo shift]\n[Sample]\n(sirens)\n\n[Verse (hard dancehall toasting)]\ntreacherous communications\ncutting us all down\nclandestine cells\ncompromised by spies\nsafe words are anti-language\nno one can speak plainly\nany thought I have of you\nmust be ciphered \nor they'll read me\nthen hunt you down\nI cannot live if love\nis just a point of leverage\nHow do I....\nFind my way back to you\n\n\n[Bridge (Skanking)]\n[Skank]\n[Skank]\n[Skank]\n[Skank]\n[Skank]\n[Sirens]\nWHOOO\nWHOOOOO\nPick it up,\n[Explosion]\n[Verse (hard dancehall toasting)]\ntreacherous communications\ncutting us all down\nclandestine cells\ncompromised by spies\nsafe words are anti-language\nno one can speak plainly\nany thought I have of you\nmust be ciphered \nor they'll read me\nthen hunt you down\nI cannot live if love\nis just a point of leverage\nHow do I....\nFind my way back to you\n\n\n[Pre-Verse]\nsafety is anti-love,\nsafe words are \nanti-language,\nlove is not safe,\nuntil we are \nanti-language.\n[End]",
@@ -71,6 +71,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.303Z",
-  "updated_at": "2025-07-19T16:22:01.303Z",
+  "updated_at": "2025-07-19T19:56:26.962Z",
   "labeling_complete": false
 }

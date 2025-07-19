@@ -1,8 +1,8 @@
 {
   "id": "d9f58761-1b47-4f46-adff-06cd2a8dbf76",
   "filename": "Heaven Burn.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Heaven Burn.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Heaven Burn.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Heaven%2520Burn.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Heaven%2520Burn.mp3",
   "title": "Heaven Burn",
   "prompt": "chopped and screwed, pitch change time stretch, disco drill downtempo, voix féminine, found sounds, wobble",
   "lyrics": "[Intro (plaintive singing)]\ngosh, the drip of rain\nkah plunk plunk plunks\nfilling the bucket\ndrop by drop\nand tomorrow\nwhen the sun comes out\nI'll pick the pail \nand carry it up\nto the garden\nof the gods\n\n[Chorus]\nI got heaven burn\nall up my arms, and\neyes peeled back\nready to bloom\nbut you always look away\n\n[Verse]\nShy boy, born too soon\nhardly noticed\nbut I, I see you\nwhen you don't see me\nand how?\ncan we pass apart\nnot even false starts\nsomething between us\nmeans nothing becomes us\n\n[Chorus]\nI try to live\nin the world \nas it is\ncuz the world\nI want to be\npains to think about\n\n[Pre-Verse]\nthe gaze of god\nburning into me\nall that can be seen\nexcept possibility\nof you and me\n\n[Instrumental (deep bass wobble)]\n[Announcer (sampled voice)]\nkah plunk plunk plunk\nboo hoo moo you\nall the thoughts\nfall down\nall the thoughts\nfall down\n[Bridge]\n[Pre-Verse]\nRain, rain, rain\nFalling all around me\nAnd the boy sits\nOn his porch\nUnable to see\nThat I'm his destiny",
@@ -63,6 +63,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.609Z",
-  "updated_at": "2025-07-19T16:22:01.609Z",
+  "updated_at": "2025-07-19T19:56:27.063Z",
   "labeling_complete": false
 }

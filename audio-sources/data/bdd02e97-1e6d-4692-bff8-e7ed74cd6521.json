@@ -1,8 +1,8 @@
 {
   "id": "bdd02e97-1e6d-4692-bff8-e7ed74cd6521",
   "filename": "Torch Physics.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Torch Physics.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Torch Physics.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Torch%2520Physics.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Torch%2520Physics.mp3",
   "title": "Torch Physics",
   "prompt": "acid hip hop, muscle car stomp, brazilian disco, jungle game show",
   "lyrics": "[Verse (torchy soulful house)]\nthere's a point at which \nyou warp space time baby, \nit's that relativity come true, \nthere's a point where \nthe gravitational well \nof your desires\ncrush me to bits,\nthat the black hole bruise on you, \nthere's a point at which \nentropy exhausts\n all the big bang set in motion,\nthat's what I see in you,\n oh baby you bend the laws of physics \nright around me yes you do\noh yes you do ooh ooh oooh\n\n\n[Verse (torchy soulful house)]\nthere's a point at which \nyou warp space time baby, \nit's that relativity come true, \nthere's a point where \nthe gravitational well \nof your desires\ncrush me to bits,\nthat the black hole bruise on you, \nthere's a point at which \nentropy exhausts\n all the big bang set in motion,\nthat's what I see in you,\n oh baby you bend the laws of physics \nright around me yes you do\noh yes you do ooh ooh oooh\n\n\n[Fuzzy Transmission]\n[Build]\n[Bass Drop]",
@@ -59,6 +59,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.741Z",
-  "updated_at": "2025-07-19T16:22:01.741Z",
+  "updated_at": "2025-07-19T19:56:27.049Z",
   "labeling_complete": false
 }

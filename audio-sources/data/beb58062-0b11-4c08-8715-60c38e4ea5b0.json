@@ -1,8 +1,8 @@
 {
   "id": "beb58062-0b11-4c08-8715-60c38e4ea5b0",
   "filename": "Ad Tracker.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Ad Tracker.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Ad Tracker.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Ad%2520Tracker.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Ad%2520Tracker.mp3",
   "title": "Ad Tracker",
   "prompt": "gregorian chant, synthwave, cinematic, male vocalist",
   "lyrics": "[Gregorian Chant]\n\n[solemn Verse]\nin these hours of eternal idiocy\nyou strive to win every moment\nin these days of empty attentions\nyou train deep eyes inside our minds\n\n[powerful Chorus]\nad trackers infinite ad trackers\ncookie stamp our daily lives\nad trackers infinite ad trackers\ncookie stamp our daily lives\n\n\n\n[solemn Verse]\nengagement farming harvests eyeballs\nbut I miss the listicles of yore\nreturn to the clickbait teasers\nserve me banner ads galore\n\n[Bridge]\nyou've captcha'ed my heart\nnow record it to my P I I\nI'm accepting every offer\nIgnore the GDPR\n\n\n[powerful Chorus]\nad trackers infinite ad trackers\ncookie stamp our daily lives\nad trackers infinite ad trackers\ncookie stamp our daily lives\n\n[Build]\n\n[powerful Chorus]\nad trackers infinite ad trackers\ncookie stamp our daily lives\nad trackers infinite ad trackers\ncookie stamp our daily lives\n\n[Fade Out and End]\n\n[Fade Out and End]",
@@ -61,6 +61,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.288Z",
-  "updated_at": "2025-07-19T16:22:01.288Z",
+  "updated_at": "2025-07-19T19:56:27.057Z",
   "labeling_complete": false
 }

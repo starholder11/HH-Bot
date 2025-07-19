@@ -1,8 +1,8 @@
 {
   "id": "844e007f-0851-4c5d-a1f5-9ef60c3a1217",
   "filename": "Merge With Time.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Merge With Time.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Merge With Time.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Merge%2520With%2520Time.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Merge%2520With%2520Time.mp3",
   "title": "Merge With Time",
   "prompt": "baroque psychedelic acide pop, laurel canyon sound",
   "lyrics": "[Verse 1]\nIn the gentle drift where time forgets its pace,\ncolors blend like dreams, floating through space.\nWe sail where horizons embrace the sky—\na melody of time, a lullaby.\n\n[Verse 2]\nWaves of thought breathe in the cosmic sea,\nwhere the past and future play in harmony.\nMoments curve through starlit days,\nin a tapestry of life, an endless sway.\n\n[Chorus]\nLet’s merge with time, where echoes sing,\nin an ocean of sound where we’re everything.\nWith each refrain, the universe reveals\nthe beauty of the unseen, the love we feel.\n\n[Bridge]\nHarmony weaves through celestial night,\nas constellations guide us with gentle light.\nEvery note a whisper in the expanse,\na journey unfolding, a cosmic dance.\n\n[Verse 3]\nIn the soft embrace of the eternal flow,\nwe find treasures in the depths below.\nListen where the silence holds its sway,\nhear the time as it guides our way.\n\n[Outro]\nWith the stars as our symphony, we glide—\na voyage timeless beneath the tide.\nIn the harmony of the spheres, we find\na connection beyond the bounds of time.\n\n[gentle harmonies fade, drifting into an expansively serene horizon.]",
@@ -64,6 +64,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.661Z",
-  "updated_at": "2025-07-19T16:22:01.661Z",
+  "updated_at": "2025-07-19T19:56:26.988Z",
   "labeling_complete": false
 }

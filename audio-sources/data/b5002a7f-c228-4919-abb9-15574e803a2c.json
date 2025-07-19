@@ -1,8 +1,8 @@
 {
   "id": "b5002a7f-c228-4919-abb9-15574e803a2c",
   "filename": "Whisper Hop.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Whisper Hop.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Whisper Hop.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Whisper%2520Hop.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Whisper%2520Hop.mp3",
   "title": "Whisper Hop",
   "prompt": "trip hop, minor notes, samples, fuzz, female vocals whispering over each other",
   "lyrics": "I believed that I believed in you\nnot cynically at all\nI'm in awe as I evolve\nYou are ocean sized\nAnd I am but a flutter on the moon\na flicker in the cosmos\n an echo in the ether\nBut people fade and I forget\nPeople fade and I forget\nThere's another side\nAnother side of me\nAnother side to you\nBut people fade\nand I forget",
@@ -53,6 +53,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.770Z",
-  "updated_at": "2025-07-19T16:22:01.770Z",
+  "updated_at": "2025-07-19T19:56:27.041Z",
   "labeling_complete": false
 }

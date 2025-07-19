@@ -1,8 +1,8 @@
 {
   "id": "0dbf8a51-8c05-4ae6-9596-98f56ea8ac18",
   "filename": "Fluffer Nutter.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Fluffer Nutter.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Fluffer Nutter.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Fluffer%2520Nutter.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Fluffer%2520Nutter.mp3",
   "title": "Fluffer Nutter",
   "prompt": "industrial rock, dubstep, haunted, musicbox, time stretch, tempo change, banger",
   "lyrics": "[Bass Drop]\n\n[Build]\n\n[Verse]\nShot in the belly with a slab of butter\nPinned down tight with a fluffer nutter\nThe ultra processor is churning my way\nThe ultra processor wants the final say\nGimme gimme gimme school lunch\nGimme gimme gimme that belly punch\n\n[Pre-chorus]\n\n\n[Verse]\nShot in the belly with a slab of butter\nPinned down tight with a fluffer nutter\nThe ultra processor is churning my way\nThe ultra processor wants the final say\nGimme gimme gimme school lunch\nGimme gimme gimme that belly punch\n\n[Pre-chorus]\nLactic Acid\nCoupon Killers\nPump Our Lips\nWith Sexy Fillers\n\n\n[Verse]\nShot in the belly with a slab of butter\nPinned down tight with a fluffer nutter\nThe ultra processor is churning my way\nThe ultra processor wants the final say\nGimme gimme gimme school lunch\nGimme gimme gimme that belly punch\n\n[Chorus]\nLactic Acid\nCoupon Killers\nPump Our Lips\nWith Sexy Fillers\n\n\n[End]",
@@ -62,6 +62,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.546Z",
-  "updated_at": "2025-07-19T16:22:01.546Z",
+  "updated_at": "2025-07-19T19:56:26.957Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "28703251-4144-4732-8093-677f28c9b456",
   "filename": "What We Do.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/What We Do.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/What We Do.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/What%2520We%2520Do.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/What%2520We%2520Do.mp3",
   "title": "What We Do",
   "prompt": "muscle car stomp, electro spycraft, camp reboot kick drum",
   "lyrics": "[instrumental  introduction (sleazy slow build)]\n|~~~~||~~~~||~~~~|[~~~~|\n|~~~~||~~~~||~~~~|[~~~~|\n|~~~~||~~~~||~~~~|[~~~~|\n|~~~~||~~~~||~~~~|[~~~~|\n\n[pre-verse (showroom voice)]\nmichigan mexico\njelly bean\nmichigan mexico\njelly bean\nreal scene\nwalk on\n\n[Verse (slow delivery)]\nhit me with the cool girl too slow\nstaring me down at the rodeo\nhip huggers high risers\npushing up the energy higher\ntalking about that A team buffalo\nhitting that grass as you put on a show\nwalking that walk talking that talk\nmaking all the young folks\nstop and gawk\n\n{Chorus]\nI'm walking\nwalking back\nwalking\nwalking back\nto you\nwhat we do\nyeah what we do\n\n[Verse (slow delivery)]\nthinking bout the good times\nand how you once rode up on me\nthat slow grind break my mind\nhit me with that every time\nwhat went wrong with us\ndidn't you tremble to my touch\ntoo much much to good\nwanting to take back that \nshoulda could\n\n[Bridge (dramatic build)]\n|~~~~||~~~~||~~~~|[~~~~|\n|~~~~||~~~~||~~~~|[~~~~|\n|~~~~||~~~~||~~~~|[~~~~|\n|~~~~||~~~~||~~~~|[~~~~|\n\n\n{Chorus]\nI'm walking\nwalking back\nwalking\nwalking back\nto you\nwhat we do\nyeah what we do",
@@ -55,6 +55,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.769Z",
-  "updated_at": "2025-07-19T16:22:01.769Z",
+  "updated_at": "2025-07-19T19:56:26.969Z",
   "labeling_complete": false
 }

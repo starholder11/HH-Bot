@@ -1,8 +1,8 @@
 {
   "id": "1d9fcc1d-7b61-48f4-adf9-3c16c31f669c",
   "filename": "On My Luck.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/On My Luck.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/On My Luck.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/On%2520My%2520Luck.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/On%2520My%2520Luck.mp3",
   "title": "On My Luck",
   "prompt": "",
   "lyrics": "On My Luck\n\nStarholder\nintelligent dance torch music\n– Show Summary\n\nAdd a Caption\nJune 22, 2025 at 11:34 PM\nv4.5\n\nhand me \nthat piece\nof the reef\nwe weren't\nsupposed\nto steal\n\nsmash it into\nthe mirror\npainted with\nthe virgin mother\n\nlet's discover\nhow it is to live\nwith the sky\ntwo feet overhead\n\ndid you miss me?\nand all the fated games\nthat are of no consequence\ntill their fatal\n\nI ranged around\nin rosy colored glasses\nthe world faded\nwarm and comfy\nas fall catalogs\n\neveryday \nwe walked the dog\nand twice a week\njuice at the mall\n\nthat was something\nbut of course it blew up\nup are just air bubbles\nbound to pop\n\nso dive on in\nyes dive on in\nwhile I'm down\non my luck",
@@ -51,6 +51,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.684Z",
-  "updated_at": "2025-07-19T16:22:01.684Z",
+  "updated_at": "2025-07-19T19:56:26.964Z",
   "labeling_complete": false
 }

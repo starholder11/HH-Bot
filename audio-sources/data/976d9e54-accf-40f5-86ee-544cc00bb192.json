@@ -1,8 +1,8 @@
 {
   "id": "976d9e54-accf-40f5-86ee-544cc00bb192",
   "filename": "Desert Demons.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Desert Demons.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Desert Demons.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Desert%2520Demons.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Desert%2520Demons.mp3",
   "title": "Desert Demons",
   "prompt": "acid thrash, nu industrial hip hop",
   "lyrics": "[Verse (snarl then flow on each line)]\nspeed night, lights across the desert sky\ndemon fight, anarcho worm exterminators\ntake flight, time to cast our fears aside\nand ride\nand ride\nride across the high desert\nsupersonic stealth destroyers\nfeel that hot boiling up\nrising as we launch across midnight\ncobalt crystal fury in our eyes\nvector sect assasins on the ride\nseeking out our targets\nto annihilate\ndecimate\nleaving no prisoners behind\ndestiny destruction's only might\n\n[Fast Chorus]\nDesert demons\nSalt flat heathens\nHellcore unleashed\nacross the night\n\n[Thrash Guitar Solot]\n\n[Verse]\nVector sect, Switchblade katana\nSliced neck, leave you in the sauna\nDisrespect, you don’t want no drama\nWe roll deep, legions in the posse\nStep aside, you can't stop our army\nCome correct, cuzzzzz\nThis the In laaaaand Empire\nThe In laaaaaand \nMoreno Valley talking to you\nMoreno Valley booming system\nMoreno Valley demon cleaners\n\n\n[Fast Chorus]\nDesert demons\nSalt flat heathens\nHellcore unleashed\nacross the night",
@@ -62,6 +62,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.375Z",
-  "updated_at": "2025-07-19T16:22:01.376Z",
+  "updated_at": "2025-07-19T19:56:27.005Z",
   "labeling_complete": false
 }

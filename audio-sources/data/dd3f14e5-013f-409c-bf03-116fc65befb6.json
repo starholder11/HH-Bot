@@ -1,8 +1,8 @@
 {
   "id": "dd3f14e5-013f-409c-bf03-116fc65befb6",
   "filename": "THEME FROM NET SOCIETY.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/THEME FROM NET SOCIETY.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/THEME FROM NET SOCIETY.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/THEME%2520FROM%2520NET%2520SOCIETY.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/THEME%2520FROM%2520NET%2520SOCIETY.mp3",
   "title": "Theme From Net Society",
   "prompt": "icy post punk, jerky boom bap, sleazy electro groove, heavy kink, 808 bass, post cowbell disco",
   "lyrics": "[Pre-Verse]\nAwe Awww Awwww, \nOooh ooh Oooh\nAwe Awww Awwww, \nOooh ooh oooh oooh ahhh\n\n[Instrumental]\n\n\n[Pre-verse ]\nNet Society\nThat's Tight\nNaw naw\nIt's nothing major\nJust Checking,\n All\nOur pagers\nThat's right.\n\\----\\\nCan I ask \na favor?\n\\-----\\\nFive stars,\nAnd save \nfor later\nGoodnight.\n\n[Chorus]\nNaw Naw\nSo refreshing, that's right\nNaw Naw\nGif compression alright\nNaw Naw\nMeme economy hype\nAwe Awww Awwww, \nOooh ooh Oooh\n\n[Short scuzzy guitar solo]\n\n[Pre-verse ]\nNet Society\nThat's Tight\nNet Society\nThat's Tight\n\n[Dubstep break]\n\n[Pre-Verse]\nAwe Awww Awwww, \nOooh ooh Oooh\nAwe Awww Awwww, \nOooh ooh Oooh\nNah nah nah na aahhh\nSo refreshing, that's right\nooh oooh oooh ahhh\n\n[closing verse ]\nNet Society\nThat's Tight\nNet Society\nThat's Tight\n\n[END}",
@@ -55,6 +55,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.723Z",
-  "updated_at": "2025-07-19T16:22:01.723Z",
+  "updated_at": "2025-07-19T19:56:27.064Z",
   "labeling_complete": false
 }

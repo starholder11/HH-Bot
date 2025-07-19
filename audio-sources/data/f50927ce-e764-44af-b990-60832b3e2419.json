@@ -1,8 +1,8 @@
 {
   "id": "f50927ce-e764-44af-b990-60832b3e2419",
   "filename": "Xannah Dew.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Xannah Dew.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Xannah Dew.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Xannah%2520Dew.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Xannah%2520Dew.mp3",
   "title": "Xannah Dew",
   "prompt": "acid yacht rock, rhodes electric piano, syrup pristine production, funkdoobie ballad",
   "lyrics": "<Verse>\nXannah dew what can I do?\nWhen you have control of me\nAll this time I had thought\nthat I bought \nwhat I copped\nbut you made a fool\nout of me\n\n<chorus>\nXannah dew, Xannah dew (ooh ooh)\nwhat can I do\nwhen you have\ncontrol over me?\n\n<verse>\nhow many times\nmust I be rugged?\nbefore I quit\nthis quick fix drug\nOh I got it bad bad baaad\nstrung out on\npump dot fun\njust rip and run\n\n<chorus>\nXannah dew, Xannah dew (ooh ooh)\nwhat can I do\nwhen you have\ncontrol over me?\n\n\n\n<verse>\nhow many times\nmust I be ruggd?\nbefore I quit\nthis quick fix drug\nOh I got it bad bad baaad\nstrung out on\npump dot fun\njust rip and run\n\n<chorus>\nXannah dew, Xannah dew (ooh ooh)\nwhat can I do\nwhen you have\ncontrol over me?\n\n<Verse>\nI'm jonesing hard\ngot hooked till\nI've lost my handle\nnow I'm addicted\nto those green candles\nmainlining liquidity pools\nI'm such a fool\n\n<chorus>\nXannah dew, Xannah dew (ooh ooh)\nwhat can I do\nwhen you have\ncontrol over me?\n\n<Verse>\nSometimes I think\nabout going back to my N F Tees\nbut those days are\nso far behind me\nNow I'm just\na trench lizard\nhoping to hit\njust one million X winner\n\n<chorus>\nXannah dew, Xannah dew (ooh ooh)\nwhat can I do\nwhen you have\ncontrol over me?\n\n[End]\n\n<END (finish song now)>",
@@ -57,6 +57,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.772Z",
-  "updated_at": "2025-07-19T16:22:01.772Z",
+  "updated_at": "2025-07-19T19:56:27.068Z",
   "labeling_complete": false
 }

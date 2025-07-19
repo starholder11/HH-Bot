@@ -1,8 +1,8 @@
 {
   "id": "42c02173-a9f0-402b-bdd8-e91a5984d1be",
   "filename": "Yes Based Yes.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Yes Based Yes.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Yes Based Yes.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Yes%2520Based%2520Yes.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Yes%2520Based%2520Yes.mp3",
   "title": "Yes Based Yes",
   "prompt": "schizo-optimism, choral dubstep, future IDM, acid hip hop, psychic neural flow, muscle car stomp",
   "lyrics": "[Female Club Vocals Pre-Chorus]\nYes Yes, \nYes Yes Yes\nComputer says Yes\nProtocol says Yes\nPillhead says Yes\nYes, Yes, Yes.\nMore yes. Always yes. \nTwo yesses yield more yes.\n\n[Build]\n\n[Female Anthemic Chorus]\nBased on what I can see, \nonce you become based \nyou only ever get more based. \nBased on what I can see, \nonce you become based \nyou only ever get more based. \n\n[Timestretch Drop]\n\n[Male Showroom Verse]\nhow based can you be?\nThere is no limit \nhow based can you be?\nThere is no limit \nhow based can you be?\nThere is no limit \n\n[Pause]\n\n[Female Anthemic Chorus]\nBased on what I can see, \nonce you become based \nyou only ever get more based. \nBased on what I can see, \nonce you become based \nyou only ever get more based. \n\n[Bridge]\n[Breakdown]\n\n[Male Commanding Verse]\nInfinite, unruggable liquidity.\nInfinite, unruggable liquidity.\nInfinite, unruggable liquidity.\nInfinite, unruggable liquidity.\n\n\n\n[Timestretch Bridge]\n\n[Female Verse] \nIf ever in doubt, yes. \nIf ever in doubt, yes. \nMore yes. Always yes. \nTwo yesses yield more yes.\nComputer says Yes\nProtocol says Yes\nPillhead says Yes\nYes Yes, \nYes Yes Yes\n\n[Male Showroom Verse]\nhow based you can be?\nThere is no limit \nhow based you can be?\nThere is no limit \n\n[Female Anthemic Chorus]\nBased on what I can see, \nonce you become based \nyou only ever get more based. \nBased on what I can see, \nonce you become based \nyou only ever get more based. \n\n\n[Fade and End]\n\n\n[Female Anthemic Chorus]\nBased on what I can see, \nonce you become based \nyou only ever get more based. \nBased on what I can see, \nonce you become based \nyou only ever get more based. \n[End]",
@@ -61,6 +61,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.773Z",
-  "updated_at": "2025-07-19T16:22:01.773Z",
+  "updated_at": "2025-07-19T19:56:26.976Z",
   "labeling_complete": false
 }

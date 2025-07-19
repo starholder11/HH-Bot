@@ -1,8 +1,8 @@
 {
   "id": "60df9c45-0e73-47c0-9edc-d2c360dae340",
   "filename": "Call Me.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Call Me.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Call Me.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Call%2520Me.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Call%2520Me.mp3",
   "title": "Call Me",
   "prompt": "barbiecore bimbo anthem, fast processed female vocal, bubblegum big beat energy",
   "lyrics": "call me\ncall me when I'm not at home\ncall me when I'm off my phone\ngone away\nfor the rest of my life\ngone to play\ngo find a new wife\ncause I got over things (other things)\non my mind\nI got other things (other things)\nthat you'd find hard to accept\nI got other things\nthat demand my respect\nso call me babes\nwhen I'm not at home\ncall me all the time\nwhen I'm off my phone\ncause I got other things (other things)\nto do with my time\n\n\ncall me\ncall me when I'm not at home\ncall me bitch when I'm off my phone\ngone away\nfor the rest of my life\ngone away\nfor the rest of my life\ngone to play\n\nso call me babes\nwhen I'm not at home\ncall me all the time\nwhen I'm off my phone\ncause I got other things \nto do with my time\n\n\nOh, the way we were, like pretty pictures in the frame\nStitched together, a beautiful memory that remains (remains, yeah)\nBut time moves on, and things change\nYet we'll always have those picture perfect days (oh-oh-oh)\n\nI got other things\nthat demand my respect\nso call me babes\nwhen I'm not at home\ncall me all the time\nwhen I'm off my phone\ncause I got other things (other things)\nto do with my time\n\n\ncall me when I'm not at home\ncall me bitch when I'm off my phone\ngone away\nfor the rest of my life\ngone away\nfor the rest of my life\ngone to play\n\nso call me babes\nwhen I'm not at home\ncall me all the time\nwhen I'm off my phone\ncause I got other things \nto do with my time\n......\n......\n.....\ntime (fade out)",
@@ -59,6 +59,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.340Z",
-  "updated_at": "2025-07-19T16:22:01.340Z",
+  "updated_at": "2025-07-19T19:56:26.982Z",
   "labeling_complete": false
 }
