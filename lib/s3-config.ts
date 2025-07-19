@@ -22,7 +22,7 @@ function getS3Client(): S3Client {
 
 // Helper function to get bucket name at runtime
 function getBucketName(): string {
-  const bucketName = process.env.S3_BUCKET_NAME;
+  const bucketName = process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET;
   if (!bucketName) {
     throw new Error('S3_BUCKET_NAME environment variable is not set');
   }
