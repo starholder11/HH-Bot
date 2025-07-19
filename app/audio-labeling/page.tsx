@@ -416,37 +416,76 @@ export default function AudioLabelingPage() {
     setUploadProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/audio-labeling/upload-song', {
+      // Step 1: Get presigned URL
+      setUploadProgress(10);
+      const presignedResponse = await fetch('/api/audio-labeling/upload-song/presigned-url', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          fileSize: file.size,
+          title: file.name.replace(/\.[^/.]+$/, '') // Remove extension for title check
+        }),
       });
 
-      const result = await response.json();
+      const presignedData = await presignedResponse.json();
 
-      if (response.ok) {
-        // Success! Refresh songs and select the new one
-        await loadSongs();
-        const updatedSongs = await fetch('/api/audio-labeling/songs').then(r => r.json());
-        setSongs(updatedSongs);
-
-        // Find and select the newly uploaded song
-        const newSong = updatedSongs.find((s: any) => s.id === result.song.id);
-        if (newSong) {
-          setSelectedSong(newSong);
-        }
-
-        setShowUploadModal(false);
-        setUploadProgress(100);
-      } else {
-        setUploadError(result.error || 'Upload failed');
+      if (!presignedResponse.ok) {
+        throw new Error(presignedData.error || 'Failed to get upload URL');
       }
+
+      // Step 2: Upload directly to S3
+      setUploadProgress(30);
+      const uploadResponse = await fetch(presignedData.uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': 'audio/mpeg',
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file to S3');
+      }
+
+      // Step 3: Complete the upload (extract metadata and create song entry)
+      setUploadProgress(80);
+      const completeResponse = await fetch('/api/audio-labeling/upload-song/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          s3Url: presignedData.s3Url,
+          cloudflareUrl: presignedData.cloudflareUrl,
+          key: presignedData.key,
+          originalFilename: file.name
+        }),
+      });
+
+      const completeData = await completeResponse.json();
+
+      if (!completeResponse.ok) {
+        throw new Error(completeData.error || 'Failed to complete upload');
+      }
+
+      // Step 4: Success! Refresh songs and select the new one
+      setUploadProgress(100);
+      await loadSongs();
+      const updatedSongs = await fetch('/api/audio-labeling/songs').then(r => r.json());
+      setSongs(updatedSongs);
+
+      // Find and select the newly uploaded song
+      const newSong = updatedSongs.find((s: any) => s.id === completeData.song.id);
+      if (newSong) {
+        setSelectedSong(newSong);
+      }
+
+      setShowUploadModal(false);
+
     } catch (error) {
       setUploadError(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 

@@ -1,58 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadAudioToS3, generateUniqueFilename } from '@/lib/s3-config';
-import { saveSong, listSongs } from '@/lib/song-storage';
+import { saveSong } from '@/lib/song-storage';
 import { extractMP3Metadata } from '@/lib/mp3-metadata';
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+import { getS3Client, getBucketName } from '@/lib/s3-config';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const { s3Url, cloudflareUrl, key, originalFilename } = await request.json();
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    if (!s3Url || !cloudflareUrl || !key || !originalFilename) {
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
-    // Validate file type
-    if (!file.type.includes('audio/mpeg') && !file.name.toLowerCase().endsWith('.mp3')) {
-      return NextResponse.json({ error: 'File must be an MP3' }, { status: 400 });
+    console.log('Completing upload for:', originalFilename, 'with key:', key);
+
+    // Download the file from S3 to extract metadata
+    const s3Client = getS3Client();
+    const bucketName = getBucketName();
+
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    });
+
+    // Get the file from S3
+    const response = await s3Client.send(getObjectCommand);
+    if (!response.Body) {
+      throw new Error('Failed to download file from S3 for metadata extraction');
     }
 
-    // Validate file size (100MB max)
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({
-        error: `File size exceeds 100MB limit. File is ${(file.size / 1024 / 1024).toFixed(1)}MB`
-      }, { status: 400 });
+    // Convert stream to buffer for metadata extraction
+    const chunks: Uint8Array[] = [];
+    const reader = response.Body.transformToWebStream().getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
     }
 
-    // Convert file to buffer for metadata extraction
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.concat(chunks);
 
     // Extract metadata from MP3
-    const metadata = await extractMP3Metadata(buffer, file.name);
+    const metadata = await extractMP3Metadata(buffer, originalFilename);
     console.log('Extracted metadata:', metadata);
-
-    // Check for duplicates by title
-    const existingSongs = await listSongs();
-    const duplicateTitle = existingSongs.find(song =>
-      song.title?.toLowerCase().trim() === metadata.title?.toLowerCase().trim()
-    );
-
-    if (duplicateTitle) {
-      return NextResponse.json({
-        error: `A song with the title "${metadata.title}" already exists`
-      }, { status: 409 });
-    }
-
-    // Upload MP3 to S3
-    const uniqueFilename = generateUniqueFilename(file.name);
-    console.log('Uploading to S3 with filename:', uniqueFilename);
-
-    const uploadResult = await uploadAudioToS3(file, uniqueFilename);
-    console.log('S3 upload result:', uploadResult);
 
     // Create new song JSON entry
     const songId = uuidv4();
@@ -60,9 +52,9 @@ export async function POST(request: NextRequest) {
 
     const songData = {
       id: songId,
-      filename: file.name,
-      s3_url: uploadResult.s3_url,
-      cloudflare_url: uploadResult.cloudflare_url,
+      filename: originalFilename,
+      s3_url: s3Url,
+      cloudflare_url: cloudflareUrl,
       title: metadata.title || 'Untitled',
       prompt: '',
       lyrics: '',
@@ -131,9 +123,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Upload completion error:', error);
     return NextResponse.json(
-      { error: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      { error: `Upload completion failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }
