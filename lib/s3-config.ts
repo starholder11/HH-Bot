@@ -29,7 +29,7 @@ function getBucketName(): string {
   return bucketName;
 }
 
-const CLOUDFLARE_DOMAIN = process.env.CLOUDFLARE_DOMAIN || 'cdn.yourdomain.com';
+const CLOUDFLARE_DOMAIN = process.env.CLOUDFLARE_DOMAIN || process.env.AWS_CLOUDFRONT_DOMAIN || 'cdn.yourdomain.com';
 
 export interface UploadResult {
   s3_url: string;
