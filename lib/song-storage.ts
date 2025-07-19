@@ -11,7 +11,7 @@ const isProd = process.env.NODE_ENV === 'production';
 // We attempt S3 operations whenever a bucket name is present. Credentials can
 // come from env vars, shared credentials file, or IAM role. If any S3 request
 // fails due to auth/problem we gracefully fall back to local files.
-const hasBucket = !!process.env.S3_BUCKET_NAME;
+const hasBucket = !!(process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET);
 
 function streamToString(stream: Readable): Promise<string> {
   return new Promise((resolve, reject) => {
