@@ -80,8 +80,8 @@ export async function getSong(id: string): Promise<any | null> {
       const body = await streamToString(obj.Body as Readable);
       return JSON.parse(body);
     } catch (err: any) {
-      if (err?.$metadata?.httpStatusCode === 404) return null;
-      console.warn('getSong: falling back to local due to', err?.name || err);
+      // Log and fall back to local filesystem for ANY failure (including 404)
+      console.warn('getSong: S3 fetch failed, falling back to local', err?.name || err);
     }
   }
 
