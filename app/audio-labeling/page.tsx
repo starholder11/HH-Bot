@@ -418,7 +418,7 @@ export default function AudioLabelingPage() {
     try {
       // Step 1: Get presigned URL
       setUploadProgress(10);
-      const presignedResponse = await fetch('/api/audio-labeling/upload-song/presigned-url', {
+      const presignedResponse = await fetch('/api/audio-labeling/presigned-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -450,7 +450,7 @@ export default function AudioLabelingPage() {
 
       // Step 3: Complete the upload (extract metadata and create song entry)
       setUploadProgress(80);
-      const completeResponse = await fetch('/api/audio-labeling/upload-song/complete', {
+      const completeResponse = await fetch('/api/audio-labeling/upload-complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
