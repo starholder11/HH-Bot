@@ -96,7 +96,7 @@ export default function AudioLabelingPage() {
 
   // Filtered songs based on search and filters
   const filteredSongs = useMemo(() => {
-    return songs.filter(song => {
+    const visible = songs.filter(song => {
       const matchesSearch = !searchTerm ||
         song.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         song.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -113,6 +113,13 @@ export default function AudioLabelingPage() {
       const matchesComplete = !showCompleteOnly || song.labeling_complete;
 
       return matchesSearch && matchesGenre && matchesMood && matchesComplete;
+    });
+
+    // Alphabetical sort by title fallback filename
+    return visible.sort((a, b) => {
+      const aName = (a.title || a.filename).toLowerCase();
+      const bName = (b.title || b.filename).toLowerCase();
+      return aName.localeCompare(bName);
     });
   }, [songs, searchTerm, genreFilter, moodFilter, showCompleteOnly]);
 
@@ -550,17 +557,23 @@ export default function AudioLabelingPage() {
                       return null;
                     })()}
                     {selectedSong.cover_art ? (
+                      (() => {
+                        const cf = selectedSong.cover_art.cloudflare_url;
+                        const s3 = selectedSong.cover_art.s3_url;
+                        const imgSrc = cf && !cf.includes('your-bucket') ? `${cf}?v=${Date.now()}` : s3;
+                        return (
                       <div className="relative group">
                         <img
-                          src={`${selectedSong.cover_art.cloudflare_url}?v=${Date.now()}`}
+                          src={imgSrc}
                           alt="Cover art"
                           className="w-32 h-32 object-cover rounded-lg shadow-md"
                           onLoad={() => console.log('Cover art loaded successfully')}
                           onError={(e) => {
-                            console.error('Cover art failed to load:', {
-                              src: e.currentTarget.src,
-                              error: e
-                            });
+                            if (imgSrc !== s3) {
+                              (e.currentTarget as HTMLImageElement).src = s3;
+                            } else {
+                              console.error('Cover art failed to load from both sources', e);
+                            }
                           }}
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 rounded-lg flex items-center justify-center">
@@ -579,6 +592,8 @@ export default function AudioLabelingPage() {
                           </label>
                         </div>
                       </div>
+                        );
+                      })()
                     ) : (
                       <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
                         <label className="cursor-pointer text-center text-gray-500 hover:text-gray-700">
