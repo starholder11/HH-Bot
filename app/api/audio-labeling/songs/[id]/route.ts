@@ -87,8 +87,9 @@ export async function PATCH(
     return NextResponse.json(songData);
   } catch (error) {
     console.error('Error updating song:', error);
+    const message = (error as Error)?.message || 'Failed to update song';
     return NextResponse.json(
-      { error: 'Failed to update song' },
+      { error: message },
       { status: 500 }
     );
   }

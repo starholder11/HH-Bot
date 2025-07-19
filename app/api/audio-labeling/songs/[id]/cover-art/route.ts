@@ -52,8 +52,9 @@ export async function POST(
 
   } catch (error) {
     console.error('Error uploading cover art:', error);
+    const message = (error as Error)?.message || 'Failed to upload cover art';
     return NextResponse.json(
-      { error: 'Failed to upload cover art' },
+      { error: message },
       { status: 500 }
     );
   }
