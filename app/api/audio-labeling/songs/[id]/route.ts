@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { getSong, saveSong } from '@/lib/song-storage';
 
 export async function GET(
   request: NextRequest,
@@ -8,20 +7,13 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const dataDir = path.join(process.cwd(), 'audio-sources', 'data');
-    const filePath = path.join(dataDir, `${id}.json`);
-
-    try {
-      await fs.access(filePath);
-    } catch (error) {
+    const songData = await getSong(id);
+    if (!songData) {
       return NextResponse.json(
         { error: 'Song not found' },
         { status: 404 }
       );
     }
-
-    const content = await fs.readFile(filePath, 'utf-8');
-    const songData = JSON.parse(content);
 
     return NextResponse.json(songData);
   } catch (error) {
@@ -41,20 +33,13 @@ export async function PATCH(
     const { id } = params;
     const updates = await request.json();
 
-    const dataDir = path.join(process.cwd(), 'audio-sources', 'data');
-    const filePath = path.join(dataDir, `${id}.json`);
-
-    try {
-      await fs.access(filePath);
-    } catch (error) {
+    const songData = await getSong(id);
+    if (!songData) {
       return NextResponse.json(
         { error: 'Song not found' },
         { status: 404 }
       );
     }
-
-    const content = await fs.readFile(filePath, 'utf-8');
-    const songData = JSON.parse(content);
 
     // Update manual labels
     if (updates.manual_labels) {
@@ -97,7 +82,7 @@ export async function PATCH(
 
     songData.labeling_complete = hasBasicLabels && hasStyles && hasMoods && hasThemes;
 
-    await fs.writeFile(filePath, JSON.stringify(songData, null, 2));
+    await saveSong(id, songData);
 
     return NextResponse.json(songData);
   } catch (error) {

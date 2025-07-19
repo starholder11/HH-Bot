@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs/promises';
 import path from 'path';
 import { uploadAudioToS3, generateUniqueFilename } from '@/lib/s3-config';
+import { saveSong } from '@/lib/song-storage';
 
 interface LyricsData {
   title?: string;
@@ -168,14 +168,6 @@ export async function POST(request: NextRequest) {
     const txtFiles = files.filter(file => file.name.endsWith('.txt'));
 
     const results = [];
-    const dataDir = path.join(process.cwd(), 'audio-sources', 'data');
-
-    // Ensure data directory exists
-    try {
-      await fs.mkdir(dataDir, { recursive: true });
-    } catch (error) {
-      // Directory might already exist
-    }
 
     // Process file pairs
     for (const mp3File of mp3Files) {
@@ -226,12 +218,8 @@ export async function POST(request: NextRequest) {
           labeling_complete: false
         };
 
-        // Save to local JSON file (in production, save to database)
-        const filename = `${songData.id}.json`;
-        await fs.writeFile(
-          path.join(dataDir, filename),
-          JSON.stringify(songData, null, 2)
-        );
+        // Persist song JSON
+        await saveSong(songData.id, songData);
 
         results.push(songData);
 

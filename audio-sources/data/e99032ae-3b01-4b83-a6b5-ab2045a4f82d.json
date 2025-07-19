@@ -46,10 +46,12 @@
       "Chaotic"
     ],
     "themes": [
-      "Reality Distortion"
+      "Reality Distortion",
+      "Mental Health",
+      "Information Overload"
     ],
     "tempo": 8,
-    "vocals": "female",
+    "vocals": "both",
     "language": "english",
     "explicit": false,
     "instrumental": false,
@@ -58,7 +60,7 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.780Z",
-  "updated_at": "2025-07-19T16:29:33.428Z",
+  "updated_at": "2025-07-19T16:50:57.749Z",
   "labeling_complete": true,
   "cover_art": {
     "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/cover-art/e99032ae-3b01-4b83-a6b5-ab2045a4f82d.png",

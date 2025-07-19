@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
 import { uploadCoverArtToS3 } from '@/lib/s3-config';
+import { getSong, saveSong } from '@/lib/song-storage';
 
 export async function POST(
   request: NextRequest,
@@ -27,22 +26,14 @@ export async function POST(
       );
     }
 
-    const dataDir = path.join(process.cwd(), 'audio-sources', 'data');
-    const filePath = path.join(dataDir, `${id}.json`);
-
-    // Check if song exists
-    try {
-      await fs.access(filePath);
-    } catch (error) {
+    // Load existing song data
+    const songData = await getSong(id);
+    if (!songData) {
       return NextResponse.json(
         { error: 'Song not found' },
         { status: 404 }
       );
     }
-
-    // Read existing song data
-    const content = await fs.readFile(filePath, 'utf-8');
-    const songData = JSON.parse(content);
 
     // Upload cover art to S3
     const coverArtResult = await uploadCoverArtToS3(coverArtFile, id);
@@ -51,8 +42,8 @@ export async function POST(
     songData.cover_art = coverArtResult;
     songData.updated_at = new Date().toISOString();
 
-    // Write updated data back to file
-    await fs.writeFile(filePath, JSON.stringify(songData, null, 2));
+    // Persist
+    await saveSong(id, songData);
 
     return NextResponse.json({
       success: true,

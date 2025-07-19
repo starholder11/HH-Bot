@@ -3,12 +3,20 @@ import { Upload } from '@aws-sdk/lib-storage';
 
 // Helper function to get S3 client at runtime
 function getS3Client(): S3Client {
+  const credsProvided = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
   return new S3Client({
     region: process.env.AWS_REGION || 'us-east-1',
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
+    // Only pass an explicit credentials object if both variables are defined.
+    // Otherwise rely on the AWS SDK default provider chain (shared credentials
+    // file, IAM role, etc.).
+    ...(credsProvided
+      ? {
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+          },
+        }
+      : {}),
   });
 }
 
@@ -157,3 +165,5 @@ export function generateUniqueFilename(originalName: string): string {
 
   return `audio/${timestamp}-${randomSuffix}-${baseName}.${extension}`;
 }
+
+export { getS3Client, getBucketName };
