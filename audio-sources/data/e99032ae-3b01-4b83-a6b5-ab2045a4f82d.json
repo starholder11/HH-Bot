@@ -36,17 +36,20 @@
     "styles": [
       "Electro"
     ],
-    "energy_level": 5,
-    "emotional_intensity": 5,
+    "energy_level": 9,
+    "emotional_intensity": 8,
     "mood": [
       "Aggressive",
       "Violent",
       "Uplifting",
-      "Raw"
+      "Raw",
+      "Chaotic"
     ],
-    "themes": [],
-    "tempo": 5,
-    "vocals": "both",
+    "themes": [
+      "Reality Distortion"
+    ],
+    "tempo": 8,
+    "vocals": "female",
     "language": "english",
     "explicit": false,
     "instrumental": false,
@@ -55,6 +58,11 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.780Z",
-  "updated_at": "2025-07-19T16:22:01.780Z",
-  "labeling_complete": false
+  "updated_at": "2025-07-19T16:29:33.428Z",
+  "labeling_complete": true,
+  "cover_art": {
+    "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/cover-art/e99032ae-3b01-4b83-a6b5-ab2045a4f82d.png",
+    "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/cover-art/e99032ae-3b01-4b83-a6b5-ab2045a4f82d.png",
+    "key": "cover-art/e99032ae-3b01-4b83-a6b5-ab2045a4f82d.png"
+  }
 }
