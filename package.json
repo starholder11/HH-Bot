@@ -11,6 +11,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.842.0",
     "@aws-sdk/lib-storage": "^3.842.0",
+    "@aws-sdk/s3-request-presigner": "^3.848.0",
     "@keystatic/core": "^0.5.47",
     "@keystatic/next": "^5.0.4",
     "@octokit/rest": "^22.0.0",
