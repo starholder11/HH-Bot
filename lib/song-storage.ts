@@ -7,6 +7,7 @@ import { getS3Client, getBucketName } from './s3-config';
 // Prefix inside the bucket where song JSON files will live.
 const PREFIX = process.env.SONG_DATA_PREFIX || 'audio-labeling/data/';
 
+const isProd = process.env.NODE_ENV === 'production';
 // We attempt S3 operations whenever a bucket name is present. Credentials can
 // come from env vars, shared credentials file, or IAM role. If any S3 request
 // fails due to auth/problem we gracefully fall back to local files.
@@ -115,7 +116,7 @@ export async function saveSong(id: string, data: any): Promise<void> {
     } catch (err) {
       console.error('saveSong: S3 write failed', err);
       // If running in a read-only environment (e.g., Vercel), rethrow so caller returns 500
-      if (process.env.VERCEL) {
+      if (isProd) {
         throw err;
       }
       console.warn('saveSong: falling back to local file write');
