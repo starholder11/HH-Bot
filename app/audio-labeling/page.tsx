@@ -107,6 +107,11 @@ export default function AudioLabelingPage() {
   const [tempPrompt, setTempPrompt] = useState('');
   const [tempLyrics, setTempLyrics] = useState('');
 
+  // Upload state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState('');
+
   // Enhanced form options
   const primaryGenreOptions = Object.keys(COMPREHENSIVE_GENRES);
   // Deduplicate styles across genres to avoid duplicate React keys
@@ -401,6 +406,58 @@ export default function AudioLabelingPage() {
     );
   };
 
+  // Upload functions
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError('');
+    setUploadProgress(0);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/audio-labeling/upload-song', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Success! Refresh songs and select the new one
+        await loadSongs();
+        const updatedSongs = await fetch('/api/audio-labeling/songs').then(r => r.json());
+        setSongs(updatedSongs);
+
+        // Find and select the newly uploaded song
+        const newSong = updatedSongs.find((s: any) => s.id === result.song.id);
+        if (newSong) {
+          setSelectedSong(newSong);
+        }
+
+        setShowUploadModal(false);
+        setUploadProgress(100);
+      } else {
+        setUploadError(result.error || 'Upload failed');
+      }
+    } catch (error) {
+      setUploadError(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const closeUploadModal = () => {
+    if (!isUploading) {
+      setShowUploadModal(false);
+      setUploadError('');
+      setUploadProgress(0);
+    }
+  };
+
   if (songs.length === 0) {
     return (
       <div className="container mx-auto p-6">
@@ -478,8 +535,16 @@ export default function AudioLabelingPage() {
         <div className="lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Songs ({filteredSongs.length}/{songs.length})</h2>
-            <div className="text-sm text-gray-500">
-              {songs.filter(s => s.labeling_complete).length} complete
+            <div className="flex items-center space-x-2">
+              <div className="text-sm text-gray-500">
+                {songs.filter(s => s.labeling_complete).length} complete
+              </div>
+              <Button
+                onClick={() => setShowUploadModal(true)}
+                className={`px-3 py-1 text-sm ${isUploading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                {isUploading ? 'Uploading...' : '+ Upload'}
+              </Button>
             </div>
           </div>
 
@@ -1152,6 +1217,65 @@ export default function AudioLabelingPage() {
           )}
         </div>
       </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={isUploading ? undefined : closeUploadModal}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold mb-4">Upload New Song</h3>
+
+            {uploadError && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {uploadError}
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select MP3 File (Max 100MB)
+              </label>
+              <input
+                type="file"
+                accept=".mp3,audio/mpeg"
+                onChange={handleFileSelect}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+                disabled={isUploading}
+              />
+            </div>
+
+            {isUploading && (
+              <div className="mb-4">
+                <div className="text-sm text-gray-600 mb-2">Uploading...</div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex space-x-3">
+              <Button
+                onClick={closeUploadModal}
+                className={`flex-1 px-4 py-2 text-white ${
+                  isUploading
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gray-500 hover:bg-gray-600'
+                }`}
+              >
+                {isUploading ? 'Uploading...' : 'Cancel'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
