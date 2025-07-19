@@ -645,10 +645,10 @@ export default function AudioLabelingPage() {
                 {selectedSong.cloudflare_url && (
                   <div className="mb-4">
                     <audio controls className="w-full">
-                      <source src={encodePath(selectedSong.cloudflare_url)} type="audio/mpeg" />
                       {selectedSong.s3_url && (
-                        <source src={selectedSong.s3_url} type="audio/mpeg" />
+                        <source src={encodePath(selectedSong.s3_url)} type="audio/mpeg" />
                       )}
+                      <source src={encodePath(selectedSong.cloudflare_url)} type="audio/mpeg" />
                       Your browser does not support the audio element.
                     </audio>
                   </div>
