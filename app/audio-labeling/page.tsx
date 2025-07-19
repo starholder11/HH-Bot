@@ -57,12 +57,18 @@ interface SongData {
   labeling_complete: boolean;
 }
 
+const CDN_DOMAIN = process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN || process.env.NEXT_PUBLIC_CDN || 'cdn.yourdomain.com';
+
 function encodePath(url: string) {
   try {
     const u = new URL(url);
+    // replace placeholder domain
+    if (u.hostname === 'cdn.yourdomain.com' && CDN_DOMAIN) {
+      u.hostname = CDN_DOMAIN;
+    }
     // If already percent-encoded, leave as-is
     if (/%[0-9A-Fa-f]{2}/.test(u.pathname)) {
-      return url;
+      return u.toString();
     }
     u.pathname = u.pathname
       .split('/')
@@ -640,6 +646,9 @@ export default function AudioLabelingPage() {
                   <div className="mb-4">
                     <audio controls className="w-full">
                       <source src={encodePath(selectedSong.cloudflare_url)} type="audio/mpeg" />
+                      {selectedSong.s3_url && (
+                        <source src={selectedSong.s3_url} type="audio/mpeg" />
+                      )}
                       Your browser does not support the audio element.
                     </audio>
                   </div>
