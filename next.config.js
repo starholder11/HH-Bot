@@ -20,6 +20,7 @@ const nextConfig = {
     AWS_REGION: process.env.AWS_REGION,
     S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
     CLOUDFLARE_DOMAIN: process.env.CLOUDFLARE_DOMAIN,
+    NEXT_PUBLIC_CDN: process.env.AWS_CLOUDFRONT_DOMAIN,
   },
   experimental: {
     serverComponentsExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/lib-storage'],
