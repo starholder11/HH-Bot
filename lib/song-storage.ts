@@ -32,15 +32,15 @@ export async function listSongs(): Promise<any[]> {
       );
       if (!objects.Contents) throw new Error('No objects');
       const songs: any[] = [];
-      for (const obj of objects.Contents) {
-        if (!obj.Key || !obj.Key.endsWith('.json')) continue;
-        const id = obj.Key.slice(PREFIX.length, -5);
-        try {
-          const song = await getSong(id);
-          if (song) songs.push(song);
-        } catch (err) {
-          console.error('Error loading song', obj.Key, err);
-        }
+      const keys = objects.Contents.map(c=>c.Key).filter(k=>k&&k.endsWith('.json')) as string[];
+      const concurrency = 20;
+      for (let i=0;i<keys.length;i+=concurrency){
+        const slice = keys.slice(i,i+concurrency);
+        const batch = await Promise.all(slice.map(async key=>{
+          const id = key.slice(PREFIX.length,-5);
+          try {return await getSong(id);}catch{return null;}
+        }));
+        batch.forEach(s=>{if(s) songs.push(s);} );
       }
       songs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       return songs;
