@@ -1,8 +1,8 @@
 {
   "id": "fb7c1da5-926f-43b3-98c1-644f3574d1a7",
   "filename": "Torus.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Torus.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Torus.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Torus.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Torus.mp3",
   "title": "Torus",
   "prompt": "machete lunchbox, kung fu beats, future physics hip hop",
   "lyrics": "[Verse (With a non-traditional, off-kilter rhythm)]\nCheck it, I'm navigating these circular paths, Geometry's crafting the maps, We're talking surfaces spun like records on laps, These intricate shapes loopholed without traps.\n\nTorus the concept, a circular boss, Revolving around without a care for the loss, Dimensional shifts, got the full revolution, A sphere looking back, like a mirror's illusion.\n\nInner tubes floating, swim rings in summer's heat, Torus imitated in the sweets that we eat, Donuts and bagels, got the hole in the center, The physics of pastries, toroidal mentor.\n\nI'm twisting through topologies, wild contortions, Clifford in the mix, 4D distortions, Square toroidal, hypercubic connections, The shapes keep flipping, perpetual reflections.\n\n[Verse]\nCheck it, I'm navigating these circular paths, Geometry's crafting the maps, We're talking surfaces spun like records on laps, These intricate shapes loopholed without traps.\nTorus the concept, a circular boss, Revolving around without a care for the loss, Dimensional shifts, got the full revolution, A sphere looking back, like a mirror's illusion.\nInner tubes floating, swim rings in summer's heat, Torus imitated in the sweets that we eat, Donuts and bagels, got the hole in the center, The physics of pastries, toroidal mentor.\nI'm twisting through topologies, wild contortions, Clifford in the mix, 4D distortions, Square toroidal, hypercubic connections, The shapes keep flipping, perpetual reflections.",
@@ -63,6 +63,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.744Z",
-  "updated_at": "2025-07-19T16:22:01.744Z",
+  "updated_at": "2025-07-19T19:56:27.070Z",
   "labeling_complete": false
 }

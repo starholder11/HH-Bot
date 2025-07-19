@@ -1,8 +1,8 @@
 {
   "id": "ed06b324-21c7-4963-9a45-427884b20789",
   "filename": "Cloak And Dagger.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Cloak And Dagger.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Cloak And Dagger.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Cloak%2520And%2520Dagger.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Cloak%2520And%2520Dagger.mp3",
   "title": "Cloak And Dagger",
   "prompt": "big beat rave, electro house, driving tempo, 180 bpm",
   "lyrics": "[<boom><boom><boom>]\n[Announcer (sampled voice)]\nI'm gonna turn it up\ngonna turn it up\n[<sirens><sirens><sirens>]\n[Announcer (sampled voice)]\nI'm gonna turn it up\ngonna turn it up\n[Drumming <boom><boom><boom>]\n[Announcer (sampled voice)]\nBurn like fire\nBurn like fire\nBurn Burn\nlike fire\nBurn Burn\n[Driving Tempo <drop beat>]\n[Verse]\nIn the house of shadows\nPlaying cloak and dagger\nStagger Lee\nOh Stagger Lee\n[Announcer (sampled voice)]\nI'm gonna turn it up\ngonna turn it up\n[Verse]\nIn the house of shadows\nPlaying cloak and dagger\nCome and Dance\nWith Me\nDance With Me\n[Announcer (sampled voice)]\nI'm gonna turn it up\ngonna turn it up\n[Bridge (instrumental)]",
@@ -59,6 +59,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.351Z",
-  "updated_at": "2025-07-19T16:22:01.351Z",
+  "updated_at": "2025-07-19T19:56:27.067Z",
   "labeling_complete": false
 }

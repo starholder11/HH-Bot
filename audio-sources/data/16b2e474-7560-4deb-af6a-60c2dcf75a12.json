@@ -1,8 +1,8 @@
 {
   "id": "16b2e474-7560-4deb-af6a-60c2dcf75a12",
   "filename": "Green Sahara.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Green Sahara.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Green Sahara.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Green%2520Sahara.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Green%2520Sahara.mp3",
   "title": "Green Sahara",
   "prompt": "infinite ambience, celestial drone, stock 909 beat, sufi psych violins, low-fi eschatology, simulacra samples",
   "lyrics": "[Instrumental (arabesque space rock)]\n[Pre-Verse]\nSainted pilot on the desert stars\nSainted pilot wandering very far\nAcross the night desert\nCarrying love letters\nAcross the night desert\nHe with no betters\n[Verse]\nHoopoe herald leading thirty birds\nThrough seven valleys, sacred words\nMystic valleys burning bright\nValley of love's infinite flight\nThrough the desert of unknowing\nWhere the simurgh's truth is showing\n\n\n[Verse]\ncall me \nwhisper on the wind\noffered by \nthe desert djinn\nI'll promise you the night\nI'll promise my delights\nbut the offer\nwon't ring true\nthere's a hollow in the night\na shiver and a fright\nas we tumble over dunes\nfalling out of tune\nand I'm sacred as I'm free\nlost in captured history\nit's hard enough\nwithout the memory\nof you\nit's hard enough\nwithout the memory\nof you\nleave me\nin the green sahara\nsah har ahhhh\nsah har ahhhh\n[Fade]\n[End]",
@@ -63,6 +63,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.594Z",
-  "updated_at": "2025-07-19T16:22:01.594Z",
+  "updated_at": "2025-07-19T19:56:26.961Z",
   "labeling_complete": false
 }

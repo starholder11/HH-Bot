@@ -1,8 +1,8 @@
 {
   "id": "c8f0d026-2540-4e2e-9db4-512cc55b8c30",
   "filename": "Deliver Me Elsewhere.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Deliver Me Elsewhere.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Deliver Me Elsewhere.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Deliver%2520Me%2520Elsewhere.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Deliver%2520Me%2520Elsewhere.mp3",
   "title": "Deliver Me Elsewhere",
   "prompt": "deconstructed guitar drone, wall of feedback, layered female vocals, seed 101189789",
   "lyrics": "[Instrumental  (monster guitar hook)]\nthere's a parish dance on friday\nin the basement of the church\nwill you make it there I wonder\nas I repress the urge\nto walk on up and ask you\ntoo many eyes around\nsmall asks turn into \neverybody's business\nwhispers fuel the furnace\nin this dead end of a town\n\nsainted is the name\ngiven unto you\ncommon as a penny\nstill sacred to me too\n\nI heard your older sister\nhas music they don't play\nexcept for in the cities\nfilled with weirdos\nwe all drove away\nI see a safety pin in denim\nchecks upon your shoes\na part of me is jealous\nthat you're already cool\n\ncan we get to college\nwill we pack our bags\nI don't have the answer\nthe unknowns of our class\n\nI've went away to swansea\nwhen shit was really bad\nyou remembered that I left here\nand asked about my dad\nsimple acts of kindness\nsainted and so sweet\nit's almost enough to live on\nalmost enough to make\nme believe\n\ngenerational trauma\nis a fancy word they use\nI'll understand it one day\nuntil then I endure abuse\n\nthe bustle in the hedge row\nthe stairway to your arms\nmy shoulder is a head rest\nwe can slowly spin around\nforget what comes on saturday\nforget about the pain\nforget about these lives\nspinning down the drain\nthe war inside our elders\nis not our cross to bare\nsainted is your name\ndeliver me elsewhere\ndeliver me elsewhere\ndeliver me elsewhere\n\n\n\nthe war inside our elders\nis not our cross to bare\nsainted is your name\ndeliver me elsewhere\ndeliver me elsewhere\ndeliver me elsewhere\n[Outro (overwhelming layered feedback reverb)]\n[END]",
@@ -61,6 +61,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.368Z",
-  "updated_at": "2025-07-19T16:22:01.368Z",
+  "updated_at": "2025-07-19T19:56:27.060Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "c08c235c-fe8f-4495-82a8-7e90952fb278",
   "filename": "Endless Miles.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Endless Miles.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Endless Miles.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Endless%2520Miles.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Endless%2520Miles.mp3",
   "title": "Endless Miles",
   "prompt": "muscle car stomp, electro spycraft, camp reboot kick drum",
   "lyrics": "[instrumental  introduction (dramatic build)]\n|~~~~|\n|~~~~|\n|~~~~|\n|~~~~|\n[pre-verse (rising chanting)]\nyeah yeah\nyeah yeah, yeah yeah\nsee you in the morning\ntea toast and yawning\ncrystal camo fuselage\n\n[Verse]\nenglish garden hidden riddles\nuntangle cables in the yard\nnumber station short bursts\nirrigate the petaflops\n\n{Chorus]\nI'm walking\nwalking back\nwalking\nwalking back\n\n[Verse]\nforking out the mainframe\nclearing bellows of the bats\nmaking up for lost time\ndropping packets in the stack\nwhen you see me on a tuesday\nI'm already off the end\nreality is for the nomads\ncamping out in the lapse\n\n[Chorus]\nThere's endless\nEndless miles\nThere's endless\nEndless files\n\n[Bridge (dramatic build)]\n|~~~~|\n|~~~~|\n|~~~~|\n|~~~~|\n\n[pre-verse (rising chanting)]\nyeah yeah\nyeah yeah, yeah yeah\nsee you in the morning\ntea toast and yawning\ncrystal camo fuselage",
@@ -55,6 +55,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.529Z",
-  "updated_at": "2025-07-19T16:22:01.529Z",
+  "updated_at": "2025-07-19T19:56:27.059Z",
   "labeling_complete": false
 }

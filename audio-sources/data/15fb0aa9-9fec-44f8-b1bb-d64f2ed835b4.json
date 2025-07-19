@@ -1,8 +1,8 @@
 {
   "id": "15fb0aa9-9fec-44f8-b1bb-d64f2ed835b4",
   "filename": "Thatch Umbrella.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Thatch Umbrella.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Thatch Umbrella.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Thatch%2520Umbrella.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Thatch%2520Umbrella.mp3",
   "title": "Thatch Umbrella",
   "prompt": "tropicalia, colombian slow dubstep, nordic sweet bosanova vocals, clean horns",
   "lyrics": "[Scat Intro]\nbee dee dee dee dat doo doo doo\nmmm mmm mmm miss iss ing you\nhow dee doo, i love you\n\n[Verse]\nUnder a thatch umbrealla view\nI sip my drink and thank of you\noh what do we do?\nIf only she knew\nJust how I feel for you.\nYou know we've shared a man before\nDon't you dare think we are whores\nIt's so convenient, if you're lenient\nIn who beds down with who\n\n[Chorus]\nComplications\nConsequences\nWe Broke Borders\nCan't Man Fences\nThere's No Way Around\nme and you\nand you and her\nand us all hating\nwhat we've become\n\n[Verse]\nI tried to keep an open mind\nBut an open book casts so much doubt\nI read you plainly the words aren't strong\nThat longing so hot but the outcomes so wrong\n\n[Pre-Chorus]\nAnd you ain't man enough to claim the mess we make\nYou ain't man enough to clean the mess we all make\n\n\n\n[Bridge]\n\n[Chorus]\nComplications\nConsequences\nWe Broke Borders\nCan't Man Fences\nThere's No Way Around\nme and you\nand you and her\nand us all hating\nwhat we've become\n\n[Verse]\nThat man child so sexy and wild\nMelts my cubes you know you do\nBut that's a just a dream with a drink\nMost you'll get is a how do you do?\nCuz the real me is just to good to be true\nWe tried baby, we tried, \nwith much stronger than you\n\n\n[Chorus]\nComplications\nConsequences\nWe Broke Borders\nCan't Man Fences\nThere's No Way Around\nme and you\nand you and her\nand us all hating\nwhat we've become\n\n[End]\n\n[End]",
@@ -65,6 +65,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.737Z",
-  "updated_at": "2025-07-19T16:22:01.737Z",
+  "updated_at": "2025-07-19T19:56:26.961Z",
   "labeling_complete": false
 }

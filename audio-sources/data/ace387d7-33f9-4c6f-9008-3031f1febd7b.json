@@ -1,8 +1,8 @@
 {
   "id": "ace387d7-33f9-4c6f-9008-3031f1febd7b",
   "filename": "Madchester-7.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Madchester-7.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Madchester-7.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Madchester-7.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Madchester-7.mp3",
   "title": "Madchester-7",
   "prompt": "",
   "lyrics": "",
@@ -41,6 +41,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.657Z",
-  "updated_at": "2025-07-19T16:22:01.657Z",
+  "updated_at": "2025-07-19T19:56:27.025Z",
   "labeling_complete": false
 }

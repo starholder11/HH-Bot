@@ -1,8 +1,8 @@
 {
   "id": "a1b7ed39-5e64-479b-bceb-4a171959164b",
   "filename": "Echo Half Gold.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Echo Half Gold.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Echo Half Gold.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Echo%2520Half%2520Gold.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Echo%2520Half%2520Gold.mp3",
   "title": "Echo Half Gold",
   "prompt": "Create a guitar sound with massive distortion and feedback, building walls of white noise through cranked amplifiers, Use heavy fuzz boxes and distortion pedals for thick, saturated tones on the verge of breaking apart, Layer dense, overwhelming guitar textures that balance melodic sweetness with sonic violence, Contrast gentle reverb-drenched passages with explosive noise walls, Keep playing simple - basic chord progressions buried under processing, Add laconic cool male vocals with Scottish rock accent over the controlled chaos, Genre vectors: shoegaze, noise rock, dream pop, post-punk, indie rock, alternative rock",
   "lyrics": "Give me a brick \nand we'll build a wall\nGive me an arrow\nThen we'll make it fall\nBuild it up\nJust to tear it down\nLift me up\nPut my head to the crown\nFlying high\nAnd that's A Oh Kay\nstart spangled banner\nGot nothing to say\nPunch a hole \nIn heaven's gate\nMarch on in\nat the hands of fate\nNothing tomorrow\nIs bringing me back\nLet out the line\nand pull in the slack\nLet out the line\nand pull in the slack\nTorpedoes ready\nGo flood the tubes\nMissiles in crisis\nFront page of the news\nNext time you see me\nIt's in all the wrong places\nNext thing you hear\nAre lies filling empty spaces\nMartyrs are coming\nIts the saints time to go\nI loved you baby\nNow that's an echo half gold\n[Instrumental]\n[Guitar]",
@@ -74,6 +74,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.422Z",
-  "updated_at": "2025-07-19T16:22:01.422Z",
+  "updated_at": "2025-07-19T19:56:27.017Z",
   "labeling_complete": false
 }

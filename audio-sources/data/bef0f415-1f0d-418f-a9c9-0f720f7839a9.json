@@ -1,8 +1,8 @@
 {
   "id": "bef0f415-1f0d-418f-a9c9-0f720f7839a9",
   "filename": "Walk On.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Walk On.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Walk On.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Walk%2520On.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Walk%2520On.mp3",
   "title": "Walk On",
   "prompt": "sumo beats, second line brass, future vaudeville",
   "lyrics": "[Slurring Vocals]\nthey staggered down easy street\nlocked arm in arm safe from all harm\nthey staggered down easy street\ncoins dripping from their pockets\neyes reflecting emoji rockets\nit's a thing to do in this zoo\nwe call capitalism.\n[Stirring Chorus]\nTheir apes and their degens\nOn L S T S and D Pins\nchanging finance upside down\nacting like clowns (hold note)\nover something as sacred as money\n\n[Slurring Vocals]\nfeel me there ain't nothing funny\nabout messing with a man's money\nturning that bread I give my honey\ninto magic internet funny money\nthere go those degens\nstaggering back from the casino\nthat doesn't have house rules\n\n[Stirring Chorus]\nTheir apes and their degens\nOn L S Tees and D Pins\nThe luckiest fucking bastards\nin this whole damn town\n\n[Horn Instrumental]\n\n[Stirring Chorus]\nTheir apes and their degens\nOn L S Tees and D Pins\nThe luckiest fucking bastards\nin this whole damn town\n\n[Fade]\n[End]\n\n[Horn Instrumental]\n[End]",
@@ -61,6 +61,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.764Z",
-  "updated_at": "2025-07-19T16:22:01.764Z",
+  "updated_at": "2025-07-19T19:56:27.058Z",
   "labeling_complete": false
 }

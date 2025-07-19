@@ -1,8 +1,8 @@
 {
   "id": "3f8de297-7770-43e3-92b6-ae4b2a1b6c03",
   "filename": "Wee Moe Mey.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Wee Moe Mey.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Wee Moe Mey.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Wee%2520Moe%2520Mey.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Wee%2520Moe%2520Mey.mp3",
   "title": "Wee Moe Mey",
   "prompt": "cobalt sophistipop, chopped and screwed, hentai donut beats",
   "lyrics": "oooh oooh oooh\n ah ah ahh\noooh oooh oooh\n ah ah ahh\n\nwee moe may\nwee moe may\ndawn of the day\nits the dawn\nof the day\n\nI should walk out\nsilver studded\ndiamonds dusted\nacross my soles\n\nI should walk out\nsilver studded\ndiamonds dusted\nacross my soles\n\nwee moe may\nwee moe may\ndawn of the day\nits the dawn\nof the day\n\ngive me loving\ncall me cherished\nI will promise\nloves becoming\nin the direction\nof your hugging\n\nwee moe may\nwee moe may\ndawn of the day\nits the dawn\nof the day",
@@ -55,6 +55,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.767Z",
-  "updated_at": "2025-07-19T16:22:01.767Z",
+  "updated_at": "2025-07-19T19:56:26.974Z",
   "labeling_complete": false
 }

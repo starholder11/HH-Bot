@@ -1,8 +1,8 @@
 {
   "id": "45077507-e5d1-4c98-83cf-cfe7ba1cab61",
   "filename": "Collide A Scope.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Collide A Scope.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Collide A Scope.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Collide%2520A%2520Scope.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Collide%2520A%2520Scope.mp3",
   "title": "Collide A Scope",
   "prompt": "",
   "lyrics": "",
@@ -41,6 +41,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.353Z",
-  "updated_at": "2025-07-19T16:22:01.353Z",
+  "updated_at": "2025-07-19T19:56:26.976Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "6e6d18cc-fcce-49c5-8871-ae81fa48a7ec",
   "filename": "Ivanpah Romantics.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Ivanpah Romantics.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Ivanpah Romantics.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Ivanpah%2520Romantics.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Ivanpah%2520Romantics.mp3",
   "title": "Ivanpah Romantics",
   "prompt": "raw tremolo high mojave octane meets paisley underground longing quiet loud quiet of wide open spaces and interrogated hearts",
   "lyrics": "[Verse 1 - hypnotic drawl over desert drone]\nMidnight frequency sweep through the antenna array\nYou materialize like interference patterns\nWe share cigarettes that taste like copper ions\nBrief as muon decay in the detector grid\n[Chorus - building melancholy urgency]\nBeautiful strangers in impossible physics\nTemporary as particles in free fall\nWe collapse, we collapse\nLike everything good and brief\n[Verse 2 - intimate but distant]\nYour pulse echoes off the parabolic dishes\nWe dance to signals from dead galaxies\nThe desert holds us like a wave function\nUntil someone turns on the lights\n[Chorus - more desperate]\nBeautiful strangers in impossible physics\nTemporary as particles in free fall\nWe collapse, we collapse\nLike everything good and brief\n[Bridge - whispered confession]\nFor seventeen minutes\nWe were quantum entangled\nFor seventeen minutes\nWe existed\n[Final verse - resigned beauty]\nDawn erases our coordinates from the system\nThe data shows no anomalous readings\nBut the atoms remember what we were\nBefore observation killed the magic\n[Outro - layered vocals fading to static]\nWe collapse, we collapse\nLike everything good and brief\nBeautiful strangers\nIn impossible physics\nWe collapse, we collapse",
@@ -59,6 +59,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.632Z",
-  "updated_at": "2025-07-19T16:22:01.632Z",
+  "updated_at": "2025-07-19T19:56:26.985Z",
   "labeling_complete": false
 }

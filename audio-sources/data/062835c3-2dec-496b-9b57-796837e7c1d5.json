@@ -1,8 +1,8 @@
 {
   "id": "062835c3-2dec-496b-9b57-796837e7c1d5",
   "filename": "In The Stereo.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/In The Stereo.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/In The Stereo.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/In%2520The%2520Stereo.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/In%2520The%2520Stereo.mp3",
   "title": "In The Stereo",
   "prompt": "vaporwave timestretch french house remix",
   "lyrics": "[Whispers (stereo panning)]\none day after school\nwe snuck into the <inaudible>\nand they \ntrap\ntrap\ntrapped\ntrapped us in the stereo...\nstuck here in disco\n<wobbles>round and round\nwe go.\n[Build]\n[Guitar Riff (thundering)]\nWhere are the girls in the stereo?\nWhich albums make them spin?",
@@ -52,6 +52,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.630Z",
-  "updated_at": "2025-07-19T16:22:01.630Z",
+  "updated_at": "2025-07-19T19:56:26.956Z",
   "labeling_complete": false
 }

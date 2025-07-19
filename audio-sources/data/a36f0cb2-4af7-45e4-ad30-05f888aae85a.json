@@ -1,8 +1,8 @@
 {
   "id": "a36f0cb2-4af7-45e4-ad30-05f888aae85a",
   "filename": "Tremolo 51.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Tremolo 51.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Tremolo 51.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Tremolo%252051.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Tremolo%252051.mp3",
   "title": "Tremolo 51",
   "prompt": "Vocal direction: Flat, conversational delivery with sudden bursts of manic energy - like someone explaining weird desert phenomena to a neighbor, then suddenly shouting at cacti, Natural speaking rhythm that occasionally explodes into punk urgency without warning, Musical behavior: Angular, jagged guitar that cuts through dead air with surgical precision - tremolo that sounds more like anxiety than waves, feedback that builds tension rather than comfort, Rhythms that lurch and stutter, creating off-kilter momentum that keeps you slightly off-balance, Guitar tones that are clean but brittle, like they could shatter at any moment, Dynamic approach: Brutal quiet-loud contrasts that feel genuinely unsettling - intimate, almost whispered sections that suddenly explode into cathartic noise assaults, The quiet parts create genuine unease, the loud parts provide violent release, No smooth transitions, just abrupt shifts that mirror emotional instability",
   "lyrics": "[Verse 1 - deadpan delivery, surf guitar tremolo]\nSeventeen years since the rain fell\nCactus blooms where the collider used to hum\nYou left a message in the sand\nBut the wind erased it with its thumb\n[Chorus - building intensity, angular guitar stabs]\nHey! Cactus!\nGrowing in the particle debris\nHey! Cactus!\nYou're more alien than me\nSharp and green and perfectly adapted\nTo this wasteland we created\n[Verse 2 - same rhythm, slight paranoia creeping in]\nDesert rats carry uranium in their teeth\nSolar panels crack like brittle bones\nThe saguaro learns to count in binary\nWhile I practice forgetting what I've known\n[Chorus - more urgent]\nHey! Cactus!\nGrowing in the particle debris\nHey! Cactus!\nYou're more alien than me\nSharp and green and perfectly adapted\nTo this wasteland we created\n[Bridge - surf guitar breakdown, spoken word style]\nEvolution happens faster here\nWhere the physics get weird\nThe plants grow antennas\nThe rocks start to sing\n[Final verse - resigned but energetic]\nFound your bones bleached white as theory\nThe cactus uses them for fertilizer now\nEverything gets recycled in the desert\nEven our atomic vows\n[Outro - repetitive, fading]\nHey! Cactus!\nHey! Cactus!\nMore alien than me\nMore alien than me",
@@ -61,6 +61,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.748Z",
-  "updated_at": "2025-07-19T16:22:01.748Z",
+  "updated_at": "2025-07-19T19:56:27.020Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "59dcfeb6-a2f1-4bfe-9cae-cb224539ce5e",
   "filename": "Cherry Weather.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Cherry Weather.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Cherry Weather.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Cherry%2520Weather.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Cherry%2520Weather.mp3",
   "title": "Cherry Weather",
   "prompt": "chopped and screwed italodisco electro guitar sleaze",
   "lyrics": "Add a Caption\nMay 14, 2025 at 1:22 AM\nv4.5\nSong Image\nCover of\nChrome‑Lip Dragstar (Riff‑Sleaze Injection\n\n\nCherry Weather\nYou're fit to choose\nLace and Leather\nDenim blues\nTell my Venus\nNothing to Lose\nCherry Weather\nIn the mood",
@@ -49,6 +49,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.346Z",
-  "updated_at": "2025-07-19T16:22:01.346Z",
+  "updated_at": "2025-07-19T19:56:26.981Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "e67b81b4-2e01-48de-ba0b-b4e40644d763",
   "filename": "You Ought to Know Kung Pow.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/You Ought to Know Kung Pow.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/You Ought to Know Kung Pow.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/You%2520Ought%2520to%2520Know%2520Kung%2520Pow.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/You%2520Ought%2520to%2520Know%2520Kung%2520Pow.mp3",
   "title": "You Ought to Know Kung Pow",
   "prompt": "",
   "lyrics": "",
@@ -41,6 +41,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.778Z",
-  "updated_at": "2025-07-19T16:22:01.778Z",
+  "updated_at": "2025-07-19T19:56:27.065Z",
   "labeling_complete": false
 }

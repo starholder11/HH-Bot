@@ -1,8 +1,8 @@
 {
   "id": "1367e169-56ad-40e9-a307-bc5398d80063",
   "filename": "Late State Of Grace.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Late State Of Grace.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Late State Of Grace.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Late%2520State%2520Of%2520Grace.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Late%2520State%2520Of%2520Grace.mp3",
   "title": "Late State Of Grace",
   "prompt": "new romantic, vaporwave, chopped and screwed, shoegazer",
   "lyrics": "v3\nHands on the boardwalk\nOctober crisp, sun warm\nThrift flannels barefoot\nAs we make our way\nDown to the beach\n\nFreckles on shoulders\nKnee ripped jeans\nRed is the letter\nMore pictures of you\n\nTime spilling sideways\nThe days heroic at times\nIndian Summer\nLate state of grace\n\nOur Lady Forgotten\nMistress Neglected\nCome along with thee\nLets walk across the sea\n\nRadiation rules this nation\nDeep Water Collapse \nBut we're above this now\nLong since past\nWe've long since past\n\n[Intro]\n\n[Verse]\nHands on the boardwalk\nOctober crisp, sun warm\nThrift flannels barefoot\nAs we make our way\nDown to the beach\n\nFreckles on shoulders\nKnee ripped jeans\nRed is the letter\nMore pictures of you\n\nTime spilling sideways\nThe days heroic at times\nIndian Summer\nLate state of grace\n\nOur Lady Forgotten\nMistress Neglected\nCome along with thee\nLets walk across the sea\n\nRadiation rules this nation\nDeep Water Collapse \nBut we're above this now\nLong since past\nWe've long since past",
@@ -62,6 +62,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.638Z",
-  "updated_at": "2025-07-19T16:22:01.638Z",
+  "updated_at": "2025-07-19T19:56:26.960Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "ca1eff2f-0bde-4572-831e-32243ef2c511",
   "filename": "ACA2.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/ACA2.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/ACA2.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/ACA2.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/ACA2.mp3",
   "title": "ACA2",
   "prompt": "",
   "lyrics": "",
@@ -41,6 +41,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.282Z",
-  "updated_at": "2025-07-19T16:22:01.283Z",
+  "updated_at": "2025-07-19T19:56:27.061Z",
   "labeling_complete": false
 }

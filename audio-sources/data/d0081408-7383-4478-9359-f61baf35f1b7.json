@@ -1,8 +1,8 @@
 {
   "id": "d0081408-7383-4478-9359-f61baf35f1b7",
   "filename": "Unstable.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Unstable.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Unstable.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Unstable.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Unstable.mp3",
   "title": "Unstable",
   "prompt": "electro glitch hyperpop mashup",
   "lyrics": "[Section A - paranoid confession]\nPentagon monitors our orgasms\nGenerator sweat tastes like surveillance state\nYour mouth transmits CIA frequencies\nThrough my lymph nodes through my—\n[Section B - vocal texture block]\nSick sick sick sick\nControl systems control\nUnstable particles unstable\n(Breathing/vocal percussion)\n[Section C - cut-up intimacy]\nBass line encrypted in my DNA\nThey're recording us always recording\nElectric sex electric—\nSystem owns us system—\n[Section D - fragmented repetition cluster]\nUnstable unstable\nParticles particles\nMilitary-industrial military—\nSick sick sick\n[Section E - conspiracy whisper]\nTomorrow they'll analyze our frequency patterns\nWeaponize our intimacy for defense contracts\nBut tonight we're—\nBeautiful malware corrupting—\n[Section F - vocal virus decay]\nSick sick sick\nControl control\nUnstable particles unstable\nSystem system sick\n(Voice dissolving into electronic texture)\n[Section G - final transmission]\nWe're data points in someone else's\nExperiment experiment\nBreakdown breakdown\nSick sick beautiful—\n(Cut to static)",
@@ -67,6 +67,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.755Z",
-  "updated_at": "2025-07-19T16:22:01.755Z",
+  "updated_at": "2025-07-19T19:56:27.062Z",
   "labeling_complete": false
 }

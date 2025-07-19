@@ -1,8 +1,8 @@
 {
   "id": "12fb9705-16ff-4cfa-a1d9-0ae3e47e8a51",
   "filename": "Collision Course of Cool.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Collision Course of Cool.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Collision Course of Cool.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Collision%2520Course%2520of%2520Cool.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Collision%2520Course%2520of%2520Cool.mp3",
   "title": "Collision Course of Cool",
   "prompt": "liquid blue money, headhunter driving synths, neon chrome pulsetron",
   "lyrics": "[Shadowy Verse]\nwilshire in december\ndriving empty nights\ndoing killer work\ncontract high on my own supply\nheavy hooded dark shades\nreflecting the night back out\nelectric lights soaking in my pulse\nI'm hunting you down, coming hard\nyou know this\nyou know its tonight\nwe settle this\nonly one can survive\nthis collision course of cool\n\n[Bridge]\n\n[Verse (slick showroom delivery)]\nwilshire in december\ndriving empty nights\ndoing killer work\ncontract high on my own supply\nheavy hooded dark shades\nreflecting the night back out\nelectric lights soaking in my pulse\nI'm hunting you down\nyou know this\n\n[Chorus (new romantic croon)]\nyou know its tonight\nwe settle this\nonly one can survive\nthis collision course of cool",
@@ -53,6 +53,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.354Z",
-  "updated_at": "2025-07-19T16:22:01.354Z",
+  "updated_at": "2025-07-19T19:56:26.960Z",
   "labeling_complete": false
 }

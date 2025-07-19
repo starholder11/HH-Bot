@@ -1,8 +1,8 @@
 {
   "id": "60c9d32e-087e-48ca-b7f2-3c1b85ebdaf2",
   "filename": "Astronaut Loop Instrumental.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Astronaut Loop Instrumental.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Astronaut Loop Instrumental.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Astronaut%2520Loop%2520Instrumental.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Astronaut%2520Loop%2520Instrumental.mp3",
   "title": "Astronaut Loop Instrumental",
   "prompt": "ambient dub, looping bass samples, mission control samples, astronaut vocals",
   "lyrics": "space gave me strength\n\nspace gave me strength\n\ndark matter running through me\n\nbuilding I up, tearing I down\n\nradiation rule space nation\n\nstrength in dark matter\n\nstrength in the void\n\nI am slipping into stars\n\nreturning to returning home",
@@ -62,6 +62,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.316Z",
-  "updated_at": "2025-07-19T16:22:01.316Z",
+  "updated_at": "2025-07-19T19:56:26.982Z",
   "labeling_complete": false
 }

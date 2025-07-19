@@ -1,8 +1,8 @@
 {
   "id": "adcc001d-2e86-4ab3-9f1b-bd8c1e236dab",
   "filename": "Fool Out Of Me.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Fool Out Of Me.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Fool Out Of Me.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Fool%2520Out%2520Of%2520Me.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Fool%2520Out%2520Of%2520Me.mp3",
   "title": "Fool Out Of Me",
   "prompt": "70's prog rock: Synths, solos, cosmic odyssey",
   "lyrics": "Xannah dew what can I do?\nWhen you have control of me\nAll this time I had thought\nthat I bought \nwhat I copped\nbut you made a fool\nout of me\nXannah dew, Xannah dew (ooh ooh)",
@@ -49,6 +49,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.564Z",
-  "updated_at": "2025-07-19T16:22:01.564Z",
+  "updated_at": "2025-07-19T19:56:27.026Z",
   "labeling_complete": false
 }

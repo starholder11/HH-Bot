@@ -1,8 +1,8 @@
 {
   "id": "566232a6-943b-4633-bff1-8ef353510b55",
   "filename": "Oil Mauve Mayday.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Oil Mauve Mayday.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Oil Mauve Mayday.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Oil%2520Mauve%2520Mayday.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Oil%2520Mauve%2520Mayday.mp3",
   "title": "Oil Mauve Mayday",
   "prompt": "girl group, big guitars, wall of sound, harmonies, dream pop meets space rock",
   "lyrics": "[Verse]\nIt came on the communication wires\nThat big oil rig Mauve was issuing a may day\nSo we cottagecored ourselves like peasant girls\nWent out to the barn and brought the may pole down\nOooh Oooh, you know how we do\n\n[Chorus]\nMay Day means instaplay\nWe aren't here to serve\nWe say no way\nWe say no way\n\n[Verse]\nNestor Makno, yeah we know all about the black army\ncome on barbee, let's create a stateless anarcho commie society\nPower breeds parasites, you know it's true oooh oooh\noh yes you doooo ooh ooh\n\n[Chorus]\nMay Day means instaplay\nWe aren't here to serve\nWe say no way\nWe say no way\n\n[Verse]\nHeroes who needs them around our may pole?\nwe know the deal with status seeking warrior societies\nit just gives me such anxiety that I need to soothe (oooh oooh)\non the bosum of mutualism\nbefore there's another schism\n\n[Chorus]\nMay Day means insta play\nWe aren't here to serve\nWe say no way\nWe say no way\n\n[Verse]\nwhen this song is over there won't be a do over\nwe won't come back looking for cash\noh big oil mauve, let your rigs tear apart\nthere's no shame in having a broken heart\nfor to exist to exist is to be so complicit\n\n[Chorus]\nMay Day means insta play\nWe aren't here to serve\nWe say no way\nWe say no way\n\n[Bridge]\nall we ever asked was that you respect our privacy\nbut you could never accept \nthat we are not accepting questions\nat this or any time\n\n[Chorus]\nMay Day means insta play\nWe aren't here to serve\nWe say no way\nWe say no way\n\n[Fade]\n\n[End]",
@@ -61,6 +61,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.681Z",
-  "updated_at": "2025-07-19T16:22:01.681Z",
+  "updated_at": "2025-07-19T19:56:26.980Z",
   "labeling_complete": false
 }

@@ -1,8 +1,8 @@
 {
   "id": "51e9c308-7823-49f7-8c25-11a3bbb244cd",
   "filename": "Floating Flower Pots.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Floating Flower Pots.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Floating Flower Pots.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Floating%2520Flower%2520Pots.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Floating%2520Flower%2520Pots.mp3",
   "title": "Floating Flower Pots",
   "prompt": "choir in a canyon, harmony on harmony, cherubic folkdrone",
   "lyrics": "press head to pillow\nclose eyes for the night\ntrace the sound of the last car\non the causeway coming home\nthe sea surrounds us in our sleep\ndreams in oversized bathtubs\npaddling around in flower pots\nrubber whales pushing us along\nyou're a tulip on the horizon\na bulb bouncing on sweet saline\ndesperate to keep the dutch\nfrom dragging you into the undertow\n\ntell me I'm a good egg\npluck me from the soup\nand wrap your lips\naround the broth \nthat glazes me\n\nI'm a flunky gone to heaven\nharmonious in afterhours\nno one's asking questions\nit's just my brain performing defrag\ncleaning out the cluttered neurons\ndusting off the circuits\nrearranging memories\nlike knick knacks on grandma's shelves\nwhose to say I've never made it\nwhose to say I can't compete\nhere in afterhours I'm undefeated\nfloating in my flower pots\nserenading rubber duckies\ncuz their the ways that never drown\nit's just the quacks always around\n\ntell me I'm a good egg\npluck me from the soup\nand wrap your lips\naround the broth \nthat glazes me",
@@ -59,6 +59,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.537Z",
-  "updated_at": "2025-07-19T16:22:01.537Z",
+  "updated_at": "2025-07-19T19:56:26.978Z",
   "labeling_complete": false
 }

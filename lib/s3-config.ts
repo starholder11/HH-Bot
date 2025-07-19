@@ -64,8 +64,9 @@ export async function uploadAudioToS3(
 
     const result = await upload.done();
 
-    const s3_url = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
-    const cloudflare_url = `https://${CLOUDFLARE_DOMAIN}/${key}`;
+    const encodedKey = encodeURIComponent(key).replace(/%2F/g, '/');
+    const s3_url = `https://${BUCKET_NAME}.s3.amazonaws.com/${encodedKey}`;
+    const cloudflare_url = `https://${CLOUDFLARE_DOMAIN}/${encodedKey}`;
 
     return {
       s3_url,
@@ -106,8 +107,9 @@ export async function uploadCoverArtToS3(
 
     const result = await upload.done();
 
-    const s3_url = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
-    const cloudflare_url = `https://${CLOUDFLARE_DOMAIN}/${key}`;
+    const encodedKey2 = encodeURIComponent(key).replace(/%2F/g, '/');
+    const s3_url = `https://${BUCKET_NAME}.s3.amazonaws.com/${encodedKey2}`;
+    const cloudflare_url = `https://${CLOUDFLARE_DOMAIN}/${encodedKey2}`;
 
     return {
       s3_url,
@@ -142,8 +144,9 @@ export async function uploadFileToS3(
 
     await upload.done();
 
-    const s3_url = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
-    const cloudflare_url = `https://${CLOUDFLARE_DOMAIN}/${key}`;
+    const encodedKey3 = encodeURIComponent(key).replace(/%2F/g, '/');
+    const s3_url = `https://${BUCKET_NAME}.s3.amazonaws.com/${encodedKey3}`;
+    const cloudflare_url = `https://${CLOUDFLARE_DOMAIN}/${encodedKey3}`;
 
     return {
       s3_url,

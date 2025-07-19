@@ -1,8 +1,8 @@
 {
   "id": "3e380c56-6600-49e6-b0b8-2ed51cb34f17",
   "filename": "Cherry Cart Lane.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Cherry Cart Lane.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Cherry Cart Lane.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Cherry%2520Cart%2520Lane.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Cherry%2520Cart%2520Lane.mp3",
   "title": "Cherry Cart Lane",
   "prompt": "loud quiet loud in folkdrone shoegazer, large lo-fi experimental bedroom recordings, rural psychedelica spacerock, looped and layered as melodic feedback",
   "lyrics": "[Fade In (backwards masked droning melodic guitars)]\n[Vocals building from whisper]\nDon't ever go down the cherry cart lane\nIt's not fit for walking they say\nBad things happen\nBut don't they happen everywhere?\nJust like good things do too.\nI bet there are good things\ndown the cherry cart lane\n\n[Shimmering processed looping guitars]\n[Spoken word (girlish voice)]\nAnd so he went up to live in the trees\nBecause of something his father said\nEveryone thought the little baron would come down\nBut he found his world up in the trees\nSo he stayed for such a long time\nAnd traveled so far making friends along the way\n[Instrumental (featuring lush melodic layered guitars awash in processed feedback)}\n\n[Chorus (layered female vocoders harmonizing)]\nThe boy up in the trees\nMet the cherry cart girl\nThey were worlds away\nBut Never Far Apart\nNow it's you and me\nSpring blossom \ncherry trees\nthis my dear\nthis my dear\nWas Meant To Be",
@@ -69,6 +69,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.344Z",
-  "updated_at": "2025-07-19T16:22:01.344Z",
+  "updated_at": "2025-07-19T19:56:26.974Z",
   "labeling_complete": false
 }

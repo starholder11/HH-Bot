@@ -1,8 +1,8 @@
 {
   "id": "b1428d2a-cda9-4256-aa46-80b0fe42639f",
   "filename": "The Shine.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/The Shine.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/The Shine.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/The%2520Shine.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/The%2520Shine.mp3",
   "title": "The Shine",
   "prompt": "majestic, dubstep, industrial, musicbox, sinister female vocals, looping beats",
   "lyrics": "v2\n[Verse]\nSummoner of small chaos\nDisrupter of household gods\nI will stand opposed\nto you intentions\nI will fight against\nOverwhelming odds\n\n[Verse]\nEverything is as it should be\nThere are no messes \nUnder this domain\nDisorder is not welcome here\n\n[Chorus]\nRage cleaning uber alles\nFierce dusting rules the day\nStep back and admire\nThe Shine\nOH HOW WE SHINE\n\n[Verse]\nSummoner of small chaos\nDisrupter of household gods\nI will stand opposed\nto you intentions\nI will fight against\nOverwhelming odds\n\n[Verse]\nEverything is as it should be\nThere are no messes \nUnder this domain\nDisorder is not welcome here\n\n[Chorus]\nRage cleaning uber alles\nFierce dusting rules the day\nStep back and admire\nThe Shine\nOH HOW WE SHINE\n\n[Pre-chorus]\nEverything is as it should be\nThere are no messes \nUnder this domain\nDirt is not welcome here\n\n[Chorus]\nRage cleaning uber alles\nFierce dusting rules the day\nStep back and admire\nThe Shine\nOH HOW WE SHINE\n\n[End]",
@@ -66,6 +66,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.740Z",
-  "updated_at": "2025-07-19T16:22:01.740Z",
+  "updated_at": "2025-07-19T19:56:27.032Z",
   "labeling_complete": false
 }

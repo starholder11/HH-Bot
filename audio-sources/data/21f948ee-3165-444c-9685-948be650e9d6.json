@@ -1,8 +1,8 @@
 {
   "id": "21f948ee-3165-444c-9685-948be650e9d6",
   "filename": "Arbitrary Writs of Royal Courts.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Arbitrary Writs of Royal Courts.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Arbitrary Writs of Royal Courts.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Arbitrary%2520Writs%2520of%2520Royal%2520Courts.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Arbitrary%2520Writs%2520of%2520Royal%2520Courts.mp3",
   "title": "Arbitrary Writs of Royal Courts",
   "prompt": "ragga phonk, glitch shock, electro house, psychedelic exotica, codeine paydays",
   "lyrics": "[Announcer (british broadcasting voice)]\nI ask that all society\nGather up what courage\nLay there on the shattered ground\nAnd hold it tight to your hearts\nSo that we may once again\nthrow the best fucking\nblock party\nin kushy heath\n[Instrumental (glitch)(heavy fx)]\n[Bridge (tropical lounge)]\nStaring down the deadline\nOn a time share mortgage extension\nTen zombie slurpies\nA dozen adderall\nBuy now pay later\nBuy now fade haters\nI've given in\nSince you ghosted me\nPhasers off stun\nEscalating hit and runs\nNo daylight\nExpired visas\nFaking seizures\nMy identity a series \nof claims\njust decrement my credit\nuntil I materialize a new identity.\n\n[Announcer (sampled voice)]\nAttention shoppers\nAttention shoppers\nWe are now accepting payment\nIn the following forms:\nCodeine,\nKidneys,\nClaims on Repossessions,\nArbitrary Writs of Royal Courts,\nMedici backed letters of credit,\nMining Claims,\nOffshore Air Rights\nSecond hand passports from exiled aristocrats feeling the purges of Davos, Panama City, and Neo Kyoto,\nLifetime passes to the Ground Round.",
@@ -71,6 +71,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.305Z",
-  "updated_at": "2025-07-19T16:22:01.305Z",
+  "updated_at": "2025-07-19T19:56:26.966Z",
   "labeling_complete": false
 }

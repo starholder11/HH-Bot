@@ -1,8 +1,8 @@
 {
   "id": "411d3a61-b063-49a3-a25c-08adacf42243",
   "filename": "Goodbye to the Two Tone Rover.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Goodbye to the Two Tone Rover.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Goodbye to the Two Tone Rover.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Goodbye%2520to%2520the%2520Two%2520Tone%2520Rover.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Goodbye%2520to%2520the%2520Two%2520Tone%2520Rover.mp3",
   "title": "Goodbye to the Two Tone Rover",
   "prompt": "the sound of the UK in the early eighties incorporating elements of mod music, blue eyed soul, afrobeat from a  two tone ska revival band expanding their repertoire to craft more complex and nuanced emotionally charged sophistipop music",
   "lyrics": "[Pre-Verse]\nOh my darling (ooh ooh ooh)\nYes my darling (ooh ooh ooh)\nWalking in the market\nArm in arm, oh so sweet\nYou and me, just meant to be\nheh heh\n[Quick Bridge]\n\n[Verse]\nThere's a time to stop and look around\nTake stock of where we are\nAnd what we've done\nA time to just sit back ask\nAsk ask ask\nIf the time has come to settle down\nAnd make a little home of our own\nOh I know I know I know oh oh ohhh\nHow hard it was growing up\nThe fighting and the chaos every night\nArguing over everything\nNo one ever winning anything\nWondering about the next paycheck\nThe pressure so heavy on their neck\nthe dole man's shame\nand parish pantry\nAnd here we are playing Sid and Nancy\nbaby baby babyeeee\n\n\n[Chorus]\nYour Momma didn't know better\nBut she didn't raise a fool\nMy Poppa was never home\nJust means I want to be around\nLet's put the past behind us babe\nI think, oooh\nYES, I think\nIt's time we settled down\n\n[Verse]\nEveryone here is...Oh so busy\nRunning wild in terminal city\nLots of work, lots to do\nImma hustling man \nNo one's smarter than youuuu \noooh oooh ooh\nPut that together\nWe'll beat any weather\nBaby my dancehall days are over\nSay goodbye to the two toned rover\nIt's time to settle down\nand put our coins in the ground\nyou know it's true\nBe my bride and let's \nSkank on down the aisle\n\n[Chorus]\nYour Momma didn't know better\nBut she didn't raise a fool\nMy Poppa was never home\nJust means I want to be around\nLet's put the past behind us babe\nI think, oooh\nYES, I think\nIt's time we settled down\nTonight let's start a new life\nIn Terminal City\n[Instrumental (lovers rock bridge out)]\n[Fade]",
@@ -57,6 +57,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.582Z",
-  "updated_at": "2025-07-19T16:22:01.582Z",
+  "updated_at": "2025-07-19T19:56:26.975Z",
   "labeling_complete": false
 }

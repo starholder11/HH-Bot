@@ -1,8 +1,8 @@
 {
   "id": "8af604c0-0cd6-4d94-ba88-c63cf94a714b",
   "filename": "Emily Calypso.mp3",
-  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Emily Calypso.mp3",
-  "cloudflare_url": "https://cdn.yourdomain.com/audio/Emily Calypso.mp3",
+  "s3_url": "https://hh-bot-images-2025-prod.s3.amazonaws.com/audio/Emily%2520Calypso.mp3",
+  "cloudflare_url": "https://drbs5yklwtho3.cloudfront.net/audio/Emily%2520Calypso.mp3",
   "title": "Emily Calypso",
   "prompt": "snarekit, standup bass, slow reverb tremolo guitar, white boy drawl hip hop",
   "lyrics": "kiss me \nin your rattlesnake jacket  \nemily calypso\nregency bananas\ninvite me over\nfor a bottomless brunch\npop a bottle and\npour it in your pump\nleather to my lips\nbubbles dripping\ndown me\ngo ahead and drown me\n\nemily calypso\nregency bananas\nyou never cared\nthat I'm big in Japan\n\npolished leather stirrups\nbrass rings in your eyes\nwarm me up \nwith a slow trot\nit's raining outside\n\n[Building tempo]\nemily calypso\nreegency bananas\nyou never cared\nthat I'm big in Japan\n\n[Guitar solo (thundering)]\n\nBought yourself a lemon\nburnt peels on the floor\nbitters are your aura\nno need to say more\n\nkey on the carpet\ncuffs already latched\nI'd call this an impasse\nknees are beyond my grasp\nlost myself inside you\nnever coming out\nlock me in the stables\nits raining outside\n\nemily calypso\nreegency bananas\nyou never cared\nthat I'm big in Japan\n[Fade Out]\n[END]",
@@ -55,6 +55,6 @@
     "custom_themes": []
   },
   "created_at": "2025-07-19T16:22:01.516Z",
-  "updated_at": "2025-07-19T16:22:01.516Z",
+  "updated_at": "2025-07-19T19:56:26.989Z",
   "labeling_complete": false
 }
