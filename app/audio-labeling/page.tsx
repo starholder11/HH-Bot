@@ -58,44 +58,6 @@ interface SongData {
 }
 
 export default function AudioLabelingPage() {
-  // ============ FUNCTIONS DEFINED FIRST TO PREVENT HOISTING ISSUES ============
-
-  // Combined lists for checkboxes (predefined + custom) with search filtering
-  const getAllStyleOptions = (searchTerm: string = '') => {
-    const predefined = allStyleOptions;
-    const custom = selectedSong?.manual_labels.custom_styles || [];
-    const allOptions = [...predefined, ...custom].sort();
-
-    if (!searchTerm) return allOptions;
-    return allOptions.filter(style =>
-      style.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  const getAllMoodOptions = (searchTerm: string = '') => {
-    const predefined = COMPREHENSIVE_MOODS;
-    const custom = selectedSong?.manual_labels.custom_moods || [];
-    const allOptions = [...predefined, ...custom].sort();
-
-    if (!searchTerm) return allOptions;
-    return allOptions.filter(mood =>
-      mood.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  const getAllThemeOptions = (searchTerm: string = '') => {
-    const predefined = COMPREHENSIVE_THEMES;
-    const custom = selectedSong?.manual_labels.custom_themes || [];
-    const allOptions = [...predefined, ...custom].sort();
-
-    if (!searchTerm) return allOptions;
-    return allOptions.filter(theme =>
-      theme.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  // ============ STATE VARIABLES ============
-
   const [songs, setSongs] = useState<SongData[]>([]);
   const [selectedSong, setSelectedSong] = useState<SongData | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -363,6 +325,40 @@ export default function AudioLabelingPage() {
     handleUpdateLabels({
       [field]: currentValues.filter(v => v !== value)
     });
+  };
+
+  // Combined lists for checkboxes (predefined + custom) with search filtering
+  const getAllStyleOptions = (searchTerm: string = '') => {
+    const predefined = allStyleOptions;
+    const custom = selectedSong?.manual_labels.custom_styles || [];
+    const allOptions = [...predefined, ...custom].sort();
+
+    if (!searchTerm) return allOptions;
+    return allOptions.filter(style =>
+      style.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  const getAllMoodOptions = (searchTerm: string = '') => {
+    const predefined = COMPREHENSIVE_MOODS;
+    const custom = selectedSong?.manual_labels.custom_moods || [];
+    const allOptions = [...predefined, ...custom].sort();
+
+    if (!searchTerm) return allOptions;
+    return allOptions.filter(mood =>
+      mood.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  const getAllThemeOptions = (searchTerm: string = '') => {
+    const predefined = COMPREHENSIVE_THEMES;
+    const custom = selectedSong?.manual_labels.custom_themes || [];
+    const allOptions = [...predefined, ...custom].sort();
+
+    if (!searchTerm) return allOptions;
+    return allOptions.filter(theme =>
+      theme.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
   if (songs.length === 0) {
