@@ -1,0 +1,70 @@
+{
+  "id": "25ec0166-c355-4c5b-aab5-8a50e08b9a6a",
+  "filename": "MDI.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/MDI.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/MDI.mp3",
+  "title": "MDI",
+  "prompt": "IDM",
+  "lyrics": "geodesic full minister gospel truth\nunanticipated dark matter material science\nlost in the fuselage of salt bonds\nnuclear waste in salt caves off galveston \nthat's the los alamos dream, \nI'm the los alamos dream\nstrip clear forgotten generations\nthe high desert stone age bongs\nshamanic physics from peyote buttons, buttoned up bellbottomed frankfurt schoolers\ntipping back schooners of cutty\nremembering inductions of solomon cruisers\nwarships darting darkened through the straits\ngoodbye gibraltar, the rock the CIA cares about belongs to compton now\ngoodbye gibraltar we've gone geodesic\nfuller for the buck, gettting fat on stacks shrink wrapped for the contras, come on try to contradict the interdiction\nthere's nothing left but to sneer\nmean mug me baby apple bottom\nI got the blues to choose, so drop a pair of reds in the cutty highball glass, there's still luudes in kenya for the comedown\nmeet me there in the industrial air strip\nbring the fixer with the doctors bag\nor I'll hang you high\n\nor I'll hang you higher than shaun ryder could ever shout hallelujah that black grape can see right through ya. don't get upset and step in the mighty miss or we'll miss ya like jeff buckley come full circle meet that maker automatic undertaker the most democratic system we've come upon yet is the big nap. big sleep a billion dollar industry how sinister they find a way to pray on the insecurity of sleep how deep shit goes six feet down with my toes plant up oh oppenheimer ringing the bell for the bikini a toll but the sun also rises to meet the sea rising, the world terraformed transformed in the Anthropocene, oh say can you unsee the traces of trinity the nuclear age spoiled in the soil now  it's time for carbon capture before the rapture judges us for avoiding a hell of our own making, no mistaking the culpability is ours and our alone homes\n\nSmurfed up sprite muling casino chips down Ike’s  interstate. ever stop and think how O ah who is one big weapon system, it's a fate better than bikini baby, can I call you baby? better yet, puff puff pass smoke signals on the apache sky before the mushroom cloud muddled the signals, there’s five eyes tapping cable lines hercules dallas class boomers hunting red october, naw I aint sober been sipping the sark in the long beach yacht club that deep republican strong hold holding on duffy boats floating in the canals with their macrame pillow case making grandmas packing special ops lunch boxes, no totes out west this aint new york, black power boaters flexing stacked cigarettes rolling on the water hans zimmer scoring on the storming norman Michael bay cineplex, \n\nthere’s a James webb telescope focused far past seeking out absolute kelvin an echo of the Big Bang bro bus, absolve me of these lies as I practice ablution as a spy in airport bathrooms hearing the call to prayer hearing the call to my fake gate as I try to decide which guy I can pass off to my handler as a Hootie and the Blowfish cover band as my final rat stand. Integrity matters as a narrative device in resurrection arcs, the navajo know but does dave Navarro smacked out on the mixing board the addiction made real, I got it bad for red hots and belly shots but I don't do pep pay my pay tron is senor frog back before the border became yet another disorder in this liminal mess of political interdiction, once upon a time silence was death but nowadays I think silence is best buddies with the fuddy duddy fascist broadcast bastards",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "IDM"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Melancholic",
+        "Dark",
+        "Nostalgic",
+        "Dreamy",
+        "Uplifting"
+      ],
+      "themes": [
+        "Existential Dread",
+        "Loss & Grief"
+      ],
+      "vocals": "both",
+      "word_count": 614,
+      "sentiment_score": 0.4,
+      "prompt": [
+        "IDM"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 614,
+    "sentiment_score": 0.4
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "IDM"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Melancholic",
+      "Dark",
+      "Nostalgic",
+      "Dreamy",
+      "Uplifting"
+    ],
+    "themes": [
+      "Existential Dread",
+      "Loss & Grief"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.653Z",
+  "updated_at": "2025-07-19T16:22:01.653Z",
+  "labeling_complete": false
+}

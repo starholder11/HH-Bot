@@ -1,0 +1,58 @@
+{
+  "id": "4291ef02-51dd-4761-a335-0ea4c91ff147",
+  "filename": "Steel Toe Vegan Girlz.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Steel Toe Vegan Girlz.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Steel Toe Vegan Girlz.mp3",
+  "title": "Steel Toe Vegan Girlz",
+  "prompt": "grunge, riot grrrl, college radio, independent alternative",
+  "lyrics": "Verse]\nshe gave me a mixed cd \nnicely wrapped in a thrift tee\nso I kicked her steel toes \nthen blew a kiss on her nose\nthat's got her in the mood\nto get vegan food\nand there's one place \nin this town\nwith falafel\n\n[Verse]\nShe's so hip \nshe's making me flip\ngonna steal gramma's car\nSo we can see\nthat foreign movie\nit's only 50 miles away \n(hey, hey hey hey)\n\n[Build]\n\n[Chorus]\nThere's only two of us\nand we like each other\nbecause we're both cool, \nnot that there's no others\nin this town, in this town \n(yeah, yea ahh, yey yey)\n\n[Verse]\nIts lonely here, having long bleached hair\nlistening to sub pop, shit no one cares about\nshit no one cares about (yeah, yea ahh, yey yey)\nShe's looking at Oberlin, looking at Smith\nShe got lots of ideas that no one here cares about\n(yeah, yea ahh, yey yey)\n\n[Build]\n\n[Chorus]\nThere's only two of us\nand we like each other\nbecause we're both cool, \nnot that there's no others\nin this town, in this town \n(yeah, yea ahh, yey yey)\n\n[Chorus]\nThere's only two of us\nand we like each other\nbecause we're both cool, \nnot that there's no others\nin this town, in this town \n(yeah, yea ahh, yey yey)\n\n[Refain]\n\n[Slow]\n\n[Soft]\n\n[Fading Chorus]\nThere's only two of us\nand we like each other\nbecause we're both cool, \nnot that there's no others\nin this town, in this town \n(yeah, yea ahh, yey yey)\n\n[End]\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Rock",
+      "styles": [
+        "Indie Rock",
+        "Grunge"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Melancholic",
+        "Romantic"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 255,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 255,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Rock",
+    "styles": [
+      "Indie Rock",
+      "Grunge"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Melancholic",
+      "Romantic"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.714Z",
+  "updated_at": "2025-07-19T16:22:01.714Z",
+  "labeling_complete": false
+}

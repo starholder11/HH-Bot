@@ -1,0 +1,68 @@
+{
+  "id": "4db0289f-f79b-4de8-9b39-c59ebae873d8",
+  "filename": "Miserable Lives.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Miserable Lives.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Miserable Lives.mp3",
+  "title": "Miserable Lives",
+  "prompt": "IDM, High-NRG, Stadium, Nostalgic, Banger",
+  "lyrics": "v2\n[Intro Verse]\nCome in\nCome in\nCome on\nBaby\n\n[Verse]\nCandy pop, in the shop\nSell me dreams\nSell me schemes\nWhat's the pathway to you heart?\nCause I got nothing to lose\nAbsolutely nothing to lose\nAnd you know what matter we choose\nIt's all just a dead end future\n\n[Chorus]\nSo let's have\nLet's have \nA ball tonight\nYou'll never look brighter\nI'll never get higher\nLet's make the most of it baby\nThere's nothing to save me\nSo make the most of it now\nLet's make the most of it right now\n\n\n[Chorus]\nLet's make the most of it baby\nThere's nothing to save me\nSo make the most of it now\nLet's make the most of it right now\n\n[Verse]\nI can feel us vibing strong baby\nyou know you're driving me crazy\nthere's so much you and I can do\nbefore the night is through (oooh ooooh oooh)\nI don't care a bit about tomorrow\nthat's where I'm storing my sorrows\ntonight tonight before this is all through\nlet's make the memories that carry us through\nthe rest of our miserable lives\nthe rest of our miserable lives \neye yie yie yeah yeeah yeeah\neye yie yie yeah yeeah yeeah\n\n[Keytar Solo]\n\n[Chorus]\nLet's make the most of it baby\nThere's nothing to save me\nSo make the most of it now\nLet's make the most of it right now\ntonight tonight before this is all through\nlet's make the memories that carry us through\nthe rest of our miserable lives\nthe rest of our miserable lives \n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "IDM"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Chaotic",
+        "Dreamy",
+        "Melancholic",
+        "Nostalgic",
+        "Romantic"
+      ],
+      "themes": [
+        "Existential Dread"
+      ],
+      "vocals": "both",
+      "word_count": 264,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "IDM"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 264,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "IDM"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Chaotic",
+      "Dreamy",
+      "Melancholic",
+      "Nostalgic",
+      "Romantic"
+    ],
+    "themes": [
+      "Existential Dread"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.669Z",
+  "updated_at": "2025-07-19T16:22:01.669Z",
+  "labeling_complete": false
+}

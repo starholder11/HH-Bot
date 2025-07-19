@@ -1,0 +1,52 @@
+{
+  "id": "a1420347-8f53-4d86-bbfa-7961c9356f11",
+  "filename": "Monte Carlo Blues.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Monte Carlo Blues.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Monte Carlo Blues.mp3",
+  "title": "Monte Carlo Blues",
+  "prompt": "slide bass, deep baritone voice, slow trombone, soft baritone sax",
+  "lyrics": "sky is high with antennas \nbroadcasting in the night\nthey missed me at casino\nI'm growing listless\nwith them monte carlo blues\nbaby can you carry?\nI'm rather poorly known\nin these parts\njust a baggy in your bra\nhand to my heart\nglad to be together\nso hard to be apart",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [],
+      "energy_level": 3,
+      "emotional_intensity": 3,
+      "mood": [
+        "Romantic",
+        "Melancholic"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 52,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 52,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [],
+    "energy_level": 3,
+    "emotional_intensity": 3,
+    "mood": [
+      "Romantic",
+      "Melancholic"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.674Z",
+  "updated_at": "2025-07-19T16:22:01.674Z",
+  "labeling_complete": false
+}

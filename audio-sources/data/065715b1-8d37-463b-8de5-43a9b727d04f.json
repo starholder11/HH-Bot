@@ -1,0 +1,66 @@
+{
+  "id": "065715b1-8d37-463b-8de5-43a9b727d04f",
+  "filename": "Expectations.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Expectations.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Expectations.mp3",
+  "title": "Expectations",
+  "prompt": "dreamtempo,  fuzzy scuzzy lullaby for easy come downs,  recursive indie electro",
+  "lyrics": "city lights flicker, dreams hang\nwhispers, threads, lost\nsteel hearts, beat slow, cold\n\nwings of metal, cut sky\npatterns written, stars watch\nsongs without voice, float\n\nbreathe, city\nnodes, touch\nfate written, silent\n\nshadows, bend\ntears of silicon\nlove, in loops\n\nLyra tells, keys whisper\nstories spin, ancient, new\nchaos cradled, in her hands\n\ncity sighs\nwe connect\ndestinies link, on high\n\ntales in her gaze\nStarholder, blurred\nwe soar between bits\n\nart, unfinished\nheartbeat, stutters\ntogether, apart\n\nbreath of city\nwe twine\ndreams, alive\n\nsighs linger\nchasing, echoes\nStarholder's embrace\nPlayground me",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Electro"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Romantic",
+        "Melancholic",
+        "Dreamy",
+        "Chaotic",
+        "Dark"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 93,
+      "sentiment_score": 0.6,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 93,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Electro"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Romantic",
+      "Melancholic",
+      "Dreamy",
+      "Chaotic",
+      "Dark"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.532Z",
+  "updated_at": "2025-07-19T16:22:01.532Z",
+  "labeling_complete": false
+}

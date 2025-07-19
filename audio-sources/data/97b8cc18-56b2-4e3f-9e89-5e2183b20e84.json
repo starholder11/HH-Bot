@@ -1,0 +1,62 @@
+{
+  "id": "97b8cc18-56b2-4e3f-9e89-5e2183b20e84",
+  "filename": "Ill Wind & Good Will.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Ill Wind & Good Will.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Ill Wind & Good Will.mp3",
+  "title": "Ill Wind & Good Will",
+  "prompt": "",
+  "lyrics": "[Instrumental (featuring lush melodic layered guitars awash in processed feedback with gregorian vocal chanting)]\n\n\n[Chorus (female layered harmonies)]\nI'm on the memorial road\nFor King Phillips War\nMassacrees and monuments\nProtestants gone heaven scent\nCotton Mather to Tarrytown\nThe terror of the Lord\nIn the wilderness of\nthe new.\n\n[Computer Terminal Speaking]\nGothic Highlands\nHeadless at West Point\nIrving and his fairytales\nSermons amidst the surreal\n\n[Pre-Verse]\nOh let me\nWear the Scarlett A\nTreat exile\nas holiday\nBlood on the tracks\nAnd Testament as facts\nSeems the only way out\nIs always through\nDon't let them\nRun over you.\n\n[Instrumental (featuring lush melodic layered guitars awash in processed feedback with gregorian vocal chanting)]\n\n\n[Chorus (female layered harmonies)]\nI'm on the memorial road\nFor King Phillips War\nMassacrees and monuments\nProtestants gone heaven scent\nCotton Mather to Tarrytown\nThe terror of the Lord\nIn the wilderness of\nthe new.",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 8,
+      "mood": [
+        "Aggressive",
+        "Chaotic",
+        "Dreamy",
+        "Melancholic",
+        "Spiritual"
+      ],
+      "themes": [
+        "Glitch Aesthetics"
+      ],
+      "vocals": "both",
+      "word_count": 149,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 149,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 8,
+    "mood": [
+      "Aggressive",
+      "Chaotic",
+      "Dreamy",
+      "Melancholic",
+      "Spiritual"
+    ],
+    "themes": [
+      "Glitch Aesthetics"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.626Z",
+  "updated_at": "2025-07-19T16:22:01.626Z",
+  "labeling_complete": false
+}

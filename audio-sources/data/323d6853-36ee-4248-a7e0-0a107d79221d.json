@@ -1,0 +1,58 @@
+{
+  "id": "323d6853-36ee-4248-a7e0-0a107d79221d",
+  "filename": "Nandor the Relentless.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Nandor the Relentless.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Nandor the Relentless.mp3",
+  "title": "Nandor The Relentless",
+  "prompt": "Quantum Vampire Attack, slopcore monster mod, dubtempo zombie slurpies",
+  "lyrics": "[Pre-Verse]\n(theatrical english actor)\nNan Dooor\nOh Naan Dooor\nNAN DOOR\n\n[Introduction (hard industrial four bars)]\n\n[Chorus]\nQuantum\nQuan Tuuum\nVampire\nAttack\nAttack (ack ack)\n\n[Chorus]\nQuantum\nVampire\nAttack\nQuantum\nVampire\nAttack (ack ack ack)\n\n[Verse]\nKey fail\nKey fail\nKey Key Key Keee\nFail\nControl of the system\nIn all of its states\nControl of the system\nIn all of its states\nSupposition hyperstition\nIs the mission to date\nRolling thunder fifty one\nEven proof of stake\nBuying off Byzantine\nGeneral generating\nat next order magnitude\nrates\n\n[Chorus]\nQuantum\nVampire\nAttack\nQuantum\nVampire\nAttack (ack ack ack)\n\n[Instrumental (dubstorm schizo eight bars)]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Aggressive",
+        "Melancholic",
+        "Rebellious",
+        "Uplifting"
+      ],
+      "themes": [],
+      "vocals": "male",
+      "word_count": 103,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Dub"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 103,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Aggressive",
+      "Melancholic",
+      "Rebellious",
+      "Uplifting"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.679Z",
+  "updated_at": "2025-07-19T16:22:01.679Z",
+  "labeling_complete": false
+}

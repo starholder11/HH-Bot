@@ -1,0 +1,46 @@
+{
+  "id": "ca1eff2f-0bde-4572-831e-32243ef2c511",
+  "filename": "ACA2.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/ACA2.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/ACA2.mp3",
+  "title": "ACA2",
+  "prompt": "",
+  "lyrics": "",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [],
+      "themes": [],
+      "vocals": "none",
+      "word_count": 1,
+      "sentiment_score": 0.5,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Instrumental",
+    "word_count": 1,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "none",
+    "language": "english",
+    "explicit": false,
+    "instrumental": true,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.282Z",
+  "updated_at": "2025-07-19T16:22:01.283Z",
+  "labeling_complete": false
+}

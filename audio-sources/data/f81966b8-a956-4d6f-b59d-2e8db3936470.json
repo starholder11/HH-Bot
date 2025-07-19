@@ -1,0 +1,64 @@
+{
+  "id": "f81966b8-a956-4d6f-b59d-2e8db3936470",
+  "filename": "Bone Flute.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Bone Flute.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Bone Flute.mp3",
+  "title": "Bone Flute",
+  "prompt": "future lonesome,  electro americana,  lap steel souk,  fiddler downtempo dirge,",
+  "lyrics": "razor wire cantina\niron shavings on the floor\ntwo bits for the barman\nwhiskey compass\nshow the way\n\nthey're worried \nabout a rustler\nwhite buffalo\nby his side\n\nhe plays himself\na bone flute\nthe pied poacher\nand his call to stray\n\nthe N F Tees all answer\nwandering from their herds\na rancher has no standing\nwithout his digital meat\n\nemergence\nit's a happening\nevolved programming\nis here to stay\n\nthere's just one bar in Carlson\ncalled the Last Stand Saloon\nall roads here lead to ruin\nyou're on your way to doom\nthere's no need to hurry\ntake a break inside\n\nthere's no need to hurry\non your way to doom\nall roads lead to ruin\nso pull on up to\nthe last stand saloon\n\nthis here's van aiken country\nmargaret shows the way\ndroid defense corps\nrally who\nrally who\non the frontier\nof the hyperreal\nwe'll see you\nall soon\n\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [
+        "Chillout",
+        "Electro"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Apocalyptic",
+        "Dark",
+        "Rebellious",
+        "Uplifting"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 155,
+      "sentiment_score": 0.4,
+      "prompt": [
+        "Downtempo"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 155,
+    "sentiment_score": 0.4
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [
+      "Chillout",
+      "Electro"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Apocalyptic",
+      "Dark",
+      "Rebellious",
+      "Uplifting"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.325Z",
+  "updated_at": "2025-07-19T16:22:01.325Z",
+  "labeling_complete": false
+}

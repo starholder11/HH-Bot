@@ -1,0 +1,59 @@
+{
+  "id": "88449a50-74a9-4253-a37c-6814efc4cafc",
+  "filename": "Oven Melons.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Oven Melons.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Oven Melons.mp3",
+  "title": "Oven Melons",
+  "prompt": "baggy madchester anthem, languid dance tempo, britpop guitar hooks, hammond organ psychedlia",
+  "lyrics": "[Roland 909 groove]\n[Whistling]\n[Hammond Organ shuffle]\n[Rolling bassline]\n[Shouting]\nWhoooo hooo\nLet's be 'avin ya!\n[Pre-Verse]\nHeaven's knocking\nYeah it's knocking\non our doors\n[Verse]\nI'm a collision between \nthe culture and the forces\nacting upon meeeee\nwho I am, what I think\nis just a fuzzy cloud of subjectiviteeee\n[Shouting]\nFeel that\n[Chorus]\nOven melons\nOven melons\nbucket brained\nand freeeeee\nThat ecstasy\nwashing over meeee\n[Pre-Verse]\nHeaven's knocking\nYeah it's knocking\non our doors\n[Guitar solo]\n[Bridge]\n[Verse]\nBenediction is a requiem \nfor the roll, feel the come up\neveryone dancing with meeeee\nfeel the come up\nin our baggies\nheavy ovens \ncovering up our melons\nkeep on gelling\n[Pre-Verse]\nHeaven's knocking\nYeah it's knocking\non our doors",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Rock",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Euphoric",
+        "Blissful",
+        "Spiritual",
+        "Uplifting"
+      ],
+      "themes": [],
+      "vocals": "male",
+      "word_count": 121,
+      "sentiment_score": 0.5,
+      "prompt": [
+        "Baggy",
+        "Madchester"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 121,
+    "sentiment_score": 0.5
+  },
+  "manual_labels": {
+    "primary_genre": "Rock",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Euphoric",
+      "Blissful",
+      "Spiritual",
+      "Uplifting"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "male",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.685Z",
+  "updated_at": "2025-07-19T16:22:01.685Z",
+  "labeling_complete": false
+}

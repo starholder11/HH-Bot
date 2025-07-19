@@ -1,0 +1,64 @@
+{
+  "id": "ffb1f603-e5cb-42b0-a4fc-76d927c6a958",
+  "filename": "Black and Blue.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Black and Blue.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Black and Blue.mp3",
+  "title": "Black and Blue",
+  "prompt": "downtempo, disco, march, sultry female torch singer",
+  "lyrics": "[Verse]\nthis is a song, for all the things gone wrong\nbetween you and me\nour language has always been incomplete\nleaving me to compete with a notion of \nhow it should be for everyone except for \nyou and me\n\n[Chorus]\nWhat's wrong with us\nIs what's right about us\nYou know it's true\nWe like it black and blue\n\n[Build]\n\n[Verse]\nAn army of me verse an army of you\nSo much to do, when we destroy ourselves\nTo live together\nI wouldn't change a thing\nfor the pain you bring\nis what gets me through\n\n[Chorus]\nWhat's wrong with us\nIs what's right about us\nYou know it's true\nWe like it black and blue\n\n[Build]\n\n[Verse]\nI'm a model UN, you are the world's fair\nBoth are ridiculous and that's how we compare\nWhat it is we do, to all those silly notions of how\ntwo people should get on with their lives together\n\n[Chorus]\nWhat's wrong with us\nIs what's right about us\nYou know it's true\nWe like it black and blue\n\n[Refrain]\n[End]\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Experimental",
+      "styles": [
+        "Chillout"
+      ],
+      "energy_level": 5,
+      "emotional_intensity": 5,
+      "mood": [
+        "Melancholic",
+        "Aggressive",
+        "Rebellious",
+        "Romantic",
+        "Violent"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 180,
+      "sentiment_score": 0.4,
+      "prompt": [
+        "Downtempo"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 180,
+    "sentiment_score": 0.4
+  },
+  "manual_labels": {
+    "primary_genre": "Experimental",
+    "styles": [
+      "Chillout"
+    ],
+    "energy_level": 5,
+    "emotional_intensity": 5,
+    "mood": [
+      "Melancholic",
+      "Aggressive",
+      "Rebellious",
+      "Romantic",
+      "Violent"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.323Z",
+  "updated_at": "2025-07-19T16:22:01.323Z",
+  "labeling_complete": false
+}

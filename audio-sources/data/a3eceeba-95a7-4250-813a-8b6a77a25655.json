@@ -1,0 +1,62 @@
+{
+  "id": "a3eceeba-95a7-4250-813a-8b6a77a25655",
+  "filename": "SOMA.mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/SOMA.mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/SOMA.mp3",
+  "title": "Soma",
+  "prompt": "glam vamp, swirling low-fi feedback, droning space rock, fuzz guitars",
+  "lyrics": "[Pre-Verse]\n(intensifying whispers)\nI'll see you when I wake\nI'll see you when I wake\nOn the other side\nLift the veil\nup from\nmy eyes\n\n[Instrumental Hook}\n(quiet loud quiet)\n|-----|\n|-----|\n|-----|\n\n[Chorus]\nGone away\nStrayed off\nFrom the herd\nGone awaaay\nStrayed off \nFrom the herd\nPast perception\nIn search of \nA Beyond\n\n[Verse]\nI still remember\nWhat you said to me\nAs the train pulled away\nOn that fateful day....\nAnd how they took you\nFrom my grasp\nIt was the last good goodbye\nBefore the world was torn to shreds\n\n[Instrumental (thundering guitars)]\n\n[Chorus]\nGone away\nStrayed off\nFrom the herd\nGone awaaay\nStrayed off \nFrom the herd\nPast perception\nIn search of \nA Beyond\n\n[Verse]\nWill you be waiting\nWhen I push through the veil?\nWill you greet me\nOn the shores of \nThe hidden harbor?\nOr was that just\nA childish game we played?\nI'm coming after you\nI'm coming after you\nBe waiting my love\nOr I'll hunt you down\nAnd bind you in the soma dreams\nThat we used to share\nI'll bind you to me\nIn the lost haze of a dream\nGlaze your eyes\nGive that heart to me\nThere's no freedom\nOnly what was meant to be\n\n[Chorus]\nGone away\nStrayed off\nFrom the herd\nGone awaaay\nStrayed off \nFrom the herd\nPast perception\nIn search of \nA Beyond\n\nBe waiting my love\nWaiting my love\nto follow \nthe paths \nin the soma dreams\nwe used to share\n\n[Bridge (droning guitar feedback)]\n\n[Chorus]\nGone away\nStrayed off\nFrom the herd\nGone awaaay\nStrayed off \nFrom the herd\nPast perception\nIn search of \nA Beyond\n\n[Chorus (layered vocoder)]\nOut shine\nOut shine\nOUT SHINED\nOUT OUT SHINED\n\n[End]",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Rock",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 3,
+      "mood": [
+        "Melancholic",
+        "Nostalgic",
+        "Romantic",
+        "Uplifting",
+        "Dreamy"
+      ],
+      "themes": [
+        "Love & Relationships"
+      ],
+      "vocals": "both",
+      "word_count": 289,
+      "sentiment_score": 0.7,
+      "prompt": [],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 289,
+    "sentiment_score": 0.7
+  },
+  "manual_labels": {
+    "primary_genre": "Rock",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 3,
+    "mood": [
+      "Melancholic",
+      "Nostalgic",
+      "Romantic",
+      "Uplifting",
+      "Dreamy"
+    ],
+    "themes": [
+      "Love & Relationships"
+    ],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.696Z",
+  "updated_at": "2025-07-19T16:22:01.696Z",
+  "labeling_complete": false
+}

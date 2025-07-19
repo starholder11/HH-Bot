@@ -1,0 +1,60 @@
+{
+  "id": "27213994-b810-4564-9aef-fc4091802cb7",
+  "filename": "Tuna Tuba Hallelujah .mp3",
+  "s3_url": "https://your-bucket.s3.amazonaws.com/audio/Tuna Tuba Hallelujah .mp3",
+  "cloudflare_url": "https://cdn.yourdomain.com/audio/Tuna Tuba Hallelujah .mp3",
+  "title": "Tuna Tuba Hallelujah",
+  "prompt": "church chimes, chopped and screwed, hentai dubcore",
+  "lyrics": "as the resident apprentice to the former archbishop of interoffice memo random manic panic attack a massive retroactive alimony issued as a standing order against interfering in the fates of the late great understated interstate otherwise known as the artist formerly known as route eighty eight miles per hour in the department of water and power cats meowing howdy do dee light in the heart of lady miss kiara in the sierra madres mama mia let me know how it goes and going yes where going until we are going going gone\n\nhorace andy dandy warhols santa clause deck my hall and oats can fill the boats then we'll need a bigger boat until the goat gets down on there knees gethsemane men knee all out of keys unto the kingdom and the bounty of the glory halelujah honda car that sets the bar for reliability silly string mechanics demanding answers for the fact that I'm going going back to galiee gailee stop me if you've heard this all before, life's just an echo....innitt?\n\nin a minute wait a minute lets sit and stop for a little bit bitsy spider climbed up the water spout and spat it out and about the town a dapper man representing his hometown proud of prince of persia with the merger of the church of latter day faints upon the paint of a climate crisis stacking up the sturgeon sliders casting awnings on your window to the chopper respect the whopper of a tale tuna tuba hallelujah walk on through yah and its all good because we are going, going, gone, going gone, going, going gone.",
+  "auto_analysis": {
+    "enhanced_analysis": {
+      "primary_genre": "Electronic",
+      "styles": [],
+      "energy_level": 5,
+      "emotional_intensity": 8,
+      "mood": [
+        "Melancholic",
+        "Aggressive",
+        "Anxious",
+        "Chaotic",
+        "Romantic"
+      ],
+      "themes": [],
+      "vocals": "both",
+      "word_count": 272,
+      "sentiment_score": 0.6,
+      "prompt": [
+        "Dub"
+      ],
+      "temporal_structure": []
+    },
+    "content_type": "Vocal",
+    "word_count": 272,
+    "sentiment_score": 0.6
+  },
+  "manual_labels": {
+    "primary_genre": "Electronic",
+    "styles": [],
+    "energy_level": 5,
+    "emotional_intensity": 8,
+    "mood": [
+      "Melancholic",
+      "Aggressive",
+      "Anxious",
+      "Chaotic",
+      "Romantic"
+    ],
+    "themes": [],
+    "tempo": 5,
+    "vocals": "both",
+    "language": "english",
+    "explicit": false,
+    "instrumental": false,
+    "custom_styles": [],
+    "custom_moods": [],
+    "custom_themes": []
+  },
+  "created_at": "2025-07-19T16:22:01.750Z",
+  "updated_at": "2025-07-19T16:22:01.750Z",
+  "labeling_complete": false
+}
