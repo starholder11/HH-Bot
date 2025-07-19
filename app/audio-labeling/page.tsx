@@ -265,7 +265,7 @@ export default function AudioLabelingPage() {
   ) => {
     if (!selectedSong) return;
 
-    const currentValues = selectedSong.manual_labels[field] as string[];
+    const currentValues = (selectedSong.manual_labels[field] || []) as string[];
     const newValues = checked
       ? [...currentValues, value]
       : currentValues.filter(v => v !== value);
@@ -274,10 +274,12 @@ export default function AudioLabelingPage() {
   };
 
   const handleSliderChange = (field: 'energy_level' | 'emotional_intensity' | 'tempo', value: number) => {
+    if (!selectedSong) return;
     handleUpdateLabels({ [field]: value });
   };
 
   const handleDropdownChange = (field: 'primary_genre' | 'vocals' | 'language', value: string) => {
+    if (!selectedSong) return;
     handleUpdateLabels({ [field]: value });
   };
 
