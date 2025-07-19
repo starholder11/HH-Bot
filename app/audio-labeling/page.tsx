@@ -86,7 +86,8 @@ export default function AudioLabelingPage() {
 
   // Enhanced form options
   const primaryGenreOptions = Object.keys(COMPREHENSIVE_GENRES);
-  const allStyleOptions = Object.values(COMPREHENSIVE_GENRES).flat().sort();
+  // Deduplicate styles across genres to avoid duplicate React keys
+  const allStyleOptions = Array.from(new Set(Object.values(COMPREHENSIVE_GENRES).flat())).sort();
   const vocalsOptions = ["male", "female", "both", "none"];
 
   useEffect(() => {
@@ -134,6 +135,7 @@ export default function AudioLabelingPage() {
     if (!selectedSong) return;
 
     try {
+      console.log('PATCH labels', updates);
       const response = await fetch(`/api/audio-labeling/songs/${selectedSong.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -142,8 +144,11 @@ export default function AudioLabelingPage() {
 
       if (response.ok) {
         const updatedSong = await response.json();
+        console.log('Updated song', updatedSong);
         setSongs(songs.map(s => s.id === selectedSong.id ? updatedSong : s));
         setSelectedSong(updatedSong);
+      } else {
+        console.error('Patch failed', await response.text());
       }
     } catch (error) {
       console.error('Error updating labels:', error);
@@ -265,7 +270,10 @@ export default function AudioLabelingPage() {
   ) => {
     if (!selectedSong) return;
 
-    const currentValues = (selectedSong.manual_labels[field] || []) as string[];
+    console.log('Checkbox change', { field, value, checked });
+
+    const existing = selectedSong.manual_labels[field];
+    const currentValues = Array.isArray(existing) ? existing : [];
     const newValues = checked
       ? [...currentValues, value]
       : currentValues.filter(v => v !== value);
@@ -333,7 +341,7 @@ export default function AudioLabelingPage() {
   const getAllStyleOptions = (searchTerm: string = '') => {
     const predefined = allStyleOptions;
     const custom = selectedSong?.manual_labels.custom_styles || [];
-    const allOptions = [...predefined, ...custom].sort();
+    const allOptions = Array.from(new Set([...predefined, ...custom])).sort();
 
     if (!searchTerm) return allOptions;
     return allOptions.filter(style =>
@@ -344,7 +352,7 @@ export default function AudioLabelingPage() {
   const getAllMoodOptions = (searchTerm: string = '') => {
     const predefined = COMPREHENSIVE_MOODS;
     const custom = selectedSong?.manual_labels.custom_moods || [];
-    const allOptions = [...predefined, ...custom].sort();
+    const allOptions = Array.from(new Set([...predefined, ...custom])).sort();
 
     if (!searchTerm) return allOptions;
     return allOptions.filter(mood =>
@@ -355,7 +363,7 @@ export default function AudioLabelingPage() {
   const getAllThemeOptions = (searchTerm: string = '') => {
     const predefined = COMPREHENSIVE_THEMES;
     const custom = selectedSong?.manual_labels.custom_themes || [];
-    const allOptions = [...predefined, ...custom].sort();
+    const allOptions = Array.from(new Set([...predefined, ...custom])).sort();
 
     if (!searchTerm) return allOptions;
     return allOptions.filter(theme =>
