@@ -1,1 +1,11 @@
- 
+audio-sources/*.mp3
+audio-sources/*.wav
+audio-sources/*.flac
+audio-sources/*.txt
+audio-sources/*.rtf
+audio-sources/*.md
+whisper_runs/
+whisper_backend/
+backend.log
+scripts/
+python
