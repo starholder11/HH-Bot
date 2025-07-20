@@ -772,6 +772,240 @@ export default function MediaLabelingPage() {
                       </div>
                     )}
                 </Card>
+              ) : selectedAsset.media_type === 'video' ? (
+                /* Video Gallery Card - Identical to Image Card */
+                <Card className="p-6">
+                  {/* Header - Identical to Image Card */}
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex-1">
+                      {/* Title/Filename Section */}
+                      <div className="flex items-center space-x-2 mb-3">
+                        <span className="text-xl">🎬</span>
+                        {isEditingFilename ? (
+                          <div className="flex items-center space-x-2 flex-1">
+                            <input
+                              type="text"
+                              value={newFilename}
+                              onChange={(e) => setNewFilename(e.target.value)}
+                              className="text-lg font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 flex-1"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveFilename();
+                                if (e.key === 'Escape') cancelFilenameEdit();
+                              }}
+                            />
+                            <Button
+                              onClick={() => {
+                                if (!isRenamingFile && newFilename.trim()) {
+                                  saveFilename();
+                                }
+                              }}
+                              className={`px-2 py-1 text-xs ${
+                                isRenamingFile || !newFilename.trim()
+                                  ? 'bg-gray-400 cursor-not-allowed'
+                                  : 'bg-green-600 hover:bg-green-700'
+                              }`}
+                            >
+                              {isRenamingFile ? '...' : '✓'}
+                            </Button>
+                            <Button
+                              onClick={cancelFilenameEdit}
+                              className="px-1.5 py-0.5 text-xs bg-gray-300 hover:bg-gray-400 rounded text-gray-700 transition-colors"
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2 flex-1">
+                            <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
+                            <Button
+                              onClick={startFilenameEdit}
+                              className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
+                            >
+                              ✏️
+                            </Button>
+                          </div>
+                        )}
+                        {selectedAsset.labeling_complete && (
+                          <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">
+                            ✓ Complete
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Project Assignment Section */}
+                      <div className="mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500 font-medium">Project:</span>
+                          <select
+                            value={selectedAsset.project_id || ''}
+                            onChange={(e) => updateProjectAssignment(e.target.value || null)}
+                            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
+                          >
+                            <option value="">No Project</option>
+                            {projects.map(project => (
+                              <option key={project.id} value={project.id}>
+                                {project.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500">
+                        Created: {new Date(selectedAsset.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    {/* Action Button - Future AI Video Labeling */}
+                    <Button
+                      className="px-2 py-0.5 text-xs bg-gray-400 cursor-not-allowed rounded text-white"
+                    >
+                      🎬 Video AI (Soon)
+                    </Button>
+                  </div>
+
+                  {/* Video Section */}
+                  <div className="flex justify-center mb-6">
+                    {(selectedAsset.cloudflare_url || selectedAsset.s3_url) ? (
+                      <video
+                        key={selectedAsset.id}
+                        controls
+                        className="w-96 h-96 object-cover rounded-lg shadow-md"
+                        style={{ maxHeight: '24rem' }}
+                      >
+                        <source src={encodePath(selectedAsset.cloudflare_url || selectedAsset.s3_url)} type="video/mp4" />
+                        <source src={encodePath(selectedAsset.s3_url)} type="video/mp4" />
+                        Your browser does not support the video element.
+                      </video>
+                    ) : (
+                      <div className="w-96 h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-400">No preview available</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AI Labels (when implemented for videos) */}
+                  {selectedAsset.ai_labels && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-700">AI Analysis</h3>
+
+                      {/* Scene Description */}
+                      {selectedAsset.ai_labels.scenes.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Scene Description</h4>
+                          <div className="bg-purple-50 border-l-4 border-purple-400 p-4 rounded-r-lg">
+                            <p className="text-gray-700 leading-relaxed text-sm">
+                              {selectedAsset.ai_labels.scenes[0]}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Label Categories */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {selectedAsset.ai_labels.objects.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Objects</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedAsset.ai_labels.objects.slice(0, 8).map((object, index) => (
+                                <span key={index} className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                  {object}
+                                </span>
+                              ))}
+                              {selectedAsset.ai_labels.objects.length > 8 && (
+                                <span className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                                  +{selectedAsset.ai_labels.objects.length - 8} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedAsset.ai_labels.style.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Style</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedAsset.ai_labels.style.map((style, index) => (
+                                <span key={index} className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                  {style}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedAsset.ai_labels.mood.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Mood</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedAsset.ai_labels.mood.map((mood, index) => (
+                                <span key={index} className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                                  {mood}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedAsset.ai_labels.themes.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Themes</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedAsset.ai_labels.themes.map((theme, index) => (
+                                <span key={index} className="px-3 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                                  {theme}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Video Details */}
+                  {selectedAsset.metadata && (
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold text-gray-700 mb-3">Video Details</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-xs text-gray-500 font-medium">Dimensions</div>
+                          <div className="text-sm font-bold text-gray-900 mt-1">
+                            {selectedAsset.metadata.width && selectedAsset.metadata.height
+                              ? `${selectedAsset.metadata.width}×${selectedAsset.metadata.height}`
+                              : 'Unknown'
+                            }
+                          </div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-xs text-gray-500 font-medium">Duration</div>
+                          <div className="text-sm font-bold text-gray-900 mt-1">
+                            {selectedAsset.metadata.duration
+                              ? `${Math.floor(selectedAsset.metadata.duration / 60)}:${String(Math.floor(selectedAsset.metadata.duration % 60)).padStart(2, '0')}`
+                              : 'Unknown'
+                            }
+                          </div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-xs text-gray-500 font-medium">Format</div>
+                          <div className="text-sm font-bold text-gray-900 mt-1">
+                            {selectedAsset.metadata.format?.split('/')[0]?.toUpperCase() || 'Unknown'}
+                          </div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-xs text-gray-500 font-medium">File Size</div>
+                          <div className="text-sm font-bold text-gray-900 mt-1">
+                            {selectedAsset.metadata.file_size
+                              ? `${Math.round(selectedAsset.metadata.file_size / (1024 * 1024))} MB`
+                              : 'Unknown'
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Card>
               ) : (
                 /* Audio Card - Keep existing layout */
                 <Card className="p-6">
@@ -809,42 +1043,25 @@ export default function MediaLabelingPage() {
 
                     {/* Preview */}
                     <div>
-                      {selectedAsset.media_type === 'audio' && selectedAsset.cover_art && (
+                      {selectedAsset.cover_art && (
                         <img
                           src={encodePath(selectedAsset.cover_art.cloudflare_url || selectedAsset.cover_art.s3_url)}
                           alt="Cover art"
                           className="w-32 h-32 object-cover rounded-lg shadow-md"
                         />
                       )}
-                      {selectedAsset.media_type === 'video' && (
-                        <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-                          <span className="text-4xl">🎬</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Media Player */}
-                {selectedAsset.media_type === 'audio' && (
-                  <div className="mb-4">
-                    <audio key={selectedAsset.id} controls className="w-full">
-                      <source src={encodePath(selectedAsset.s3_url)} type="audio/mpeg" />
-                      <source src={encodePath(selectedAsset.cloudflare_url)} type="audio/mpeg" />
-                      Your browser does not support the audio element.
-                    </audio>
-                  </div>
-                )}
-
-                {selectedAsset.media_type === 'video' && (
-                  <div className="mb-4">
-                    <video key={selectedAsset.id} controls className="w-full max-h-96 rounded-lg">
-                      <source src={encodePath(selectedAsset.s3_url)} type="video/mp4" />
-                      <source src={encodePath(selectedAsset.cloudflare_url)} type="video/mp4" />
-                      Your browser does not support the video element.
-                    </video>
-                  </div>
-                )}
+                <div className="mb-4">
+                  <audio key={selectedAsset.id} controls className="w-full">
+                    <source src={encodePath(selectedAsset.s3_url)} type="audio/mpeg" />
+                    <source src={encodePath(selectedAsset.cloudflare_url)} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
 
                 {/* Prompt (for audio) */}
                 {selectedAsset.media_type === 'audio' && selectedAsset.prompt && (
