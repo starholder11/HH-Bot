@@ -34,3 +34,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Audio files - stored in S3, not in git
+*.mp3
+*.wav
+*.m4a
+*.flac
+*.aac
+*.ogg
+audio-sources/*.mp3
+audio-sources/*.wav
+audio-sources/*.m4a
+audio-sources/*.flac
