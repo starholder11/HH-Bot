@@ -24,9 +24,6 @@ interface VideoAsset {
     style: string[];
     mood: string[];
     themes: string[];
-    overall_analysis?: any;
-    keyframe_analysis?: any[];
-    analysis_metadata?: any;
   };
   keyframe_stills?: KeyframeStill[];
   processing_status: {
@@ -81,9 +78,6 @@ export default function VideoAnalysisPage() {
   const [keyframeStrategy, setKeyframeStrategy] = useState<'adaptive' | 'uniform' | 'scene_change'>('adaptive');
   const [targetFrames, setTargetFrames] = useState<number>(8);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisProgress, setAnalysisProgress] = useState('');
-  const [selectedKeyframe, setSelectedKeyframe] = useState<KeyframeStill | null>(null);
-  const [showKeyframeModal, setShowKeyframeModal] = useState(false);
 
   // Load videos and projects on mount
   useEffect(() => {
@@ -96,7 +90,13 @@ export default function VideoAnalysisPage() {
       const response = await fetch('/api/media-labeling/assets?type=video');
       if (response.ok) {
         const allAssets = await response.json();
-        setVideos(allAssets.filter((asset: any) => asset.media_type === 'video'));
+        const videoAssets = allAssets.filter((asset: any) => asset.media_type === 'video');
+        setVideos(videoAssets);
+
+        // Auto-select first video if none selected
+        if (videoAssets.length > 0 && !selectedVideo) {
+          setSelectedVideo(videoAssets[0]);
+        }
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
@@ -115,12 +115,10 @@ export default function VideoAnalysisPage() {
     }
   };
 
-  const triggerVideoAnalysis = async (videoId: string) => {
-    if (!videoId) return;
+  const handleAnalyzeVideo = async () => {
+    if (!selectedVideo) return;
 
     setIsAnalyzing(true);
-    setAnalysisProgress('Initializing video analysis...');
-
     try {
       const response = await fetch('/api/media-labeling/videos/analyze', {
         method: 'POST',
@@ -128,7 +126,7 @@ export default function VideoAnalysisPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          videoId,
+          videoId: selectedVideo.id,
           analysisType,
           keyframeStrategy,
           targetFrames,
@@ -137,82 +135,35 @@ export default function VideoAnalysisPage() {
 
       if (response.ok) {
         const result = await response.json();
-        setAnalysisProgress('Analysis complete! Refreshing video data...');
-
-        // Refresh the video data to show new analysis results
+        // Refresh the video data to get updated analysis
         await fetchVideos();
 
-        // Update selected video with new data
-        const updatedVideo = videos.find(v => v.id === videoId);
+        // Update the selected video with new data
+        const updatedVideo = videos.find(v => v.id === selectedVideo.id);
         if (updatedVideo) {
           setSelectedVideo(updatedVideo);
         }
-
-        setAnalysisProgress('');
-        alert('Video analysis completed successfully!');
       } else {
-        const error = await response.text();
-        console.error('Analysis failed:', error);
-        setAnalysisProgress('');
-        alert(`Analysis failed: ${error}`);
+        const error = await response.json();
+        alert(`Analysis failed: ${JSON.stringify(error)}`);
       }
     } catch (error) {
-      console.error('Error during analysis:', error);
-      setAnalysisProgress('');
-      alert('Analysis failed due to network error');
+      console.error('Analysis error:', error);
+      alert(`Analysis failed: ${error}`);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const formatDuration = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const formatFileSize = (bytes: number): string => {
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    if (bytes === 0) return '0 Bytes';
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  const openKeyframeModal = (keyframe: KeyframeStill) => {
-    setSelectedKeyframe(keyframe);
-    setShowKeyframeModal(true);
-  };
-
-  const convertKeyframeToImage = async (keyframeId: string, targetProjectId: string) => {
-    try {
-      const response = await fetch('/api/media-labeling/keyframes/convert-to-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          keyframeId,
-          targetProjectId,
-          newTitle: `Keyframe from ${selectedVideo?.title}`,
-        }),
-      });
-
-      if (response.ok) {
-        const newImageAsset = await response.json();
-        alert(`Keyframe converted to image asset: ${newImageAsset.title}`);
-        setShowKeyframeModal(false);
-      } else {
-        alert('Failed to convert keyframe to image');
-      }
-    } catch (error) {
-      console.error('Error converting keyframe:', error);
-      alert('Error converting keyframe to image');
-    }
+  const formatFileSize = (bytes: number) => {
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(1)} MB`;
   };
 
   const filteredVideos = selectedProject
@@ -220,8 +171,34 @@ export default function VideoAnalysisPage() {
     : videos;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">S</span>
+                  </div>
+                  <span className="ml-2 text-xl font-bold text-gray-900">Starholder</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <input
+                type="text"
+                placeholder="Search timeline..."
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Video Analysis Dashboard</h1>
           <p className="text-gray-600">
@@ -229,18 +206,16 @@ export default function VideoAnalysisPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Panel - Video List & Controls */}
-          <div className="lg:col-span-1 space-y-6">
+        <div className="grid grid-cols-12 gap-8">
+          {/* Left Sidebar */}
+          <div className="col-span-3 space-y-6">
             {/* Project Filter */}
-            <Card className="p-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Project
-              </label>
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-3">Filter by Project</h3>
               <select
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Projects</option>
                 {projects.map((project) => (
@@ -249,21 +224,21 @@ export default function VideoAnalysisPage() {
                   </option>
                 ))}
               </select>
-            </Card>
+            </div>
 
-            {/* Analysis Configuration */}
-            <Card className="p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analysis Settings</h3>
+            {/* Analysis Settings */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-3">Analysis Settings</h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Analysis Type
                   </label>
                   <select
                     value={analysisType}
                     onChange={(e) => setAnalysisType(e.target.value as any)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="comprehensive">Comprehensive Analysis</option>
                     <option value="style_focus">Style & Aesthetics Focus</option>
@@ -272,13 +247,13 @@ export default function VideoAnalysisPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Keyframe Strategy
                   </label>
                   <select
                     value={keyframeStrategy}
                     onChange={(e) => setKeyframeStrategy(e.target.value as any)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="adaptive">Adaptive (Smart Defaults)</option>
                     <option value="uniform">Uniform Distribution</option>
@@ -287,7 +262,7 @@ export default function VideoAnalysisPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Target Keyframes: {targetFrames}
                   </label>
                   <input
@@ -304,22 +279,22 @@ export default function VideoAnalysisPage() {
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
 
-            {/* Video List */}
-            <Card className="p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {/* Videos List */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-3">
                 Videos ({filteredVideos.length})
               </h3>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-96 overflow-y-auto">
                 {filteredVideos.map((video) => (
                   <div
                     key={video.id}
-                    className={`p-3 border rounded-md cursor-pointer transition-colors ${
+                    className={`p-3 border rounded cursor-pointer transition-colors text-sm ${
                       selectedVideo?.id === video.id
                         ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                     onClick={() => setSelectedVideo(video)}
                   >
@@ -327,15 +302,15 @@ export default function VideoAnalysisPage() {
                     <div className="text-xs text-gray-500 mt-1">
                       {formatDuration(video.metadata.duration)} • {formatFileSize(video.metadata.file_size)}
                     </div>
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-1 mt-2">
                       {video.processing_status.ai_labeling === 'completed' && (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
                           Analyzed
                         </span>
                       )}
                       {video.keyframe_stills && video.keyframe_stills.length > 0 && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                          {video.keyframe_stills.length} Keyframes
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                          {video.keyframe_stills.length} frames
                         </span>
                       )}
                     </div>
@@ -343,69 +318,62 @@ export default function VideoAnalysisPage() {
                 ))}
 
                 {filteredVideos.length === 0 && (
-                  <div className="text-center text-gray-500 py-8">
+                  <div className="text-center text-gray-500 py-8 text-sm">
                     No videos found. Upload videos from the Media Labeling page.
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
 
-          {/* Right Panel - Video Analysis Results */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Main Content Area */}
+          <div className="col-span-9">
             {selectedVideo ? (
-              <>
-                {/* Video Details */}
-                <Card className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">{selectedVideo.title}</h2>
-                      <p className="text-gray-600 mt-1">
-                        {selectedVideo.metadata.width}×{selectedVideo.metadata.height} • {formatDuration(selectedVideo.metadata.duration)} • {selectedVideo.metadata.format}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => triggerVideoAnalysis(selectedVideo.id)}
-                      disabled={isAnalyzing}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {isAnalyzing ? 'Analyzing...' : 'Analyze Video'}
-                    </Button>
-                  </div>
-
-                  {/* Video Player */}
-                  <div className="mb-6">
-                    <video
-                      controls
-                      className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
-                      poster={selectedVideo.keyframe_stills?.[0]?.cloudflare_url}
-                    >
-                      <source src={selectedVideo.cloudflare_url} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                  </div>
-
-                  {/* Analysis Progress */}
-                  {analysisProgress && (
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                        <span className="text-blue-800">{analysisProgress}</span>
+              <div className="space-y-6">
+                {/* Video Player Section */}
+                <div className="bg-white rounded-lg border border-gray-200">
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-xl font-semibold text-gray-900">{selectedVideo.title}</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {formatDuration(selectedVideo.metadata.duration)} • {selectedVideo.metadata.format}
+                        </p>
                       </div>
+                      <Button
+                        onClick={handleAnalyzeVideo}
+                        disabled={isAnalyzing}
+                        className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
+                      >
+                        {isAnalyzing ? 'Analyzing...' : 'Analyze Video'}
+                      </Button>
                     </div>
-                  )}
-                </Card>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="bg-gray-100 rounded-lg aspect-video flex items-center justify-center">
+                      <video
+                        controls
+                        className="w-full h-full rounded-lg"
+                        poster={selectedVideo.keyframe_stills?.[0]?.cloudflare_url}
+                      >
+                        <source src={selectedVideo.cloudflare_url} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                  </div>
+                </div>
 
                 {/* AI Analysis Results */}
                 {selectedVideo.ai_labels && (
-                  <Card className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">AI Analysis Results</h3>
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Analysis Results</h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-6">
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Scenes</h4>
-                        <div className="space-y-1">
-                          {selectedVideo.ai_labels.scenes.map((scene, index) => (
+                        <div className="space-y-2">
+                          {selectedVideo.ai_labels.scenes.slice(0, 3).map((scene, index) => (
                             <div key={index} className="text-sm text-gray-700 p-2 bg-gray-50 rounded">
                               {scene}
                             </div>
@@ -414,215 +382,103 @@ export default function VideoAnalysisPage() {
                       </div>
 
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Objects</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedVideo.ai_labels.objects.map((object, index) => (
+                        <h4 className="font-medium text-gray-900 mb-2">Objects & Style</h4>
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap gap-1">
+                            {selectedVideo.ai_labels.objects.slice(0, 6).map((object, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded"
+                              >
+                                {object}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {selectedVideo.ai_labels.style.map((style, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded"
+                              >
+                                {style}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Mood</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedVideo.ai_labels.mood.map((mood, index) => (
                             <span
                               key={index}
-                              className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full"
+                              className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded"
                             >
-                              {object}
+                              {mood}
                             </span>
                           ))}
                         </div>
                       </div>
 
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Style</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedVideo.ai_labels.style.map((style, index) => (
+                        <h4 className="font-medium text-gray-900 mb-2">Themes</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedVideo.ai_labels.themes.map((theme, index) => (
                             <span
                               key={index}
-                              className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
+                              className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded"
                             >
-                              {style}
+                              {theme}
                             </span>
                           ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Mood & Themes</h4>
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-2">
-                            {selectedVideo.ai_labels.mood.map((mood, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full"
-                              >
-                                {mood}
-                              </span>
-                            ))}
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedVideo.ai_labels.themes.map((theme, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full"
-                              >
-                                {theme}
-                              </span>
-                            ))}
-                          </div>
                         </div>
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 )}
 
-                {/* Keyframe Timeline */}
+                {/* Keyframes */}
                 {selectedVideo.keyframe_stills && selectedVideo.keyframe_stills.length > 0 && (
-                  <Card className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                      Keyframe Timeline ({selectedVideo.keyframe_stills.length} frames)
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Keyframes ({selectedVideo.keyframe_stills.length})
                     </h3>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-6 gap-4">
                       {selectedVideo.keyframe_stills.map((keyframe) => (
-                        <div
-                          key={keyframe.id}
-                          className="cursor-pointer group"
-                          onClick={() => openKeyframeModal(keyframe)}
-                        >
+                        <div key={keyframe.id} className="group cursor-pointer">
                           <div className="relative">
                             <img
                               src={keyframe.cloudflare_url}
-                              alt={`Keyframe at ${keyframe.timestamp}`}
-                              className="w-full aspect-video object-cover rounded-lg shadow-md group-hover:shadow-lg transition-shadow"
+                              alt={`Frame at ${keyframe.timestamp}`}
+                              className="w-full aspect-video object-cover rounded border border-gray-200 group-hover:border-blue-300 transition-colors"
                             />
                             <div className="absolute bottom-1 right-1 bg-black bg-opacity-75 text-white text-xs px-1 rounded">
                               {keyframe.timestamp}
                             </div>
-                            {keyframe.reusable_as_image && (
-                              <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1 rounded">
-                                Reusable
+                            {keyframe.metadata.quality && (
+                              <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 rounded">
+                                {keyframe.metadata.quality}
                               </div>
                             )}
                           </div>
-                          <div className="mt-2 text-xs text-gray-600">
-                            Quality: {keyframe.metadata.quality}/100
-                          </div>
-                          {keyframe.usage_tracking.times_reused > 0 && (
-                            <div className="text-xs text-blue-600">
-                              Reused {keyframe.usage_tracking.times_reused} times
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
-                  </Card>
+                  </div>
                 )}
-              </>
+              </div>
             ) : (
-              <Card className="p-12 text-center">
-                <div className="text-gray-500">
-                  <div className="text-4xl mb-4">🎬</div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Video</h3>
-                  <p>Choose a video from the list to view analysis results and keyframes</p>
-                </div>
-              </Card>
+              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+                <div className="text-gray-400 text-6xl mb-4">🎬</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Video</h3>
+                <p className="text-gray-500">Choose a video from the sidebar to start analyzing</p>
+              </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Keyframe Modal */}
-      {showKeyframeModal && selectedKeyframe && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-semibold">Keyframe Details</h3>
-                <button
-                  onClick={() => setShowKeyframeModal(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <img
-                    src={selectedKeyframe.cloudflare_url}
-                    alt={`Keyframe at ${selectedKeyframe.timestamp}`}
-                    className="w-full rounded-lg shadow-lg"
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Metadata</h4>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <div>Timestamp: {selectedKeyframe.timestamp}</div>
-                      <div>Frame: #{selectedKeyframe.frame_number}</div>
-                      <div>Quality: {selectedKeyframe.metadata.quality}/100</div>
-                      <div>Resolution: {selectedKeyframe.metadata.resolution.width}×{selectedKeyframe.metadata.resolution.height}</div>
-                      <div>Reused: {selectedKeyframe.usage_tracking.times_reused} times</div>
-                    </div>
-                  </div>
-
-                  {selectedKeyframe.ai_labels && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">AI Labels</h4>
-                      <div className="space-y-2">
-                        {selectedKeyframe.ai_labels.scenes.length > 0 && (
-                          <div>
-                            <div className="text-sm font-medium text-gray-700">Scenes:</div>
-                            <div className="text-sm text-gray-600">
-                              {selectedKeyframe.ai_labels.scenes.join(', ')}
-                            </div>
-                          </div>
-                        )}
-                        {selectedKeyframe.ai_labels.objects.length > 0 && (
-                          <div>
-                            <div className="text-sm font-medium text-gray-700">Objects:</div>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {selectedKeyframe.ai_labels.objects.map((obj, index) => (
-                                <span
-                                  key={index}
-                                  className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full"
-                                >
-                                  {obj}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedKeyframe.reusable_as_image && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Convert to Image Asset</h4>
-                      <p className="text-sm text-gray-600 mb-3">
-                        Convert this keyframe to a standalone image asset for reuse in other projects.
-                      </p>
-                      <select
-                        className="w-full p-2 border border-gray-300 rounded-md mb-3"
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            convertKeyframeToImage(selectedKeyframe.id, e.target.value);
-                          }
-                        }}
-                        defaultValue=""
-                      >
-                        <option value="">Select target project...</option>
-                        {projects.map((project) => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
