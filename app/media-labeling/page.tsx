@@ -106,6 +106,11 @@ export default function MediaLabelingPage() {
     loadProjects();
   }, []);
 
+  // Reset AI labeling state when switching between assets
+  useEffect(() => {
+    setIsAILabeling(false);
+  }, [selectedAsset]);
+
   const loadAssets = async () => {
     try {
       const params = new URLSearchParams();
