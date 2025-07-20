@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     console.log('[video-processing] Payload:', payload);
 
-    const functionName = process.env.LAMBDA_VIDEO_FUNCTION_NAME || 'video-processor';
+    const functionName = 'video-processor'; // Simple - we only have one function
 
     const command = new InvokeCommand({
       FunctionName: functionName,
