@@ -169,6 +169,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Auto-trigger AI labeling for uploaded image
+    try {
+      console.log('Auto-triggering AI labeling for:', imageId);
+
+      // Make internal API call to AI labeling endpoint
+      const aiLabelResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/media-labeling/images/ai-label`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ assetId: imageId }),
+      });
+
+      if (aiLabelResponse.ok) {
+        console.log('AI labeling auto-triggered successfully for:', imageId);
+      } else {
+        console.error('Failed to auto-trigger AI labeling:', await aiLabelResponse.text());
+      }
+    } catch (error) {
+      console.error('Error auto-triggering AI labeling:', error);
+      // Don't fail the upload if AI labeling fails
+    }
+
     return NextResponse.json({
       success: true,
       image: imageData
