@@ -81,6 +81,7 @@ export interface VideoAsset extends BaseMediaAsset {
     frame_rate?: number;
     aspect_ratio: string;
     bitrate?: number;
+    color_profile?: string;
   };
   keyframes?: {
     timestamp: string;
@@ -88,6 +89,33 @@ export interface VideoAsset extends BaseMediaAsset {
     cloudflare_url: string;
     ai_labels: any;
   }[];
+  keyframe_stills?: KeyframeStill[];
+  keyframe_count?: number;
+  ai_labels: {
+    scenes: string[];
+    objects: string[];
+    style: string[];
+    mood: string[];
+    themes: string[];
+    confidence_scores: Record<string, number[]>;
+    overall_analysis?: any;
+    keyframe_analysis?: any[];
+    analysis_metadata?: any;
+  };
+  processing_status: {
+    upload: 'pending' | 'completed' | 'error';
+    metadata_extraction: 'pending' | 'completed' | 'error';
+    ai_labeling: 'pending' | 'completed' | 'error';
+    manual_review: 'pending' | 'completed' | 'error';
+    keyframe_extraction?: 'pending' | 'completed' | 'error';
+  };
+  timestamps: {
+    uploaded: string;
+    metadata_extracted: string | null;
+    labeled_ai: string | null;
+    labeled_reviewed: string | null;
+    keyframes_extracted?: string | null;
+  };
 }
 
 export interface AudioAsset extends BaseMediaAsset {
@@ -475,5 +503,227 @@ export async function getAssetStatistics(): Promise<{
   }
 
   return stats;
+}
+
+// Video-specific additional types
+
+export interface KeyframeStill {
+  id: string;
+  parent_video_id: string;
+  project_id: string | null;
+  media_type: 'keyframe_still';
+  timestamp: string;
+  frame_number: number;
+  filename: string;
+  title: string;
+  s3_url: string;
+  cloudflare_url: string;
+  reusable_as_image: boolean;
+  source_info: {
+    video_filename: string;
+    timestamp: string;
+    frame_number: number;
+    extraction_method: string;
+  };
+  metadata: {
+    file_size: number;
+    format: string;
+    resolution: { width: number; height: number };
+    aspect_ratio: string;
+    color_profile: string;
+    quality: number;
+  };
+  ai_labels?: {
+    scenes: string[];
+    objects: string[];
+    style: string[];
+    mood: string[];
+    themes: string[];
+    confidence_scores: Record<string, number[]>;
+  };
+  usage_tracking: {
+    times_reused: number;
+    projects_used_in: string[];
+    last_used: string | null;
+  };
+  processing_status: {
+    extraction: 'pending' | 'completed' | 'error';
+    ai_labeling: 'pending' | 'completed' | 'error';
+    manual_review: 'pending' | 'completed' | 'error';
+  };
+  timestamps: {
+    extracted: string;
+    labeled_ai: string | null;
+    labeled_reviewed: string | null;
+  };
+  labeling_complete: boolean;
+}
+
+/**
+ * Get a video asset by ID
+ */
+export async function getVideoAsset(videoId: string): Promise<VideoAsset | null> {
+  const asset = await getMediaAsset(videoId);
+  if (!asset || asset.media_type !== 'video') {
+    return null;
+  }
+  return asset as VideoAsset;
+}
+
+/**
+ * Update a video asset with new data
+ */
+export async function updateVideoAsset(videoId: string, updates: Partial<VideoAsset>): Promise<VideoAsset> {
+  const currentAsset = await getVideoAsset(videoId);
+  if (!currentAsset) {
+    throw new Error(`Video asset not found: ${videoId}`);
+  }
+
+  const updatedAsset = {
+    ...currentAsset,
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+
+  await saveMediaAsset(videoId, updatedAsset);
+  return updatedAsset;
+}
+
+/**
+ * Save a keyframe still as a separate asset
+ */
+export async function saveKeyframeAsset(keyframe: KeyframeStill): Promise<void> {
+  const s3Client = getS3Client();
+  const bucketName = getBucketName();
+
+  try {
+    // Save keyframe data as JSON in dedicated keyframes folder
+    const keyframeKey = `${PREFIX}keyframes/${keyframe.id}.json`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: keyframeKey,
+      Body: JSON.stringify(keyframe, null, 2),
+      ContentType: 'application/json',
+    });
+
+    await s3Client.send(command);
+    console.log(`Keyframe asset saved: ${keyframeKey}`);
+
+  } catch (error) {
+    console.error('Error saving keyframe asset:', error);
+
+    if (!isProd || !hasBucket) {
+      console.log('Falling back to local storage for keyframe');
+      // In development or when S3 is not available, save locally
+      const localDir = path.join(process.cwd(), 'local-storage', 'keyframes');
+      await fs.mkdir(localDir, { recursive: true });
+      const localPath = path.join(localDir, `${keyframe.id}.json`);
+      await fs.writeFile(localPath, JSON.stringify(keyframe, null, 2));
+      console.log(`Keyframe saved locally: ${localPath}`);
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Get a keyframe asset by ID
+ */
+export async function getKeyframeAsset(keyframeId: string): Promise<KeyframeStill | null> {
+  const s3Client = getS3Client();
+  const bucketName = getBucketName();
+
+  try {
+    const keyframeKey = `${PREFIX}keyframes/${keyframeId}.json`;
+
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: keyframeKey,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Body) {
+      return null;
+    }
+
+    const bodyString = await streamToString(response.Body as Readable);
+    return JSON.parse(bodyString) as KeyframeStill;
+
+  } catch (error) {
+    console.warn(`Keyframe not found in S3: ${keyframeId}`, error);
+
+    if (!isProd || !hasBucket) {
+      // Try local storage
+      try {
+        const localPath = path.join(process.cwd(), 'local-storage', 'keyframes', `${keyframeId}.json`);
+        const data = await fs.readFile(localPath, 'utf-8');
+        return JSON.parse(data) as KeyframeStill;
+      } catch (localError) {
+        console.warn(`Keyframe not found locally: ${keyframeId}`);
+      }
+    }
+
+    return null;
+  }
+}
+
+/**
+ * Update keyframe usage tracking
+ */
+export async function updateKeyframeUsage(keyframeId: string, usageData: KeyframeStill['usage_tracking']): Promise<void> {
+  const keyframe = await getKeyframeAsset(keyframeId);
+  if (!keyframe) {
+    throw new Error(`Keyframe not found: ${keyframeId}`);
+  }
+
+  keyframe.usage_tracking = usageData;
+  await saveKeyframeAsset(keyframe);
+}
+
+/**
+ * Get all keyframes for a video
+ */
+export async function getVideoKeyframes(videoId: string): Promise<KeyframeStill[]> {
+  const s3Client = getS3Client();
+  const bucketName = getBucketName();
+
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: `${PREFIX}keyframes/`,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Contents) {
+      return [];
+    }
+
+    const keyframes: KeyframeStill[] = [];
+
+    for (const item of response.Contents) {
+      if (!item.Key || !item.Key.endsWith('.json')) continue;
+
+      try {
+        const keyframeData = await getKeyframeAsset(
+          path.basename(item.Key, '.json')
+        );
+
+        if (keyframeData && keyframeData.parent_video_id === videoId) {
+          keyframes.push(keyframeData);
+        }
+      } catch (error) {
+        console.warn(`Failed to load keyframe ${item.Key}:`, error);
+      }
+    }
+
+    return keyframes.sort((a, b) => a.frame_number - b.frame_number);
+
+  } catch (error) {
+    console.error('Error listing video keyframes:', error);
+    return [];
+  }
 }
 
