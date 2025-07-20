@@ -161,7 +161,6 @@ export default function VideoAnalysisPage() {
           // Handle Lambda response format
           if (result.success && result.lambdaResult) {
             console.log('[video-analysis] Lambda processing successful');
-            alert('Video processed by Lambda successfully! Check CloudWatch logs for details.');
           } else {
             console.error('[video-analysis] Lambda processing failed:', result);
             alert(`Lambda processing failed: ${JSON.stringify(result.error || 'Unknown error')}`);
