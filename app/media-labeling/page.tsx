@@ -28,6 +28,18 @@ interface MediaAsset {
     mood: string[];
     themes: string[];
     custom_tags: string[];
+    // Audio-specific fields
+    custom_styles?: string[];
+    custom_moods?: string[];
+    custom_themes?: string[];
+    primary_genre?: string;
+    energy_level?: number;
+    emotional_intensity?: number;
+    tempo?: number;
+    vocals?: string;
+    language?: string;
+    explicit?: boolean;
+    instrumental?: boolean;
   };
   processing_status: {
     upload: 'pending' | 'completed' | 'error';
@@ -148,14 +160,40 @@ export default function MediaLabelingPage() {
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         const matchesSearch =
+          // Basic asset info
           asset.title.toLowerCase().includes(searchLower) ||
           asset.filename.toLowerCase().includes(searchLower) ||
+
+          // Manual labels
           asset.manual_labels.custom_tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
           asset.manual_labels.style.some(style => style.toLowerCase().includes(searchLower)) ||
           asset.manual_labels.mood.some(mood => mood.toLowerCase().includes(searchLower)) ||
           asset.manual_labels.themes.some(theme => theme.toLowerCase().includes(searchLower)) ||
+          asset.manual_labels.scenes.some(scene => scene.toLowerCase().includes(searchLower)) ||
+          asset.manual_labels.objects.some(object => object.toLowerCase().includes(searchLower)) ||
+
+          // AI-generated labels
+          (asset.ai_labels && (
+            asset.ai_labels.scenes.some(scene => scene.toLowerCase().includes(searchLower)) ||
+            asset.ai_labels.objects.some(object => object.toLowerCase().includes(searchLower)) ||
+            asset.ai_labels.style.some(style => style.toLowerCase().includes(searchLower)) ||
+            asset.ai_labels.mood.some(mood => mood.toLowerCase().includes(searchLower)) ||
+            asset.ai_labels.themes.some(theme => theme.toLowerCase().includes(searchLower))
+          )) ||
+
+          // Audio-specific fields
           (asset.media_type === 'audio' && asset.lyrics && asset.lyrics.toLowerCase().includes(searchLower)) ||
-          (asset.media_type === 'audio' && asset.prompt && asset.prompt.toLowerCase().includes(searchLower));
+          (asset.media_type === 'audio' && asset.prompt && asset.prompt.toLowerCase().includes(searchLower)) ||
+
+                    // Audio manual labels (for custom styles like "Madchester")
+          (asset.media_type === 'audio' && asset.manual_labels?.custom_styles?.some((style: string) => style.toLowerCase().includes(searchLower))) ||
+          (asset.media_type === 'audio' && asset.manual_labels?.custom_moods?.some((mood: string) => mood.toLowerCase().includes(searchLower))) ||
+          (asset.media_type === 'audio' && asset.manual_labels?.custom_themes?.some((theme: string) => theme.toLowerCase().includes(searchLower))) ||
+          (asset.media_type === 'audio' && asset.manual_labels?.primary_genre?.toLowerCase().includes(searchLower)) ||
+
+          // Metadata search
+          (asset.metadata && asset.metadata.artist && asset.metadata.artist.toLowerCase().includes(searchLower)) ||
+          (asset.metadata && asset.metadata.format && asset.metadata.format.toLowerCase().includes(searchLower));
 
         if (!matchesSearch) return false;
       }
@@ -261,13 +299,13 @@ export default function MediaLabelingPage() {
         await loadAssets();
         setIsEditingFilename(false);
         setNewFilename('');
-        alert(`✅ File renamed successfully to "${result.asset.filename}"`);
+        // Success - no popup needed
       } else {
         throw new Error(result.error || 'Failed to rename file');
       }
     } catch (error) {
       console.error('Rename error:', error);
-      alert(`❌ Failed to rename file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Error logged to console, no popup
     } finally {
       setIsRenamingFile(false);
     }
@@ -292,14 +330,13 @@ export default function MediaLabelingPage() {
         // Refresh the assets list to show updated project assignment
         await loadAssets();
 
-        const projectName = projectId ? projects.find(p => p.id === projectId)?.name || 'Unknown' : 'None';
-        alert(`✅ Project assignment updated to: ${projectName}`);
+        // Success - no popup needed
       } else {
         throw new Error(result.error || 'Failed to update project assignment');
       }
     } catch (error) {
       console.error('Project assignment error:', error);
-      alert(`❌ Failed to update project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Error logged to console, no popup
     }
   };
 
@@ -368,7 +405,7 @@ export default function MediaLabelingPage() {
           <div className="md:col-span-2">
             <input
               type="text"
-              placeholder="Search assets, titles, tags, lyrics..."
+              placeholder="Search titles, tags, AI labels, scenes, objects, moods, themes, lyrics..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -426,7 +463,7 @@ export default function MediaLabelingPage() {
           <div className="flex items-center space-x-2">
             <Button
               onClick={() => setShowCreateProject(true)}
-              className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700"
+              className="px-2 py-0.5 text-xs bg-purple-500 hover:bg-purple-600 rounded text-white transition-colors"
             >
               + Project
             </Button>
@@ -447,7 +484,9 @@ export default function MediaLabelingPage() {
               </div>
               <Button
                 onClick={() => setIsUploading(true)}
-                className={`px-3 py-1 text-sm ${isUploading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+                className={`px-2 py-0.5 text-xs rounded text-white transition-colors ${
+                  isUploading ? 'bg-gray-400' : 'bg-green-500 hover:bg-green-600'
+                }`}
               >
                 {isUploading ? 'Uploading...' : '+ Upload'}
               </Button>
@@ -544,7 +583,7 @@ export default function MediaLabelingPage() {
                             </Button>
                             <Button
                               onClick={cancelFilenameEdit}
-                              className="px-2 py-1 text-xs bg-gray-400 hover:bg-gray-500"
+                              className="px-1.5 py-0.5 text-xs bg-gray-300 hover:bg-gray-400 rounded text-gray-700 transition-colors"
                             >
                               ✕
                             </Button>
@@ -554,7 +593,7 @@ export default function MediaLabelingPage() {
                             <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
                             <Button
                               onClick={startFilenameEdit}
-                              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600"
+                              className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
                             >
                               ✏️
                             </Button>
@@ -594,10 +633,10 @@ export default function MediaLabelingPage() {
                     {/* Action Button */}
                     <Button
                       onClick={() => isAILabeling ? null : runAILabeling(selectedAsset.id)}
-                      className={`px-4 py-2 text-sm ${
+                      className={`px-2 py-0.5 text-xs rounded text-white transition-colors ${
                         isAILabeling
                           ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-purple-600 hover:bg-purple-700'
+                          : 'bg-purple-500 hover:bg-purple-600'
                       }`}
                     >
                       {isAILabeling ? '🤖 Analyzing...' : '🤖 AI Labels'}
@@ -760,7 +799,7 @@ export default function MediaLabelingPage() {
                     {selectedAsset.media_type === 'audio' && (
                       <Button
                         onClick={() => window.open(`/audio-labeling?song=${selectedAsset.id}`, '_blank')}
-                        className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700"
+                        className="px-2 py-0.5 text-xs bg-blue-500 hover:bg-blue-600 rounded text-white transition-colors"
                       >
                         ✏️ Edit Labels
                       </Button>
@@ -1070,15 +1109,15 @@ export default function MediaLabelingPage() {
               <div className="flex space-x-3">
                 <Button
                   onClick={() => setShowCreateProject(false)}
-                  className="flex-1 px-4 py-2 bg-gray-500 hover:bg-gray-600"
+                  className="flex-1 px-3 py-1.5 bg-gray-400 hover:bg-gray-500 text-white text-sm rounded transition-colors"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={newProjectName.trim() ? createProject : undefined}
-                  className={`flex-1 px-4 py-2 ${
+                  className={`flex-1 px-3 py-1.5 text-white text-sm rounded transition-colors ${
                     newProjectName.trim()
-                      ? 'bg-blue-600 hover:bg-blue-700'
+                      ? 'bg-blue-500 hover:bg-blue-600'
                       : 'bg-gray-400 cursor-not-allowed'
                   }`}
                 >
@@ -1123,11 +1162,11 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
       .filter(file => {
         const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!validTypes.includes(file.type)) {
-          alert(`${file.name} is not a supported image format. Please upload JPEG, PNG, GIF, or WebP files.`);
+          console.warn(`${file.name} is not a supported image format. Please upload JPEG, PNG, GIF, or WebP files.`);
           return false;
         }
         if (file.size > 50 * 1024 * 1024) { // 50MB limit
-          alert(`${file.name} is too large. Maximum file size is 50MB.`);
+          console.warn(`${file.name} is too large. Maximum file size is 50MB.`);
           return false;
         }
         return true;
@@ -1284,7 +1323,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
 
       if (completedCount > 0) {
         onUploadComplete();
-        alert(`${completedCount} file(s) uploaded successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`);
+        console.log(`${completedCount} file(s) uploaded successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`);
       }
 
       if (errorCount === 0) {
@@ -1293,7 +1332,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
 
     } catch (error) {
       console.error('Batch upload error:', error);
-      alert('Upload failed. Please try again.');
+      console.error('Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -1358,7 +1397,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
           />
           <label
             htmlFor="file-upload"
-            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+            className="inline-block px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 cursor-pointer transition-colors"
           >
             Browse Files
           </label>
