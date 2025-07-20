@@ -174,7 +174,12 @@ export async function POST(request: NextRequest) {
       console.log('Auto-triggering AI labeling for:', imageId);
 
       // Make internal API call to AI labeling endpoint
-      const aiLabelResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/media-labeling/images/ai-label`, {
+      // Use relative URL for internal calls in production, localhost for development
+      const baseUrl = process.env.NODE_ENV === 'production'
+        ? '' // Relative URL for production (same domain)
+        : 'http://localhost:3000';
+
+      const aiLabelResponse = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
