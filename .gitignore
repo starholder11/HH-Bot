@@ -46,3 +46,16 @@ audio-sources/*.mp3
 audio-sources/*.wav
 audio-sources/*.m4a
 audio-sources/*.flac
+
+# Ignore local audio assets
+*.mp3
+audio-sources/*.mp3
+# Ignore FFmpeg experiment layers and archives
+ffmpeg-*.tar.*
+ffmpeg-*-layer/
+ffmpeg-*-layer.zip
+ffmpeg-ultra-minimal/
+lambda-layer/
+# Ignore Lambda container dependencies
+lambda-video-processor/node_modules/
+lambda-video-processor/*.zip
