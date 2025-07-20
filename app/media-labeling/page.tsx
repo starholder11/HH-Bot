@@ -441,7 +441,6 @@ export default function MediaLabelingPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-600 text-sm mb-1">{selectedAsset.filename}</p>
                       <div className="text-xs text-gray-500">
                         Created: {new Date(selectedAsset.created_at).toLocaleDateString()}
                       </div>
@@ -466,10 +465,10 @@ export default function MediaLabelingPage() {
                       <img
                         src={encodePath(selectedAsset.cloudflare_url || selectedAsset.s3_url)}
                         alt={selectedAsset.title}
-                        className="w-80 h-80 object-cover rounded-lg shadow-md"
+                        className="w-96 h-96 object-cover rounded-lg shadow-md"
                       />
                     ) : (
-                      <div className="w-80 h-80 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <div className="w-96 h-96 bg-gray-200 rounded-lg flex items-center justify-center">
                         <span className="text-gray-400">No preview available</span>
                       </div>
                     )}
