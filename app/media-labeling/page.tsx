@@ -399,7 +399,15 @@ export default function MediaLabelingPage() {
     <div className="container mx-auto p-6">
       {/* Header with Search and Filters */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-4">Media Labeling System</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold">Media Labeling System</h1>
+          <a
+            href="/video-analysis"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium inline-flex items-center gap-2"
+          >
+            🎬 Video Analysis Dashboard
+          </a>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {/* Search */}
           <div className="md:col-span-2">
