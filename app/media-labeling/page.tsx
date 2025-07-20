@@ -425,7 +425,7 @@ export default function MediaLabelingPage() {
         {/* Main Content */}
         <div className="lg:col-span-2">
           {selectedAsset ? (
-            <div className="space-y-6">
+            <div className="space-y-6 max-h-screen overflow-y-auto">
               {/* Asset Info */}
               <Card className="p-6">
                 <div className="flex justify-between items-start mb-4">
@@ -562,71 +562,89 @@ export default function MediaLabelingPage() {
                 {selectedAsset.ai_labels && (
                   <div className="mb-4">
                     <h3 className="font-semibold text-gray-700 mb-2">AI-Generated Labels:</h3>
-                    <div className="space-y-3 bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400">
+                    <div className="max-h-80 overflow-y-auto space-y-3 bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400">
                       {selectedAsset.ai_labels.scenes.length > 0 && (
                         <div>
-                          <h4 className="font-medium text-purple-700 text-sm">Scenes:</h4>
-                          <div className="flex flex-wrap gap-1 mt-1">
+                          <h4 className="font-medium text-purple-700 text-sm mb-2">Scene Description:</h4>
+                          <div className="space-y-2">
                             {selectedAsset.ai_labels.scenes.map((scene, index) => (
-                              <span key={index} className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">
-                                {scene}
-                              </span>
+                              <div key={index} className="bg-purple-100 p-3 rounded text-sm text-purple-800 leading-relaxed">
+                                {scene.length > 150 ? (
+                                  <details className="cursor-pointer">
+                                    <summary className="font-medium hover:text-purple-900">
+                                      {scene.substring(0, 150)}...
+                                    </summary>
+                                    <div className="mt-2 pt-2 border-t border-purple-200">
+                                      {scene}
+                                    </div>
+                                  </details>
+                                ) : (
+                                  scene
+                                )}
+                              </div>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {selectedAsset.ai_labels.objects.length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-purple-700 text-sm">Objects:</h4>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {selectedAsset.ai_labels.objects.map((object, index) => (
-                              <span key={index} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                {object}
-                              </span>
-                            ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {selectedAsset.ai_labels.objects.length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-purple-700 text-sm">Objects:</h4>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {selectedAsset.ai_labels.objects.slice(0, 8).map((object, index) => (
+                                <span key={index} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                  {object}
+                                </span>
+                              ))}
+                              {selectedAsset.ai_labels.objects.length > 8 && (
+                                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                                  +{selectedAsset.ai_labels.objects.length - 8} more
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {selectedAsset.ai_labels.style.length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-purple-700 text-sm">Style:</h4>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {selectedAsset.ai_labels.style.map((style, index) => (
-                              <span key={index} className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                                {style}
-                              </span>
-                            ))}
+                        {selectedAsset.ai_labels.style.length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-purple-700 text-sm">Style:</h4>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {selectedAsset.ai_labels.style.map((style, index) => (
+                                <span key={index} className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                                  {style}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {selectedAsset.ai_labels.mood.length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-purple-700 text-sm">Mood:</h4>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {selectedAsset.ai_labels.mood.map((mood, index) => (
-                              <span key={index} className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
-                                {mood}
-                              </span>
-                            ))}
+                        {selectedAsset.ai_labels.mood.length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-purple-700 text-sm">Mood:</h4>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {selectedAsset.ai_labels.mood.map((mood, index) => (
+                                <span key={index} className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
+                                  {mood}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {selectedAsset.ai_labels.themes.length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-purple-700 text-sm">Themes:</h4>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {selectedAsset.ai_labels.themes.map((theme, index) => (
-                              <span key={index} className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded">
-                                {theme}
-                              </span>
-                            ))}
+                        {selectedAsset.ai_labels.themes.length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-purple-700 text-sm">Themes:</h4>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {selectedAsset.ai_labels.themes.map((theme, index) => (
+                                <span key={index} className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded">
+                                  {theme}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
