@@ -426,8 +426,178 @@ export default function MediaLabelingPage() {
         <div className="lg:col-span-2">
           {selectedAsset ? (
             <div className="space-y-6 max-h-screen overflow-y-auto">
-              {/* Asset Info */}
-              <Card className="p-6">
+              {/* Image Gallery Card */}
+              {selectedAsset.media_type === 'image' ? (
+                <Card className="overflow-hidden">
+                  {/* Image Section */}
+                  <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 py-12">
+                    <div className="flex justify-center">
+                      {(selectedAsset.cloudflare_url || selectedAsset.s3_url) ? (
+                        <div className="relative group">
+                          <img
+                            src={encodePath(selectedAsset.cloudflare_url || selectedAsset.s3_url)}
+                            alt={selectedAsset.title}
+                            className="w-80 h-80 object-cover rounded-xl shadow-xl transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-xl transition-all duration-200"></div>
+                        </div>
+                      ) : (
+                        <div className="w-80 h-80 bg-gray-200 rounded-xl flex items-center justify-center">
+                          <span className="text-gray-400 text-lg">No preview available</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content Section */}
+                  <div className="p-8">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-8">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <span className="text-3xl">🖼️</span>
+                          <h1 className="text-3xl font-bold text-gray-900">{selectedAsset.title}</h1>
+                          {selectedAsset.labeling_complete && (
+                            <span className="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800 font-medium">
+                              ✓ Complete
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-600 mb-2">{selectedAsset.filename}</p>
+                        <div className="text-sm text-gray-500">
+                          Created: {new Date(selectedAsset.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <Button
+                        onClick={() => isAILabeling ? null : runAILabeling(selectedAsset.id)}
+                        className={`px-6 py-3 text-sm font-medium ${
+                          isAILabeling
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-purple-600 hover:bg-purple-700'
+                        }`}
+                      >
+                        {isAILabeling ? '🤖 Analyzing...' : '🤖 AI Labels'}
+                      </Button>
+                    </div>
+
+                    {/* Metadata */}
+                    {selectedAsset.metadata && (
+                      <div className="mb-8">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-4">Image Details</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-4 bg-gray-50 rounded-lg">
+                            <div className="text-sm text-gray-500 font-medium">Dimensions</div>
+                            <div className="text-xl font-bold text-gray-900 mt-1">
+                              {selectedAsset.metadata.width}×{selectedAsset.metadata.height}
+                            </div>
+                          </div>
+                          <div className="text-center p-4 bg-gray-50 rounded-lg">
+                            <div className="text-sm text-gray-500 font-medium">Format</div>
+                            <div className="text-xl font-bold text-gray-900 mt-1">
+                              {selectedAsset.metadata.format?.toUpperCase() || 'Unknown'}
+                            </div>
+                          </div>
+                          <div className="text-center p-4 bg-gray-50 rounded-lg">
+                            <div className="text-sm text-gray-500 font-medium">File Size</div>
+                            <div className="text-xl font-bold text-gray-900 mt-1">
+                              {Math.round((selectedAsset.metadata.file_size || 0) / 1024)} KB
+                            </div>
+                          </div>
+                          <div className="text-center p-4 bg-gray-50 rounded-lg">
+                            <div className="text-sm text-gray-500 font-medium">Ratio</div>
+                            <div className="text-xl font-bold text-gray-900 mt-1">
+                              {selectedAsset.metadata.aspect_ratio || '1:1'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* AI Labels */}
+                    {selectedAsset.ai_labels && (
+                      <div className="space-y-6">
+                        <h3 className="text-xl font-semibold text-gray-700">AI Analysis</h3>
+
+                        {/* Scene Description */}
+                        {selectedAsset.ai_labels.scenes.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-gray-700 mb-3">Scene Description</h4>
+                            <div className="bg-purple-50 border-l-4 border-purple-400 p-6 rounded-r-lg">
+                              <p className="text-gray-700 leading-relaxed text-lg">
+                                {selectedAsset.ai_labels.scenes[0]}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Label Categories */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {selectedAsset.ai_labels.objects.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-700 mb-3">Objects</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedAsset.ai_labels.objects.slice(0, 8).map((object, index) => (
+                                  <span key={index} className="px-4 py-2 text-sm bg-blue-100 text-blue-800 rounded-full font-medium">
+                                    {object}
+                                  </span>
+                                ))}
+                                {selectedAsset.ai_labels.objects.length > 8 && (
+                                  <span className="px-4 py-2 text-sm bg-gray-100 text-gray-600 rounded-full font-medium">
+                                    +{selectedAsset.ai_labels.objects.length - 8} more
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedAsset.ai_labels.style.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-700 mb-3">Style</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedAsset.ai_labels.style.map((style, index) => (
+                                  <span key={index} className="px-4 py-2 text-sm bg-green-100 text-green-800 rounded-full font-medium">
+                                    {style}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedAsset.ai_labels.mood.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-700 mb-3">Mood</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedAsset.ai_labels.mood.map((mood, index) => (
+                                  <span key={index} className="px-4 py-2 text-sm bg-yellow-100 text-yellow-800 rounded-full font-medium">
+                                    {mood}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedAsset.ai_labels.themes.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-700 mb-3">Themes</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedAsset.ai_labels.themes.map((theme, index) => (
+                                  <span key={index} className="px-4 py-2 text-sm bg-orange-100 text-orange-800 rounded-full font-medium">
+                                    {theme}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ) : (
+                /* Audio Card - Keep existing layout */
+                <Card className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
@@ -458,37 +628,10 @@ export default function MediaLabelingPage() {
                       </Button>
                     )}
 
-                    {/* AI Labeling Button for Images */}
-                    {selectedAsset.media_type === 'image' && (
-                      <div className="flex flex-col space-y-2">
-                        <Button
-                          onClick={() => isAILabeling ? null : runAILabeling(selectedAsset.id)}
-                          className={`px-3 py-1 text-sm ${
-                            isAILabeling
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-purple-600 hover:bg-purple-700'
-                          }`}
-                        >
-                          {isAILabeling ? '🤖 Analyzing...' : '🤖 AI Labels'}
-                        </Button>
-                        {selectedAsset.processing_status?.ai_labeling === 'completed' && (
-                          <span className="text-xs text-green-600">✅ AI Complete</span>
-                        )}
-                        {selectedAsset.processing_status?.ai_labeling === 'error' && (
-                          <span className="text-xs text-red-600">❌ AI Failed</span>
-                        )}
-                      </div>
-                    )}
+
 
                     {/* Preview */}
                     <div>
-                      {selectedAsset.media_type === 'image' && (
-                        <img
-                          src={encodePath(selectedAsset.cloudflare_url || selectedAsset.s3_url)}
-                          alt="Preview"
-                          className="w-32 h-32 object-cover rounded-lg shadow-md"
-                        />
-                      )}
                       {selectedAsset.media_type === 'audio' && selectedAsset.cover_art && (
                         <img
                           src={encodePath(selectedAsset.cover_art.cloudflare_url || selectedAsset.cover_art.s3_url)}
@@ -548,13 +691,7 @@ export default function MediaLabelingPage() {
                         <div>Format: {selectedAsset.metadata.format || 'Unknown'}</div>
                       </>
                     )}
-                    {selectedAsset.media_type === 'image' && (
-                      <>
-                        <div>Dimensions: {selectedAsset.metadata.width}×{selectedAsset.metadata.height}</div>
-                        <div>Format: {selectedAsset.metadata.format || 'Unknown'}</div>
-                        <div>File Size: {Math.round((selectedAsset.metadata.file_size || 0) / 1024)} KB</div>
-                      </>
-                    )}
+
                   </div>
                 </div>
 
@@ -728,6 +865,7 @@ export default function MediaLabelingPage() {
                   </div>
                 </div>
               </Card>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">
