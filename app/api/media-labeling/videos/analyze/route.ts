@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getVideoAsset, updateVideoAsset, saveKeyframeAsset, VideoAsset, KeyframeStill } from '@/lib/media-storage';
-import { extractKeyframesFromVideo, downloadFromS3, uploadKeyframeToS3, ExtractedFrame } from '@/lib/video-processing';
+import { extractKeyframesFromVideo, extractKeyframesWithSmartDefaults, downloadFromS3, uploadKeyframeToS3, ExtractedFrame } from '@/lib/video-processing';
 import { generateUUID } from '@/lib/utils';
 
 const openai = new OpenAI({
@@ -43,11 +43,17 @@ export async function POST(request: NextRequest) {
 
     // 3. Extract keyframes using selected strategy
     console.log(`Extracting keyframes using ${keyframeStrategy} strategy`);
-    const keyframes = await extractKeyframesFromVideo(tempVideoPath, {
-      strategy: keyframeStrategy,
-      targetFrames,
-      maxSize: { width: 1024, height: 1024 }
-    });
+    // 3. Extract keyframes using smart defaults or specified strategy
+    const keyframes = keyframeStrategy === 'adaptive' && !targetFrames
+      ? await extractKeyframesWithSmartDefaults(tempVideoPath)
+      : await extractKeyframesFromVideo(tempVideoPath, {
+          strategy: keyframeStrategy,
+          targetFrames,
+          maxSize: { width: 1024, height: 1024 },
+          sceneThreshold: 0.3,
+          skipSimilarFrames: true,
+          qualityThreshold: 70
+        });
 
     console.log(`Extracted ${keyframes.length} keyframes`);
 

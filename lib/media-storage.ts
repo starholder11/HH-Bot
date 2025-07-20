@@ -727,3 +727,262 @@ export async function getVideoKeyframes(videoId: string): Promise<KeyframeStill[
   }
 }
 
+/**
+ * Get all keyframes for a project (across all videos in the project)
+ */
+export async function getProjectKeyframes(projectId: string): Promise<KeyframeStill[]> {
+  const s3Client = getS3Client();
+  const bucketName = getBucketName();
+
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: `${PREFIX}keyframes/`,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Contents) {
+      return [];
+    }
+
+    const keyframes: KeyframeStill[] = [];
+
+    for (const item of response.Contents) {
+      if (!item.Key || !item.Key.endsWith('.json')) continue;
+
+      try {
+        const keyframeData = await getKeyframeAsset(
+          path.basename(item.Key, '.json')
+        );
+
+        if (keyframeData && keyframeData.project_id === projectId) {
+          keyframes.push(keyframeData);
+        }
+      } catch (error) {
+        console.warn(`Failed to load keyframe ${item.Key}:`, error);
+      }
+    }
+
+    return keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
+
+  } catch (error) {
+    console.error('Error listing project keyframes:', error);
+    return [];
+  }
+}
+
+/**
+ * Search for reusable keyframes across all projects
+ */
+export async function searchReusableKeyframes(
+  query?: string,
+  excludeProjectId?: string,
+  filters?: {
+    minQuality?: number;
+    hasAiLabels?: boolean;
+    resolution?: { minWidth: number; minHeight: number };
+  }
+): Promise<KeyframeStill[]> {
+  const s3Client = getS3Client();
+  const bucketName = getBucketName();
+
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: `${PREFIX}keyframes/`,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Contents) {
+      return [];
+    }
+
+    const keyframes: KeyframeStill[] = [];
+
+    for (const item of response.Contents) {
+      if (!item.Key || !item.Key.endsWith('.json')) continue;
+
+      try {
+        const keyframeData = await getKeyframeAsset(
+          path.basename(item.Key, '.json')
+        );
+
+        if (!keyframeData || !keyframeData.reusable_as_image) continue;
+        if (excludeProjectId && keyframeData.project_id === excludeProjectId) continue;
+
+        // Apply filters
+        if (filters) {
+          if (filters.minQuality && keyframeData.metadata.quality < filters.minQuality) continue;
+          if (filters.hasAiLabels && (!keyframeData.ai_labels || !keyframeData.ai_labels.scenes.length)) continue;
+          if (filters.resolution) {
+            const { width, height } = keyframeData.metadata.resolution;
+            if (width < filters.resolution.minWidth || height < filters.resolution.minHeight) continue;
+          }
+        }
+
+        // Apply text search
+        if (query) {
+          const lowerQuery = query.toLowerCase();
+          const matchesSearch =
+            keyframeData.title.toLowerCase().includes(lowerQuery) ||
+            keyframeData.source_info.video_filename.toLowerCase().includes(lowerQuery) ||
+            (keyframeData.ai_labels?.scenes.some(scene => scene.toLowerCase().includes(lowerQuery))) ||
+            (keyframeData.ai_labels?.objects.some(obj => obj.toLowerCase().includes(lowerQuery))) ||
+            (keyframeData.ai_labels?.themes.some(theme => theme.toLowerCase().includes(lowerQuery)));
+
+          if (!matchesSearch) continue;
+        }
+
+        keyframes.push(keyframeData);
+      } catch (error) {
+        console.warn(`Failed to load keyframe ${item.Key}:`, error);
+      }
+    }
+
+    // Sort by usage (most reused first) and quality
+    return keyframes.sort((a, b) => {
+      const usageDiff = b.usage_tracking.times_reused - a.usage_tracking.times_reused;
+      if (usageDiff !== 0) return usageDiff;
+      return b.metadata.quality - a.metadata.quality;
+    });
+
+  } catch (error) {
+    console.error('Error searching reusable keyframes:', error);
+    return [];
+  }
+}
+
+/**
+ * Convert a keyframe to a standalone image asset for reuse
+ */
+export async function convertKeyframeToImageAsset(
+  keyframeId: string,
+  targetProjectId: string,
+  newTitle?: string
+): Promise<ImageAsset> {
+  const keyframe = await getKeyframeAsset(keyframeId);
+  if (!keyframe) {
+    throw new Error(`Keyframe not found: ${keyframeId}`);
+  }
+
+  // Create new image asset based on keyframe
+  const imageAsset: ImageAsset = {
+    id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    filename: `keyframe_${keyframe.filename}`,
+    s3_url: keyframe.s3_url,
+    cloudflare_url: keyframe.cloudflare_url,
+    title: newTitle || `${keyframe.title} (Keyframe)`,
+    media_type: 'image',
+    metadata: {
+      width: keyframe.metadata.resolution.width,
+      height: keyframe.metadata.resolution.height,
+      format: keyframe.metadata.format,
+      file_size: keyframe.metadata.file_size,
+      color_space: keyframe.metadata.color_profile,
+      aspect_ratio: keyframe.metadata.aspect_ratio,
+    },
+    ai_labels: keyframe.ai_labels || {
+      scenes: [],
+      objects: [],
+      style: [],
+      mood: [],
+      themes: [],
+      confidence_scores: {},
+    },
+    manual_labels: {
+      scenes: [],
+      objects: [],
+      style: [],
+      mood: [],
+      themes: [],
+      custom_tags: [`keyframe-from-${keyframe.source_info.video_filename}`],
+    },
+    processing_status: {
+      upload: 'completed',
+      metadata_extraction: 'completed',
+      ai_labeling: keyframe.ai_labels ? 'completed' : 'pending',
+      manual_review: 'pending',
+    },
+    timestamps: {
+      uploaded: new Date().toISOString(),
+      metadata_extracted: new Date().toISOString(),
+      labeled_ai: keyframe.ai_labels ? new Date().toISOString() : null,
+      labeled_reviewed: null,
+    },
+    labeling_complete: false,
+    project_id: targetProjectId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Save the new image asset
+  await saveMediaAsset(imageAsset.id, imageAsset);
+
+  // Update keyframe usage tracking
+  const updatedUsage = {
+    times_reused: keyframe.usage_tracking.times_reused + 1,
+    projects_used_in: Array.from(new Set([...keyframe.usage_tracking.projects_used_in, targetProjectId])),
+    last_used: new Date().toISOString(),
+  };
+
+  await updateKeyframeUsage(keyframeId, updatedUsage);
+
+  console.log(`Converted keyframe ${keyframeId} to image asset ${imageAsset.id} for project ${targetProjectId}`);
+  return imageAsset;
+}
+
+/**
+ * Get comprehensive 3-level hierarchy data for a project
+ */
+export interface ProjectHierarchy {
+  project: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  videos: Array<{
+    asset: VideoAsset;
+    keyframes: KeyframeStill[];
+  }>;
+  images: ImageAsset[];
+  totalKeyframes: number;
+  reusableKeyframes: number;
+}
+
+export async function getProjectHierarchy(projectId: string): Promise<ProjectHierarchy> {
+  // Get all assets for the project
+  const allAssets = await getAssetsByProject(projectId);
+
+  // Separate by type
+  const videos = allAssets.filter(a => a.media_type === 'video') as VideoAsset[];
+  const images = allAssets.filter(a => a.media_type === 'image') as ImageAsset[];
+
+  // Get keyframes for each video
+  const videosWithKeyframes = await Promise.all(
+    videos.map(async (video) => ({
+      asset: video,
+      keyframes: await getVideoKeyframes(video.id),
+    }))
+  );
+
+  // Calculate stats
+  const totalKeyframes = videosWithKeyframes.reduce((sum, v) => sum + v.keyframes.length, 0);
+  const reusableKeyframes = videosWithKeyframes.reduce(
+    (sum, v) => sum + v.keyframes.filter(k => k.reusable_as_image).length,
+    0
+  );
+
+  return {
+    project: {
+      id: projectId,
+      name: `Project ${projectId}`, // In real implementation, get from project store
+    },
+    videos: videosWithKeyframes,
+    images,
+    totalKeyframes,
+    reusableKeyframes,
+  };
+}
+

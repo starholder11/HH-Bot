@@ -1,9 +1,9 @@
 import { spawn } from 'child_process';
-import fs from 'fs/promises';
+import { promises as fs } from 'fs';
 import { createReadStream, createWriteStream } from 'fs';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getS3Client, getBucketName } from './s3-config';
-import sharp from 'sharp';
+const sharp = require('sharp');
 
 export interface ExtractedFrame {
   timestamp: string;
@@ -17,6 +17,9 @@ export interface KeyframeExtractionOptions {
   strategy: 'adaptive' | 'uniform' | 'scene_change';
   targetFrames: number;
   maxSize?: { width: number; height: number };
+  sceneThreshold?: number; // Sensitivity for scene detection (0.1-1.0, default 0.3)
+  skipSimilarFrames?: boolean; // Skip visually similar frames (default true)
+  qualityThreshold?: number; // Minimum quality threshold (0-100, default 70)
 }
 
 /**
@@ -124,25 +127,45 @@ export async function extractKeyframesFromVideo(
   console.log(`Video duration: ${duration}s`);
 
   // Determine frame extraction strategy
-  const frameTimestamps = calculateFrameTimestamps(duration, options);
+  const frameTimestamps = await calculateFrameTimestamps(videoPath, duration, options);
 
   console.log(`Extracting ${frameTimestamps.length} frames at timestamps:`, frameTimestamps);
 
   const extractedFrames: ExtractedFrame[] = [];
 
-  // Extract each frame
+  // Extract each frame with optional similarity filtering
   for (let i = 0; i < frameTimestamps.length; i++) {
     const timestamp = frameTimestamps[i];
     const frameBuffer = await extractSingleFrame(videoPath, timestamp, options.maxSize);
 
     if (frameBuffer) {
-      extractedFrames.push({
+      const newFrame: ExtractedFrame = {
         timestamp: formatTimestamp(timestamp),
         frameNumber: Math.floor(timestamp * 30), // Assuming 30fps for frame number calculation
         buffer: frameBuffer,
         width: options.maxSize?.width || 1024,
         height: options.maxSize?.height || 1024
-      });
+      };
+
+      // Check for similarity with existing frames if enabled
+      if (options.skipSimilarFrames !== false) {
+        const isSimilar = await isFrameSimilarToExisting(newFrame, extractedFrames);
+        if (isSimilar) {
+          console.log(`Skipping similar frame at ${formatTimestamp(timestamp)}`);
+          continue;
+        }
+      }
+
+      // Check frame quality if threshold is set
+      if (options.qualityThreshold && options.qualityThreshold > 0) {
+        const quality = await assessFrameQuality(newFrame.buffer);
+        if (quality < options.qualityThreshold) {
+          console.log(`Skipping low quality frame at ${formatTimestamp(timestamp)} (quality: ${quality})`);
+          continue;
+        }
+      }
+
+      extractedFrames.push(newFrame);
     }
   }
 
@@ -153,10 +176,11 @@ export async function extractKeyframesFromVideo(
 /**
  * Calculate timestamps for frame extraction based on strategy
  */
-function calculateFrameTimestamps(
+async function calculateFrameTimestamps(
+  videoPath: string,
   duration: number,
   options: KeyframeExtractionOptions
-): number[] {
+): Promise<number[]> {
   const { strategy, targetFrames } = options;
 
   switch (strategy) {
@@ -167,8 +191,12 @@ function calculateFrameTimestamps(
       return calculateAdaptiveTimestamps(duration, targetFrames);
 
     case 'scene_change':
-      // For now, fallback to adaptive (scene detection requires more complex FFmpeg analysis)
-      return calculateAdaptiveTimestamps(duration, targetFrames);
+      return await calculateSceneChangeTimestamps(
+        videoPath,
+        duration,
+        targetFrames,
+        options.sceneThreshold || 0.3
+      );
 
     default:
       return calculateUniformTimestamps(duration, targetFrames);
@@ -229,6 +257,75 @@ function calculateAdaptiveTimestamps(duration: number, targetFrames: number): nu
   }
 
   return timestamps.slice(0, targetFrames);
+}
+
+/**
+ * Calculate scene change timestamps using FFmpeg scene detection
+ */
+async function calculateSceneChangeTimestamps(
+  videoPath: string,
+  duration: number,
+  targetFrames: number,
+  sceneThreshold: number = 0.3
+): Promise<number[]> {
+  console.log(`Detecting scene changes with FFmpeg (threshold: ${sceneThreshold})...`);
+
+  return new Promise((resolve) => {
+    const ffmpeg = spawn('ffmpeg', [
+      '-i', videoPath,
+      '-vf', `select=gt(scene\\,${sceneThreshold}),showinfo`,
+      '-vsync', 'vfr',
+      '-f', 'null',
+      '-'
+    ]);
+
+    let stderr = '';
+    const sceneTimestamps: number[] = [];
+
+    ffmpeg.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    ffmpeg.on('close', (code) => {
+      // Parse scene detection output from stderr
+      const lines = stderr.split('\n');
+      for (const line of lines) {
+        const match = line.match(/pts_time:(\d+\.?\d*)/);
+        if (match) {
+          const timestamp = parseFloat(match[1]);
+          if (timestamp > 0.5 && timestamp < duration - 0.5) {
+            sceneTimestamps.push(timestamp);
+          }
+        }
+      }
+
+      console.log(`Found ${sceneTimestamps.length} scene changes`);
+
+      // If we found enough scene changes, use them
+      if (sceneTimestamps.length >= targetFrames) {
+        // Sort and take the most significant scene changes
+        sceneTimestamps.sort((a, b) => a - b);
+        const interval = Math.max(1, Math.floor(sceneTimestamps.length / targetFrames));
+        const selectedTimestamps = [];
+
+        for (let i = 0; i < targetFrames && i * interval < sceneTimestamps.length; i++) {
+          selectedTimestamps.push(sceneTimestamps[i * interval]);
+        }
+
+        resolve(selectedTimestamps.slice(0, targetFrames));
+      } else {
+        // Fall back to adaptive if scene detection doesn't find enough changes
+        console.log('Not enough scene changes detected, falling back to adaptive sampling');
+        resolve(calculateAdaptiveTimestamps(duration, targetFrames));
+      }
+    });
+
+    ffmpeg.on('error', (error) => {
+      console.error('Scene detection error:', error);
+      // Fall back to adaptive sampling on error
+      resolve(calculateAdaptiveTimestamps(duration, targetFrames));
+    });
+  });
 }
 
 /**
@@ -351,6 +448,141 @@ async function getVideoInfo(videoPath: string): Promise<{ duration: number; widt
       reject(error);
     });
   });
+}
+
+/**
+ * Check if a frame is visually similar to any existing frames
+ */
+async function isFrameSimilarToExisting(
+  newFrame: ExtractedFrame,
+  existingFrames: ExtractedFrame[],
+  similarityThreshold: number = 0.85
+): Promise<boolean> {
+  if (existingFrames.length === 0) {
+    return false;
+  }
+
+  try {
+    // Get image stats for the new frame
+    const newFrameStats = await sharp(newFrame.buffer).stats();
+
+    // Compare with each existing frame
+    for (const existingFrame of existingFrames) {
+      const existingStats = await sharp(existingFrame.buffer).stats();
+
+      // Simple similarity check based on channel means
+      // This is a fast approximation - for more accuracy could use perceptual hashing
+      const similarity = calculateImageSimilarity(newFrameStats, existingStats);
+
+      if (similarity > similarityThreshold) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error checking frame similarity:', error);
+    return false; // If error, don't skip the frame
+  }
+}
+
+/**
+ * Calculate basic image similarity based on channel statistics
+ */
+function calculateImageSimilarity(stats1: any, stats2: any): number {
+  if (!stats1.channels || !stats2.channels) {
+    return 0;
+  }
+
+  let totalSimilarity = 0;
+  const channels = Math.min(stats1.channels.length, stats2.channels.length);
+
+  for (let i = 0; i < channels; i++) {
+    const mean1 = stats1.channels[i].mean;
+    const mean2 = stats2.channels[i].mean;
+    const maxMean = Math.max(mean1, mean2);
+    const minMean = Math.min(mean1, mean2);
+
+    if (maxMean === 0) {
+      totalSimilarity += 1; // Both are black
+    } else {
+      totalSimilarity += minMean / maxMean;
+    }
+  }
+
+  return totalSimilarity / channels;
+}
+
+/**
+ * Assess frame quality based on brightness, contrast, and sharpness
+ * Returns a quality score from 0-100
+ */
+async function assessFrameQuality(frameBuffer: Buffer): Promise<number> {
+  try {
+    const stats = await sharp(frameBuffer).stats();
+
+    if (!stats.channels || stats.channels.length === 0) {
+      return 0;
+    }
+
+    // Calculate brightness (avoid too dark or too bright)
+    const brightness = stats.channels.reduce((sum: number, channel: any) => sum + channel.mean, 0) / stats.channels.length;
+    const brightnessScore = brightness > 30 && brightness < 220 ? 100 : Math.max(0, 100 - Math.abs(brightness - 125) * 0.8);
+
+    // Calculate contrast (standard deviation indicates contrast)
+    const contrast = stats.channels.reduce((sum: number, channel: any) => sum + channel.std, 0) / stats.channels.length;
+    const contrastScore = Math.min(100, contrast * 2); // Higher std = better contrast
+
+    // Basic quality score combining brightness and contrast
+    const qualityScore = (brightnessScore * 0.4) + (contrastScore * 0.6);
+
+    return Math.round(qualityScore);
+
+  } catch (error) {
+    console.error('Error assessing frame quality:', error);
+    return 100; // If error, assume frame is good quality
+  }
+}
+
+/**
+ * Extract keyframes with smart defaults based on video duration
+ * Convenience function that automatically chooses the best strategy and settings
+ */
+export async function extractKeyframesWithSmartDefaults(
+  videoPath: string,
+  targetFrames?: number
+): Promise<ExtractedFrame[]> {
+  // Get video info to determine smart defaults
+  const videoInfo = await getVideoInfo(videoPath);
+  const duration = videoInfo.duration;
+
+  // Determine smart defaults based on video duration
+  let strategy: 'adaptive' | 'uniform' | 'scene_change' = 'adaptive';
+  let frames = targetFrames || 8;
+
+  if (duration > 300) { // Long videos (>5 min)
+    strategy = 'scene_change';
+    frames = targetFrames || 12;
+  } else if (duration > 60) { // Medium videos (1-5 min)
+    strategy = 'adaptive';
+    frames = targetFrames || 8;
+  } else { // Short videos (<1 min)
+    strategy = 'uniform';
+    frames = targetFrames || 5;
+  }
+
+  const options: KeyframeExtractionOptions = {
+    strategy,
+    targetFrames: frames,
+    maxSize: { width: 1024, height: 1024 },
+    sceneThreshold: 0.3,
+    skipSimilarFrames: true,
+    qualityThreshold: 60
+  };
+
+  console.log(`Using smart defaults for ${duration}s video: strategy=${strategy}, frames=${frames}`);
+
+  return extractKeyframesFromVideo(videoPath, options);
 }
 
 /**
