@@ -90,10 +90,16 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
 
       console.log('AI Response:', aiResponseText);
 
+      // Clean the response (remove markdown code blocks if present)
+      const cleanResponse = aiResponseText
+        .replace(/^```json\s*/, '')  // Remove opening ```json
+        .replace(/\s*```$/, '')      // Remove closing ```
+        .trim();
+
       // Parse the JSON response
       let aiLabels;
       try {
-        aiLabels = JSON.parse(aiResponseText);
+        aiLabels = JSON.parse(cleanResponse);
       } catch (parseError) {
         console.error('Failed to parse AI response as JSON:', parseError);
         // Fallback: extract labels from text response
