@@ -125,32 +125,61 @@ export default function VideoAnalysisPage() {
     setIsAnalyzing(true);
     try {
       const endpoint = USE_LAMBDA ? '/api/video-processing/lambda' : '/api/media-labeling/videos/analyze';
+      console.log(`[video-analysis] Using ${USE_LAMBDA ? 'Lambda' : 'local'} endpoint:`, endpoint);
+
+      const payload = {
+        videoId: selectedVideo.id,
+        analysisType,
+        keyframeStrategy,
+        targetFrames,
+      };
+
+      // For Lambda, we need different payload structure
+      const requestBody = USE_LAMBDA ? {
+        bucketName: 'hh-bot-images-2025-prod',
+        videoKey: selectedVideo.s3_url.split('.amazonaws.com/')[1] || selectedVideo.filename, // Extract key from S3 URL
+        action: 'extract_keyframes'
+      } : payload;
+
+      console.log('[video-analysis] Request payload:', requestBody);
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          videoId: selectedVideo.id,
-          analysisType,
-          keyframeStrategy,
-          targetFrames,
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log('[video-analysis] Response status:', response.status);
 
       if (response.ok) {
         const result = await response.json();
-        // Refresh the video data to get updated analysis
-        await fetchVideos();
+        console.log('[video-analysis] Success result:', result);
 
-        // Update the selected video with new data
-        const updatedVideo = videos.find(v => v.id === selectedVideo.id);
-        if (updatedVideo) {
-          setSelectedVideo(updatedVideo);
+        if (USE_LAMBDA) {
+          // Handle Lambda response format
+          if (result.success && result.lambdaResult) {
+            console.log('[video-analysis] Lambda processing successful');
+            alert('Video processed by Lambda successfully! Check CloudWatch logs for details.');
+          } else {
+            console.error('[video-analysis] Lambda processing failed:', result);
+            alert(`Lambda processing failed: ${JSON.stringify(result.error || 'Unknown error')}`);
+          }
+        } else {
+          // Refresh the video data to get updated analysis
+          await fetchVideos();
+
+          // Update the selected video with new data
+          const updatedVideo = videos.find(v => v.id === selectedVideo.id);
+          if (updatedVideo) {
+            setSelectedVideo(updatedVideo);
+          }
         }
       } else {
         const error = await response.json();
-        alert(`Analysis failed: ${JSON.stringify(error)}`);
+        console.error('[video-analysis] Response error:', error);
+        alert(`Analysis failed (${response.status}): ${JSON.stringify(error)}`);
       }
     } catch (error) {
       console.error('Analysis error:', error);
