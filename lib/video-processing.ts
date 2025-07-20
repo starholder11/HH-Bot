@@ -271,7 +271,7 @@ async function calculateSceneChangeTimestamps(
   console.log(`Detecting scene changes with FFmpeg (threshold: ${sceneThreshold})...`);
 
   return new Promise((resolve) => {
-    const ffmpeg = spawn('ffmpeg', [
+    const ffmpeg = spawn('/opt/homebrew/bin/ffmpeg', [
       '-i', videoPath,
       '-vf', `select=gt(scene\\,${sceneThreshold}),showinfo`,
       '-vsync', 'vfr',
@@ -348,7 +348,7 @@ async function extractSingleFrame(
       outputPath
     ];
 
-    const ffmpeg = spawn('ffmpeg', ffmpegArgs);
+    const ffmpeg = spawn('/opt/homebrew/bin/ffmpeg', ffmpegArgs);
 
     let stderr = '';
 
@@ -401,7 +401,7 @@ async function extractSingleFrame(
  */
 async function getVideoInfo(videoPath: string): Promise<{ duration: number; width: number; height: number }> {
   return new Promise((resolve, reject) => {
-    const ffprobe = spawn('ffprobe', [
+    const ffprobe = spawn('/opt/homebrew/bin/ffprobe', [
       '-v', 'quiet',
       '-print_format', 'json',
       '-show_format',
