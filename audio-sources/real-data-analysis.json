@@ -1,0 +1,77 @@
+{
+  "analysis_date": "2024-01-01",
+  "source": "Actual audio-sources files",
+  "total_files_analyzed": {
+    "mp3_files": 90,
+    "txt_files": 5,
+    "paired_files": 5
+  },
+  "file_structure_pattern": {
+    "title": "First line - song title",
+    "prompt": "Line starting with 'Prompt:' - genre/production style",
+    "lyrics": "After 'Lyrics:' - content varies widely"
+  },
+  "content_types_discovered": {
+    "traditional_lyrics": {
+      "example": "Stick Em Up Fever",
+      "description": "Narrative song lyrics with verses/story"
+    },
+    "experimental_onomatopoeia": {
+      "example": "tib1, CHNT1",
+      "description": "Sound-based content, chanting, vocal effects"
+    },
+    "production_notes": {
+      "example": "Madchester-6",
+      "description": "Studio directions, samples, effects descriptions"
+    },
+    "minimal_content": {
+      "example": "Code Z",
+      "description": "Very brief or abstract content"
+    }
+  },
+  "genres_and_styles_found": [
+    "live punk, harsh raw distortion",
+    "Tibetan throat chanting, onomatopoeia, acapella",
+    "acapella onomatopoeia accompanied by devotional orchestration",
+    "heroic acid madchester, baggy, big beat psychedelia",
+    "stomp clap arabian cheerleader, intelligent break beats"
+  ],
+  "unique_characteristics": {
+    "experimental_electronic": true,
+    "production_focused": true,
+    "multi_genre": true,
+    "technique_specific": true,
+    "avant_garde": true
+  },
+  "recommended_label_categories": {
+    "primary_genres": [
+      "Electronic", "Experimental", "Acid House", "Breakbeat", "Ambient",
+      "Punk", "Madchester", "Chillout", "Tribal", "Devotional", "Acapella",
+      "Big Beat", "French House", "Psychedelia", "Industrial"
+    ],
+    "production_techniques": [
+      "Sampling", "Timestretch", "Chopped & Screwed", "Acid", "Baggy",
+      "Throat Singing", "Onomatopoeia", "Live Recording", "Distortion",
+      "Downtempo", "Record Hiss", "Film Samples", "Orchestration"
+    ],
+    "content_types": [
+      "Traditional Lyrics", "Vocal Effects", "Production Notes",
+      "Onomatopoeia", "Chanting", "Instrumental", "Gibberish", "Samples"
+    ],
+    "energy_levels": {
+      "low": ["Ambient", "Devotional", "Chanting"],
+      "medium": ["Downtempo", "Chillout"],
+      "high": ["Punk", "Big Beat", "Acid House", "Breakbeat"]
+    },
+    "mood_categories": [
+      "Aggressive", "Meditative", "Psychedelic", "Spiritual", "Raw",
+      "Hypnotic", "Euphoric", "Dark", "Uplifting", "Chaotic"
+    ]
+  },
+  "parsing_requirements": {
+    "title_extraction": "First non-empty line",
+    "prompt_parsing": "Extract everything after 'Prompt:' for genre/style",
+    "lyrics_content": "Everything after 'Lyrics:' regardless of format",
+    "handle_variations": "Content format varies significantly between files"
+  }
+}

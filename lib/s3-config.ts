@@ -159,6 +159,66 @@ export async function uploadFileToS3(
   }
 }
 
+/**
+ * Rename an S3 object by copying to new key and deleting old key
+ */
+export async function renameS3Object(
+  oldKey: string,
+  newFilename: string
+): Promise<UploadResult> {
+  const BUCKET_NAME = getBucketName();
+  const s3Client = getS3Client();
+
+  try {
+    // Extract directory path and generate new key
+    const pathParts = oldKey.split('/');
+    const oldFilename = pathParts.pop();
+    const directory = pathParts.join('/');
+
+    // Preserve the timestamp and random ID from the old filename if present
+    const oldFilenameParts = oldFilename?.match(/^(\d+-\w+-)?(.+)$/);
+    const prefix = oldFilenameParts?.[1] || '';
+    const newKey = directory ? `${directory}/${prefix}${newFilename}` : `${prefix}${newFilename}`;
+
+    console.log(`Renaming S3 object from ${oldKey} to ${newKey}`);
+
+    // Import CopyObjectCommand and DeleteObjectCommand
+    const { CopyObjectCommand, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+
+    // Copy object to new key
+    await s3Client.send(
+      new CopyObjectCommand({
+        Bucket: BUCKET_NAME,
+        CopySource: `${BUCKET_NAME}/${oldKey}`,
+        Key: newKey,
+        CacheControl: 'max-age=31536000',
+      })
+    );
+
+    // Delete old object
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: oldKey,
+      })
+    );
+
+    // Generate new URLs
+    const encodedKey = encodeURIComponent(newKey).replace(/%2F/g, '/');
+    const s3_url = `https://${BUCKET_NAME}.s3.amazonaws.com/${encodedKey}`;
+    const cloudflare_url = `https://${CLOUDFLARE_DOMAIN}/${encodedKey}`;
+
+    return {
+      s3_url,
+      cloudflare_url,
+      key: newKey,
+    };
+  } catch (error) {
+    console.error('Error renaming S3 object:', error);
+    throw new Error(`Failed to rename S3 object: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 // Utility function to generate a unique filename
 export function generateUniqueFilename(originalName: string): string {
   const timestamp = Date.now();
