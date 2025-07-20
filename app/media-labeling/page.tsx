@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Project as ProjectType } from '@/lib/project-storage';
 
 interface MediaAsset {
   id: string;
@@ -99,6 +100,11 @@ export default function MediaLabelingPage() {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
+
+  // Filename editing state
+  const [isEditingFilename, setIsEditingFilename] = useState(false);
+  const [newFilename, setNewFilename] = useState('');
+  const [isRenamingFile, setIsRenamingFile] = useState(false);
 
   // Load assets and projects
   useEffect(() => {
@@ -220,6 +226,80 @@ export default function MediaLabelingPage() {
       console.error('Error running AI labeling:', error);
     } finally {
       setIsAILabeling(false);
+    }
+  };
+
+  // Filename editing functions
+  const startFilenameEdit = () => {
+    if (!selectedAsset) return;
+    setNewFilename(selectedAsset.filename);
+    setIsEditingFilename(true);
+  };
+
+  const cancelFilenameEdit = () => {
+    setIsEditingFilename(false);
+    setNewFilename('');
+  };
+
+  const saveFilename = async () => {
+    if (!selectedAsset || !newFilename.trim()) return;
+
+    setIsRenamingFile(true);
+    try {
+      const response = await fetch(`/api/media-labeling/assets/${selectedAsset.id}/rename`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newFilename: newFilename.trim() })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update the selected asset with the new data
+        setSelectedAsset(result.asset);
+        // Refresh the assets list to show the updated filename
+        await loadAssets();
+        setIsEditingFilename(false);
+        setNewFilename('');
+        alert(`✅ File renamed successfully to "${result.asset.filename}"`);
+      } else {
+        throw new Error(result.error || 'Failed to rename file');
+      }
+    } catch (error) {
+      console.error('Rename error:', error);
+      alert(`❌ Failed to rename file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsRenamingFile(false);
+    }
+  };
+
+  // Project assignment functions
+  const updateProjectAssignment = async (projectId: string | null) => {
+    if (!selectedAsset) return;
+
+    try {
+      const response = await fetch(`/api/media-labeling/assets/${selectedAsset.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update the selected asset with the new data
+        setSelectedAsset(result);
+        // Refresh the assets list to show updated project assignment
+        await loadAssets();
+
+        const projectName = projectId ? projects.find(p => p.id === projectId)?.name || 'Unknown' : 'None';
+        alert(`✅ Project assignment updated to: ${projectName}`);
+      } else {
+        throw new Error(result.error || 'Failed to update project assignment');
+      }
+    } catch (error) {
+      console.error('Project assignment error:', error);
+      alert(`❌ Failed to update project: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -432,15 +512,80 @@ export default function MediaLabelingPage() {
                   {/* Header */}
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
+                      {/* Title/Filename Section */}
+                      <div className="flex items-center space-x-2 mb-3">
                         <span className="text-xl">🖼️</span>
-                        <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
+                        {isEditingFilename ? (
+                          <div className="flex items-center space-x-2 flex-1">
+                            <input
+                              type="text"
+                              value={newFilename}
+                              onChange={(e) => setNewFilename(e.target.value)}
+                              className="text-lg font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 flex-1"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveFilename();
+                                if (e.key === 'Escape') cancelFilenameEdit();
+                              }}
+                            />
+                            <Button
+                              onClick={() => {
+                                if (!isRenamingFile && newFilename.trim()) {
+                                  saveFilename();
+                                }
+                              }}
+                              className={`px-2 py-1 text-xs ${
+                                isRenamingFile || !newFilename.trim()
+                                  ? 'bg-gray-400 cursor-not-allowed'
+                                  : 'bg-green-600 hover:bg-green-700'
+                              }`}
+                            >
+                              {isRenamingFile ? '...' : '✓'}
+                            </Button>
+                            <Button
+                              onClick={cancelFilenameEdit}
+                              className="px-2 py-1 text-xs bg-gray-400 hover:bg-gray-500"
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2 flex-1">
+                            <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
+                            <Button
+                              onClick={startFilenameEdit}
+                              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600"
+                            >
+                              ✏️
+                            </Button>
+                          </div>
+                        )}
                         {selectedAsset.labeling_complete && (
                           <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">
                             ✓ Complete
                           </span>
                         )}
                       </div>
+
+                      {/* Project Assignment Section */}
+                      <div className="mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500 font-medium">Project:</span>
+                          <select
+                            value={selectedAsset.project_id || ''}
+                            onChange={(e) => updateProjectAssignment(e.target.value || null)}
+                            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
+                          >
+                            <option value="">No Project</option>
+                            {projects.map(project => (
+                              <option key={project.id} value={project.id}>
+                                {project.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
                       <div className="text-xs text-gray-500">
                         Created: {new Date(selectedAsset.created_at).toLocaleDateString()}
                       </div>

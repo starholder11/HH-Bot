@@ -1,0 +1,129 @@
+{
+  "analysis_date": "2024-01-01",
+  "source": "HH-Bot timeline content analysis",
+  "total_songs_analyzed": 4,
+  "songs": [
+    {
+      "title": "Shards of The Horizon",
+      "artist": "Neon Pulsar",
+      "source_file": "content/timeline/neon-pulsar/content.mdx",
+      "auto_analysis": {
+        "themes": ["transformation", "hope", "human connection", "digital resistance", "unity"],
+        "sentiment_score": 0.75,
+        "mood_keywords": ["alive", "reborn", "transformed", "electric", "dance", "storm"],
+        "word_count": 98,
+        "structural_elements": ["verse", "chorus", "bridge", "outro"],
+        "genre_hints": ["synth-pop", "electronic", "anthemic"]
+      },
+      "manual_labels": {
+        "genre": ["electronic", "synth-pop", "dance"],
+        "energy_level": 8,
+        "emotional_intensity": 7,
+        "vocal_style": "anthemic",
+        "themes": ["transformation", "hope", "unity", "resistance"],
+        "tempo_feel": "moderate-fast",
+        "language": "english",
+        "explicit": false,
+        "instrumental": false
+      }
+    },
+    {
+      "title": "The Collision",
+      "artist": "Elijah Booker",
+      "source_file": "content/timeline/elijah-booker/content.mdx",
+      "auto_analysis": {
+        "themes": ["loss", "nostalgia", "digital disconnection", "economic crisis", "romance"],
+        "sentiment_score": 0.25,
+        "mood_keywords": ["torn", "despair", "shadows", "silence", "haunting", "crisis"],
+        "word_count": 156,
+        "structural_elements": ["verse", "chorus", "bridge"],
+        "genre_hints": ["folk", "acoustic", "protest song"]
+      },
+      "manual_labels": {
+        "genre": ["folk", "acoustic", "indie"],
+        "energy_level": 4,
+        "emotional_intensity": 8,
+        "vocal_style": "melancholic",
+        "themes": ["loss", "nostalgia", "economic hardship", "digital alienation"],
+        "tempo_feel": "slow",
+        "language": "english",
+        "explicit": false,
+        "instrumental": false
+      }
+    },
+    {
+      "title": "Ballad of the Baby Witch",
+      "artist": "Unknown",
+      "source_file": "content/timeline/the-baby-witch-event/content.mdx",
+      "auto_analysis": {
+        "themes": ["magic", "guidance", "urban journey", "augmented reality", "philosophy"],
+        "sentiment_score": 0.6,
+        "mood_keywords": ["spell", "magic", "guided", "wisdom", "balance", "harmony"],
+        "word_count": 87,
+        "structural_elements": ["narrative verse"],
+        "genre_hints": ["sea shanty", "folk ballad", "mystical"]
+      },
+      "manual_labels": {
+        "genre": ["folk", "sea shanty", "mystical"],
+        "energy_level": 5,
+        "emotional_intensity": 6,
+        "vocal_style": "narrative",
+        "themes": ["magic", "guidance", "urban adventure", "philosophy"],
+        "tempo_feel": "moderate",
+        "language": "english",
+        "explicit": false,
+        "instrumental": false
+      }
+    },
+    {
+      "title": "Lightfoot Café Song",
+      "artist": "Unknown",
+      "source_file": "content/timeline/lightfoot/content.mdx",
+      "auto_analysis": {
+        "themes": ["love", "nostalgia", "reunion", "memory", "time"],
+        "sentiment_score": 0.65,
+        "mood_keywords": ["sweetest", "dear", "divine", "mend", "forever", "strong"],
+        "word_count": 67,
+        "structural_elements": ["verse", "chorus", "bridge"],
+        "genre_hints": ["ballad", "romantic", "waltz"]
+      },
+      "manual_labels": {
+        "genre": ["ballad", "romantic", "acoustic"],
+        "energy_level": 3,
+        "emotional_intensity": 7,
+        "vocal_style": "tender",
+        "themes": ["love", "nostalgia", "reunion", "healing"],
+        "tempo_feel": "slow",
+        "language": "english",
+        "explicit": false,
+        "instrumental": false
+      }
+    }
+  ],
+  "extracted_patterns": {
+    "common_genres": ["folk", "electronic", "ballad", "acoustic", "indie"],
+    "common_themes": ["love", "nostalgia", "transformation", "digital_resistance", "connection", "loss", "hope", "guidance"],
+    "energy_levels": {
+      "low": [3, 4],
+      "medium": [5],
+      "high": [8]
+    },
+    "emotional_intensity": {
+      "medium": [6, 7],
+      "high": [8]
+    },
+    "tempo_patterns": ["slow", "moderate", "moderate-fast"],
+    "vocal_styles": ["anthemic", "melancholic", "narrative", "tender"],
+    "structural_elements": ["verse", "chorus", "bridge", "outro"],
+    "language": "english",
+    "content_rating": "clean"
+  },
+  "recommendations_for_form": {
+    "genre_options": ["Electronic", "Folk", "Acoustic", "Ballad", "Indie", "Sea Shanty", "Synth-pop", "Dance"],
+    "theme_options": ["Love", "Nostalgia", "Transformation", "Digital Resistance", "Connection", "Loss", "Hope", "Guidance", "Magic", "Urban Adventure", "Economic Hardship", "Reunion", "Healing", "Unity"],
+    "vocal_style_options": ["Anthemic", "Melancholic", "Narrative", "Tender", "Soft", "Aggressive"],
+    "tempo_options": ["Very Slow", "Slow", "Moderate", "Moderate-Fast", "Fast", "Very Fast"],
+    "energy_range": "1-10 slider",
+    "emotional_intensity_range": "1-10 slider"
+  }
+}
