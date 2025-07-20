@@ -115,12 +115,15 @@ export default function VideoAnalysisPage() {
     }
   };
 
+  const USE_LAMBDA = process.env.NEXT_PUBLIC_USE_LAMBDA === 'true';
+
   const handleAnalyzeVideo = async () => {
     if (!selectedVideo) return;
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch('/api/media-labeling/videos/analyze', {
+      const endpoint = USE_LAMBDA ? '/api/video-processing/lambda' : '/api/media-labeling/videos/analyze';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

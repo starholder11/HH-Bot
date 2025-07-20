@@ -17,10 +17,22 @@ function getFFmpegPath(tool: 'ffmpeg' | 'ffprobe'): string {
 
   // Development environment (macOS with Homebrew)
   if (process.env.NODE_ENV === 'development' && process.platform === 'darwin') {
-    return `/opt/homebrew/bin/${tool}`;
+    const brewPath = `/opt/homebrew/bin/${tool}`;
+    if (require('fs').existsSync(brewPath)) {
+      console.info(`[ffmpeg-path] using Homebrew binary at ${brewPath}`);
+      return brewPath;
+    }
+  }
+
+  // Common Linux install path (e.g. Lambda layer or Docker image)
+  const usrLocal = `/usr/local/bin/${tool}`;
+  if (require('fs').existsSync(usrLocal)) {
+    console.info(`[ffmpeg-path] using /usr/local binary at ${usrLocal}`);
+    return usrLocal;
   }
 
   // Fallback to system PATH (works in many cloud environments)
+  console.info(`[ffmpeg-path] falling back to system PATH for ${tool}`);
   return tool;
 }
 

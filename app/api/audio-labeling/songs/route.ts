@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { listSongs } from '@/lib/song-storage';
 import { saveSong } from '@/lib/song-storage';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     const songs = await listSongs();
