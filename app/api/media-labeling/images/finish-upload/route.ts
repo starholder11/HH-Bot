@@ -173,10 +173,10 @@ export async function POST(request: NextRequest) {
     try {
       console.log('Auto-triggering AI labeling for:', imageId);
 
-      // Make internal API call to AI labeling endpoint
-      // Use relative URL for internal calls in production, localhost for development
+            // Make internal API call to AI labeling endpoint
+      // Use VERCEL_URL for production, localhost for development
       const baseUrl = process.env.NODE_ENV === 'production'
-        ? '' // Relative URL for production (same domain)
+        ? `https://${process.env.VERCEL_URL}` // Full URL for production
         : 'http://localhost:3000';
 
       const aiLabelResponse = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
