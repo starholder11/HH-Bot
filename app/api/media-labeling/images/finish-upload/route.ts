@@ -169,29 +169,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Auto-trigger AI labeling for uploaded image
+        // Auto-trigger AI labeling for uploaded image
     try {
       console.log('Auto-triggering AI labeling for:', imageId);
 
-            // Make internal API call to AI labeling endpoint
-      // Use VERCEL_URL for production, localhost for development
-      const baseUrl = process.env.NODE_ENV === 'production'
-        ? `https://${process.env.VERCEL_URL}` // Full URL for production
-        : 'http://localhost:3000';
+      // Import and call the shared AI labeling function directly
+      const { performAiLabeling } = await import('@/lib/ai-labeling');
+      await performAiLabeling(imageId);
 
-      const aiLabelResponse = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ assetId: imageId }),
-      });
-
-      if (aiLabelResponse.ok) {
-        console.log('AI labeling auto-triggered successfully for:', imageId);
-      } else {
-        console.error('Failed to auto-trigger AI labeling:', await aiLabelResponse.text());
-      }
+      console.log('AI labeling auto-triggered successfully for:', imageId);
     } catch (error) {
       console.error('Error auto-triggering AI labeling:', error);
       // Don't fail the upload if AI labeling fails
