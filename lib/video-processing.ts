@@ -20,21 +20,28 @@ function getFFmpegPath(tool: 'ffmpeg' | 'ffprobe'): string {
     return `/opt/homebrew/bin/${tool}`;
   }
 
-  // Production/serverless environments - use static binaries
-  try {
-    if (tool === 'ffmpeg') {
-      const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-      return ffmpegInstaller.path;
-    } else if (tool === 'ffprobe') {
-      const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
-      return ffprobeInstaller.path;
-    }
-  } catch (error) {
-    console.warn(`Failed to load ${tool} installer, falling back to system PATH:`, error);
-  }
-
-  // Fallback to system PATH
+  // Fallback to system PATH (works in many cloud environments)
   return tool;
+}
+
+/**
+ * Check if FFmpeg is available in the current environment
+ */
+async function isFFmpegAvailable(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const ffmpeg = spawn(getFFmpegPath('ffmpeg'), ['-version'], {
+      stdio: 'ignore',
+      timeout: 5000
+    });
+
+    ffmpeg.on('close', (code) => {
+      resolve(code === 0);
+    });
+
+    ffmpeg.on('error', () => {
+      resolve(false);
+    });
+  });
 }
 
 export interface ExtractedFrame {
@@ -151,6 +158,13 @@ export async function extractKeyframesFromVideo(
   options: KeyframeExtractionOptions
 ): Promise<ExtractedFrame[]> {
   console.log(`Extracting keyframes from: ${videoPath}`);
+
+  // Check if FFmpeg is available first
+  const ffmpegAvailable = await isFFmpegAvailable();
+  if (!ffmpegAvailable) {
+    console.warn('FFmpeg not available in this environment. Video keyframe extraction is not supported.');
+    throw new Error('FFmpeg is not available in this environment. Video processing requires FFmpeg to be installed.');
+  }
 
   // First, get video duration and metadata
   const videoInfo = await getVideoInfo(videoPath);
@@ -584,6 +598,13 @@ export async function extractKeyframesWithSmartDefaults(
   videoPath: string,
   targetFrames?: number
 ): Promise<ExtractedFrame[]> {
+  // Check if FFmpeg is available first
+  const ffmpegAvailable = await isFFmpegAvailable();
+  if (!ffmpegAvailable) {
+    console.warn('FFmpeg not available in this environment. Video keyframe extraction is not supported.');
+    throw new Error('FFmpeg is not available in this environment. Video processing requires FFmpeg to be installed.');
+  }
+
   // Get video info to determine smart defaults
   const videoInfo = await getVideoInfo(videoPath);
   const duration = videoInfo.duration;
