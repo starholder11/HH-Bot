@@ -5,6 +5,38 @@ import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getS3Client, getBucketName } from './s3-config';
 const sharp = require('sharp');
 
+/**
+ * Get the appropriate FFmpeg/FFprobe executable path for the current environment
+ */
+function getFFmpegPath(tool: 'ffmpeg' | 'ffprobe'): string {
+  // Environment variable override (for production/custom deployments)
+  const envPath = process.env[`${tool.toUpperCase()}_PATH`];
+  if (envPath) {
+    return envPath;
+  }
+
+  // Development environment (macOS with Homebrew)
+  if (process.env.NODE_ENV === 'development' && process.platform === 'darwin') {
+    return `/opt/homebrew/bin/${tool}`;
+  }
+
+  // Production/serverless environments - use static binaries
+  try {
+    if (tool === 'ffmpeg') {
+      const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+      return ffmpegInstaller.path;
+    } else if (tool === 'ffprobe') {
+      const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
+      return ffprobeInstaller.path;
+    }
+  } catch (error) {
+    console.warn(`Failed to load ${tool} installer, falling back to system PATH:`, error);
+  }
+
+  // Fallback to system PATH
+  return tool;
+}
+
 export interface ExtractedFrame {
   timestamp: string;
   frameNumber: number;
@@ -271,7 +303,7 @@ async function calculateSceneChangeTimestamps(
   console.log(`Detecting scene changes with FFmpeg (threshold: ${sceneThreshold})...`);
 
   return new Promise((resolve) => {
-    const ffmpeg = spawn('/opt/homebrew/bin/ffmpeg', [
+    const ffmpeg = spawn(getFFmpegPath('ffmpeg'), [
       '-i', videoPath,
       '-vf', `select=gt(scene\\,${sceneThreshold}),showinfo`,
       '-vsync', 'vfr',
@@ -348,7 +380,7 @@ async function extractSingleFrame(
       outputPath
     ];
 
-    const ffmpeg = spawn('/opt/homebrew/bin/ffmpeg', ffmpegArgs);
+    const ffmpeg = spawn(getFFmpegPath('ffmpeg'), ffmpegArgs);
 
     let stderr = '';
 
@@ -401,7 +433,7 @@ async function extractSingleFrame(
  */
 async function getVideoInfo(videoPath: string): Promise<{ duration: number; width: number; height: number }> {
   return new Promise((resolve, reject) => {
-    const ffprobe = spawn('/opt/homebrew/bin/ffprobe', [
+    const ffprobe = spawn(getFFmpegPath('ffprobe'), [
       '-v', 'quiet',
       '-print_format', 'json',
       '-show_format',
