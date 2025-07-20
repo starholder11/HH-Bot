@@ -165,12 +165,12 @@ export default function MediaLabelingPage() {
           asset.filename.toLowerCase().includes(searchLower) ||
 
           // Manual labels
-          asset.manual_labels.custom_tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
-          asset.manual_labels.style.some(style => style.toLowerCase().includes(searchLower)) ||
-          asset.manual_labels.mood.some(mood => mood.toLowerCase().includes(searchLower)) ||
-          asset.manual_labels.themes.some(theme => theme.toLowerCase().includes(searchLower)) ||
-          asset.manual_labels.scenes.some(scene => scene.toLowerCase().includes(searchLower)) ||
-          asset.manual_labels.objects.some(object => object.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.custom_tags || []).some(tag => tag.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.style || []).some(style => style.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.mood || []).some(mood => mood.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.themes || []).some(theme => theme.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.scenes || []).some(scene => scene.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.objects || []).some(object => object.toLowerCase().includes(searchLower)) ||
 
           // AI-generated labels
           (asset.ai_labels && (
@@ -354,20 +354,20 @@ export default function MediaLabelingPage() {
   const getAssetDisplayInfo = (asset: MediaAsset) => {
     switch (asset.media_type) {
       case 'audio':
-        const primaryGenre = asset.manual_labels.style.find(s => s) ||
-                            asset.ai_labels.style.find(s => s) || 'Unknown Genre';
+        const primaryGenre = (asset.manual_labels?.style || []).find(s => s) ||
+                            (asset.ai_labels?.style || []).find(s => s) || 'Unknown Genre';
         return {
           primaryLabel: primaryGenre,
           secondaryInfo: `${Math.round((asset.metadata.duration || 0) / 60)}:${String(Math.round((asset.metadata.duration || 0) % 60)).padStart(2, '0')} | ${asset.metadata.artist || 'Unknown Artist'}`
         };
       case 'image':
         return {
-          primaryLabel: asset.manual_labels.style.find(s => s) || 'Image',
+          primaryLabel: (asset.manual_labels?.style || []).find(s => s) || 'Image',
           secondaryInfo: `${asset.metadata.width}×${asset.metadata.height} | ${asset.metadata.format || 'Unknown'}`
         };
       case 'video':
         return {
-          primaryLabel: asset.manual_labels.style.find(s => s) || 'Video',
+          primaryLabel: (asset.manual_labels?.style || []).find(s => s) || 'Video',
           secondaryInfo: `${Math.round((asset.metadata.duration || 0) / 60)}:${String(Math.round((asset.metadata.duration || 0) % 60)).padStart(2, '0')} | ${asset.metadata.format || 'Unknown'}`
         };
       default:
@@ -535,10 +535,10 @@ export default function MediaLabelingPage() {
                       <div className="text-xs text-gray-400 mt-1">
                         {displayInfo.secondaryInfo}
                       </div>
-                      {asset.manual_labels.mood.length > 0 && (
+                      {asset.manual_labels?.mood?.length > 0 && (
                         <div className="text-xs text-purple-600 mt-1">
-                          {asset.manual_labels.mood.slice(0, 2).join(', ')}
-                          {asset.manual_labels.mood.length > 2 && '...'}
+                          {(asset.manual_labels?.mood || []).slice(0, 2).join(', ')}
+                          {(asset.manual_labels?.mood || []).length > 2 && '...'}
                         </div>
                       )}
                     </div>
