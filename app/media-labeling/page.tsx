@@ -95,6 +95,7 @@ export default function MediaLabelingPage() {
   const [projectFilter, setProjectFilter] = useState<string>('');
   const [showCompleteOnly, setShowCompleteOnly] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAILabeling, setIsAILabeling] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
@@ -184,6 +185,36 @@ export default function MediaLabelingPage() {
       }
     } catch (error) {
       console.error('Error creating project:', error);
+    }
+  };
+
+  const runAILabeling = async (assetId: string) => {
+    setIsAILabeling(true);
+    try {
+      const response = await fetch('/api/media-labeling/images/ai-label', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetId })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('AI labeling successful:', result);
+        // Refresh the asset data
+        await loadAssets();
+        // Update selected asset if it's the one we just processed
+        if (selectedAsset?.id === assetId) {
+          const updatedAsset = assets.find(a => a.id === assetId);
+          if (updatedAsset) setSelectedAsset(updatedAsset);
+        }
+      } else {
+        const error = await response.json();
+        console.error('AI labeling failed:', error);
+      }
+    } catch (error) {
+      console.error('Error running AI labeling:', error);
+    } finally {
+      setIsAILabeling(false);
     }
   };
 
@@ -422,6 +453,28 @@ export default function MediaLabelingPage() {
                       </Button>
                     )}
 
+                    {/* AI Labeling Button for Images */}
+                    {selectedAsset.media_type === 'image' && (
+                      <div className="flex flex-col space-y-2">
+                        <Button
+                          onClick={() => isAILabeling ? null : runAILabeling(selectedAsset.id)}
+                          className={`px-3 py-1 text-sm ${
+                            isAILabeling
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-purple-600 hover:bg-purple-700'
+                          }`}
+                        >
+                          {isAILabeling ? '🤖 Analyzing...' : '🤖 AI Labels'}
+                        </Button>
+                        {selectedAsset.processing_status?.ai_labeling === 'completed' && (
+                          <span className="text-xs text-green-600">✅ AI Complete</span>
+                        )}
+                        {selectedAsset.processing_status?.ai_labeling === 'error' && (
+                          <span className="text-xs text-red-600">❌ AI Failed</span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Preview */}
                     <div>
                       {selectedAsset.media_type === 'image' && (
@@ -499,6 +552,79 @@ export default function MediaLabelingPage() {
                     )}
                   </div>
                 </div>
+
+                {/* AI Labels */}
+                {selectedAsset.ai_labels && (
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-gray-700 mb-2">AI-Generated Labels:</h3>
+                    <div className="space-y-3 bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400">
+                      {selectedAsset.ai_labels.scenes.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-purple-700 text-sm">Scenes:</h4>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedAsset.ai_labels.scenes.map((scene, index) => (
+                              <span key={index} className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">
+                                {scene}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedAsset.ai_labels.objects.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-purple-700 text-sm">Objects:</h4>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedAsset.ai_labels.objects.map((object, index) => (
+                              <span key={index} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                {object}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedAsset.ai_labels.style.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-purple-700 text-sm">Style:</h4>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedAsset.ai_labels.style.map((style, index) => (
+                              <span key={index} className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                                {style}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedAsset.ai_labels.mood.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-purple-700 text-sm">Mood:</h4>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedAsset.ai_labels.mood.map((mood, index) => (
+                              <span key={index} className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
+                                {mood}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedAsset.ai_labels.themes.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-purple-700 text-sm">Themes:</h4>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedAsset.ai_labels.themes.map((theme, index) => (
+                              <span key={index} className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded">
+                                {theme}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Labels */}
                 <div className="space-y-4">
