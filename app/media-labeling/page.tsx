@@ -836,6 +836,16 @@ export default function MediaLabelingPage() {
                   </div>
                 )}
 
+                {selectedAsset.media_type === 'video' && (
+                  <div className="mb-4">
+                    <video key={selectedAsset.id} controls className="w-full max-h-96 rounded-lg">
+                      <source src={encodePath(selectedAsset.s3_url)} type="video/mp4" />
+                      <source src={encodePath(selectedAsset.cloudflare_url)} type="video/mp4" />
+                      Your browser does not support the video element.
+                    </video>
+                  </div>
+                )}
+
                 {/* Prompt (for audio) */}
                 {selectedAsset.media_type === 'audio' && selectedAsset.prompt && (
                   <div className="mb-4">
@@ -1153,6 +1163,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
 
   // Handle file selection
   const handleFileSelect = (files: FileList | null) => {
@@ -1160,13 +1171,19 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
 
     const newFiles: UploadFile[] = Array.from(files)
       .filter(file => {
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const videoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/ogg', 'video/3gpp', 'video/x-ms-wmv'];
+        const validTypes = mediaType === 'image' ? imageTypes : videoTypes;
+        const maxSize = mediaType === 'image' ? 50 * 1024 * 1024 : 500 * 1024 * 1024; // 50MB for images, 500MB for videos
+        const formatNames = mediaType === 'image' ? 'JPEG, PNG, GIF, or WebP' : 'MP4, MOV, AVI, WebM, OGV, 3GP, or WMV';
+
         if (!validTypes.includes(file.type)) {
-          console.warn(`${file.name} is not a supported image format. Please upload JPEG, PNG, GIF, or WebP files.`);
+          console.warn(`${file.name} is not a supported ${mediaType} format. Please upload ${formatNames} files.`);
           return false;
         }
-        if (file.size > 50 * 1024 * 1024) { // 50MB limit
-          console.warn(`${file.name} is too large. Maximum file size is 50MB.`);
+        if (file.size > maxSize) {
+          const maxSizeMB = maxSize / (1024 * 1024);
+          console.warn(`${file.name} is too large. Maximum file size is ${maxSizeMB}MB.`);
           return false;
         }
         return true;
@@ -1221,7 +1238,8 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
       ));
 
       // Step 1: Get presigned URL
-      const presignedResponse = await fetch('/api/media-labeling/images/get-upload-url', {
+      const apiPath = mediaType === 'image' ? 'images' : 'videos';
+      const presignedResponse = await fetch(`/api/media-labeling/${apiPath}/get-upload-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1254,7 +1272,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
           if (xhr.status === 200) {
             try {
               // Step 3: Complete upload and create asset record
-              const completeResponse = await fetch('/api/media-labeling/images/finish-upload', {
+              const completeResponse = await fetch(`/api/media-labeling/${apiPath}/finish-upload`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1355,6 +1373,39 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
 
   return (
     <div className="space-y-6">
+      {/* Media Type Selection */}
+      <div>
+        <label className="block text-sm font-medium mb-2">Media Type</label>
+        <div className="flex space-x-4">
+          <button
+            onClick={() => {
+              setMediaType('image');
+              setUploadFiles([]); // Clear files when switching types
+            }}
+            className={`flex-1 py-2 px-4 rounded-lg border transition-colors ${
+              mediaType === 'image'
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            🖼️ Images
+          </button>
+          <button
+            onClick={() => {
+              setMediaType('video');
+              setUploadFiles([]); // Clear files when switching types
+            }}
+            className={`flex-1 py-2 px-4 rounded-lg border transition-colors ${
+              mediaType === 'video'
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            🎬 Videos
+          </button>
+        </div>
+      </div>
+
       {/* Project Selection */}
       <div>
         <label className="block text-sm font-medium mb-2">Assign to Project (optional)</label>
@@ -1382,15 +1433,18 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
         }`}
       >
         <div className="space-y-2">
-          <div className="text-4xl">📁</div>
-          <div className="text-lg font-medium">Drop images here or click to browse</div>
+          <div className="text-4xl">{mediaType === 'image' ? '🖼️' : '🎬'}</div>
+          <div className="text-lg font-medium">Drop {mediaType}s here or click to browse</div>
           <div className="text-sm text-gray-500">
-            Supports JPEG, PNG, GIF, WebP up to 50MB each
+            {mediaType === 'image'
+              ? 'Supports JPEG, PNG, GIF, WebP up to 50MB each'
+              : 'Supports MP4, MOV, AVI, WebM, OGV, 3GP, WMV up to 500MB each'
+            }
           </div>
           <input
             type="file"
             multiple
-            accept="image/*"
+            accept={mediaType === 'image' ? 'image/*' : 'video/*'}
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
             id="file-upload"
