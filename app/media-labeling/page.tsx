@@ -354,7 +354,7 @@ export default function MediaLabelingPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
         {/* Asset List */}
         <div className="lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
@@ -425,7 +425,7 @@ export default function MediaLabelingPage() {
         {/* Main Content */}
         <div className="lg:col-span-2">
           {selectedAsset ? (
-            <div className="space-y-6 max-h-screen overflow-y-auto">
+            <div className="space-y-6">
                             {/* Image Gallery Card */}
               {selectedAsset.media_type === 'image' ? (
                 <Card className="p-6">
@@ -474,38 +474,7 @@ export default function MediaLabelingPage() {
                     )}
                   </div>
 
-                  {/* Metadata */}
-                  {selectedAsset.metadata && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-700 mb-3">Image Details</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xs text-gray-500 font-medium">Dimensions</div>
-                          <div className="text-sm font-bold text-gray-900 mt-1">
-                            {selectedAsset.metadata.width}×{selectedAsset.metadata.height}
-                          </div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xs text-gray-500 font-medium">Format</div>
-                          <div className="text-sm font-bold text-gray-900 mt-1">
-                            {selectedAsset.metadata.format?.toUpperCase() || 'Unknown'}
-                          </div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xs text-gray-500 font-medium">File Size</div>
-                          <div className="text-sm font-bold text-gray-900 mt-1">
-                            {Math.round((selectedAsset.metadata.file_size || 0) / 1024)} KB
-                          </div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xs text-gray-500 font-medium">Ratio</div>
-                          <div className="text-sm font-bold text-gray-900 mt-1">
-                            {selectedAsset.metadata.aspect_ratio || '1:1'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
 
                   {/* AI Labels */}
                   {selectedAsset.ai_labels && (
@@ -582,6 +551,39 @@ export default function MediaLabelingPage() {
                             </div>
                           </div>
                         )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Image Details - moved after AI Analysis */}
+                    {selectedAsset.metadata && (
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold text-gray-700 mb-3">Image Details</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="text-xs text-gray-500 font-medium">Dimensions</div>
+                            <div className="text-sm font-bold text-gray-900 mt-1">
+                              {selectedAsset.metadata.width}×{selectedAsset.metadata.height}
+                            </div>
+                          </div>
+                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="text-xs text-gray-500 font-medium">Format</div>
+                            <div className="text-sm font-bold text-gray-900 mt-1">
+                              {selectedAsset.metadata.format?.toUpperCase() || 'Unknown'}
+                            </div>
+                          </div>
+                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="text-xs text-gray-500 font-medium">File Size</div>
+                            <div className="text-sm font-bold text-gray-900 mt-1">
+                              {Math.round((selectedAsset.metadata.file_size || 0) / 1024)} KB
+                            </div>
+                          </div>
+                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="text-xs text-gray-500 font-medium">Ratio</div>
+                            <div className="text-sm font-bold text-gray-900 mt-1">
+                              {selectedAsset.metadata.aspect_ratio || '1:1'}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
