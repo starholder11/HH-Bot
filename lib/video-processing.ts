@@ -24,7 +24,20 @@ function getFFmpegPath(tool: 'ffmpeg' | 'ffprobe'): string {
     }
   }
 
-  // Common Linux install path (e.g. Lambda layer or Docker image)
+  // AWS Lambda layer typical locations
+  const lambdaLayerPaths = [
+    `/opt/bin/${tool}`,           // e.g. ffprobe binary in layer
+    `/opt/${tool}`               // some layers drop directly under /opt
+  ];
+
+  for (const p of lambdaLayerPaths) {
+    if (require('fs').existsSync(p)) {
+      console.info(`[ffmpeg-path] using Lambda layer binary at ${p}`);
+      return p;
+    }
+  }
+
+  // Common Linux install path (e.g. docker image)
   const usrLocal = `/usr/local/bin/${tool}`;
   if (require('fs').existsSync(usrLocal)) {
     console.info(`[ffmpeg-path] using /usr/local binary at ${usrLocal}`);
