@@ -45,10 +45,8 @@ export async function POST(request: NextRequest) {
       VERCEL: process.env.VERCEL
     });
 
-    const isProduction = process.env.VERCEL_ENV === 'production' ||
-                        process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' ||
-                        process.env.NODE_ENV === 'production' ||
-                        process.env.VERCEL === '1'; // Vercel always sets this
+    // Always use Lambda for now - environment detection unreliable
+    const isProduction = true; // Force Lambda usage
 
     if (isProduction) {
       console.log('Production environment detected, using Lambda for video analysis');
