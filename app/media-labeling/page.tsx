@@ -118,6 +118,9 @@ export default function MediaLabelingPage() {
   const [newFilename, setNewFilename] = useState('');
   const [isRenamingFile, setIsRenamingFile] = useState(false);
 
+  // Polling state
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
   // Load assets and projects
   useEffect(() => {
     loadAssets();
@@ -129,6 +132,40 @@ export default function MediaLabelingPage() {
     setIsAILabeling(false);
   }, [selectedAsset]);
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  // Start/stop polling based on pending assets or upload state
+  useEffect(() => {
+    const hasPendingAssets = assets.some(asset =>
+      asset.processing_status?.ai_labeling === 'pending' ||
+      asset.processing_status?.metadata_extraction === 'pending' ||
+      asset.processing_status?.upload === 'pending'
+    );
+
+    const shouldPoll = isUploading || isAILabeling || hasPendingAssets;
+
+    if (shouldPoll && !pollingInterval) {
+      // Start polling every 3 seconds when there are pending assets or active processes
+      const interval = setInterval(() => {
+        console.log('[media-labeling] Polling for updates... (pending assets or active processes)');
+        loadAssets();
+      }, 3000);
+      setPollingInterval(interval);
+    } else if (!shouldPoll && pollingInterval) {
+      // Stop polling when no pending assets and no active processes
+      console.log('[media-labeling] Stopping polling - no pending assets or active processes');
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  }, [isUploading, isAILabeling, assets, pollingInterval]);
+
   const loadAssets = async () => {
     try {
       const params = new URLSearchParams();
@@ -138,6 +175,23 @@ export default function MediaLabelingPage() {
       const response = await fetch(`/api/media-labeling/assets?${params}`);
       const data = await response.json();
       setAssets(data);
+
+      // Update selected asset with fresh data if it exists
+      if (selectedAsset) {
+        const updatedSelectedAsset = data.find((asset: MediaAsset) => asset.id === selectedAsset.id);
+        if (updatedSelectedAsset) {
+          const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'pending';
+          const isNowCompleted = updatedSelectedAsset.processing_status?.ai_labeling === 'completed';
+
+          // If AI labeling just completed, stop AI labeling flag
+          if (wasProcessing && isNowCompleted && isAILabeling) {
+            console.log('[media-labeling] AI labeling completed for:', updatedSelectedAsset.title);
+            setIsAILabeling(false);
+          }
+
+          setSelectedAsset(updatedSelectedAsset);
+        }
+      }
     } catch (error) {
       console.error('Error loading assets:', error);
     }
