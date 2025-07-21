@@ -100,11 +100,12 @@ export async function POST(request: NextRequest) {
 
         if (lambdaBody.success && lambdaBody.result?.extractedFrames) {
           // Build CloudFront URLs for the extracted keyframes (GPT-4V can't access private S3)
+          // Force CloudFront URLs to ensure GPT-4V can access the images
           const keyframeUrls = lambdaBody.result.extractedFrames.map((frame: any) =>
             `https://drbs5yklwtho3.cloudfront.net/${frame.s3Key}`
           );
 
-          console.log('Keyframe URLs:', keyframeUrls);
+          console.log('Keyframe CloudFront URLs:', keyframeUrls);
 
           // Run GPT-4V analysis on the keyframes
           const gptAnalysis = await analyzeKeyframesFromUrls(keyframeUrls, analysisType);
