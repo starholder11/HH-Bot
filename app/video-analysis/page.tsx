@@ -73,6 +73,7 @@ export default function VideoAnalysisPage() {
   const [videos, setVideos] = useState<VideoAsset[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<VideoAsset | null>(null);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null); // Add ID tracking
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [analysisType, setAnalysisType] = useState<'comprehensive' | 'style_focus' | 'mood_themes'>('comprehensive');
   const [keyframeStrategy, setKeyframeStrategy] = useState<'adaptive' | 'uniform' | 'scene_change'>('adaptive');
@@ -96,7 +97,7 @@ export default function VideoAnalysisPage() {
     };
   }, [pollingInterval]);
 
-      // Enhanced polling logic - poll when there are any pending videos OR when actively analyzing
+  // Enhanced polling logic - poll when there are any pending videos OR when actively analyzing
   useEffect(() => {
     const hasPendingVideos = videos.some(video =>
       ['triggering', 'pending', 'processing'].includes(video.processing_status?.ai_labeling || '') ||
@@ -138,6 +139,45 @@ export default function VideoAnalysisPage() {
     }
   }, [videos.length]);
 
+  // Sync selectedVideo with selectedVideoId whenever videos array changes
+  useEffect(() => {
+    console.log('[video-analysis] Videos updated, syncing selected video. Videos:', videos.length, 'Selected ID:', selectedVideoId);
+
+    if (selectedVideoId && videos.length > 0) {
+      const foundVideo = videos.find(v => v.id === selectedVideoId);
+      if (foundVideo) {
+        console.log('[video-analysis] Found and updating selected video:', foundVideo.title);
+        setSelectedVideo(foundVideo);
+      } else {
+        console.log('[video-analysis] Selected video ID not found in videos, clearing selection');
+        setSelectedVideo(null);
+        setSelectedVideoId(null);
+      }
+    } else if (!hasInitialLoaded && videos.length > 0) {
+      // Auto-select first video only on initial load
+      console.log('[video-analysis] Auto-selecting first video on initial load');
+      setSelectedVideo(videos[0]);
+      setSelectedVideoId(videos[0].id);
+      setHasInitialLoaded(true);
+    } else if (!hasInitialLoaded) {
+      // Mark as initially loaded even if no videos
+      setHasInitialLoaded(true);
+    }
+  }, [videos, selectedVideoId, hasInitialLoaded]);
+
+  // Detect analysis completion and stop isAnalyzing flag
+  useEffect(() => {
+    if (selectedVideo && isAnalyzing) {
+      const status = selectedVideo.processing_status?.ai_labeling || 'not_started';
+      const isCompleted = ['completed', 'failed', 'error'].includes(status);
+
+      if (isCompleted) {
+        console.log('[video-analysis] Analysis completed for:', selectedVideo.title, 'Status:', status);
+        setIsAnalyzing(false);
+      }
+    }
+  }, [selectedVideo, isAnalyzing]);
+
   const fetchVideos = async () => {
     try {
       const response = await fetch('/api/media-labeling/assets?type=video');
@@ -146,40 +186,9 @@ export default function VideoAnalysisPage() {
         // Handle both array and object response formats
         const videoAssets = Array.isArray(data) ? data : (data.assets || []);
         const videos = videoAssets.filter((asset: any) => asset.media_type === 'video');
+
+        console.log('[video-analysis] Fetched', videos.length, 'videos');
         setVideos(videos);
-
-        // Auto-select first video ONLY on the very first load, and only if no video is selected
-        if (videos.length > 0 && !selectedVideo && !hasInitialLoaded) {
-          console.log('[video-analysis] Auto-selecting first video on initial load');
-          setSelectedVideo(videos[0]);
-          setHasInitialLoaded(true);
-        } else if (!hasInitialLoaded) {
-          // Mark as initially loaded even if no videos to prevent future auto-selection
-          setHasInitialLoaded(true);
-        }
-
-        // Update selected video with fresh data if it exists
-        if (selectedVideo) {
-          const updatedSelectedVideo = videos.find((v: any) => v.id === selectedVideo.id);
-          if (updatedSelectedVideo) {
-            const wasAnalyzing = ['triggering', 'pending', 'processing'].includes(selectedVideo.processing_status?.ai_labeling || '');
-            const isNowCompleted = ['completed', 'failed', 'error'].includes(updatedSelectedVideo.processing_status?.ai_labeling || '');
-
-            // If analysis just completed, stop manual analysis flag
-            if (wasAnalyzing && isNowCompleted && isAnalyzing) {
-              console.log('[video-analysis] Analysis completed for:', updatedSelectedVideo.title);
-              setIsAnalyzing(false);
-            }
-
-            // Always update selected video with fresh data to keep it in sync
-            console.log('[video-analysis] Updating selected video with fresh data:', updatedSelectedVideo.title);
-            setSelectedVideo(updatedSelectedVideo);
-          } else {
-            // If selected video is no longer in the list, clear selection
-            console.log('[video-analysis] Selected video no longer exists, clearing selection');
-            setSelectedVideo(null);
-          }
-        }
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
@@ -256,6 +265,7 @@ export default function VideoAnalysisPage() {
     // Always create a fresh reference to prevent stale state issues
     const videoToSelect = { ...video };
     setSelectedVideo(videoToSelect);
+    setSelectedVideoId(videoToSelect.id); // Update ID tracking
 
     // Reset manual analysis state when switching videos
     setIsAnalyzing(false);
