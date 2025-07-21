@@ -6,9 +6,6 @@ import crypto from 'crypto';
 // Use the safe OpenAI client getter
 import { getOpenAIClient } from '@/lib/ai-labeling';
 
-// Initialize OpenAI client
-const openai = getOpenAIClient();
-
 // Use existing vector store ID
 const VECTOR_STORE_ID = 'vs_6860128217f08191bacd30e1475d8566';
 
@@ -26,13 +23,13 @@ async function listAllVectorStoreFiles(): Promise<any[]> {
   try {
     // First request (max 100 per docs)
     const pageSize = 100 as const;
-    let page: any = await openai.vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize } as any);
+    let page: any = await getOpenAIClient().vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize } as any);
 
     // Newer SDKs may return a PagePromise with `.iter()` – use it if present & functional
     if (typeof page?.iter === 'function') {
       const out: any[] = [];
       // NB: Need to re-request because the first call returned a *promise* we already awaited.
-      const iter = (openai.vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize } as any) as any).iter();
+      const iter = (getOpenAIClient().vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize } as any) as any).iter();
       for await (const file of iter) {
         out.push(file);
       }
@@ -44,7 +41,7 @@ async function listAllVectorStoreFiles(): Promise<any[]> {
     all.push(...(page.data || []));
     while (page.has_more) {
       const lastId = page.data?.[page.data.length - 1]?.id;
-      page = await openai.vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize, after: lastId } as any);
+      page = await getOpenAIClient().vectorStores.files.list(VECTOR_STORE_ID, { limit: pageSize, after: lastId } as any);
       all.push(...(page.data || []));
     }
     return all;
@@ -61,7 +58,7 @@ async function ensureFilename(file: any): Promise<{ id: string; filename: string
     return { id: file.id, filename: (file.filename as string) || attrName || '' };
   }
   try {
-    const detailed = await openai.vectorStores.files.retrieve(
+    const detailed = await getOpenAIClient().vectorStores.files.retrieve(
       VECTOR_STORE_ID,
       file.id
     );
@@ -71,7 +68,7 @@ async function ensureFilename(file: any): Promise<{ id: string; filename: string
     }
     if (!fname && (detailed as any).file_id) {
       try {
-        const meta = await openai.files.retrieve((detailed as any).file_id);
+        const meta = await getOpenAIClient().files.retrieve((detailed as any).file_id);
         fname = (meta as any).filename as string | undefined || fname;
       } catch (e) {
         // ignore
@@ -112,6 +109,7 @@ export async function uploadFileToVectorStore(
   fileName: string
 ) {
   try {
+    const openai = getOpenAIClient();
     console.log(`📤 Uploading ${fileName} to vector store...`);
 
     // Convert string content to Buffer for upload
@@ -151,8 +149,9 @@ export async function uploadFileToVectorStore(
  */
 export async function findExistingFile(fileName: string): Promise<string | null> {
   try {
-    const files = await listAllFilesWithNames();
-    for (const f of files) {
+    const openai = getOpenAIClient();
+    const files = await openai.files.list();
+    for (const f of files.data) {
       if (f.filename === fileName) {
         return f.id;
       }
@@ -171,6 +170,7 @@ export async function findExistingFile(fileName: string): Promise<string | null>
  */
 export async function deleteFileFromVectorStore(fileId: string) {
   try {
+    const openai = getOpenAIClient();
     // 1. Retrieve the vector-store file to learn its underlying upload id
     let rawId: string | undefined;
     try {
@@ -384,12 +384,12 @@ export async function getFileContentFromGitHub(
 async function listAllRawFiles(): Promise<any[]> {
   try {
     const pageSize = 100 as const;
-    let page: any = await openai.files.list({ limit: pageSize } as any);
+    let page: any = await getOpenAIClient().files.list({ limit: pageSize } as any);
 
     // Prefer the modern iterator helper if present.
     if (typeof page?.iter === 'function') {
       const out: any[] = [];
-      for await (const file of (openai.files.list({ limit: pageSize } as any) as any).iter()) {
+      for await (const file of (getOpenAIClient().files.list({ limit: pageSize } as any) as any).iter()) {
         out.push(file);
       }
       return out;
@@ -400,7 +400,7 @@ async function listAllRawFiles(): Promise<any[]> {
     all.push(...(page.data || []));
     while (page.has_more) {
       const lastId = page.data?.[page.data.length - 1]?.id;
-      page = await openai.files.list({ limit: pageSize, after: lastId } as any);
+      page = await getOpenAIClient().files.list({ limit: pageSize, after: lastId } as any);
       all.push(...(page.data || []));
     }
     return all;
@@ -435,7 +435,7 @@ export async function nukeOrphanRawUploads() {
 
   console.log(`🧨 Found ${candidates.length} orphan raw uploads to delete...`);
   const results = await Promise.allSettled(
-    candidates.map((f: any) => openai.files.del(f.id))
+    candidates.map((f: any) => getOpenAIClient().files.del(f.id))
   );
 
   const summary = results.map((r, idx) => ({

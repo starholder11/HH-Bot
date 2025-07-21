@@ -154,7 +154,8 @@ async function extractKeyframesWithFFmpeg(videoPath, strategy) {
 
 async function getVideoDuration(videoPath) {
   return new Promise((resolve, reject) => {
-    const ffprobe = spawn('/usr/local/bin/ffprobe', [
+    const ffprobePath = process.env.FFPROBE_PATH || 'ffprobe';
+    const ffprobe = spawn(ffprobePath, [
       '-v', 'quiet',
       '-print_format', 'json',
       '-show_format',
@@ -185,7 +186,8 @@ async function getVideoDuration(videoPath) {
 
 async function extractSingleFrame(videoPath, timestamp, outputPath) {
   return new Promise((resolve, reject) => {
-    const ffmpeg = spawn('/usr/local/bin/ffmpeg', [
+    const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
+    const ffmpeg = spawn(ffmpegPath, [
       '-i', videoPath,
       '-ss', timestamp.toString(),
       '-frames:v', '1',
