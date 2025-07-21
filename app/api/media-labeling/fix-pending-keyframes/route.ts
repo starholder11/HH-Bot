@@ -23,13 +23,15 @@ async function triggerKeyframeLabeling(keyframeId: string) {
   try {
     console.log(`Triggering AI labeling for keyframe: ${keyframeId}`);
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/media-labeling/images/ai-label`, {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+    const response = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        imageId: keyframeId
+        assetId: keyframeId
       })
     });
 
