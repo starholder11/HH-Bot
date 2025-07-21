@@ -334,121 +334,81 @@ function parseGPT4VResponse(responseText: string) {
   console.log('[parseGPT4VResponse] First 500 chars:', responseText.substring(0, 500));
 
   try {
-    // Try to extract JSON from response - look for JSON blocks more carefully
-    const jsonMatches = responseText.match(/```json\s*([\s\S]*?)\s*```/i) ||
-                       responseText.match(/```\s*([\s\S]*?)\s*```/) ||
-                       responseText.match(/\{[\s\S]*?\}/);
+    // First try: Look for JSON block
+    let jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/i);
+    if (!jsonMatch) {
+      // Second try: Look for any code block
+      jsonMatch = responseText.match(/```\s*([\s\S]*?)\s*```/);
+    }
+    if (!jsonMatch) {
+      // Third try: Look for any JSON object
+      jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    }
 
-    if (jsonMatches) {
-      const jsonText = jsonMatches[1] || jsonMatches[0];
+    if (jsonMatch) {
+      const jsonText = jsonMatch[1] || jsonMatch[0];
       console.log('[parseGPT4VResponse] Extracted JSON text:', jsonText.substring(0, 300));
 
       const parsed = JSON.parse(jsonText);
       console.log('[parseGPT4VResponse] Successfully parsed JSON:', Object.keys(parsed));
 
+      // Extract data with simple mapping
+      const videoLevel = {
+        scenes: Array.isArray(parsed.scenes) ? parsed.scenes : [],
+        objects: Array.isArray(parsed.objects) ? parsed.objects : [],
+        style: Array.isArray(parsed.style) ? parsed.style : [],
+        mood: Array.isArray(parsed.mood) ? parsed.mood : [],
+        themes: Array.isArray(parsed.themes) ? parsed.themes : [],
+        technical_quality: Array.isArray(parsed.technical_quality) ? parsed.technical_quality : [],
+        confidence_scores: typeof parsed.confidence_scores === 'object' ? parsed.confidence_scores : {}
+      };
+
+      console.log('[parseGPT4VResponse] Extracted video level data:', videoLevel);
+
       return {
-        videoLevel: {
-          scenes: parsed.scenes || parsed.overall_scenes || parsed.video_level?.scenes || [],
-          objects: parsed.objects || parsed.overall_objects || parsed.video_level?.objects || [],
-          style: parsed.style || parsed.overall_style || parsed.video_level?.style || [],
-          mood: parsed.mood || parsed.overall_mood || parsed.video_level?.mood || [],
-          themes: parsed.themes || parsed.overall_themes || parsed.video_level?.themes || [],
-          technical_quality: parsed.technical_quality || parsed.video_level?.technical_quality || [],
-          confidence_scores: parsed.confidence_scores || parsed.video_level?.confidence_scores || {}
-        },
-        keyframeLevel: parsed.keyframe_analysis || parsed.frames || parsed.keyframes || []
+        videoLevel,
+        keyframeLevel: Array.isArray(parsed.keyframe_analysis) ? parsed.keyframe_analysis : []
       };
     }
   } catch (error) {
-    console.warn('[parseGPT4VResponse] Could not parse structured JSON:', error);
-    console.log('[parseGPT4VResponse] Failed JSON text:', responseText.substring(0, 1000));
+    console.warn('[parseGPT4VResponse] JSON parsing failed:', error);
+    console.log('[parseGPT4VResponse] Failed on text:', responseText.substring(0, 1000));
   }
 
-  // Fallback: extract key attributes from text
-  console.log('[parseGPT4VResponse] Using fallback text extraction');
+  // Simple fallback - extract basic info from text
+  console.log('[parseGPT4VResponse] Using simple text extraction fallback');
+
+  const scenes: string[] = [];
+  const objects: string[] = [];
+  const style: string[] = [];
+  const mood: string[] = [];
+  const themes: string[] = [];
+
+  // Look for common descriptive words
+  const text = responseText.toLowerCase();
+
+  if (text.includes('dramatic')) mood.push('dramatic');
+  if (text.includes('cinematic')) style.push('cinematic');
+  if (text.includes('photographic')) style.push('photographic');
+  if (text.includes('realistic')) style.push('realistic');
+  if (text.includes('artistic')) style.push('artistic');
+
+  if (text.includes('nature')) themes.push('nature');
+  if (text.includes('urban')) themes.push('urban');
+  if (text.includes('human')) themes.push('human');
+
   return {
-    videoLevel: extractKeyAttributesFromText(responseText),
+    videoLevel: {
+      scenes,
+      objects,
+      style,
+      mood,
+      themes,
+      technical_quality: [],
+      confidence_scores: {}
+    },
     keyframeLevel: []
   };
-}
-
-function extractKeyAttributesFromText(text: string) {
-  const attributes: any = {
-    scenes: [],
-    objects: [],
-    style: [],
-    mood: [],
-    themes: [],
-    confidence_scores: {}
-  };
-
-  // More comprehensive patterns for extracting attributes
-  const stylePatterns = [
-    /(visual style|art style|aesthetic)[:\s]+([^.]+)/gi,
-    /(realistic|stylized|abstract|photographic|cinematic|artistic)[^.]{0,50}/gi,
-    /(color palette|lighting|composition)[:\s]+([^.]+)/gi
-  ];
-
-  const moodPatterns = [
-    /(mood|atmosphere|feeling|tone)[:\s]+([^.]+)/gi,
-    /(dramatic|mysterious|bright|dark|whimsical|epic|intimate|contemplative)[^.]{0,30}/gi
-  ];
-
-  const themePatterns = [
-    /(theme|concept|subject matter)[:\s]+([^.]+)/gi,
-    /(nature|architecture|human|technology|urban|fantasy|sci-fi)[^.]{0,30}/gi
-  ];
-
-  const objectPatterns = [
-    /(objects?|elements?|subjects?)[:\s]+([^.]+)/gi,
-    /(person|people|building|tree|car|animal|landscape)[^.]{0,30}/gi
-  ];
-
-  // Extract all pattern matches
-  [...stylePatterns, ...moodPatterns, ...themePatterns, ...objectPatterns].forEach(pattern => {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      if (match[2] && match[2].trim().length > 2) {
-        const value = match[2].trim().replace(/[,;]$/, '');
-
-        if (stylePatterns.includes(pattern)) {
-          attributes.style.push(value);
-        } else if (moodPatterns.includes(pattern)) {
-          attributes.mood.push(value);
-        } else if (themePatterns.includes(pattern)) {
-          attributes.themes.push(value);
-        } else if (objectPatterns.includes(pattern)) {
-          attributes.objects.push(value);
-        }
-      }
-    }
-  });
-
-  // Extract scene descriptions (paragraphs that describe what's happening)
-  const scenePatterns = [
-    /shows?[^.]*[.]/gi,
-    /depicts?[^.]*[.]/gi,
-    /features?[^.]*[.]/gi
-  ];
-
-  scenePatterns.forEach(pattern => {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      if (match[0] && match[0].length > 20) {
-        attributes.scenes.push(match[0].trim());
-      }
-    }
-  });
-
-  console.log('[extractKeyAttributesFromText] Extracted:', {
-    style: attributes.style.length,
-    mood: attributes.mood.length,
-    themes: attributes.themes.length,
-    objects: attributes.objects.length,
-    scenes: attributes.scenes.length
-  });
-
-  return attributes;
 }
 
 function calculateAspectRatio(width: number, height: number): string {
