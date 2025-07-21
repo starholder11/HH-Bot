@@ -1,15 +1,52 @@
 // Lambda worker entry – processes video analysis jobs using FFmpeg
 // This runs in a Docker container with FFmpeg installed
 
-import fetch from 'node-fetch';
-import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { spawn } from 'child_process';
-import { promises as fs } from 'fs';
-import path from 'path';
+const https = require('https');
+const { URL } = require('url');
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { spawn } = require('child_process');
+const { promises: fs } = require('fs');
+const path = require('path');
+
+// Simple fetch replacement using native https
+function fetch(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const requestOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port,
+      path: urlObj.pathname + urlObj.search,
+      method: options.method || 'GET',
+      headers: options.headers || {}
+    };
+
+    const req = https.request(requestOptions, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        resolve({
+          ok: res.statusCode >= 200 && res.statusCode < 300,
+          status: res.statusCode,
+          statusText: res.statusMessage,
+          text: () => Promise.resolve(data),
+          json: () => Promise.resolve(JSON.parse(data))
+        });
+      });
+    });
+
+    req.on('error', reject);
+
+    if (options.body) {
+      req.write(options.body);
+    }
+
+    req.end();
+  });
+}
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   for (const record of event.Records) {
     try {
       const job = JSON.parse(record.body);
