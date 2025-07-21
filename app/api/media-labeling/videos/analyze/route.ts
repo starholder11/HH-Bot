@@ -37,6 +37,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if we're in production (Vercel) and should use Lambda
+    const isProduction = process.env.VERCEL_ENV === 'production' ||
+                        process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' ||
+                        process.env.NODE_ENV === 'production';
+
+    if (isProduction) {
+      console.log('Production environment detected, using Lambda for video analysis');
+
+      // Forward to Lambda API route
+      const lambdaUrl = new URL('/api/video-processing/lambda', request.nextUrl.origin);
+      const lambdaResponse = await fetch(lambdaUrl.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bucketName: 'hh-bot-images-2025-prod',
+          videoKey: videoAsset.s3_url.split('/').slice(-2).join('/'), // Extract key from S3 URL
+          action: 'extract_keyframes'
+        })
+      });
+
+      if (!lambdaResponse.ok) {
+        console.error('Lambda request failed:', await lambdaResponse.text());
+        return NextResponse.json(
+          { success: false, error: 'Lambda video processing failed' },
+          { status: 500 }
+        );
+      }
+
+      const lambdaResult = await lambdaResponse.json();
+      console.log('Lambda processing result:', lambdaResult);
+
+      // If Lambda succeeded, continue with GPT-4V analysis using keyframe URLs
+      if (lambdaResult.success && lambdaResult.lambdaResult?.keyframes) {
+        const keyframeUrls = lambdaResult.lambdaResult.keyframes.map((kf: any) => kf.s3_url);
+
+        // Run GPT-4V analysis on the keyframes
+        const gptAnalysis = await analyzeKeyframesWithGPT4V(keyframeUrls, analysisType);
+
+        if (gptAnalysis.success) {
+          // Update video asset with analysis results
+          await updateVideoAsset(videoId, {
+            ai_labels: gptAnalysis.videoLevelLabels,
+            processing_status: {
+              ...videoAsset.processing_status,
+              ai_labeling: 'completed'
+            },
+            timestamps: {
+              ...videoAsset.timestamps,
+              labeled_ai: new Date().toISOString()
+            },
+            labeling_complete: true
+          });
+
+          return NextResponse.json({
+            success: true,
+            message: 'Video analysis completed successfully via Lambda',
+            videoId,
+            keyframesCount: keyframeUrls.length,
+            analysis: gptAnalysis.videoLevelLabels,
+            processingTime: gptAnalysis.processingTime,
+            tokensUsed: gptAnalysis.tokensUsed
+          });
+        }
+      }
+
+      return NextResponse.json(
+        { success: false, error: 'Lambda processing or GPT-4V analysis failed' },
+        { status: 500 }
+      );
+    }
+
+    // Local development - use FFmpeg directly
+
     // 2. Download video from S3 for processing
     const tempVideoPath = `/tmp/${videoId}.mp4`;
     await downloadFromS3(videoAsset.s3_url, tempVideoPath);
