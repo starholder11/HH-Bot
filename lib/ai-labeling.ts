@@ -1,16 +1,28 @@
 import OpenAI from 'openai';
 import { getMediaAsset, updateMediaAsset } from '@/lib/media-storage';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+// IMPORTANT: Do NOT instantiate the OpenAI client at module scope. Doing so causes
+// whatever value is present for `process.env.OPENAI_API_KEY` **at build time** to
+// be permanently in-lined into the compiled serverless bundle. If the key is
+// missing (e.g. running locally without secrets or mis-scoped in the Vercel
+// dashboard) the placeholder string gets hard-coded and runtime overrides are
+// ignored, resulting in 401 "your_ope************here" errors.
+
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set at runtime');
+  }
+  return new OpenAI({ apiKey });
+}
 
 /**
  * Shared AI labeling function that can be called directly from any server context
  */
 export async function performAiLabeling(assetId: string) {
   try {
+    // Lazily create the client so the *runtime* env var is picked up every time.
+    const openai = getOpenAIClient();
     // Get the media asset
     const asset = await getMediaAsset(assetId);
     if (!asset) {
