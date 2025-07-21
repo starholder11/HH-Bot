@@ -195,6 +195,15 @@ export async function POST(request: NextRequest) {
                 labeling_complete: false
               };
               keyframeStills.push(keyframeAsset);
+
+              // Persist the keyframe asset JSON so that the /images/ai-label endpoint can
+              // retrieve it later. Without this, getMediaAsset(assetId) will fail with
+              // "Asset not found" and keyframe AI labeling will never start.
+              try {
+                await saveKeyframeAsset(keyframeAsset);
+              } catch (persistErr) {
+                console.error('[video-analysis] Failed to save keyframe asset', keyframeAsset.id, persistErr);
+              }
             }
 
             // Update video asset with analysis results AND keyframes
