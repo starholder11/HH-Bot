@@ -78,12 +78,38 @@ export default function VideoAnalysisPage() {
   const [keyframeStrategy, setKeyframeStrategy] = useState<'adaptive' | 'uniform' | 'scene_change'>('adaptive');
   const [targetFrames, setTargetFrames] = useState<number>(8);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Load videos and projects on mount
   useEffect(() => {
     fetchVideos();
     fetchProjects();
   }, []);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  // Start/stop polling based on analysis state
+  useEffect(() => {
+    if (isAnalyzing && !pollingInterval) {
+      // Start polling every 3 seconds during analysis
+      const interval = setInterval(() => {
+        console.log('[video-analysis] Polling for updates...');
+        fetchVideos();
+      }, 3000);
+      setPollingInterval(interval);
+    } else if (!isAnalyzing && pollingInterval) {
+      // Stop polling when analysis completes
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  }, [isAnalyzing, pollingInterval]);
 
   const fetchVideos = async () => {
     try {
@@ -98,6 +124,24 @@ export default function VideoAnalysisPage() {
         // Auto-select first video if none selected
         if (videos.length > 0 && !selectedVideo) {
           setSelectedVideo(videos[0]);
+        }
+
+        // Update selected video with fresh data if it exists
+        if (selectedVideo) {
+          const updatedSelectedVideo = videos.find((v: any) => v.id === selectedVideo.id);
+          if (updatedSelectedVideo) {
+            const wasAnalyzing = selectedVideo.processing_status?.ai_labeling === 'pending' ||
+                                selectedVideo.processing_status?.ai_labeling === 'processing';
+            const isNowCompleted = updatedSelectedVideo.processing_status?.ai_labeling === 'completed';
+
+            // If analysis just completed, stop polling
+            if (wasAnalyzing && isNowCompleted && isAnalyzing) {
+              console.log('[video-analysis] Analysis completed for:', updatedSelectedVideo.title);
+              setIsAnalyzing(false);
+            }
+
+            setSelectedVideo(updatedSelectedVideo);
+          }
         }
       }
     } catch (error) {
@@ -316,19 +360,31 @@ export default function VideoAnalysisPage() {
                       {(() => {
                         const analysisStatus = getAnalysisStatus(video);
                         return (
-                          <span className={`px-2 py-1 text-xs rounded ${
-                            analysisStatus.color === 'green' ? 'bg-green-100 text-green-800' :
-                            analysisStatus.color === 'red' ? 'bg-red-100 text-red-800' :
-                            analysisStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {analysisStatus.label}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {analysisStatus.status === 'processing' && (
+                              <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent"></div>
+                            )}
+                            <span className={`px-2 py-1 text-xs rounded ${
+                              analysisStatus.color === 'green' ? 'bg-green-100 text-green-800' :
+                              analysisStatus.color === 'red' ? 'bg-red-100 text-red-800' :
+                              analysisStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {analysisStatus.label}
+                            </span>
+                          </div>
                         );
                       })()}
                       {video.keyframe_stills && video.keyframe_stills.length > 0 && (
                         <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
                           {video.keyframe_stills.length} keyframes
+                        </span>
+                      )}
+                      {video.processing_status?.ai_labeling === 'completed' &&
+                       video.ai_labels &&
+                       (video.ai_labels.scenes?.length > 0 || video.ai_labels.objects?.length > 0) && (
+                        <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded">
+                          ✨ AI Analyzed
                         </span>
                       )}
                     </div>
@@ -366,6 +422,28 @@ export default function VideoAnalysisPage() {
                         {isAnalyzing ? 'Analyzing...' : 'Analyze Video'}
                       </Button>
                     </div>
+
+                    {/* Analysis Progress Indicator */}
+                    {isAnalyzing && (
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-blue-900">
+                              Analysis in Progress
+                            </div>
+                            <div className="text-xs text-blue-700 mt-1">
+                              Extracting keyframes and running GPT-4V analysis... This may take 15-30 seconds.
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <div className="text-xs text-blue-600">
+                            🔍 Checking for updates every 3 seconds
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-6">
@@ -485,28 +563,40 @@ export default function VideoAnalysisPage() {
                       ))}
                     </div>
                   </div>
-                ) : (
+                ) :
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Keyframes</h3>
                     <div className="text-center py-8">
-                      <div className="text-gray-400 text-4xl mb-3">🎬</div>
-                      <p className="text-gray-500 mb-4">
-                        {selectedVideo.processing_status?.keyframe_extraction === 'completed'
-                          ? 'No keyframes available for this video'
-                          : 'Keyframes will appear here after analysis'}
-                      </p>
-                      {selectedVideo.processing_status?.ai_labeling !== 'pending' && (
-                        <Button
-                          onClick={handleAnalyzeVideo}
-                          disabled={isAnalyzing}
-                          className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50"
-                        >
-                          {isAnalyzing ? 'Re-analyzing...' : 'Re-analyze Video'}
-                        </Button>
+                      {isAnalyzing || selectedVideo.processing_status?.keyframe_extraction === 'processing' ? (
+                        <div className="space-y-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                          <div className="text-blue-600 font-medium">Extracting keyframes...</div>
+                          <p className="text-gray-500 text-sm">
+                            Processing video and generating keyframe thumbnails
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="text-gray-400 text-4xl">🎬</div>
+                          <p className="text-gray-500 mb-4">
+                            {selectedVideo.processing_status?.ai_labeling === 'completed'
+                              ? 'No keyframes were generated for this video'
+                              : 'Keyframes will appear here after analysis'}
+                          </p>
+                          {selectedVideo.processing_status?.ai_labeling !== 'pending' && !isAnalyzing && (
+                            <Button
+                              onClick={handleAnalyzeVideo}
+                              disabled={isAnalyzing}
+                              className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50"
+                            >
+                              {isAnalyzing ? 'Re-analyzing...' : 'Re-analyze Video'}
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
-                )}
+                }
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
