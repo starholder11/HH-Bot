@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
       processing_status: {
         upload: 'completed' as const,
         metadata_extraction: 'completed' as const,
-        ai_labeling: 'pending' as const,
+        ai_labeling: 'not_started' as const,  // Changed from 'pending' to 'not_started'
         manual_review: 'pending' as const
       },
       timestamps: {
@@ -203,11 +203,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Auto-trigger video analysis for uploaded video
+    let autoTriggerSuccess = false;
     try {
       console.log('Auto-triggering video analysis for:', videoId);
 
-      // Trigger video analysis via internal API call
-      const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://hh-bot-lyart.vercel.app';
+      // Update status to 'triggering' before making the call
+      await saveMediaAsset(videoId, {
+        ...videoAsset,
+        processing_status: {
+          ...videoAsset.processing_status,
+          ai_labeling: 'triggering' as const
+        },
+        updated_at: new Date().toISOString()
+      });
+
+      // Determine the correct origin for the API call
+      const isLocal = process.env.NODE_ENV === 'development' || !process.env.VERCEL_URL;
+      const origin = isLocal ? 'http://localhost:3000' : `https://${process.env.VERCEL_URL}`;
+
+      console.log('Making auto-trigger request to:', `${origin}/api/media-labeling/videos/analyze`);
+
       const analysisResponse = await fetch(`${origin}/api/media-labeling/videos/analyze`, {
         method: 'POST',
         headers: {
@@ -220,16 +235,44 @@ export async function POST(request: NextRequest) {
       });
 
       if (analysisResponse.ok) {
-        console.log('Video analysis auto-triggered successfully for:', videoId);
+        const result = await analysisResponse.json();
+        console.log('Video analysis auto-triggered successfully for:', videoId, 'Result:', result);
+        autoTriggerSuccess = true;
+
+        // Status will be updated to 'processing' or 'completed' by the analysis API
       } else {
-        console.error('Failed to auto-trigger video analysis:', await analysisResponse.text());
+        const errorText = await analysisResponse.text();
+        console.error('Failed to auto-trigger video analysis:', analysisResponse.status, errorText);
+
+        // Update status to 'failed' with retry available
+        await saveMediaAsset(videoId, {
+          ...videoAsset,
+          processing_status: {
+            ...videoAsset.processing_status,
+            ai_labeling: 'failed' as const
+          },
+          updated_at: new Date().toISOString()
+        });
       }
     } catch (error) {
       console.error('Error auto-triggering video analysis:', error);
-      // Don't fail the upload if analysis triggering fails
+
+      // Update status to 'failed' with retry available
+      try {
+        await saveMediaAsset(videoId, {
+          ...videoAsset,
+          processing_status: {
+            ...videoAsset.processing_status,
+            ai_labeling: 'failed' as const
+          },
+          updated_at: new Date().toISOString()
+        });
+      } catch (saveError) {
+        console.error('Error updating failed status:', saveError);
+      }
     }
 
-    console.log('Video upload completion successful for:', videoId);
+    console.log('Video upload completion successful for:', videoId, 'Auto-trigger success:', autoTriggerSuccess);
 
     return NextResponse.json({
       success: true,
@@ -237,7 +280,8 @@ export async function POST(request: NextRequest) {
       title,
       metadata,
       s3Url,
-      cloudflareUrl
+      cloudflareUrl,
+      autoTriggerSuccess
     });
 
   } catch (error) {
