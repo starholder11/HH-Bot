@@ -240,7 +240,9 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Call the images/ai-label API to process this keyframe
-                const labelResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/media-labeling/images/ai-label`, {
+                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+                const labelResponse = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
