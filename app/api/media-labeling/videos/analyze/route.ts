@@ -38,9 +38,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if we're in production (Vercel) and should use Lambda
+    console.log('Environment check:', {
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: process.env.VERCEL
+    });
+
     const isProduction = process.env.VERCEL_ENV === 'production' ||
                         process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' ||
-                        process.env.NODE_ENV === 'production';
+                        process.env.NODE_ENV === 'production' ||
+                        process.env.VERCEL === '1'; // Vercel always sets this
 
     if (isProduction) {
       console.log('Production environment detected, using Lambda for video analysis');
