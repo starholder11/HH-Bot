@@ -51,8 +51,9 @@ export async function POST(request: NextRequest) {
     if (isProduction) {
       console.log('Production environment detected, using Lambda for video analysis');
 
-      // Forward to Lambda API route
-      const lambdaUrl = new URL('/api/video-processing/lambda', request.nextUrl.origin);
+      // Forward to Lambda API route - handle potential undefined origin
+      const origin = request.nextUrl?.origin || 'https://hh-bot-lyart.vercel.app';
+      const lambdaUrl = new URL('/api/video-processing/lambda', origin);
       const lambdaResponse = await fetch(lambdaUrl.toString(), {
         method: 'POST',
         headers: {
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
           console.log('Keyframe URLs:', keyframeUrls);
 
           // Run GPT-4V analysis on the keyframes
-          const gptAnalysis = await analyzeKeyframesWithGPT4V(keyframeUrls, analysisType);
+          const gptAnalysis = await analyzeKeyframesFromUrls(keyframeUrls, analysisType);
 
           console.log('GPT-4V analysis result:', gptAnalysis);
 
@@ -387,6 +388,119 @@ async function analyzeKeyframesWithGPT4V(keyframes: ExtractedFrame[], analysisTy
       type: "image_url" as const,
       image_url: {
         url: `data:image/jpeg;base64,${frame.data}`,
+        detail: "high" as const
+      }
+    })),
+    // Add analysis prompt
+    {
+      type: "text" as const,
+      text: analysisPrompts[analysisType as keyof typeof analysisPrompts] || analysisPrompts.comprehensive
+    }
+  ];
+
+  const startTime = Date.now();
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // Latest GPT-4 with vision
+      messages: [
+        {
+          role: "user",
+          content: messageContent
+        }
+      ],
+      max_tokens: 3000,
+      temperature: 0.1
+    });
+
+    const processingTime = Date.now() - startTime;
+    const analysisText = response.choices[0].message.content;
+    const parsedAnalysis = parseGPT4VResponse(analysisText || '');
+
+    return {
+      success: true,
+      videoLevelLabels: parsedAnalysis.videoLevel,
+      keyframeLevelLabels: parsedAnalysis.keyframeLevel,
+      rawAnalysis: analysisText,
+      tokensUsed: response.usage?.total_tokens,
+      model: response.model,
+      processingTime
+    };
+
+  } catch (error) {
+    console.error('GPT-4V API error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'GPT-4V analysis failed'
+    };
+  }
+}
+
+async function analyzeKeyframesFromUrls(keyframeUrls: string[], analysisType: string) {
+  const analysisPrompts = {
+    comprehensive: `
+    Analyze these video keyframes and provide detailed creative analysis focusing on:
+
+    **VISUAL STYLE & AESTHETICS:**
+    - Art style and visual approach (realistic, stylized, abstract, photographic, etc.)
+    - Color palette and mood creation
+    - Lighting design and atmosphere
+    - Composition and visual flow
+    - Texture and rendering quality
+
+    **MOOD & EMOTIONAL TONE:**
+    - Primary emotional atmosphere
+    - Mood descriptors (dark, whimsical, epic, intimate, contemplative, etc.)
+    - Psychological impact and viewer response
+    - Atmospheric qualities (mysterious, bright, gritty, dreamlike)
+
+    **CREATIVE THEMES & CONTENT:**
+    - Central themes and concepts
+    - Subject matter and setting
+    - Narrative elements and storytelling
+    - Cultural or genre influences
+    - Symbolic or metaphorical content
+
+    **TECHNICAL EXECUTION:**
+    - Production quality indicators
+    - Visual effects and techniques
+    - Artistic craftsmanship level
+    - Composition and framing quality
+
+    Respond with a JSON object containing arrays for each category with specific descriptive values.
+    Also provide individual frame analysis for each keyframe with the same structure.
+    `,
+
+    style_focus: `
+    Focus specifically on artistic and visual style analysis:
+    - Art movement or style influences
+    - Rendering technique and approach
+    - Color theory and palette usage
+    - Visual aesthetics and design language
+    - Stylistic consistency across frames
+
+    Provide JSON response with detailed style categorization for overall video and each frame.
+    `,
+
+    mood_themes: `
+    Analyze mood, themes, and narrative elements:
+    - Emotional tone and atmosphere
+    - Thematic content and concepts
+    - Genre and storytelling elements
+    - Symbolic meaning and interpretation
+    - Audience and content positioning
+
+    Return JSON with comprehensive mood and theme analysis for video and individual frames.
+    `
+  };
+
+  // Prepare message content
+  const messageContent = [
+    // Add all keyframe images first
+    ...keyframeUrls.map((url, index) => ({
+      type: "image_url" as const,
+      image_url: {
+        url: url,
         detail: "high" as const
       }
     })),
