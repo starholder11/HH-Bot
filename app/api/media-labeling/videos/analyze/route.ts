@@ -567,8 +567,9 @@ async function analyzeKeyframesFromUrls(keyframeUrls: string[], analysisType: st
 }
 
 function parseGPT4VResponse(responseText: string) {
+  console.log('[parseGPT4VResponse] ==== STARTING PARSE ====');
   console.log('[parseGPT4VResponse] Raw response length:', responseText.length);
-  console.log('[parseGPT4VResponse] First 500 chars:', responseText.substring(0, 500));
+  console.log('[parseGPT4VResponse] FULL RESPONSE TEXT:', responseText);
 
   try {
     // First try: Look for JSON block
@@ -584,32 +585,38 @@ function parseGPT4VResponse(responseText: string) {
 
     if (jsonMatch) {
       const jsonText = jsonMatch[1] || jsonMatch[0];
-      console.log('[parseGPT4VResponse] Extracted JSON text:', jsonText.substring(0, 300));
+      console.log('[parseGPT4VResponse] EXTRACTED JSON TEXT:', jsonText);
 
       const parsed = JSON.parse(jsonText);
-      console.log('[parseGPT4VResponse] Successfully parsed JSON:', Object.keys(parsed));
+      console.log('[parseGPT4VResponse] PARSED OBJECT:', JSON.stringify(parsed, null, 2));
 
-      // Extract data with simple mapping
+      // Extract data with detailed validation and logging
       const videoLevel = {
-        scenes: Array.isArray(parsed.scenes) ? parsed.scenes : [],
-        objects: Array.isArray(parsed.objects) ? parsed.objects : [],
-        style: Array.isArray(parsed.style) ? parsed.style : [],
-        mood: Array.isArray(parsed.mood) ? parsed.mood : [],
-        themes: Array.isArray(parsed.themes) ? parsed.themes : [],
+        scenes: Array.isArray(parsed.scenes) ? parsed.scenes : (parsed.scenes ? [String(parsed.scenes)] : []),
+        objects: Array.isArray(parsed.objects) ? parsed.objects : (parsed.objects ? [String(parsed.objects)] : []),
+        style: Array.isArray(parsed.style) ? parsed.style : (parsed.style ? [String(parsed.style)] : []),
+        mood: Array.isArray(parsed.mood) ? parsed.mood : (parsed.mood ? [String(parsed.mood)] : []),
+        themes: Array.isArray(parsed.themes) ? parsed.themes : (parsed.themes ? [String(parsed.themes)] : []),
         technical_quality: Array.isArray(parsed.technical_quality) ? parsed.technical_quality : [],
-        confidence_scores: typeof parsed.confidence_scores === 'object' ? parsed.confidence_scores : {}
+        confidence_scores: (typeof parsed.confidence_scores === 'object' && parsed.confidence_scores !== null) ? parsed.confidence_scores : {}
       };
 
-      console.log('[parseGPT4VResponse] Extracted video level data:', videoLevel);
+      console.log('[parseGPT4VResponse] FINAL VIDEO LEVEL DATA:', JSON.stringify(videoLevel, null, 2));
 
-      return {
+      const result = {
         videoLevel,
         keyframeLevel: Array.isArray(parsed.keyframe_analysis) ? parsed.keyframe_analysis : []
       };
+
+      console.log('[parseGPT4VResponse] RETURNING RESULT:', JSON.stringify(result, null, 2));
+      return result;
+    } else {
+      console.error('[parseGPT4VResponse] NO JSON MATCH FOUND IN RESPONSE');
+      console.log('[parseGPT4VResponse] Response text was:', responseText);
     }
   } catch (error) {
-    console.warn('[parseGPT4VResponse] JSON parsing failed:', error);
-    console.log('[parseGPT4VResponse] Failed on text:', responseText.substring(0, 1000));
+    console.error('[parseGPT4VResponse] PARSING ERROR:', error);
+    console.log('[parseGPT4VResponse] Failed text:', responseText);
   }
 
   // Simple fallback - extract basic info from text
