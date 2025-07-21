@@ -117,7 +117,7 @@ export default function VideoAnalysisPage() {
 
     // Use Lambda in production on Vercel, or when explicitly enabled via env var
   const USE_LAMBDA = process.env.NEXT_PUBLIC_USE_LAMBDA === 'true' ||
-                     process.env.NEXT_PUBLIC_VERCEL_ENV === 'production';
+                     (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'));
 
   const handleAnalyzeVideo = async () => {
     if (!selectedVideo) return;
