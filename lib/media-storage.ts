@@ -39,7 +39,7 @@ export interface BaseMediaAsset {
   processing_status: {
     upload: 'pending' | 'completed' | 'error';
     metadata_extraction: 'pending' | 'completed' | 'error';
-    ai_labeling: 'pending' | 'completed' | 'error';
+    ai_labeling: 'not_started' | 'triggering' | 'pending' | 'processing' | 'completed' | 'failed' | 'error';
     manual_review: 'pending' | 'completed' | 'error';
   };
   timestamps: {
@@ -105,9 +105,9 @@ export interface VideoAsset extends BaseMediaAsset {
   processing_status: {
     upload: 'pending' | 'completed' | 'error';
     metadata_extraction: 'pending' | 'completed' | 'error';
-    ai_labeling: 'pending' | 'completed' | 'error';
+    ai_labeling: 'not_started' | 'triggering' | 'pending' | 'processing' | 'completed' | 'failed' | 'error';
     manual_review: 'pending' | 'completed' | 'error';
-    keyframe_extraction?: 'pending' | 'completed' | 'error';
+    keyframe_extraction?: 'pending' | 'processing' | 'completed' | 'error';
   };
   timestamps: {
     uploaded: string;
@@ -547,8 +547,8 @@ export interface KeyframeStill {
     last_used: string | null;
   };
   processing_status: {
-    extraction: 'pending' | 'completed' | 'error';
-    ai_labeling: 'pending' | 'completed' | 'error';
+    extraction: 'pending' | 'processing' | 'completed' | 'error';
+    ai_labeling: 'not_started' | 'triggering' | 'pending' | 'processing' | 'completed' | 'failed' | 'error';
     manual_review: 'pending' | 'completed' | 'error';
   };
   timestamps: {

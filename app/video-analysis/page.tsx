@@ -95,13 +95,11 @@ export default function VideoAnalysisPage() {
     };
   }, [pollingInterval]);
 
-  // Enhanced polling logic - poll when there are any pending videos OR when actively analyzing
+    // Enhanced polling logic - poll when there are any pending videos OR when actively analyzing
   useEffect(() => {
     const hasPendingVideos = videos.some(video =>
-      video.processing_status?.ai_labeling === 'pending' ||
-      video.processing_status?.ai_labeling === 'processing' ||
-      video.processing_status?.keyframe_extraction === 'pending' ||
-      video.processing_status?.keyframe_extraction === 'processing'
+      ['triggering', 'pending', 'processing'].includes(video.processing_status?.ai_labeling || '') ||
+      ['pending', 'processing'].includes(video.processing_status?.keyframe_extraction || '')
     );
 
     const shouldPoll = isAnalyzing || hasPendingVideos;
@@ -140,9 +138,8 @@ export default function VideoAnalysisPage() {
         if (selectedVideo) {
           const updatedSelectedVideo = videos.find((v: any) => v.id === selectedVideo.id);
           if (updatedSelectedVideo) {
-            const wasAnalyzing = selectedVideo.processing_status?.ai_labeling === 'pending' ||
-                                selectedVideo.processing_status?.ai_labeling === 'processing';
-            const isNowCompleted = updatedSelectedVideo.processing_status?.ai_labeling === 'completed';
+            const wasAnalyzing = ['triggering', 'pending', 'processing'].includes(selectedVideo.processing_status?.ai_labeling || '');
+            const isNowCompleted = ['completed', 'failed', 'error'].includes(updatedSelectedVideo.processing_status?.ai_labeling || '');
 
             // If analysis just completed, stop manual analysis flag
             if (wasAnalyzing && isNowCompleted && isAnalyzing) {
@@ -233,7 +230,7 @@ export default function VideoAnalysisPage() {
 
   // Get analysis status for display
   const getAnalysisStatus = (video: VideoAsset) => {
-    const status = video.processing_status?.ai_labeling || 'pending';
+    const status = video.processing_status?.ai_labeling || 'not_started';
     const hasResults = video.ai_labels && (
       video.ai_labels.scenes?.length > 0 ||
       video.ai_labels.objects?.length > 0 ||
@@ -242,14 +239,28 @@ export default function VideoAnalysisPage() {
       video.ai_labels.themes?.length > 0
     );
 
-    if (status === 'completed' && hasResults) {
-      return { status: 'completed', label: 'Analyzed', color: 'green' };
-    } else if (status === 'completed' && !hasResults) {
-      return { status: 'failed', label: 'Failed', color: 'red' };
-    } else if (status === 'pending') {
-      return { status: 'pending', label: 'Pending', color: 'yellow' };
-    } else {
-      return { status: 'processing', label: 'Processing', color: 'blue' };
+    switch (status) {
+      case 'completed':
+        return hasResults
+          ? { status: 'completed', label: 'Analyzed', color: 'green' }
+          : { status: 'failed', label: 'Failed', color: 'red' };
+
+      case 'processing':
+        return { status: 'processing', label: 'Processing', color: 'blue' };
+
+      case 'triggering':
+        return { status: 'processing', label: 'Starting...', color: 'blue' };
+
+      case 'pending':
+        return { status: 'processing', label: 'In Progress', color: 'blue' };
+
+      case 'failed':
+      case 'error':
+        return { status: 'failed', label: 'Failed', color: 'red' };
+
+      case 'not_started':
+      default:
+        return { status: 'not_started', label: 'Not Analyzed', color: 'gray' };
     }
   };
 
@@ -433,13 +444,43 @@ export default function VideoAnalysisPage() {
                           {formatDuration(selectedVideo.metadata.duration)} • {selectedVideo.metadata.format}
                         </p>
                       </div>
-                      <Button
-                        onClick={handleAnalyzeVideo}
-                        disabled={isAnalyzing}
-                        className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
-                      >
-                        {isAnalyzing ? 'Analyzing...' : 'Analyze Video'}
-                      </Button>
+                      {(() => {
+                        const status = selectedVideo.processing_status?.ai_labeling || 'not_started';
+                        const isActive = ['triggering', 'pending', 'processing'].includes(status);
+                        const isFailed = ['failed', 'error'].includes(status);
+
+                        if (status === 'completed') {
+                          return (
+                            <Button
+                              onClick={handleAnalyzeVideo}
+                              className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
+                            >
+                              Re-analyze Video
+                            </Button>
+                          );
+                        }
+
+                        if (isFailed) {
+                          return (
+                            <Button
+                              onClick={handleAnalyzeVideo}
+                              className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700"
+                            >
+                              Retry Analysis
+                            </Button>
+                          );
+                        }
+
+                        return (
+                          <Button
+                            onClick={handleAnalyzeVideo}
+                            disabled={isAnalyzing || isActive}
+                            className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
+                          >
+                            {isAnalyzing || isActive ? 'Analyzing...' : 'Analyze Video'}
+                          </Button>
+                        );
+                      })()}
                     </div>
 
                     {/* Analysis Progress Indicator */}

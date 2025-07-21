@@ -37,6 +37,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 2. Update status to 'processing' at the start
+    await updateVideoAsset(videoId, {
+      processing_status: {
+        ...videoAsset.processing_status,
+        ai_labeling: 'processing',
+        keyframe_extraction: 'processing'
+      },
+      updated_at: new Date().toISOString()
+    });
+
     console.log('Video asset found:', {
       id: videoAsset.id,
       filename: videoAsset.filename,
