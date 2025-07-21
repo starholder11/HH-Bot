@@ -80,27 +80,47 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const lambdaResponse = await fetch(lambdaUrl.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bucketName: 'hh-bot-images-2025-prod',
-          videoKey: videoAsset.s3_url.split('/').slice(-2).join('/'), // Extract key from S3 URL
-          action: 'extract_keyframes'
-        })
-      });
+      // Helper to invoke the lambda with retry logic – mitigates eventual-consistency "NoSuchKey" errors
+      const invokeLambdaWithRetry = async (maxAttempts = 3, delayMs = 2000) => {
+        let attempt = 0;
+        let lastErr: any = null;
+        while (attempt < maxAttempts) {
+          attempt++;
+          console.log(`[analyze] Invoking Lambda (attempt ${attempt}/${maxAttempts})`);
+          const resp = await fetch(lambdaUrl.toString(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bucketName: 'hh-bot-images-2025-prod',
+              videoKey: videoAsset.s3_url.split('/').slice(-2).join('/'),
+              action: 'extract_keyframes'
+            })
+          });
 
-      if (!lambdaResponse.ok) {
-        console.error('Lambda request failed:', await lambdaResponse.text());
-        return NextResponse.json(
-          { success: false, error: 'Lambda video processing failed' },
-          { status: 500 }
-        );
-      }
+          if (!resp.ok) {
+            lastErr = await resp.text();
+            console.warn('[analyze] Lambda HTTP failure:', resp.status, lastErr);
+          } else {
+            const json = await resp.json();
+            if (json.success && json.lambdaResult && !json.lambdaResult.error) {
+              return json; // Success
+            }
+            lastErr = JSON.stringify(json);
+            console.warn('[analyze] Lambda logical failure:', lastErr);
+          }
 
-      const lambdaResult = await lambdaResponse.json();
+          // If here, we failed – wait then retry
+          if (attempt < maxAttempts) {
+            console.log(`[analyze] Retrying Lambda in ${delayMs}ms ...`);
+            await new Promise(res => setTimeout(res, delayMs));
+            delayMs *= 2; // exponential backoff
+          }
+        }
+        throw new Error(`Lambda failed after ${maxAttempts} attempts: ${lastErr}`);
+      };
+
+      const lambdaResult = await invokeLambdaWithRetry();
+
       console.log('Lambda processing result:', lambdaResult);
 
       // If Lambda succeeded, continue with GPT-4V analysis using keyframe URLs
