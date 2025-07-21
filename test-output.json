@@ -1,0 +1,1 @@
+{"errorType":"TypeError","errorMessage":"event.Records is not iterable","trace":["TypeError: event.Records is not iterable","    at exports.handler (/var/task/index.js:50:30)","    at Runtime.handleOnceNonStreaming (file:///var/runtime/index.mjs:1206:29)"]}
