@@ -3,10 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import crypto from 'crypto';
 
+// Use the safe OpenAI client getter
+import { getOpenAIClient } from '@/lib/ai-labeling';
+
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+const openai = getOpenAIClient();
 
 // Use existing vector store ID
 const VECTOR_STORE_ID = 'vs_6860128217f08191bacd30e1475d8566';
