@@ -95,21 +95,31 @@ export default function VideoAnalysisPage() {
     };
   }, [pollingInterval]);
 
-  // Start/stop polling based on analysis state
+  // Enhanced polling logic - poll when there are any pending videos OR when actively analyzing
   useEffect(() => {
-    if (isAnalyzing && !pollingInterval) {
-      // Start polling every 3 seconds during analysis
+    const hasPendingVideos = videos.some(video =>
+      video.processing_status?.ai_labeling === 'pending' ||
+      video.processing_status?.ai_labeling === 'processing' ||
+      video.processing_status?.keyframe_extraction === 'pending' ||
+      video.processing_status?.keyframe_extraction === 'processing'
+    );
+
+    const shouldPoll = isAnalyzing || hasPendingVideos;
+
+    if (shouldPoll && !pollingInterval) {
+      // Start polling every 3 seconds when there are pending videos or during analysis
       const interval = setInterval(() => {
-        console.log('[video-analysis] Polling for updates...');
+        console.log('[video-analysis] Polling for updates... (pending videos or analysis in progress)');
         fetchVideos();
       }, 3000);
       setPollingInterval(interval);
-    } else if (!isAnalyzing && pollingInterval) {
-      // Stop polling when analysis completes
+    } else if (!shouldPoll && pollingInterval) {
+      // Stop polling when no pending videos and no active analysis
+      console.log('[video-analysis] Stopping polling - no pending videos or analysis');
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
-  }, [isAnalyzing, pollingInterval]);
+  }, [isAnalyzing, videos, pollingInterval]);
 
   const fetchVideos = async () => {
     try {
@@ -134,7 +144,7 @@ export default function VideoAnalysisPage() {
                                 selectedVideo.processing_status?.ai_labeling === 'processing';
             const isNowCompleted = updatedSelectedVideo.processing_status?.ai_labeling === 'completed';
 
-            // If analysis just completed, stop polling
+            // If analysis just completed, stop manual analysis flag
             if (wasAnalyzing && isNowCompleted && isAnalyzing) {
               console.log('[video-analysis] Analysis completed for:', updatedSelectedVideo.title);
               setIsAnalyzing(false);
@@ -210,6 +220,15 @@ export default function VideoAnalysisPage() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  // Enhanced video selection handler
+  const handleVideoSelect = (video: VideoAsset) => {
+    console.log('[video-analysis] Selecting video:', video.title, 'Status:', video.processing_status);
+    setSelectedVideo(video);
+
+    // Reset manual analysis state when switching videos
+    setIsAnalyzing(false);
   };
 
   // Get analysis status for display
@@ -350,7 +369,7 @@ export default function VideoAnalysisPage() {
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
-                    onClick={() => setSelectedVideo(video)}
+                    onClick={() => handleVideoSelect(video)}
                   >
                     <div className="font-medium text-gray-900 truncate">{video.title}</div>
                     <div className="text-xs text-gray-500 mt-1">
@@ -449,6 +468,7 @@ export default function VideoAnalysisPage() {
                   <div className="p-6">
                     <div className="bg-gray-100 rounded-lg aspect-video flex items-center justify-center">
                       <video
+                        key={selectedVideo.id}
                         controls
                         className="w-full h-full rounded-lg"
                         poster={selectedVideo.keyframe_stills?.[0]?.cloudflare_url}
