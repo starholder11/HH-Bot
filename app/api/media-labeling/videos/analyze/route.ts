@@ -37,6 +37,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Video asset found:', {
+      id: videoAsset.id,
+      filename: videoAsset.filename,
+      s3_url: videoAsset.s3_url,
+      hasS3Url: !!videoAsset.s3_url
+    });
+
     // Check if we're in production (Vercel) and should use Lambda
     console.log('Environment check:', {
       VERCEL_ENV: process.env.VERCEL_ENV,
@@ -54,6 +61,15 @@ export async function POST(request: NextRequest) {
       // Forward to Lambda API route - handle potential undefined origin
       const origin = request.nextUrl?.origin || 'https://hh-bot-lyart.vercel.app';
       const lambdaUrl = new URL('/api/video-processing/lambda', origin);
+
+      if (!videoAsset.s3_url) {
+        console.error('Video asset missing S3 URL:', videoAsset);
+        return NextResponse.json(
+          { success: false, error: 'Video asset missing S3 URL' },
+          { status: 400 }
+        );
+      }
+
       const lambdaResponse = await fetch(lambdaUrl.toString(), {
         method: 'POST',
         headers: {
