@@ -174,7 +174,9 @@ export default function MediaLabelingPage() {
       if (mediaTypeFilter) params.append('type', mediaTypeFilter);
       if (projectFilter) params.append('project', projectFilter);
 
-      const response = await fetch(`/api/media-labeling/assets?${params}`);
+      const queryString = params.toString();
+      // Avoid “/assets?” which Next treats as a different route and returns 404
+      const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
       const data = await response.json();
       setAssets(data);
 
