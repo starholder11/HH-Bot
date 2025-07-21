@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
           // Run GPT-4V analysis on the keyframes
           const gptAnalysis = await analyzeKeyframesWithGPT4V(keyframeUrls, analysisType);
 
+          console.log('GPT-4V analysis result:', gptAnalysis);
+
           if (gptAnalysis.success) {
             // Update video asset with analysis results
             await updateVideoAsset(videoId, {
@@ -116,14 +118,27 @@ export async function POST(request: NextRequest) {
               processingTime: gptAnalysis.processingTime,
               tokensUsed: gptAnalysis.tokensUsed
             });
+          } else {
+            console.error('GPT-4V analysis failed:', gptAnalysis.error);
+            return NextResponse.json(
+              { success: false, error: `GPT-4V analysis failed: ${gptAnalysis.error}` },
+              { status: 500 }
+            );
           }
+        } else {
+          console.error('Lambda body missing extractedFrames:', lambdaBody);
+          return NextResponse.json(
+            { success: false, error: 'Lambda did not return keyframes' },
+            { status: 500 }
+          );
         }
+      } else {
+        console.error('Lambda processing failed:', lambdaResult);
+        return NextResponse.json(
+          { success: false, error: `Lambda processing failed: ${JSON.stringify(lambdaResult)}` },
+          { status: 500 }
+        );
       }
-
-      return NextResponse.json(
-        { success: false, error: 'Lambda processing or GPT-4V analysis failed' },
-        { status: 500 }
-      );
     }
 
     // Local development - use FFmpeg directly
