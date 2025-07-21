@@ -98,9 +98,8 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`[update-keyframes] Triggering AI labeling for hero keyframe: ${heroKeyframe.id}`);
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
         const labelResponse = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
           method: 'POST',
@@ -131,9 +130,8 @@ export async function POST(request: NextRequest) {
        if (otherKeyframes.length > 0) {
          console.log(`[update-keyframes] Triggering AI labeling for ${otherKeyframes.length} remaining keyframes`);
 
-         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000';
+         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
          for (const keyframe of otherKeyframes) {
            fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
