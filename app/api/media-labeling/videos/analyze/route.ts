@@ -113,16 +113,70 @@ export async function POST(request: NextRequest) {
           console.log('GPT-4V analysis result:', gptAnalysis);
 
           if (gptAnalysis.success) {
-            // Update video asset with analysis results
+            // Create keyframe still assets from the Lambda results
+            const keyframeStills = [];
+            for (let i = 0; i < lambdaBody.result.extractedFrames.length; i++) {
+              const frame = lambdaBody.result.extractedFrames[i];
+              const keyframeAsset = {
+                id: crypto.randomUUID(),
+                parent_video_id: videoId,
+                project_id: videoAsset.project_id,
+                media_type: 'keyframe_still' as const,
+                timestamp: `00:${Math.floor(i * 2).toString().padStart(2, '0')}`, // Estimate timestamps
+                frame_number: (i + 1) * 30, // Estimate frame numbers
+                filename: frame.s3Key.split('/').pop(),
+                title: `${videoAsset.title} - Frame ${i + 1}`,
+                s3_url: `https://hh-bot-images-2025-prod.s3.amazonaws.com/${frame.s3Key}`,
+                cloudflare_url: `https://drbs5yklwtho3.cloudfront.net/${frame.s3Key}`,
+                reusable_as_image: true,
+                source_info: {
+                  video_filename: videoAsset.filename,
+                  timestamp: `00:${Math.floor(i * 2).toString().padStart(2, '0')}`,
+                  frame_number: (i + 1) * 30,
+                  extraction_method: 'lambda'
+                },
+                metadata: {
+                  file_size: 150000, // Estimate
+                  format: 'jpeg',
+                  resolution: { width: 1024, height: 1024 },
+                  aspect_ratio: '1:1',
+                  color_profile: 'sRGB',
+                  quality: 85
+                },
+                usage_tracking: {
+                  times_reused: 0,
+                  projects_used_in: [],
+                  last_used: null
+                },
+                processing_status: {
+                  extraction: 'completed' as const,
+                  ai_labeling: 'pending' as const,
+                  manual_review: 'pending' as const
+                },
+                timestamps: {
+                  extracted: new Date().toISOString(),
+                  labeled_ai: null,
+                  labeled_reviewed: null
+                },
+                labeling_complete: false
+              };
+              keyframeStills.push(keyframeAsset);
+            }
+
+            // Update video asset with analysis results AND keyframes
             await updateVideoAsset(videoId, {
               ai_labels: gptAnalysis.videoLevelLabels,
+              keyframe_stills: keyframeStills,
+              keyframe_count: keyframeStills.length,
               processing_status: {
                 ...videoAsset.processing_status,
-                ai_labeling: 'completed'
+                ai_labeling: 'completed',
+                keyframe_extraction: 'completed'
               },
               timestamps: {
                 ...videoAsset.timestamps,
-                labeled_ai: new Date().toISOString()
+                labeled_ai: new Date().toISOString(),
+                keyframes_extracted: new Date().toISOString()
               },
               labeling_complete: true
             });
