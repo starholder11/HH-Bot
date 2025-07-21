@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Call the images/ai-label API to process this keyframe
-                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                const baseUrl = process.env.PUBLIC_API_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NEXT_PUBLIC_BASE_URL || 'https://hh-bot-lyart.vercel.app');
 
                 const labelResponse = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
                   method: 'POST',
