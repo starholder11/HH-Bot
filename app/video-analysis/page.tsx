@@ -50,6 +50,11 @@ interface KeyframeStill {
     quality: number;
     resolution: { width: number; height: number };
   };
+  processing_status?: {
+    extraction: string;
+    ai_labeling: string;
+    manual_review: string;
+  };
   ai_labels?: {
     scenes: string[];
     objects: string[];
@@ -282,11 +287,27 @@ export default function VideoAnalysisPage() {
       video.ai_labels.themes?.length > 0
     );
 
+    // Check keyframe labeling status
+    const hasKeyframes = video.keyframe_stills && video.keyframe_stills.length > 0;
+    const pendingKeyframes = hasKeyframes && video.keyframe_stills ? video.keyframe_stills.filter(kf =>
+      ['pending', 'triggering', 'processing'].includes(kf.processing_status?.ai_labeling || '')
+    ).length : 0;
+    const totalKeyframes = hasKeyframes && video.keyframe_stills ? video.keyframe_stills.length : 0;
+
     switch (status) {
       case 'completed':
-        return hasResults
-          ? { status: 'completed', label: 'Analyzed', color: 'green' }
-          : { status: 'failed', label: 'Failed', color: 'red' };
+        if (hasResults) {
+          // Video analysis complete, check keyframes
+          if (pendingKeyframes > 0) {
+            return {
+              status: 'processing',
+              label: `Processing Keyframes (${totalKeyframes - pendingKeyframes}/${totalKeyframes})`,
+              color: 'blue'
+            };
+          }
+          return { status: 'completed', label: 'Analyzed', color: 'green' };
+        }
+        return { status: 'failed', label: 'Failed', color: 'red' };
 
       case 'processing':
         return { status: 'processing', label: 'Processing', color: 'blue' };
