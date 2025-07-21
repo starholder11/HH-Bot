@@ -237,10 +237,7 @@ export async function POST(request: NextRequest) {
                     'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
-                    imageId: keyframe.id,
-                    s3Url: keyframe.s3_url,
-                    title: keyframe.title || `${videoAsset.title} - Frame ${keyframe.frame_number}`,
-                    analysisType: 'comprehensive'
+                    assetId: keyframe.id
                   }),
                 });
 
