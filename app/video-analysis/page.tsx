@@ -95,7 +95,7 @@ export default function VideoAnalysisPage() {
     };
   }, [pollingInterval]);
 
-    // Enhanced polling logic - poll when there are any pending videos OR when actively analyzing
+      // Enhanced polling logic - poll when there are any pending videos OR when actively analyzing
   useEffect(() => {
     const hasPendingVideos = videos.some(video =>
       ['triggering', 'pending', 'processing'].includes(video.processing_status?.ai_labeling || '') ||
@@ -117,7 +117,25 @@ export default function VideoAnalysisPage() {
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
-  }, [isAnalyzing, videos, pollingInterval]);
+  }, [isAnalyzing, pollingInterval]);
+
+  // Start polling when videos are first loaded if there are pending videos
+  useEffect(() => {
+    if (videos.length > 0 && !pollingInterval) {
+      const hasPendingVideos = videos.some(video =>
+        ['triggering', 'pending', 'processing'].includes(video.processing_status?.ai_labeling || '') ||
+        ['pending', 'processing'].includes(video.processing_status?.keyframe_extraction || '')
+      );
+
+      if (hasPendingVideos) {
+        console.log('[video-analysis] Starting initial polling for pending videos');
+        const interval = setInterval(() => {
+          fetchVideos();
+        }, 3000);
+        setPollingInterval(interval);
+      }
+    }
+  }, [videos.length]); // Only trigger when videos are first loaded
 
   const fetchVideos = async () => {
     try {
@@ -129,8 +147,9 @@ export default function VideoAnalysisPage() {
         const videos = videoAssets.filter((asset: any) => asset.media_type === 'video');
         setVideos(videos);
 
-        // Auto-select first video if none selected
-        if (videos.length > 0 && !selectedVideo) {
+        // Auto-select first video if none selected (only on initial load)
+        if (videos.length > 0 && !selectedVideo && !pollingInterval) {
+          console.log('[video-analysis] Auto-selecting first video on initial load');
           setSelectedVideo(videos[0]);
         }
 
@@ -147,7 +166,13 @@ export default function VideoAnalysisPage() {
               setIsAnalyzing(false);
             }
 
+            // Always update selected video with fresh data to keep it in sync
+            console.log('[video-analysis] Updating selected video with fresh data:', updatedSelectedVideo.title);
             setSelectedVideo(updatedSelectedVideo);
+          } else {
+            // If selected video is no longer in the list, clear selection
+            console.log('[video-analysis] Selected video no longer exists, clearing selection');
+            setSelectedVideo(null);
           }
         }
       }
@@ -221,8 +246,11 @@ export default function VideoAnalysisPage() {
 
   // Enhanced video selection handler
   const handleVideoSelect = (video: VideoAsset) => {
-    console.log('[video-analysis] Selecting video:', video.title, 'Status:', video.processing_status);
-    setSelectedVideo(video);
+    console.log('[video-analysis] Selecting video:', video.title, 'ID:', video.id, 'Status:', video.processing_status?.ai_labeling);
+
+    // Always create a fresh reference to prevent stale state issues
+    const videoToSelect = { ...video };
+    setSelectedVideo(videoToSelect);
 
     // Reset manual analysis state when switching videos
     setIsAnalyzing(false);
