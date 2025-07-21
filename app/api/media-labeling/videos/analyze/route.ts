@@ -99,9 +99,9 @@ export async function POST(request: NextRequest) {
         console.log('Lambda body:', lambdaBody);
 
         if (lambdaBody.success && lambdaBody.result?.extractedFrames) {
-          // Build S3 URLs for the extracted keyframes
+          // Build CloudFront URLs for the extracted keyframes (GPT-4V can't access private S3)
           const keyframeUrls = lambdaBody.result.extractedFrames.map((frame: any) =>
-            `https://hh-bot-images-2025-prod.s3.amazonaws.com/${frame.s3Key}`
+            `https://drbs5yklwtho3.cloudfront.net/${frame.s3Key}`
           );
 
           console.log('Keyframe URLs:', keyframeUrls);
