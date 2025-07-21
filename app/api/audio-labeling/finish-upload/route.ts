@@ -3,7 +3,35 @@ import { v4 as uuidv4 } from 'uuid';
 import { saveSong } from '@/lib/song-storage';
 import { extractMP3Metadata } from '@/lib/mp3-metadata';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+
+// Helper function to verify S3 object exists and is readable
+async function verifyS3ObjectExists(s3Client: any, bucketName: string, key: string, maxRetries: number = 3): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[S3 verification] Attempt ${attempt}/${maxRetries} for key: ${key}`);
+      await s3Client.send(new HeadObjectCommand({
+        Bucket: bucketName,
+        Key: key
+      }));
+      console.log(`[S3 verification] Success - object exists and is readable: ${key}`);
+      return true;
+    } catch (error: any) {
+      console.log(`[S3 verification] Attempt ${attempt} failed for ${key}:`, error.name);
+
+      if (attempt < maxRetries) {
+        // Exponential backoff: 500ms, 1s, 2s
+        const delay = 500 * Math.pow(2, attempt - 1);
+        console.log(`[S3 verification] Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error(`[S3 verification] All ${maxRetries} attempts failed for ${key}`);
+        return false;
+      }
+    }
+  }
+  return false;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +46,16 @@ export async function POST(request: NextRequest) {
     // Download the file from S3 to extract metadata
     const s3Client = getS3Client();
     const bucketName = getBucketName();
+
+    // Verify the S3 object exists and is readable before attempting download
+    const isS3ObjectReady = await verifyS3ObjectExists(s3Client, bucketName, key);
+
+    if (!isS3ObjectReady) {
+      console.error('S3 object not ready after retries. File may not be fully uploaded yet.');
+      return NextResponse.json({
+        error: 'File not ready for processing yet. Please try again in a few seconds.'
+      }, { status: 503 }); // Service Temporarily Unavailable
+    }
 
     const getObjectCommand = new GetObjectCommand({
       Bucket: bucketName,

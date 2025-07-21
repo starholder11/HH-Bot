@@ -44,7 +44,7 @@ interface MediaAsset {
   processing_status: {
     upload: 'pending' | 'completed' | 'error';
     metadata_extraction: 'pending' | 'completed' | 'error';
-    ai_labeling: 'pending' | 'completed' | 'error';
+    ai_labeling: 'not_started' | 'triggering' | 'processing' | 'pending' | 'completed' | 'failed' | 'error';
     manual_review: 'pending' | 'completed' | 'error';
   };
   timestamps: {
@@ -144,6 +144,8 @@ export default function MediaLabelingPage() {
   // Start/stop polling based on pending assets or upload state
   useEffect(() => {
     const hasPendingAssets = assets.some(asset =>
+      asset.processing_status?.ai_labeling === 'triggering' ||
+      asset.processing_status?.ai_labeling === 'processing' ||
       asset.processing_status?.ai_labeling === 'pending' ||
       asset.processing_status?.metadata_extraction === 'pending' ||
       asset.processing_status?.upload === 'pending'
@@ -180,7 +182,7 @@ export default function MediaLabelingPage() {
       if (selectedAsset) {
         const updatedSelectedAsset = data.find((asset: MediaAsset) => asset.id === selectedAsset.id);
         if (updatedSelectedAsset) {
-          const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'pending';
+          const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'triggering' || selectedAsset.processing_status?.ai_labeling === 'processing';
           const isNowCompleted = updatedSelectedAsset.processing_status?.ai_labeling === 'completed';
 
           // If AI labeling just completed, stop AI labeling flag
