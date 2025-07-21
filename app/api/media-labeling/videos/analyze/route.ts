@@ -77,36 +77,46 @@ export async function POST(request: NextRequest) {
       console.log('Lambda processing result:', lambdaResult);
 
       // If Lambda succeeded, continue with GPT-4V analysis using keyframe URLs
-      if (lambdaResult.success && lambdaResult.lambdaResult?.keyframes) {
-        const keyframeUrls = lambdaResult.lambdaResult.keyframes.map((kf: any) => kf.s3_url);
+      if (lambdaResult.success && lambdaResult.lambdaResult) {
+        const lambdaBody = JSON.parse(lambdaResult.lambdaResult.body);
+        console.log('Lambda body:', lambdaBody);
 
-        // Run GPT-4V analysis on the keyframes
-        const gptAnalysis = await analyzeKeyframesWithGPT4V(keyframeUrls, analysisType);
+        if (lambdaBody.success && lambdaBody.result?.extractedFrames) {
+          // Build S3 URLs for the extracted keyframes
+          const keyframeUrls = lambdaBody.result.extractedFrames.map((frame: any) =>
+            `https://hh-bot-images-2025-prod.s3.amazonaws.com/${frame.s3Key}`
+          );
 
-        if (gptAnalysis.success) {
-          // Update video asset with analysis results
-          await updateVideoAsset(videoId, {
-            ai_labels: gptAnalysis.videoLevelLabels,
-            processing_status: {
-              ...videoAsset.processing_status,
-              ai_labeling: 'completed'
-            },
-            timestamps: {
-              ...videoAsset.timestamps,
-              labeled_ai: new Date().toISOString()
-            },
-            labeling_complete: true
-          });
+          console.log('Keyframe URLs:', keyframeUrls);
 
-          return NextResponse.json({
-            success: true,
-            message: 'Video analysis completed successfully via Lambda',
-            videoId,
-            keyframesCount: keyframeUrls.length,
-            analysis: gptAnalysis.videoLevelLabels,
-            processingTime: gptAnalysis.processingTime,
-            tokensUsed: gptAnalysis.tokensUsed
-          });
+          // Run GPT-4V analysis on the keyframes
+          const gptAnalysis = await analyzeKeyframesWithGPT4V(keyframeUrls, analysisType);
+
+          if (gptAnalysis.success) {
+            // Update video asset with analysis results
+            await updateVideoAsset(videoId, {
+              ai_labels: gptAnalysis.videoLevelLabels,
+              processing_status: {
+                ...videoAsset.processing_status,
+                ai_labeling: 'completed'
+              },
+              timestamps: {
+                ...videoAsset.timestamps,
+                labeled_ai: new Date().toISOString()
+              },
+              labeling_complete: true
+            });
+
+            return NextResponse.json({
+              success: true,
+              message: 'Video analysis completed successfully via Lambda',
+              videoId,
+              keyframesCount: keyframeUrls.length,
+              analysis: gptAnalysis.videoLevelLabels,
+              processingTime: gptAnalysis.processingTime,
+              tokensUsed: gptAnalysis.tokensUsed
+            });
+          }
         }
       }
 
