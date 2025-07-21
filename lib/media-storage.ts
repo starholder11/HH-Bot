@@ -18,7 +18,7 @@ export interface BaseMediaAsset {
   s3_url: string;
   cloudflare_url: string;
   title: string;
-  media_type: 'image' | 'video' | 'audio';
+  media_type: 'image' | 'video' | 'audio' | 'keyframe_still';
   metadata: any; // Type varies by media type
   ai_labels: {
     scenes: string[];
