@@ -79,6 +79,7 @@ export default function VideoAnalysisPage() {
   const [targetFrames, setTargetFrames] = useState<number>(8);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
 
   // Load videos and projects on mount
   useEffect(() => {
@@ -135,7 +136,7 @@ export default function VideoAnalysisPage() {
         setPollingInterval(interval);
       }
     }
-  }, [videos.length]); // Only trigger when videos are first loaded
+  }, [videos.length]);
 
   const fetchVideos = async () => {
     try {
@@ -147,10 +148,14 @@ export default function VideoAnalysisPage() {
         const videos = videoAssets.filter((asset: any) => asset.media_type === 'video');
         setVideos(videos);
 
-        // Auto-select first video if none selected (only on initial load)
-        if (videos.length > 0 && !selectedVideo && !pollingInterval) {
+        // Auto-select first video ONLY on the very first load, and only if no video is selected
+        if (videos.length > 0 && !selectedVideo && !hasInitialLoaded) {
           console.log('[video-analysis] Auto-selecting first video on initial load');
           setSelectedVideo(videos[0]);
+          setHasInitialLoaded(true);
+        } else if (!hasInitialLoaded) {
+          // Mark as initially loaded even if no videos to prevent future auto-selection
+          setHasInitialLoaded(true);
         }
 
         // Update selected video with fresh data if it exists
