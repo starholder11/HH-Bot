@@ -117,22 +117,26 @@ export async function POST(request: NextRequest) {
             const keyframeStills = [];
             for (let i = 0; i < lambdaBody.result.extractedFrames.length; i++) {
               const frame = lambdaBody.result.extractedFrames[i];
+              const timestampMinutes = Math.floor(frame.timestamp / 60);
+              const timestampSeconds = Math.floor(frame.timestamp % 60);
+              const timestampFormatted = `${timestampMinutes.toString().padStart(2, '0')}:${timestampSeconds.toString().padStart(2, '0')}`;
+
               const keyframeAsset = {
                 id: crypto.randomUUID(),
                 parent_video_id: videoId,
                 project_id: videoAsset.project_id,
                 media_type: 'keyframe_still' as const,
-                timestamp: `00:${Math.floor(i * 2).toString().padStart(2, '0')}`, // Estimate timestamps
-                frame_number: (i + 1) * 30, // Estimate frame numbers
-                filename: frame.s3Key.split('/').pop(),
+                timestamp: timestampFormatted,
+                frame_number: Math.floor(frame.timestamp * 25), // Estimate using fps from metadata
+                filename: frame.filename,
                 title: `${videoAsset.title} - Frame ${i + 1}`,
                 s3_url: `https://hh-bot-images-2025-prod.s3.amazonaws.com/${frame.s3Key}`,
                 cloudflare_url: `https://drbs5yklwtho3.cloudfront.net/${frame.s3Key}`,
                 reusable_as_image: true,
                 source_info: {
                   video_filename: videoAsset.filename,
-                  timestamp: `00:${Math.floor(i * 2).toString().padStart(2, '0')}`,
-                  frame_number: (i + 1) * 30,
+                  timestamp: timestampFormatted,
+                  frame_number: Math.floor(frame.timestamp * 25),
                   extraction_method: 'lambda'
                 },
                 metadata: {
