@@ -89,13 +89,15 @@ export default function VideoAnalysisPage() {
     try {
       const response = await fetch('/api/media-labeling/assets?type=video');
       if (response.ok) {
-        const allAssets = await response.json();
-        const videoAssets = allAssets.filter((asset: any) => asset.media_type === 'video');
-        setVideos(videoAssets);
+        const data = await response.json();
+        // Handle both array and object response formats
+        const videoAssets = Array.isArray(data) ? data : (data.assets || []);
+        const videos = videoAssets.filter((asset: any) => asset.media_type === 'video');
+        setVideos(videos);
 
         // Auto-select first video if none selected
-        if (videoAssets.length > 0 && !selectedVideo) {
-          setSelectedVideo(videoAssets[0]);
+        if (videos.length > 0 && !selectedVideo) {
+          setSelectedVideo(videos[0]);
         }
       }
     } catch (error) {
@@ -124,67 +126,67 @@ export default function VideoAnalysisPage() {
 
     setIsAnalyzing(true);
     try {
-      const endpoint = USE_LAMBDA ? '/api/video-processing/lambda' : '/api/media-labeling/videos/analyze';
-      console.log(`[video-analysis] Using ${USE_LAMBDA ? 'Lambda' : 'local'} endpoint:`, endpoint);
-
-      const payload = {
-        videoId: selectedVideo.id,
-        analysisType,
-        keyframeStrategy,
-        targetFrames,
-      };
-
-      // For Lambda, we need different payload structure
-      const requestBody = USE_LAMBDA ? {
-        bucketName: 'hh-bot-images-2025-prod',
-        videoKey: selectedVideo.s3_url.split('.amazonaws.com/')[1] || selectedVideo.filename, // Extract key from S3 URL
-        action: 'extract_keyframes'
-      } : payload;
-
-      console.log('[video-analysis] Request payload:', requestBody);
-
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/media-labeling/videos/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          videoId: selectedVideo.id,
+          strategy: keyframeStrategy,
+        }),
       });
-
-      console.log('[video-analysis] Response status:', response.status);
 
       if (response.ok) {
         const result = await response.json();
-        console.log('[video-analysis] Success result:', result);
+        console.log('[video-analysis] Analysis completed:', result);
 
-        if (USE_LAMBDA) {
-          // Handle Lambda response format
-          if (result.success && result.lambdaResult) {
-            console.log('[video-analysis] Lambda processing successful');
-          } else {
-            console.error('[video-analysis] Lambda processing failed:', result);
-            alert(`Lambda processing failed: ${JSON.stringify(result.error || 'Unknown error')}`);
-          }
-        } else {
-          // Refresh the video data to get updated analysis
-          await fetchVideos();
+        // Refresh videos to get updated data
+        await fetchVideos();
 
-          // Update the selected video with new data
-          const updatedVideo = videos.find(v => v.id === selectedVideo.id);
+        // Update selected video
+        const updatedVideos = await fetch('/api/media-labeling/assets?type=video');
+        if (updatedVideos.ok) {
+          const data = await updatedVideos.json();
+          const videoAssets = Array.isArray(data) ? data : (data.assets || []);
+          const videos = videoAssets.filter((v: any) => v.media_type === 'video');
+          const updatedVideo = videos.find((v: any) => v.id === selectedVideo.id);
           if (updatedVideo) {
             setSelectedVideo(updatedVideo);
           }
         }
       } else {
         const error = await response.json();
-        console.error('[video-analysis] Response error:', error);
-        alert(`Analysis failed (${response.status}): ${JSON.stringify(error)}`);
+        console.error('[video-analysis] Analysis failed:', error);
+        alert(`Analysis failed: ${error.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Analysis error:', error);
       alert(`Analysis failed: ${error}`);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // Get analysis status for display
+  const getAnalysisStatus = (video: VideoAsset) => {
+    const status = video.processing_status?.ai_labeling || 'pending';
+    const hasResults = video.ai_labels && (
+      video.ai_labels.scenes?.length > 0 ||
+      video.ai_labels.objects?.length > 0 ||
+      video.ai_labels.style?.length > 0 ||
+      video.ai_labels.mood?.length > 0 ||
+      video.ai_labels.themes?.length > 0
+    );
+
+    if (status === 'completed' && hasResults) {
+      return { status: 'completed', label: 'Analyzed', color: 'green' };
+    } else if (status === 'completed' && !hasResults) {
+      return { status: 'failed', label: 'Failed', color: 'red' };
+    } else if (status === 'pending') {
+      return { status: 'pending', label: 'Pending', color: 'yellow' };
+    } else {
+      return { status: 'processing', label: 'Processing', color: 'blue' };
     }
   };
 
@@ -311,14 +313,22 @@ export default function VideoAnalysisPage() {
                       {formatDuration(video.metadata.duration)} • {formatFileSize(video.metadata.file_size)}
                     </div>
                     <div className="flex gap-1 mt-2">
-                      {video.processing_status.ai_labeling === 'completed' && (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                          Analyzed
-                        </span>
-                      )}
+                      {(() => {
+                        const analysisStatus = getAnalysisStatus(video);
+                        return (
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            analysisStatus.color === 'green' ? 'bg-green-100 text-green-800' :
+                            analysisStatus.color === 'red' ? 'bg-red-100 text-red-800' :
+                            analysisStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {analysisStatus.label}
+                          </span>
+                        );
+                      })()}
                       {video.keyframe_stills && video.keyframe_stills.length > 0 && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                          {video.keyframe_stills.length} frames
+                        <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
+                          {video.keyframe_stills.length} keyframes
                         </span>
                       )}
                     </div>
@@ -447,7 +457,7 @@ export default function VideoAnalysisPage() {
                 )}
 
                 {/* Keyframes */}
-                {selectedVideo.keyframe_stills && selectedVideo.keyframe_stills.length > 0 && (
+                {selectedVideo.keyframe_stills && selectedVideo.keyframe_stills.length > 0 ? (
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       Keyframes ({selectedVideo.keyframe_stills.length})
@@ -465,14 +475,35 @@ export default function VideoAnalysisPage() {
                             <div className="absolute bottom-1 right-1 bg-black bg-opacity-75 text-white text-xs px-1 rounded">
                               {keyframe.timestamp}
                             </div>
-                            {keyframe.metadata.quality && (
+                            {keyframe.metadata?.quality && (
                               <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 rounded">
-                                {keyframe.metadata.quality}
+                                Q{keyframe.metadata.quality}
                               </div>
                             )}
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Keyframes</h3>
+                    <div className="text-center py-8">
+                      <div className="text-gray-400 text-4xl mb-3">🎬</div>
+                      <p className="text-gray-500 mb-4">
+                        {selectedVideo.processing_status?.keyframe_extraction === 'completed'
+                          ? 'No keyframes available for this video'
+                          : 'Keyframes will appear here after analysis'}
+                      </p>
+                      {selectedVideo.processing_status?.ai_labeling !== 'pending' && (
+                        <Button
+                          onClick={handleAnalyzeVideo}
+                          disabled={isAnalyzing}
+                          className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50"
+                        >
+                          {isAnalyzing ? 'Re-analyzing...' : 'Re-analyze Video'}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
