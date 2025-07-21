@@ -215,6 +215,43 @@ export async function POST(request: NextRequest) {
               labeling_complete: true
             });
 
+            // Auto-trigger AI labeling for each keyframe still
+            console.log(`[video-analysis] Auto-triggering AI labeling for ${keyframeStills.length} keyframes`);
+            for (const keyframe of keyframeStills) {
+              try {
+                console.log(`[video-analysis] Triggering AI labeling for keyframe: ${keyframe.id}`);
+
+                // Update keyframe status to 'triggering' before the API call
+                await updateVideoAsset(videoId, {
+                  keyframe_stills: keyframeStills.map(k =>
+                    k.id === keyframe.id
+                      ? { ...k, processing_status: { ...k.processing_status, ai_labeling: 'triggering' } }
+                      : k
+                  )
+                });
+
+                // Call the images/ai-label API to process this keyframe
+                const labelResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/media-labeling/images/ai-label`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    imageId: keyframe.id,
+                    s3Url: keyframe.s3_url,
+                    title: keyframe.title || `${videoAsset.title} - Frame ${keyframe.frame_number}`,
+                    analysisType: 'comprehensive'
+                  }),
+                });
+
+                if (!labelResponse.ok) {
+                  console.error(`[video-analysis] Failed to trigger AI labeling for keyframe ${keyframe.id}: ${labelResponse.status}`);
+                }
+              } catch (error) {
+                console.error(`[video-analysis] Error triggering AI labeling for keyframe ${keyframe.id}:`, error);
+              }
+            }
+
             return NextResponse.json({
               success: true,
               message: 'Video analysis completed successfully via Lambda',
