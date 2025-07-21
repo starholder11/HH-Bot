@@ -130,6 +130,44 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
     }
     await saveMediaAsset(assetId, asset);
 
+    // If this is a keyframe, also update the parent video
+    if ((asset as any).media_type === 'keyframe_still') {
+      try {
+        const keyframeAsset = asset as any; // Type assertion for runtime handling
+        if (keyframeAsset.parent_video_id) {
+          const parentVideo = await getMediaAsset(keyframeAsset.parent_video_id);
+          if (parentVideo && parentVideo.media_type === 'video') {
+            const videoAsset = parentVideo as any; // Type assertion for runtime handling
+            if (videoAsset.keyframe_stills) {
+              // Update the keyframe in the parent video's keyframe_stills array
+              const keyframeIndex = videoAsset.keyframe_stills.findIndex((kf: any) => kf.id === assetId);
+              if (keyframeIndex !== -1) {
+                videoAsset.keyframe_stills[keyframeIndex] = asset;
+
+                // Check if all keyframes are now completed
+                const allKeyframesCompleted = videoAsset.keyframe_stills.every((kf: any) =>
+                  kf.processing_status?.ai_labeling === 'completed'
+                );
+
+                // Update parent video status if all keyframes are done
+                if (allKeyframesCompleted && videoAsset.processing_status?.ai_labeling === 'pending') {
+                  videoAsset.processing_status.ai_labeling = 'completed';
+                  videoAsset.timestamps = videoAsset.timestamps || {};
+                  videoAsset.timestamps.labeled_ai = new Date().toISOString();
+                }
+
+                await saveMediaAsset(keyframeAsset.parent_video_id, videoAsset);
+                console.log(`Updated parent video ${keyframeAsset.parent_video_id} with completed keyframe`);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to update parent video:`, error);
+        // Don't throw - the keyframe itself was successfully updated
+      }
+    }
+
     console.log(`AI labeling completed for image: ${asset.title}`);
     return { success: true, labels: cleanedLabels };
 
