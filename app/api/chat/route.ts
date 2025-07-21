@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { getOpenAIClient } from '@/lib/ai-labeling';
 
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-})
+const openai = getOpenAIClient();
 
 // Your specific prompt ID and vector store ID from the provided code
 const PROMPT_ID = "pmpt_6860145bd5908196b230e507ed5d77a604ffb6d8d850b993"
@@ -29,7 +27,7 @@ export async function POST(req: NextRequest) {
         try {
           console.log('🔵 API: Making OpenAI request with prompt ID:', PROMPT_ID)
           console.log('🔵 API: Making OpenAI request with vector store ID:', VECTOR_STORE_ID)
-          
+
           const response = await openai.responses.create({
             prompt: {
               id: PROMPT_ID,
@@ -53,18 +51,18 @@ export async function POST(req: NextRequest) {
             store: true,
             stream: true
           } as any)
-          
+
           console.log('🔵 API: OpenAI response received:', typeof response)
 
           // Handle streaming response
           try {
             console.log('🔵 API: Attempting to stream response')
             let eventCount = 0
-            
+
             for await (const event of response as any) {
               eventCount++
               console.log('🔵 API: Event', eventCount, 'received:', JSON.stringify(event, null, 2))
-              
+
               // Handle text delta events
               if (event.type === 'response.output_text.delta' && event.delta) {
                 console.log('🔵 API: Sending text delta:', event.delta)
@@ -74,7 +72,7 @@ export async function POST(req: NextRequest) {
                 }
                 controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
               }
-              
+
               // Handle response ID from completed response
               if (event.type === 'response.completed' && event.response && event.response.id) {
                 console.log('🔵 API: Sending response ID:', event.response.id)
@@ -85,18 +83,18 @@ export async function POST(req: NextRequest) {
                 controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
               }
             }
-            
+
             console.log('🔵 API: Streaming completed, total events:', eventCount)
           } catch (error) {
             console.log('🔴 API: Streaming failed, trying non-streaming:', error)
             // If streaming fails, try non-streaming
             const event = response as any
             console.log('🔵 API: Non-streaming event:', JSON.stringify(event, null, 2))
-            
+
             if (event.output && event.output[0] && event.output[0].content) {
               const contentArray = event.output[0].content
               console.log('🔵 API: Non-streaming content array:', JSON.stringify(contentArray, null, 2))
-              
+
               for (const contentItem of contentArray) {
                 if (contentItem.type === 'text' && contentItem.text) {
                   console.log('🔵 API: Sending non-streaming text:', contentItem.text)
@@ -128,7 +126,7 @@ export async function POST(req: NextRequest) {
 
         } catch (error) {
           console.error('🔴 API: OpenAI API error:', error)
-          
+
           // Send error message to client
           const errorData = {
             type: 'content',
@@ -153,8 +151,8 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Request processing error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
-} 
+}
