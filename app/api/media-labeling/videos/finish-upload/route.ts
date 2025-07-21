@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { v4 as uuidv4 } from 'uuid';
 import { parseBuffer } from 'music-metadata';
@@ -8,6 +8,34 @@ import { Readable } from 'stream';
 // Storage utilities
 import { saveMediaAsset } from '@/lib/media-storage';
 import { addAssetToProject } from '@/lib/project-storage';
+
+// Helper function to verify S3 object exists and is readable
+async function verifyS3ObjectExists(s3Client: any, bucketName: string, key: string, maxRetries: number = 3): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[S3 verification] Attempt ${attempt}/${maxRetries} for key: ${key}`);
+      await s3Client.send(new HeadObjectCommand({
+        Bucket: bucketName,
+        Key: key
+      }));
+      console.log(`[S3 verification] Success - object exists and is readable: ${key}`);
+      return true;
+    } catch (error: any) {
+      console.log(`[S3 verification] Attempt ${attempt} failed for ${key}:`, error.name);
+
+      if (attempt < maxRetries) {
+        // Exponential backoff: 500ms, 1s, 2s
+        const delay = 500 * Math.pow(2, attempt - 1);
+        console.log(`[S3 verification] Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error(`[S3 verification] All ${maxRetries} attempts failed for ${key}`);
+        return false;
+      }
+    }
+  }
+  return false;
+}
 
 interface VideoMetadata {
   width: number;
@@ -124,6 +152,24 @@ export async function POST(request: NextRequest) {
 
     // Download video file from S3 to extract metadata
     const s3Client = getS3Client();
+
+    // Verify the S3 object exists and is readable before attempting download
+    const isS3ObjectReady = await verifyS3ObjectExists(s3Client, bucketName, key);
+
+    if (!isS3ObjectReady) {
+      console.error('S3 object not ready after retries. File may not be fully uploaded yet.');
+      // Don't mark as failed - return success but indicate auto-trigger wasn't attempted
+      // This allows the UI to show the video as uploaded but AI labeling as "not_started"
+      // so the user can manually retry later
+      return NextResponse.json({
+        success: true,
+        assetId: null,
+        title: originalFilename.replace(/\.[^/.]+$/, ''),
+        error: 'File not ready for processing yet. Please try analyzing later.',
+        autoTriggerSuccess: false
+      });
+    }
+
     const getObjectCommand = new GetObjectCommand({
       Bucket: bucketName,
       Key: key
