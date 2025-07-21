@@ -7,20 +7,23 @@ export async function GET(
 ) {
   try {
     const { id } = params;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Asset ID is required' }, { status: 400 });
+    }
+
     const asset = await getMediaAsset(id);
 
     if (!asset) {
-      return NextResponse.json(
-        { error: 'Asset not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
 
     return NextResponse.json(asset);
+
   } catch (error) {
-    console.error('Error fetching asset:', error);
+    console.error('Error retrieving asset:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch asset' },
+      { error: 'Failed to retrieve asset' },
       { status: 500 }
     );
   }
