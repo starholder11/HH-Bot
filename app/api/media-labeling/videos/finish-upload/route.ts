@@ -154,7 +154,10 @@ export async function POST(request: NextRequest) {
     const s3Client = getS3Client();
 
     // Verify the S3 object exists and is readable before attempting download
-    const isS3ObjectReady = await verifyS3ObjectExists(s3Client, bucketName, key);
+    // Larger video files can take several seconds to appear after a presigned upload.
+    // Bump maxRetries to 6 (≈ 500 ms → 16 s total back-off) to significantly reduce
+    // false "File not ready" early exits that surface as Failed items in the UI.
+    const isS3ObjectReady = await verifyS3ObjectExists(s3Client, bucketName, key, 6);
 
     if (!isS3ObjectReady) {
       console.error('S3 object not ready after retries. File may not be fully uploaded yet.');
