@@ -1,5 +1,9 @@
 import OpenAI from 'openai';
-import { getMediaAsset, updateMediaAsset } from '@/lib/media-storage';
+import { getMediaAsset, MediaAsset, KeyframeStill, saveMediaAsset } from '@/lib/media-storage';
+
+function isImageAsset(asset: MediaAsset | KeyframeStill): asset is MediaAsset & { media_type: 'image' | 'keyframe_still' } {
+    return asset.media_type === 'image' || asset.media_type === 'keyframe_still';
+}
 
 // IMPORTANT: Do NOT instantiate the OpenAI client at module scope. Doing so causes
 // whatever value is present for `process.env.OPENAI_API_KEY` **at build time** to
@@ -10,8 +14,8 @@ import { getMediaAsset, updateMediaAsset } from '@/lib/media-storage';
 
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set at runtime');
+  if (!apiKey || apiKey.includes('your_ope')) {
+    throw new Error('OPENAI_API_KEY environment variable is not set correctly at runtime');
   }
   return new OpenAI({ apiKey });
 }
@@ -20,20 +24,25 @@ function getOpenAIClient() {
  * Shared AI labeling function that can be called directly from any server context
  */
 export async function performAiLabeling(assetId: string) {
+  let asset: MediaAsset | KeyframeStill | null = null;
   try {
     // Lazily create the client so the *runtime* env var is picked up every time.
     const openai = getOpenAIClient();
-    // Get the media asset
-    const asset = await getMediaAsset(assetId);
+
+    asset = await getMediaAsset(assetId);
     if (!asset) {
-      throw new Error('Asset not found');
+      throw new Error(`Asset ${assetId} not found`);
     }
 
-    if (asset.media_type !== 'image') {
-      throw new Error('Asset is not an image');
+    if (!isImageAsset(asset)) {
+      throw new Error(`Asset ${assetId} is not an image or keyframe, it's a ${asset.media_type}`);
     }
 
     console.log(`Starting AI labeling for image: ${asset.title}`);
+
+    // Set status to 'processing'
+    asset.processing_status.ai_labeling = 'processing';
+    await saveMediaAsset(asset.id, asset);
 
     // Use CloudFlare URL for better performance, fallback to S3
     const imageUrl = asset.cloudflare_url || asset.s3_url;
@@ -98,7 +107,7 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
     try {
       aiLabels = JSON.parse(cleanResponse);
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError);
+      console.error(`Failed to parse AI response as JSON for asset ${assetId}:`, parseError, `Raw response: ${cleanResponse}`);
       // Fallback: extract labels from text response
       aiLabels = extractLabelsFromText(aiResponseText);
     }
@@ -114,57 +123,33 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
     };
 
     // Update the asset with AI labels
-    const updatedAsset = {
-      ...asset,
-      ai_labels: cleanedLabels,
-      processing_status: {
-        ...asset.processing_status,
-        ai_labeling: 'completed' as const
-      },
-      updated_at: new Date().toISOString()
-    };
-
-    await updateMediaAsset(assetId, updatedAsset);
+    asset.ai_labels = cleanedLabels;
+    asset.processing_status.ai_labeling = 'completed';
+    if (asset.timestamps) {
+      asset.timestamps.labeled_ai = new Date().toISOString();
+    }
+    await saveMediaAsset(assetId, asset);
 
     console.log(`AI labeling completed for image: ${asset.title}`);
-    console.log('Generated labels:', cleanedLabels);
-
-    return {
-      success: true,
-      labels: cleanedLabels,
-      asset_id: assetId
-    };
+    return { success: true, labels: cleanedLabels };
 
   } catch (error) {
-    console.error('AI labeling error:', error);
-
-    // Try to update asset with error status if possible
-    try {
-      const asset = await getMediaAsset(assetId);
-      if (asset) {
-        const errorAsset = {
-          ...asset,
-          processing_status: {
-            ...asset.processing_status,
-            ai_labeling: 'error' as const
-          },
-          updated_at: new Date().toISOString()
-        };
-        await updateMediaAsset(assetId, errorAsset);
-      }
-    } catch (updateError) {
-      console.error('Failed to update asset with error status:', updateError);
+    console.error(`OpenAI Vision API error for asset ${assetId}:`, error);
+    if (asset) {
+      // Update the asset to reflect the error
+      asset.processing_status.ai_labeling = 'failed';
+      await saveMediaAsset(assetId, asset);
     }
-
-    throw error;
+    throw error; // Re-throw to propagate the error
   }
 }
 
 /**
- * Fallback function to extract labels from text response if JSON parsing fails
+ * Fallback function to extract labels from a text response if JSON parsing fails.
+ * This is a simple implementation and can be improved based on common failure patterns.
  */
 function extractLabelsFromText(text: string) {
-  const result = {
+  const labels: any = {
     scenes: [],
     objects: [],
     style: [],
@@ -173,25 +158,23 @@ function extractLabelsFromText(text: string) {
     confidence_scores: {}
   };
 
-  // Simple regex patterns to extract lists
-  const patterns = {
-    scenes: /scenes?[:\-\s]*\[([^\]]+)\]/i,
-    objects: /objects?[:\-\s]*\[([^\]]+)\]/i,
-    style: /style[:\-\s]*\[([^\]]+)\]/i,
-    mood: /mood[:\-\s]*\[([^\]]+)\]/i,
-    themes: /themes?[:\-\s]*\[([^\]]+)\]/i
-  };
-
-  for (const [category, pattern] of Object.entries(patterns)) {
-    const match = text.match(pattern);
-    if (match && category in result) {
-      (result as any)[category] = match[1]
-        .split(',')
-        .map(item => item.trim().replace(/['"]/g, ''))
-        .filter(item => item.length > 0)
-        .slice(0, 10);
-    }
+  // Simple keyword extraction for fallback
+  const lowerText = text.toLowerCase();
+  if (lowerText.includes('scene:')) {
+    labels.scenes = lowerText.split('scene:')[1].split('\n')[0].trim().split(', ');
+  }
+  if (lowerText.includes('objects:')) {
+    labels.objects = lowerText.split('objects:')[1].split('\n')[0].trim().split(', ');
+  }
+  if (lowerText.includes('style:')) {
+    labels.style = lowerText.split('style:')[1].split('\n')[0].trim().split(', ');
+  }
+  if (lowerText.includes('mood:')) {
+    labels.mood = lowerText.split('mood:')[1].split('\n')[0].trim().split(', ');
+  }
+  if (lowerText.includes('themes:')) {
+    labels.themes = lowerText.split('themes:')[1].split('\n')[0].trim().split(', ');
   }
 
-  return result;
+  return labels;
 }
