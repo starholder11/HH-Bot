@@ -8,6 +8,7 @@ import { Readable } from 'stream';
 // Storage utilities
 import { saveMediaAsset } from '@/lib/media-storage';
 import { addAssetToProject } from '@/lib/project-storage';
+import { enqueueAnalysisJob } from '@/lib/queue';
 
 // Helper function to verify S3 object exists and is readable
 async function verifyS3ObjectExists(s3Client: any, bucketName: string, key: string, maxRetries: number = 3): Promise<boolean> {
@@ -253,72 +254,41 @@ export async function POST(request: NextRequest) {
 
     // Auto-trigger video analysis for uploaded video
     let autoTriggerSuccess = false;
-    try {
-      console.log('Auto-triggering video analysis for:', videoId);
 
-      // Update status to 'triggering' before making the call
+    // ------------------------------
+    // Enqueue background analysis job
+    // ------------------------------
+    try {
+      console.log('Enqueuing analysis job for:', videoId);
+
+      await enqueueAnalysisJob({
+        assetId: videoId,
+        mediaType: 'video',
+        strategy: 'adaptive',
+        requestedAt: Date.now(),
+      });
+
+      // Update status to indicate job queued
       await saveMediaAsset(videoId, {
         ...videoAsset,
         processing_status: {
           ...videoAsset.processing_status,
-          ai_labeling: 'triggering' as const
+          ai_labeling: 'triggering' as const,
         },
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       });
 
-      // Determine the correct origin for the API call
-      const isLocal = process.env.NODE_ENV === 'development' || !process.env.VERCEL_URL;
-      const origin = isLocal ? 'http://localhost:3000' : `https://${process.env.VERCEL_URL}`;
-
-      console.log('Making auto-trigger request to:', `${origin}/api/media-labeling/videos/analyze`);
-
-      const analysisResponse = await fetch(`${origin}/api/media-labeling/videos/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      autoTriggerSuccess = true;
+    } catch (err) {
+      console.error('[videos/finish-upload] Failed to enqueue analysis job', err);
+      await saveMediaAsset(videoId, {
+        ...videoAsset,
+        processing_status: {
+          ...videoAsset.processing_status,
+          ai_labeling: 'failed' as const,
         },
-        body: JSON.stringify({
-          videoId: videoId,
-          strategy: 'adaptive', // Default to adaptive strategy
-        }),
+        updated_at: new Date().toISOString(),
       });
-
-      if (analysisResponse.ok) {
-        const result = await analysisResponse.json();
-        console.log('Video analysis auto-triggered successfully for:', videoId, 'Result:', result);
-        autoTriggerSuccess = true;
-
-        // Status will be updated to 'processing' or 'completed' by the analysis API
-      } else {
-        const errorText = await analysisResponse.text();
-        console.error('Failed to auto-trigger video analysis:', analysisResponse.status, errorText);
-
-        // Update status to 'failed' with retry available
-        await saveMediaAsset(videoId, {
-          ...videoAsset,
-          processing_status: {
-            ...videoAsset.processing_status,
-            ai_labeling: 'failed' as const
-          },
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (error) {
-      console.error('Error auto-triggering video analysis:', error);
-
-      // Update status to 'failed' with retry available
-      try {
-        await saveMediaAsset(videoId, {
-          ...videoAsset,
-          processing_status: {
-            ...videoAsset.processing_status,
-            ai_labeling: 'failed' as const
-          },
-          updated_at: new Date().toISOString()
-        });
-      } catch (saveError) {
-        console.error('Error updating failed status:', saveError);
-      }
     }
 
     console.log('Video upload completion successful for:', videoId, 'Auto-trigger success:', autoTriggerSuccess);
