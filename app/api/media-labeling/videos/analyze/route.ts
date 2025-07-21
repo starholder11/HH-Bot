@@ -456,58 +456,49 @@ async function analyzeKeyframesWithGPT4V(keyframes: ExtractedFrame[], analysisTy
 async function analyzeKeyframesFromUrls(keyframeUrls: string[], analysisType: string) {
   const analysisPrompts = {
     comprehensive: `
-    Analyze these video keyframes and provide detailed creative analysis focusing on:
+    Analyze these video keyframes and provide creative analysis. You MUST respond with valid JSON in this exact format:
 
-    **VISUAL STYLE & AESTHETICS:**
-    - Art style and visual approach (realistic, stylized, abstract, photographic, etc.)
-    - Color palette and mood creation
-    - Lighting design and atmosphere
-    - Composition and visual flow
-    - Texture and rendering quality
+    {
+      "scenes": ["description of scenes/content"],
+      "objects": ["list of objects seen"],
+      "style": ["visual style descriptors"],
+      "mood": ["mood and atmosphere descriptors"],
+      "themes": ["thematic content"],
+      "confidence_scores": {"scenes": 0.9, "objects": 0.95, "style": 0.85, "mood": 0.8, "themes": 0.9}
+    }
 
-    **MOOD & EMOTIONAL TONE:**
-    - Primary emotional atmosphere
-    - Mood descriptors (dark, whimsical, epic, intimate, contemplative, etc.)
-    - Psychological impact and viewer response
-    - Atmospheric qualities (mysterious, bright, gritty, dreamlike)
+    Focus on:
+    - **scenes**: Describe what's happening in the video
+    - **objects**: List visible objects, people, animals, etc.
+    - **style**: Visual style (photographic, cinematic, artistic, realistic, etc.)
+    - **mood**: Emotional tone (dramatic, serene, energetic, mysterious, etc.)
+    - **themes**: Subject matter and themes (nature, urban, technology, etc.)
 
-    **CREATIVE THEMES & CONTENT:**
-    - Central themes and concepts
-    - Subject matter and setting
-    - Narrative elements and storytelling
-    - Cultural or genre influences
-    - Symbolic or metaphorical content
-
-    **TECHNICAL EXECUTION:**
-    - Production quality indicators
-    - Visual effects and techniques
-    - Artistic craftsmanship level
-    - Composition and framing quality
-
-    Respond with a JSON object containing arrays for each category with specific descriptive values.
-    Also provide individual frame analysis for each keyframe with the same structure.
+    Return ONLY the JSON object, no other text.
     `,
 
     style_focus: `
-    Focus specifically on artistic and visual style analysis:
-    - Art movement or style influences
-    - Rendering technique and approach
-    - Color theory and palette usage
-    - Visual aesthetics and design language
-    - Stylistic consistency across frames
-
-    Provide JSON response with detailed style categorization for overall video and each frame.
+    Focus on artistic and visual style analysis. Return ONLY JSON in this format:
+    {
+      "scenes": ["content description"],
+      "objects": ["visible objects"],
+      "style": ["visual style descriptors"],
+      "mood": ["mood descriptors"],
+      "themes": ["themes"],
+      "confidence_scores": {"scenes": 0.9, "objects": 0.95, "style": 0.85, "mood": 0.8, "themes": 0.9}
+    }
     `,
 
     mood_themes: `
-    Analyze mood, themes, and narrative elements:
-    - Emotional tone and atmosphere
-    - Thematic content and concepts
-    - Genre and storytelling elements
-    - Symbolic meaning and interpretation
-    - Audience and content positioning
-
-    Return JSON with comprehensive mood and theme analysis for video and individual frames.
+    Analyze mood, themes, and narrative elements. Return ONLY JSON in this format:
+    {
+      "scenes": ["content description"],
+      "objects": ["visible objects"],
+      "style": ["visual style descriptors"],
+      "mood": ["mood descriptors"],
+      "themes": ["themes"],
+      "confidence_scores": {"scenes": 0.9, "objects": 0.95, "style": 0.85, "mood": 0.8, "themes": 0.9}
+    }
     `
   };
 
