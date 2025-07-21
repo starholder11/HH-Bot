@@ -202,6 +202,33 @@ export async function POST(request: NextRequest) {
       await addAssetToProject(projectId, videoId, 'video');
     }
 
+    // Auto-trigger video analysis for uploaded video
+    try {
+      console.log('Auto-triggering video analysis for:', videoId);
+
+      // Trigger video analysis via internal API call
+      const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://hh-bot-lyart.vercel.app';
+      const analysisResponse = await fetch(`${origin}/api/media-labeling/videos/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          videoId: videoId,
+          strategy: 'adaptive', // Default to adaptive strategy
+        }),
+      });
+
+      if (analysisResponse.ok) {
+        console.log('Video analysis auto-triggered successfully for:', videoId);
+      } else {
+        console.error('Failed to auto-trigger video analysis:', await analysisResponse.text());
+      }
+    } catch (error) {
+      console.error('Error auto-triggering video analysis:', error);
+      // Don't fail the upload if analysis triggering fails
+    }
+
     console.log('Video upload completion successful for:', videoId);
 
     return NextResponse.json({
