@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
       ...videoAsset,
       keyframe_stills: keyframes,
       keyframe_count: keyframes.length,
+      keyframes_present: true, // THIS IS THE MISSING FLAG!
       processing_status: {
         ...videoAsset.processing_status,
         keyframe_extraction: 'completed' as const,
