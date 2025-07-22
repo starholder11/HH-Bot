@@ -278,6 +278,57 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       });
 
+      console.log('[enqueueAnalysisJob] SQS send successful, MessageId');
+
+      // 🔁  BACK-UP LAMBDA INVOCATION  ────────────────────────────────────────────
+      // We have seen cases where the message is accepted by SQS but never
+      // picked up by the Lambda consumer, leaving videos stuck at
+      // ai_labeling="triggering" with no keyframes.  As a belt-and-suspenders
+      // safety net we now slap the Lambda directly right after the successful
+      // enqueue.  If the queue also processes the message that is fine – the
+      // Lambda handler is idempotent on assetId.
+
+      try {
+        const baseUrl = process.env.PUBLIC_API_BASE_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+        const lambdaPayload = {
+          Records: [
+            {
+              body: JSON.stringify({
+                assetId: videoId,
+                mediaType: 'video',
+                strategy: 'adaptive',
+                requestedAt: Date.now(),
+              })
+            }
+          ]
+        };
+
+        // Fire-and-forget — we don’t await so the client response isn’t blocked.
+        fetch(`${baseUrl}/api/video-processing/lambda`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(lambdaPayload),
+        }).then(res => {
+          console.log('[videos/finish-upload] Direct Lambda invoke status', res.status);
+        }).catch(err => {
+          console.error('[videos/finish-upload] Direct Lambda invoke failed', err);
+        });
+
+        // Mark as processing immediately so UI reflects forward progress
+        await saveMediaAsset(videoId, {
+          ...videoAsset,
+          processing_status: {
+            ...videoAsset.processing_status,
+            ai_labeling: 'processing' as const,
+          },
+          updated_at: new Date().toISOString(),
+        });
+
+      } catch (lambdaErr) {
+        console.error('[videos/finish-upload] Error invoking Lambda directly', lambdaErr);
+      }
       autoTriggerSuccess = true;
     } catch (err) {
       console.error('[videos/finish-upload] Failed to enqueue analysis job – falling back to direct /analyze call', err);
