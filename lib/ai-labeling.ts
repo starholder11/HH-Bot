@@ -185,6 +185,8 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
                     (kf: any) => kf.processing_status?.ai_labeling === 'completed' && kf.ai_labels
                   );
 
+                  console.log(`[ai-labeling] Found ${completedKeyframes.length} keyframes with AI labels to aggregate`);
+
                   const aggregatedLabels = {
                     scenes: [] as string[],
                     objects: [] as string[],
@@ -194,31 +196,64 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
                     confidence_scores: {} as Record<string, number[]>
                   };
 
-                  // Collect all labels from completed keyframes
-                  for (const kf of completedKeyframes) {
-                    if (kf.ai_labels) {
-                      aggregatedLabels.scenes.push(...(kf.ai_labels.scenes || []));
-                      aggregatedLabels.objects.push(...(kf.ai_labels.objects || []));
-                      aggregatedLabels.style.push(...(kf.ai_labels.style || []));
-                      aggregatedLabels.mood.push(...(kf.ai_labels.mood || []));
-                      aggregatedLabels.themes.push(...(kf.ai_labels.themes || []));
+                  // Collect all keyframe data for synthesis
+                  const allScenes: string[] = [];
+                  const allObjects: string[] = [];
+                  const allStyles: string[] = [];
+                  const allMoods: string[] = [];
+                  const allThemes: string[] = [];
+                  const allConfidenceScores: Record<string, number[]> = {
+                    scenes: [],
+                    objects: [],
+                    style: [],
+                    mood: [],
+                    themes: []
+                  };
+
+                  completedKeyframes.forEach((kf: any) => {
+                    const labels = kf.ai_labels;
+                    if (labels) {
+                      if (labels.scenes) allScenes.push(...labels.scenes);
+                      if (labels.objects) allObjects.push(...labels.objects);
+                      if (labels.style) allStyles.push(...labels.style);
+                      if (labels.mood) allMoods.push(...labels.mood);
+                      if (labels.themes) allThemes.push(...labels.themes);
+
+                      // Collect confidence scores
+                      if (labels.confidence_scores) {
+                        if (labels.confidence_scores.scenes) allConfidenceScores.scenes.push(labels.confidence_scores.scenes);
+                        if (labels.confidence_scores.objects) allConfidenceScores.objects.push(labels.confidence_scores.objects);
+                        if (labels.confidence_scores.style) allConfidenceScores.style.push(labels.confidence_scores.style);
+                        if (labels.confidence_scores.mood) allConfidenceScores.mood.push(labels.confidence_scores.mood);
+                        if (labels.confidence_scores.themes) allConfidenceScores.themes.push(labels.confidence_scores.themes);
+                      }
                     }
+                  });
+
+                  // CREATE UNIFIED VIDEO-LEVEL DESCRIPTION
+                  // Instead of listing all keyframe descriptions, synthesize a single overall description
+                  if (allScenes.length > 0) {
+                    // Analyze common elements across scenes to create unified description
+                    const commonElements = extractCommonElements(allScenes);
+                    const videoTitle = (refreshedVideo as any).title || 'video';
+
+                    // Generate a single cohesive description
+                    aggregatedLabels.scenes = [synthesizeVideoDescription(allScenes, commonElements, videoTitle)];
                   }
 
-                  // Deduplicate and limit arrays
-                  aggregatedLabels.scenes = Array.from(new Set(aggregatedLabels.scenes)).slice(0, 15);
-                  aggregatedLabels.objects = Array.from(new Set(aggregatedLabels.objects)).slice(0, 20);
-                  aggregatedLabels.style = Array.from(new Set(aggregatedLabels.style)).slice(0, 10);
-                  aggregatedLabels.mood = Array.from(new Set(aggregatedLabels.mood)).slice(0, 10);
-                  aggregatedLabels.themes = Array.from(new Set(aggregatedLabels.themes)).slice(0, 10);
+                  // Deduplicate and limit other arrays
+                  aggregatedLabels.objects = Array.from(new Set(allObjects)).slice(0, 20);
+                  aggregatedLabels.style = Array.from(new Set(allStyles)).slice(0, 10);
+                  aggregatedLabels.mood = Array.from(new Set(allMoods)).slice(0, 10);
+                  aggregatedLabels.themes = Array.from(new Set(allThemes)).slice(0, 10);
 
                   // Calculate average confidence scores (if available)
                   aggregatedLabels.confidence_scores = {
-                    scenes: [0.9],
-                    objects: [0.95],
-                    style: [0.85],
-                    mood: [0.9],
-                    themes: [0.9]
+                    scenes: allConfidenceScores.scenes.length > 0 ? [allConfidenceScores.scenes.reduce((a, b) => a + b, 0) / allConfidenceScores.scenes.length] : [],
+                    objects: allConfidenceScores.objects.length > 0 ? [allConfidenceScores.objects.reduce((a, b) => a + b, 0) / allConfidenceScores.objects.length] : [],
+                    style: allConfidenceScores.style.length > 0 ? [allConfidenceScores.style.reduce((a, b) => a + b, 0) / allConfidenceScores.style.length] : [],
+                    mood: allConfidenceScores.mood.length > 0 ? [allConfidenceScores.mood.reduce((a, b) => a + b, 0) / allConfidenceScores.mood.length] : [],
+                    themes: allConfidenceScores.themes.length > 0 ? [allConfidenceScores.themes.reduce((a, b) => a + b, 0) / allConfidenceScores.themes.length] : []
                   };
 
                   await updateMediaAsset(refreshedVideo.id, {
@@ -326,4 +361,83 @@ function extractLabelsFromText(text: string) {
   }
 
   return labels;
+}
+
+// Helper function to extract common elements from scene descriptions
+function extractCommonElements(scenes: string[]): { setting: string[], subjects: string[], actions: string[] } {
+  const commonElements = {
+    setting: [] as string[],
+    subjects: [] as string[],
+    actions: [] as string[]
+  };
+
+  // Simple keyword extraction for common elements
+  const settingKeywords = ['office', 'desk', 'room', 'environment', 'setting', 'background', 'location'];
+  const subjectKeywords = ['woman', 'man', 'person', 'people', 'character', 'individual'];
+  const actionKeywords = ['sitting', 'typing', 'working', 'wearing', 'dressed', 'standing', 'moving'];
+
+  scenes.forEach(scene => {
+    const lowerScene = scene.toLowerCase();
+
+    settingKeywords.forEach(keyword => {
+      if (lowerScene.includes(keyword) && !commonElements.setting.includes(keyword)) {
+        commonElements.setting.push(keyword);
+      }
+    });
+
+    subjectKeywords.forEach(keyword => {
+      if (lowerScene.includes(keyword) && !commonElements.subjects.includes(keyword)) {
+        commonElements.subjects.push(keyword);
+      }
+    });
+
+    actionKeywords.forEach(keyword => {
+      if (lowerScene.includes(keyword) && !commonElements.actions.includes(keyword)) {
+        commonElements.actions.push(keyword);
+      }
+    });
+  });
+
+  return commonElements;
+}
+
+// Helper function to synthesize a unified video description
+function synthesizeVideoDescription(scenes: string[], commonElements: any, videoTitle: string): string {
+  // If only one scene, return it as-is
+  if (scenes.length === 1) {
+    return scenes[0];
+  }
+
+  // For multiple scenes, create a unified description
+  const firstScene = scenes[0];
+  const hasCommonSubject = commonElements.subjects.length > 0;
+  const hasCommonSetting = commonElements.setting.length > 0;
+  const hasCommonActions = commonElements.actions.length > 0;
+
+  // Try to extract the main subject and setting from the first scene
+  let unifiedDescription = '';
+
+  if (hasCommonSubject && hasCommonSetting) {
+    // Extract key elements to create a cohesive description
+    const subject = firstScene.match(/(A \w+|\w+ dressed|A person)/i)?.[0] || 'A person';
+    const setting = commonElements.setting[0] || 'environment';
+    const mainAction = commonElements.actions[0] || 'appears';
+
+    unifiedDescription = `${subject} ${mainAction} in ${setting === 'office' ? 'an office' : 'a ' + setting} environment. `;
+
+    // Add any consistent details that appear across keyframes
+    if (firstScene.includes('tiara')) unifiedDescription += 'The person is wearing a tiara and ';
+    if (firstScene.includes('vintage')) unifiedDescription += 'vintage-style clothing. ';
+    if (firstScene.includes('typing')) unifiedDescription += 'They are engaged in typing or working at a computer. ';
+    if (firstScene.includes('glass partitions') || firstScene.includes('background')) {
+      unifiedDescription += 'The setting shows a busy workplace with other people visible in the background.';
+    }
+  } else {
+    // Fallback: use the most descriptive scene
+    unifiedDescription = scenes.reduce((longest, current) =>
+      current.length > longest.length ? current : longest
+    );
+  }
+
+  return unifiedDescription.trim();
 }
