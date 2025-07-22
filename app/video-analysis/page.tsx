@@ -248,7 +248,17 @@ export default function VideoAnalysisPage() {
                      (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'));
 
   const handleAnalyzeVideo = async () => {
-    if (!selectedVideo) return;
+    if (!selectedVideo) {
+      alert('No video selected. Please select a video first.');
+      return;
+    }
+
+    if (!selectedVideo.id) {
+      alert('Video ID is missing. Please refresh the page and try again.');
+      return;
+    }
+
+    console.log('[video-analysis] Starting analysis for video:', selectedVideo.id, selectedVideo.title);
 
     setIsAnalyzing(true);
     try {
@@ -260,6 +270,7 @@ export default function VideoAnalysisPage() {
         body: JSON.stringify({
           videoId: selectedVideo.id,
           strategy: keyframeStrategy,
+          targetFrames: targetFrames
         }),
       });
 
@@ -288,7 +299,7 @@ export default function VideoAnalysisPage() {
       }
     } catch (error) {
       console.error('Analysis error:', error);
-      alert(`Analysis failed: ${error}`);
+      alert(`Analysis failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -297,6 +308,12 @@ export default function VideoAnalysisPage() {
   // Enhanced video selection handler
   const handleVideoSelect = (video: VideoAsset) => {
     console.log('[video-analysis] Selecting video:', video.title, 'ID:', video.id, 'Status:', video.processing_status?.ai_labeling);
+
+    // Reset editing states when switching videos to prevent state carry-over
+    setIsEditingFilename(false);
+    setNewFilename('');
+    setIsRenamingFile(false);
+    setShowAnalysisSettings(false);
 
     // Always create a fresh reference to prevent stale state issues
     const videoToSelect = { ...video };
@@ -385,8 +402,22 @@ export default function VideoAnalysisPage() {
   const saveFilename = async () => {
     if (!selectedVideo || !newFilename.trim()) return;
 
-    setIsRenamingFile(true);
+    // Optimistically update the UI immediately for responsiveness
+    const oldTitle = selectedVideo.title;
+    const oldFilename = selectedVideo.filename;
+    const updatedVideo = {
+      ...selectedVideo,
+      title: newFilename.trim(),
+      filename: newFilename.trim()
+    };
+
+    // Update UI immediately
+    setSelectedVideo(updatedVideo);
+    setIsEditingFilename(false);
+    setNewFilename('');
+
     try {
+      setIsRenamingFile(true);
       const response = await fetch(`/api/media-labeling/assets/${selectedVideo.id}/rename`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -396,18 +427,25 @@ export default function VideoAnalysisPage() {
       const result = await response.json();
 
       if (response.ok) {
-        // Update the selected video with the new data
+        // Update with server response
         setSelectedVideo(result.asset);
         setSelectedVideoId(result.asset.id);
-        // Refresh the videos list to show the updated filename
-        await fetchVideos();
-        setIsEditingFilename(false);
-        setNewFilename('');
+        // Refresh the videos list in background
+        fetchVideos();
       } else {
+        // Revert optimistic update on error
+        setSelectedVideo({
+          ...selectedVideo,
+          title: oldTitle,
+          filename: oldFilename
+        });
+        setIsEditingFilename(true);
+        setNewFilename(newFilename.trim());
         throw new Error(result.error || 'Failed to rename file');
       }
     } catch (error) {
       console.error('Rename error:', error);
+      alert(`Failed to rename: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsRenamingFile(false);
     }
