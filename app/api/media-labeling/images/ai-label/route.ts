@@ -4,7 +4,7 @@ import { performAiLabeling } from '@/lib/ai-labeling';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { assetId } = body;
+    const { assetId, force = false } = body;
 
     if (!assetId) {
       return NextResponse.json(
@@ -13,8 +13,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`[ai-label] Processing asset: ${assetId} (force: ${force})`);
+
     // Use the shared AI labeling function
-    const result = await performAiLabeling(assetId);
+    const result = await performAiLabeling(assetId, force);
 
     return NextResponse.json(result);
 
