@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
             kf => kf.processing_status?.ai_labeling === 'completed' && kf.ai_labels
           );
 
+          console.log(`[evaluate-completion] Found ${completedKeyframes.length} keyframes with AI labels to aggregate`);
+
           const aggregatedLabels = {
             scenes: [] as string[],
             objects: [] as string[],
@@ -93,6 +95,8 @@ export async function POST(request: NextRequest) {
           aggregatedLabels.style = Array.from(new Set(aggregatedLabels.style)).slice(0, 10);
           aggregatedLabels.mood = Array.from(new Set(aggregatedLabels.mood)).slice(0, 10);
           aggregatedLabels.themes = Array.from(new Set(aggregatedLabels.themes)).slice(0, 10);
+
+          console.log(`[evaluate-completion] Aggregated ${aggregatedLabels.scenes.length} scenes, ${aggregatedLabels.objects.length} objects`);
 
           // Calculate average confidence scores (if available)
           aggregatedLabels.confidence_scores = {
