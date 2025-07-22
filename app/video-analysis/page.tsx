@@ -588,11 +588,11 @@ export default function VideoAnalysisPage() {
                 {/* AI Analysis Results */}
                 {selectedVideo.ai_labels && (
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Analysis Results</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Video-Level AI Analysis</h3>
 
                     <div className="grid grid-cols-2 gap-6">
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Scenes</h4>
+                        <h4 className="font-medium text-gray-900 mb-2">Overall Scenes</h4>
                         <div className="space-y-2">
                           {selectedVideo.ai_labels.scenes.slice(0, 3).map((scene, index) => (
                             <div key={index} className="text-sm text-gray-700 p-2 bg-gray-50 rounded">
@@ -666,29 +666,168 @@ export default function VideoAnalysisPage() {
                       Keyframes ({selectedVideo.keyframe_stills.length})
                     </h3>
 
-                    <div className="grid grid-cols-6 gap-4">
-                      {selectedVideo.keyframe_stills.map((keyframe) => (
-                        <div key={keyframe.id} className="group cursor-pointer">
-                          <div className="relative">
-                            <img
-                              src={keyframe.cloudflare_url}
-                              alt={`Frame at ${keyframe.timestamp}`}
-                              className="w-full aspect-video object-cover rounded border border-gray-200 group-hover:border-blue-300 transition-colors"
-                            />
-                            <div className="absolute bottom-1 right-1 bg-black bg-opacity-75 text-white text-xs px-1 rounded">
-                              {keyframe.timestamp}
-                            </div>
-                            {keyframe.metadata?.quality && (
-                              <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 rounded">
-                                Q{keyframe.metadata.quality}
+                    <div className="space-y-6">
+                      {selectedVideo.keyframe_stills.map((keyframe, index) => (
+                        <div key={keyframe.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex gap-6">
+                            {/* Keyframe Image */}
+                            <div className="flex-shrink-0">
+                              <div className="relative">
+                                <img
+                                  src={keyframe.cloudflare_url}
+                                  alt={`Frame at ${keyframe.timestamp}`}
+                                  className="w-48 aspect-video object-cover rounded border border-gray-200"
+                                />
+                                <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
+                                  {keyframe.timestamp}
+                                </div>
+                                {keyframe.metadata?.quality && (
+                                  <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                                    Q{keyframe.metadata.quality}
+                                  </div>
+                                )}
                               </div>
-                            )}
+                              <div className="text-center mt-2 text-sm text-gray-600">
+                                Frame #{keyframe.frame_number}
+                              </div>
+                            </div>
+
+                            {/* Keyframe AI Labels */}
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-medium text-gray-900">Frame {index + 1} Analysis</h4>
+                                <div className="flex items-center gap-2">
+                                  {keyframe.processing_status?.ai_labeling === 'completed' && (
+                                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                                      ✓ Analyzed
+                                    </span>
+                                  )}
+                                  {keyframe.processing_status?.ai_labeling === 'processing' && (
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                                      Processing...
+                                    </span>
+                                  )}
+                                  {keyframe.processing_status?.ai_labeling === 'failed' && (
+                                    <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
+                                      Failed
+                                    </span>
+                                  )}
+                                  {keyframe.processing_status?.ai_labeling === 'pending' && (
+                                    <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
+                                      Pending
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {keyframe.ai_labels ? (
+                                <div className="space-y-4">
+                                  {/* Scene Description */}
+                                  {keyframe.ai_labels.scenes && keyframe.ai_labels.scenes.length > 0 && (
+                                    <div>
+                                      <h5 className="text-sm font-medium text-gray-700 mb-2">Scene Description</h5>
+                                      <div className="text-sm text-gray-600 p-3 bg-purple-50 rounded border-l-4 border-purple-400">
+                                        {keyframe.ai_labels.scenes[0]}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Labels Grid */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {/* Objects */}
+                                    {keyframe.ai_labels.objects && keyframe.ai_labels.objects.length > 0 && (
+                                      <div>
+                                        <h5 className="text-sm font-medium text-gray-700 mb-2">Objects</h5>
+                                        <div className="flex flex-wrap gap-1">
+                                          {keyframe.ai_labels.objects.slice(0, 6).map((object, idx) => (
+                                            <span
+                                              key={idx}
+                                              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
+                                            >
+                                              {object}
+                                            </span>
+                                          ))}
+                                          {keyframe.ai_labels.objects.length > 6 && (
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                              +{keyframe.ai_labels.objects.length - 6}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Style */}
+                                    {keyframe.ai_labels.style && keyframe.ai_labels.style.length > 0 && (
+                                      <div>
+                                        <h5 className="text-sm font-medium text-gray-700 mb-2">Style</h5>
+                                        <div className="flex flex-wrap gap-1">
+                                          {keyframe.ai_labels.style.map((style, idx) => (
+                                            <span
+                                              key={idx}
+                                              className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded"
+                                            >
+                                              {style}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Mood */}
+                                    {keyframe.ai_labels.mood && keyframe.ai_labels.mood.length > 0 && (
+                                      <div>
+                                        <h5 className="text-sm font-medium text-gray-700 mb-2">Mood</h5>
+                                        <div className="flex flex-wrap gap-1">
+                                          {keyframe.ai_labels.mood.map((mood, idx) => (
+                                            <span
+                                              key={idx}
+                                              className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded"
+                                            >
+                                              {mood}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Themes */}
+                                    {keyframe.ai_labels.themes && keyframe.ai_labels.themes.length > 0 && (
+                                      <div>
+                                        <h5 className="text-sm font-medium text-gray-700 mb-2">Themes</h5>
+                                        <div className="flex flex-wrap gap-1">
+                                          {keyframe.ai_labels.themes.map((theme, idx) => (
+                                            <span
+                                              key={idx}
+                                              className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded"
+                                            >
+                                              {theme}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                  {keyframe.processing_status?.ai_labeling === 'pending' ? (
+                                    'AI analysis pending...'
+                                  ) : keyframe.processing_status?.ai_labeling === 'processing' ? (
+                                    'AI analysis in progress...'
+                                  ) : keyframe.processing_status?.ai_labeling === 'failed' ? (
+                                    'AI analysis failed'
+                                  ) : (
+                                    'No AI analysis available'
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
-                ) :
+                ) : (
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Keyframes</h3>
                     <div className="text-center py-8">
@@ -721,7 +860,7 @@ export default function VideoAnalysisPage() {
                       )}
                     </div>
                   </div>
-                }
+                )}
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
