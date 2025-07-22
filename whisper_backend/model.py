@@ -17,14 +17,13 @@ try:
 except ImportError:
     MutagenFile = None  # falls back to None
 
-# -------------------------------------------------------------------
-# Fallback OpenAI key supplied by the user so the service works even
-# when OPENAI_API_KEY isn’t exported in the shell.
-# -------------------------------------------------------------------
-OPENAI_FALLBACK_KEY = (
-    "sk-proj-t017BCBNPppezQq1l4NNYOv2pyaS4J9_rd2LbP4wK2_BRCQo0n7yctylP0gnbGhltvma0L-"
-    "KSqT3BlbkFJVPIqKWXCgygEut7ehFttW1f1l9JrVfBstDlQ_zS3_89Pv507TAvkA3pa-2XMN1v-K9LSkUjuEA"
-)
+# No hard-coded fallback: the service must be configured with a valid
+# OPENAI_API_KEY **at runtime**. Burying a real or placeholder key in
+# source causes security risks and – when bundled into a serverless
+# artefact – leads to 401 "your_ope…here" errors that are impossible
+# to override at runtime.  If the variable is absent the backend will
+# simply run without OpenAI functionality and log a clear warning.
+
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +54,10 @@ class WhisperBackend(LabelStudioMLBase):
         # Now it’s safe to continue with the standard LS initialisation.
         super().__init__(model_dir=self.model_dir, **kwargs)
 
+        # OpenAI client – lazily initialised **only** when a valid
+        # runtime key is present. No compile-time placeholders.
         # --------------------------------------------------------------
-        # OpenAI client – initialise *if* a key is available. A fallback
-        # user-supplied key is provided so that the service still works
-        # when the environment variable isn’t set.
-        # --------------------------------------------------------------
-        openai_key = os.getenv("OPENAI_API_KEY") or OPENAI_FALLBACK_KEY
+        openai_key = os.getenv("OPENAI_API_KEY")
         self.client = None
         if openai_key:
             try:
