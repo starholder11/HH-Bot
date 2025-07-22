@@ -306,8 +306,6 @@ export default function VideoAnalysisPage() {
             setSelectedVideo(updatedVideo);
           }
         }
-
-        alert('Video analysis completed successfully!');
       } else {
         const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
         console.error('[video-analysis] Analysis failed:', errorData);
