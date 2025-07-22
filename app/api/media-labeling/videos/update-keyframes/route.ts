@@ -97,48 +97,58 @@ export async function POST(request: NextRequest) {
       const heroKeyframe = keyframes[0];
 
       try {
-        console.log(`[update-keyframes] Triggering AI labeling for hero keyframe: ${heroKeyframe.id}`);
+        console.log(`[update-keyframes] Triggering AI labeling (with retry) for hero keyframe: ${heroKeyframe.id}`);
 
+        /**
+         * Helper to POST /images/ai-label with up to 3 exponential-back-off retries.
+         * Avoids silent failure that left some keyframes stuck at `pending`.
+         */
         const baseUrl = process.env.PUBLIC_API_BASE_URL ?? 'https://hh-bot-lyart.vercel.app';
 
-        const labelResponse = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ assetId: heroKeyframe.id }),
-        });
+        async function postAiLabel(assetId: string, attempt = 1): Promise<void> {
+          const res = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assetId })
+          });
 
-        if (labelResponse.ok) {
-          console.log(`[update-keyframes] Hero keyframe AI labeling triggered successfully`);
-
-                     // Also update video's AI labeling status
-           await saveMediaAsset(assetId, {
-             ...updatedVideoAsset,
-             processing_status: {
-               ...updatedVideoAsset.processing_status,
-               ai_labeling: 'processing' as const,
-             },
-           });
-        } else {
-          console.error(`[update-keyframes] Failed to trigger hero keyframe AI labeling: ${labelResponse.status}`);
+          if (!res.ok) {
+            if (attempt < 3) {
+              const wait = 500 * attempt * attempt; // 0.5s, 2s, 4.5s
+              console.warn(`[ai-retry] keyframe ${assetId} failed (${res.status}). retry ${attempt}/3 in ${wait}ms`);
+              await new Promise(r => setTimeout(r, wait));
+              return postAiLabel(assetId, attempt + 1);
+            }
+            throw new Error(`ai-label ${assetId} failed after 3 attempts (${res.status})`);
+          }
         }
+
+        await postAiLabel(heroKeyframe.id);
+
+        // Mark video AI-labeling as in-progress
+        await saveMediaAsset(assetId, {
+          ...updatedVideoAsset,
+          processing_status: {
+            ...updatedVideoAsset.processing_status,
+            ai_labeling: 'processing' as const,
+          },
+        });
       } catch (labelError) {
         console.error(`[update-keyframes] Error triggering hero keyframe AI labeling:`, labelError);
       }
 
-             // Trigger AI labeling for remaining keyframes asynchronously
+       // Trigger AI labeling for remaining keyframes in parallel (with retry)
        const otherKeyframes = keyframes.slice(1);
        if (otherKeyframes.length > 0) {
-         console.log(`[update-keyframes] Triggering AI labeling for ${otherKeyframes.length} remaining keyframes`);
+         console.log(`[update-keyframes] Triggering AI labeling for ${otherKeyframes.length} remaining keyframes (parallel with retry)`);
 
-         const baseUrl = process.env.PUBLIC_API_BASE_URL ?? 'https://hh-bot-lyart.vercel.app';
-
-         for (const keyframe of otherKeyframes) {
-           fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ assetId: keyframe.id }),
-           }).catch(err => console.error(`Failed to trigger AI labeling for keyframe ${keyframe.id}:`, err));
-         }
+         Promise.all(
+           otherKeyframes.map(kf =>
+             postAiLabel(kf.id).catch(err =>
+               console.error(`[ai-label] keyframe ${kf.id} final failure`, err)
+             )
+           )
+         ).then(() => console.log('[update-keyframes] parallel AI labeling posts fired'));
        }
     }
 
