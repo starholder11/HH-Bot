@@ -52,6 +52,7 @@ export interface BaseMediaAsset {
   project_id: string | null;
   created_at: string;
   updated_at: string;
+  retry_count?: number;
 }
 
 // Specific media types
@@ -557,6 +558,7 @@ export interface KeyframeStill {
     labeled_reviewed: string | null;
   };
   labeling_complete: boolean;
+  retry_count?: number;
 }
 
 /**

@@ -150,25 +150,77 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
                 const refreshedVideo = await getMediaAsset(videoAsset.id);
                 if (!refreshedVideo) return;
 
-                const allKeyframesCompleted = ((refreshedVideo as any).keyframe_stills || []).every(
+                // LENIENT COMPLETION LOGIC: Consider video complete if 3/4+ keyframes are done
+                const keyframes = ((refreshedVideo as any).keyframe_stills || []);
+                const completedCount = keyframes.filter(
                   (kf: any) => kf.processing_status?.ai_labeling === 'completed'
+                ).length;
+                const failedCount = keyframes.filter(
+                  (kf: any) => kf.processing_status?.ai_labeling === 'failed'
+                ).length;
+                const totalKeyframes = keyframes.length;
+
+                // Calculate completion ratio and check if we should mark video as complete
+                const completionRatio = totalKeyframes > 0 ? completedCount / totalKeyframes : 0;
+                const minCompletionThreshold = 0.75; // 75% threshold
+
+                const shouldMarkComplete = (
+                  totalKeyframes > 0 &&
+                  completionRatio >= minCompletionThreshold &&
+                  ['pending', 'processing'].includes(refreshedVideo.processing_status?.ai_labeling || '')
                 );
 
-                if (
-                  allKeyframesCompleted &&
-                  ['pending', 'processing'].includes(
-                    refreshedVideo.processing_status?.ai_labeling || ''
-                  )
-                ) {
+                console.log(`[ai-labeling] Video ${refreshedVideo.id} keyframe status: ${completedCount}/${totalKeyframes} completed (${Math.round(completionRatio * 100)}%), ${failedCount} failed. Threshold: ${Math.round(minCompletionThreshold * 100)}%`);
+
+                if (shouldMarkComplete) {
                   await updateMediaAsset(refreshedVideo.id, {
                     processing_status: {
                       ...refreshedVideo.processing_status,
                       ai_labeling: 'completed',
                     },
+                    timestamps: {
+                      ...refreshedVideo.timestamps,
+                      labeled_ai: new Date().toISOString(),
+                    },
                   });
                   console.log(
-                    `[ai-labeling] All keyframes labeled for video ${refreshedVideo.id}. Marked video ai_labeling=completed.`
+                    `[ai-labeling] Video ${refreshedVideo.id} marked complete with ${completedCount}/${totalKeyframes} keyframes labeled (${Math.round(completionRatio * 100)}%)`
                   );
+                } else if (totalKeyframes > 0) {
+                  // Check if we need to retry failed keyframes
+                  const retryableKeyframes = keyframes.filter((kf: any) => {
+                    const status = kf.processing_status?.ai_labeling;
+                    const retryCount = kf.retry_count || 0;
+                    return status === 'failed' && retryCount < 3; // Max 3 retries
+                  });
+
+                  if (retryableKeyframes.length > 0) {
+                    console.log(`[ai-labeling] Found ${retryableKeyframes.length} keyframes eligible for retry`);
+
+                    // Trigger retries for failed keyframes (async, don't block)
+                    setTimeout(async () => {
+                      for (const kf of retryableKeyframes) {
+                        try {
+                          const retryCount = (kf.retry_count || 0) + 1;
+                          console.log(`[ai-labeling] Retrying keyframe ${kf.id} (attempt ${retryCount})`);
+
+                          // Update retry count
+                          await updateMediaAsset(kf.id, {
+                            retry_count: retryCount,
+                            processing_status: {
+                              ...kf.processing_status,
+                              ai_labeling: 'processing',
+                            },
+                          });
+
+                          // Trigger retry
+                          await performAiLabeling(kf.id);
+                        } catch (retryError) {
+                          console.error(`[ai-labeling] Retry failed for keyframe ${kf.id}:`, retryError);
+                        }
+                      }
+                    }, 2000 * Math.random()); // Stagger retries to avoid overwhelming API
+                  }
                 }
               }
             }
