@@ -3,6 +3,32 @@ import { getMediaAsset, saveMediaAsset } from '@/lib/media-storage';
 import { VideoAsset, KeyframeStill } from '@/lib/media-storage';
 import { generateUUID } from '@/lib/utils';
 
+// -----------------------------------------------------------------------------
+// Helper: POST to /images/ai-label with retry.  Declared at module scope so it
+// doesn’t violate ES5 strict-mode restrictions (no function declarations inside
+// blocks) and can be reused by any route logic.
+// -----------------------------------------------------------------------------
+
+const BASE_AI_LABEL_URL = (process.env.PUBLIC_API_BASE_URL ?? 'https://hh-bot-lyart.vercel.app') + '/api/media-labeling/images/ai-label';
+
+async function postAiLabel(assetId: string, attempt = 1): Promise<void> {
+  const res = await fetch(BASE_AI_LABEL_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assetId })
+  });
+
+  if (!res.ok) {
+    if (attempt < 3) {
+      const wait = 500 * attempt * attempt; // 0.5s, 2s, 4.5s
+      console.warn(`[ai-retry] keyframe ${assetId} failed (${res.status}). retry ${attempt}/3 in ${wait}ms`);
+      await new Promise(r => setTimeout(r, wait));
+      return postAiLabel(assetId, attempt + 1);
+    }
+    throw new Error(`ai-label ${assetId} failed after 3 attempts (${res.status})`);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -99,29 +125,7 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`[update-keyframes] Triggering AI labeling (with retry) for hero keyframe: ${heroKeyframe.id}`);
 
-        /**
-         * Helper to POST /images/ai-label with up to 3 exponential-back-off retries.
-         * Avoids silent failure that left some keyframes stuck at `pending`.
-         */
-        const baseUrl = process.env.PUBLIC_API_BASE_URL ?? 'https://hh-bot-lyart.vercel.app';
-
-        async function postAiLabel(assetId: string, attempt = 1): Promise<void> {
-          const res = await fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ assetId })
-          });
-
-          if (!res.ok) {
-            if (attempt < 3) {
-              const wait = 500 * attempt * attempt; // 0.5s, 2s, 4.5s
-              console.warn(`[ai-retry] keyframe ${assetId} failed (${res.status}). retry ${attempt}/3 in ${wait}ms`);
-              await new Promise(r => setTimeout(r, wait));
-              return postAiLabel(assetId, attempt + 1);
-            }
-            throw new Error(`ai-label ${assetId} failed after 3 attempts (${res.status})`);
-          }
-        }
+        // helper now imported from module scope
 
         await postAiLabel(heroKeyframe.id);
 
@@ -144,7 +148,7 @@ export async function POST(request: NextRequest) {
 
          Promise.all(
            otherKeyframes.map(kf =>
-             postAiLabel(kf.id).catch(err =>
+             postAiLabel(kf.id).catch((err: unknown) =>
                console.error(`[ai-label] keyframe ${kf.id} final failure`, err)
              )
            )
