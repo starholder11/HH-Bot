@@ -280,15 +280,49 @@ export async function POST(request: NextRequest) {
 
       autoTriggerSuccess = true;
     } catch (err) {
-      console.error('[videos/finish-upload] Failed to enqueue analysis job', err);
-      await saveMediaAsset(videoId, {
-        ...videoAsset,
-        processing_status: {
-          ...videoAsset.processing_status,
-          ai_labeling: 'failed' as const,
-        },
-        updated_at: new Date().toISOString(),
-      });
+      console.error('[videos/finish-upload] Failed to enqueue analysis job – falling back to direct /analyze call', err);
+
+      const baseUrl = process.env.PUBLIC_API_BASE_URL || 'https://hh-bot-lyart.vercel.app';
+      try {
+        const resp = await fetch(`${baseUrl}/api/media-labeling/videos/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assetId: videoId, strategy: 'adaptive' })
+        });
+
+        if (resp.ok) {
+          console.log('[videos/finish-upload] Fallback analyze triggered OK');
+          await saveMediaAsset(videoId, {
+            ...videoAsset,
+            processing_status: {
+              ...videoAsset.processing_status,
+              ai_labeling: 'processing' as const,
+            },
+            updated_at: new Date().toISOString(),
+          });
+          autoTriggerSuccess = true;
+        } else {
+          console.error('[videos/finish-upload] Fallback analyze failed', resp.status);
+          await saveMediaAsset(videoId, {
+            ...videoAsset,
+            processing_status: {
+              ...videoAsset.processing_status,
+              ai_labeling: 'failed' as const,
+            },
+            updated_at: new Date().toISOString(),
+          });
+        }
+      } catch (fallbackErr) {
+        console.error('[videos/finish-upload] Error during fallback analyze', fallbackErr);
+        await saveMediaAsset(videoId, {
+          ...videoAsset,
+          processing_status: {
+            ...videoAsset.processing_status,
+            ai_labeling: 'failed' as const,
+          },
+          updated_at: new Date().toISOString(),
+        });
+      }
     }
 
     console.log('Video upload completion successful for:', videoId, 'Auto-trigger success:', autoTriggerSuccess);
