@@ -270,7 +270,7 @@ export default function VideoAnalysisPage() {
     setIsAnalyzing(true);
     try {
       const requestBody = {
-        videoId: selectedVideo.id,
+        assetId: selectedVideo.id,  // Changed from videoId to assetId to match API
         strategy: keyframeStrategy,
         targetFrames: targetFrames
       };
