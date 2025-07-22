@@ -96,7 +96,9 @@ async function downloadVideoFromS3(assetId, localPath) {
   console.log(`[worker] Downloading video ${assetId} from S3`);
 
   // Get video asset data to find S3 URL
-  const baseUrl = process.env.PUBLIC_API_BASE_URL ?? `https://${process.env.VERCEL_URL}`;
+  const baseUrl = process.env.PUBLIC_API_BASE_URL ??
+                 (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                  'https://hh-bot-lyart.vercel.app');
   const assetResponse = await fetch(`${baseUrl}/api/media-labeling/assets/${assetId}`);
 
   if (!assetResponse.ok) {
