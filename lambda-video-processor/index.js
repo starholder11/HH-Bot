@@ -267,10 +267,14 @@ async function uploadKeyframesToS3(keyframes, assetId) {
 async function triggerAILabeling(assetId, keyframeAssets) {
   console.log(`[worker] Triggering AI labeling for video ${assetId} and ${keyframeAssets.length} keyframes`);
 
-  const baseUrl = process.env.PUBLIC_API_BASE_URL ?? `https://${process.env.VERCEL_URL}`;
+  // Call the update-keyframes endpoint to trigger AI labeling
+  const baseUrl = process.env.PUBLIC_API_BASE_URL ??
+                 (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                  'https://hh-bot-lyart.vercel.app');
 
-  // Update video status and create keyframe assets
-  const updateResponse = await fetch(`${baseUrl}/api/media-labeling/videos/update-keyframes`, {
+  const updateUrl = `${baseUrl}/api/media-labeling/videos/update-keyframes`;
+
+  const updateResponse = await fetch(updateUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ assetId, keyframeAssets }),
