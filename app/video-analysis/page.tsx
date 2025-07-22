@@ -185,15 +185,25 @@ export default function VideoAnalysisPage() {
 
   const fetchVideos = async () => {
     try {
+      console.log('[video-analysis] Starting fetchVideos...');
       const response = await fetch('/api/media-labeling/assets?type=video');
+      console.log('[video-analysis] Fetch response status:', response.status, response.ok);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('[video-analysis] Raw API data received:', data?.length || 'not an array', typeof data);
+
         // Handle both array and object response formats
         const videoAssets = Array.isArray(data) ? data : (data.assets || []);
+        console.log('[video-analysis] Video assets extracted:', videoAssets.length);
+
         const videos = videoAssets.filter((asset: any) => asset.media_type === 'video');
+        console.log('[video-analysis] Filtered videos with media_type="video":', videos.length);
 
         console.log('[video-analysis] Fetched', videos.length, 'videos');
         setVideos(videos);
+      } else {
+        console.error('[video-analysis] Fetch failed with status:', response.status);
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
