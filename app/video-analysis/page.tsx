@@ -248,31 +248,44 @@ export default function VideoAnalysisPage() {
                      (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'));
 
   const handleAnalyzeVideo = async () => {
+    console.log('[video-analysis] Analyze button clicked');
+    console.log('[video-analysis] selectedVideo:', selectedVideo);
+    console.log('[video-analysis] selectedVideoId:', selectedVideoId);
+
     if (!selectedVideo) {
+      console.error('[video-analysis] ERROR: No video selected');
       alert('No video selected. Please select a video first.');
       return;
     }
 
     if (!selectedVideo.id) {
+      console.error('[video-analysis] ERROR: Video ID is missing', selectedVideo);
       alert('Video ID is missing. Please refresh the page and try again.');
       return;
     }
 
     console.log('[video-analysis] Starting analysis for video:', selectedVideo.id, selectedVideo.title);
+    console.log('[video-analysis] Analysis settings:', { keyframeStrategy, targetFrames, analysisType });
 
     setIsAnalyzing(true);
     try {
+      const requestBody = {
+        videoId: selectedVideo.id,
+        strategy: keyframeStrategy,
+        targetFrames: targetFrames
+      };
+
+      console.log('[video-analysis] Request body:', requestBody);
+
       const response = await fetch('/api/media-labeling/videos/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          videoId: selectedVideo.id,
-          strategy: keyframeStrategy,
-          targetFrames: targetFrames
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log('[video-analysis] Response status:', response.status);
 
       if (response.ok) {
         const result = await response.json();
@@ -288,17 +301,20 @@ export default function VideoAnalysisPage() {
           const videoAssets = Array.isArray(data) ? data : (data.assets || []);
           const videos = videoAssets.filter((v: any) => v.media_type === 'video');
           const updatedVideo = videos.find((v: any) => v.id === selectedVideo.id);
+
           if (updatedVideo) {
             setSelectedVideo(updatedVideo);
           }
         }
+
+        alert('Video analysis completed successfully!');
       } else {
-        const error = await response.json();
-        console.error('[video-analysis] Analysis failed:', error);
-        alert(`Analysis failed: ${error.error || 'Unknown error'}`);
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        console.error('[video-analysis] Analysis failed:', errorData);
+        throw new Error(errorData.error || `Analysis failed with status ${response.status}`);
       }
     } catch (error) {
-      console.error('Analysis error:', error);
+      console.error('[video-analysis] Analyze error:', error);
       alert(`Analysis failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsAnalyzing(false);
