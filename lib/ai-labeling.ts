@@ -144,6 +144,11 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
               if (keyframeIndex !== -1) {
                 videoAsset.keyframe_stills[keyframeIndex] = asset;
 
+                // 🔑 Persist the in-memory change so subsequent reads see the updated status
+                await updateMediaAsset(videoAsset.id, {
+                  keyframe_stills: videoAsset.keyframe_stills,
+                } as any);
+
                 // Re-fetch parent video to get the very latest keyframe statuses – otherwise
                 // we might operate on a stale snapshot (race condition when multiple frames
                 // finish nearly simultaneously).
