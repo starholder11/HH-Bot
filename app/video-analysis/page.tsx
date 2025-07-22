@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
@@ -84,14 +84,35 @@ export default function VideoAnalysisPage() {
   const [keyframeStrategy, setKeyframeStrategy] = useState<'adaptive' | 'uniform' | 'scene_change'>('adaptive');
   const [targetFrames, setTargetFrames] = useState<number>(8);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAnalysisSettings, setShowAnalysisSettings] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
+
+  // Filename editing state
+  const [isEditingFilename, setIsEditingFilename] = useState(false);
+  const [newFilename, setNewFilename] = useState('');
+  const [isRenamingFile, setIsRenamingFile] = useState(false);
 
   // Load videos and projects on mount
   useEffect(() => {
     fetchVideos();
     fetchProjects();
   }, []);
+
+  // Click outside to close settings dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setShowAnalysisSettings(false);
+      }
+    }
+
+    if (showAnalysisSettings) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showAnalysisSettings]);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -349,6 +370,76 @@ export default function VideoAnalysisPage() {
     return `${mb.toFixed(1)} MB`;
   };
 
+  // Filename editing functions
+  const startFilenameEdit = () => {
+    if (!selectedVideo) return;
+    setNewFilename(selectedVideo.filename);
+    setIsEditingFilename(true);
+  };
+
+  const cancelFilenameEdit = () => {
+    setIsEditingFilename(false);
+    setNewFilename('');
+  };
+
+  const saveFilename = async () => {
+    if (!selectedVideo || !newFilename.trim()) return;
+
+    setIsRenamingFile(true);
+    try {
+      const response = await fetch(`/api/media-labeling/assets/${selectedVideo.id}/rename`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newFilename: newFilename.trim() })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update the selected video with the new data
+        setSelectedVideo(result.asset);
+        setSelectedVideoId(result.asset.id);
+        // Refresh the videos list to show the updated filename
+        await fetchVideos();
+        setIsEditingFilename(false);
+        setNewFilename('');
+      } else {
+        throw new Error(result.error || 'Failed to rename file');
+      }
+    } catch (error) {
+      console.error('Rename error:', error);
+    } finally {
+      setIsRenamingFile(false);
+    }
+  };
+
+  // Project assignment functions
+  const updateProjectAssignment = async (projectId: string | null) => {
+    if (!selectedVideo) return;
+
+    try {
+      const response = await fetch(`/api/media-labeling/assets/${selectedVideo.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update the selected video with the new data
+        setSelectedVideo(result);
+        setSelectedVideoId(result.id);
+        // Refresh the videos list to show updated project assignment
+        await fetchVideos();
+      } else {
+        throw new Error(result.error || 'Failed to update project assignment');
+      }
+    } catch (error) {
+      console.error('Project assignment error:', error);
+    }
+  };
+
   const filteredVideos = selectedProject
     ? videos.filter(v => v.project_id === selectedProject)
     : videos;
@@ -382,61 +473,6 @@ export default function VideoAnalysisPage() {
                   </option>
                 ))}
               </select>
-            </div>
-
-            {/* Analysis Settings */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Analysis Settings</h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Analysis Type
-                  </label>
-                  <select
-                    value={analysisType}
-                    onChange={(e) => setAnalysisType(e.target.value as any)}
-                    className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="comprehensive">Comprehensive Analysis</option>
-                    <option value="style_focus">Style & Aesthetics Focus</option>
-                    <option value="mood_themes">Mood & Themes Focus</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Keyframe Strategy
-                  </label>
-                  <select
-                    value={keyframeStrategy}
-                    onChange={(e) => setKeyframeStrategy(e.target.value as any)}
-                    className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="adaptive">Adaptive (Smart Defaults)</option>
-                    <option value="uniform">Uniform Distribution</option>
-                    <option value="scene_change">Scene Change Detection</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Target Keyframes: {targetFrames}
-                  </label>
-                  <input
-                    type="range"
-                    min="3"
-                    max="20"
-                    value={targetFrames}
-                    onChange={(e) => setTargetFrames(parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>3</span>
-                    <span>20</span>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Videos List */}
@@ -511,51 +547,198 @@ export default function VideoAnalysisPage() {
                 {/* Video Player Section */}
                 <div className="bg-white rounded-lg border border-gray-200">
                   <div className="p-6 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-900">{selectedVideo.title}</h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {formatDuration(selectedVideo.metadata.duration)} • {selectedVideo.metadata.format}
-                        </p>
-                      </div>
-                      {(() => {
-                        const status = selectedVideo.processing_status?.ai_labeling || 'not_started';
-                        const isActive = ['triggering', 'pending', 'processing'].includes(status);
-                        const isFailed = ['failed', 'error'].includes(status);
+                    {/* Single Top Row: Name (edit) | Category Selector | Analyze (settings) */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-6 flex-1">
+                        {/* Name Section */}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl">🎬</span>
+                          {isEditingFilename ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                value={newFilename}
+                                onChange={(e) => setNewFilename(e.target.value)}
+                                className="text-lg font-semibold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 min-w-[200px]"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveFilename();
+                                  if (e.key === 'Escape') cancelFilenameEdit();
+                                }}
+                              />
+                              <Button
+                                onClick={() => {
+                                  if (!isRenamingFile && newFilename.trim()) {
+                                    saveFilename();
+                                  }
+                                }}
+                                className={`px-2 py-1 text-xs ${
+                                  isRenamingFile || !newFilename.trim()
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700'
+                                }`}
+                              >
+                                {isRenamingFile ? '...' : '✓'}
+                              </Button>
+                              <Button
+                                onClick={cancelFilenameEdit}
+                                className="px-1.5 py-0.5 text-xs bg-gray-300 hover:bg-gray-400 rounded text-gray-700 transition-colors"
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <h2 className="text-lg font-semibold text-gray-900">{selectedVideo.title}</h2>
+                              <Button
+                                onClick={startFilenameEdit}
+                                className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
+                              >
+                                edit
+                              </Button>
+                            </div>
+                          )}
+                        </div>
 
-                        if (status === 'completed') {
-                          return (
-                            <Button
-                              onClick={handleAnalyzeVideo}
-                              className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
-                            >
-                              Re-analyze Video
-                            </Button>
-                          );
-                        }
-
-                        if (isFailed) {
-                          return (
-                            <Button
-                              onClick={handleAnalyzeVideo}
-                              className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700"
-                            >
-                              Retry Analysis
-                            </Button>
-                          );
-                        }
-
-                        return (
-                          <Button
-                            onClick={handleAnalyzeVideo}
-                            disabled={isAnalyzing || isActive}
-                            className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
+                        {/* Category Selector */}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">Category:</span>
+                          <select
+                            value={selectedVideo.project_id || ''}
+                            onChange={(e) => updateProjectAssignment(e.target.value || null)}
+                            className="border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 text-sm"
                           >
-                            {isAnalyzing || isActive ? 'Analyzing...' : 'Analyze Video'}
-                          </Button>
-                        );
-                      })()}
+                            <option value="">No Category</option>
+                            {projects.map(project => (
+                              <option key={project.id} value={project.id}>
+                                {project.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Analyze (settings) Button */}
+                      <div className="relative">
+                        <div className="flex items-center space-x-2">
+                          {(() => {
+                            const status = selectedVideo.processing_status?.ai_labeling || 'not_started';
+                            const isActive = ['triggering', 'pending', 'processing'].includes(status);
+                            const isFailed = ['failed', 'error'].includes(status);
+
+                            if (status === 'completed') {
+                              return (
+                                <Button
+                                  onClick={handleAnalyzeVideo}
+                                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                                >
+                                  Re-analyze
+                                </Button>
+                              );
+                            }
+
+                            if (isFailed) {
+                              return (
+                                <Button
+                                  onClick={handleAnalyzeVideo}
+                                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                                >
+                                  Retry
+                                </Button>
+                              );
+                            }
+
+                            return (
+                              <Button
+                                onClick={handleAnalyzeVideo}
+                                disabled={isAnalyzing || isActive}
+                                className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
+                              >
+                                {isAnalyzing || isActive ? 'Analyzing...' : 'Analyze'}
+                              </Button>
+                            );
+                          })()}
+
+                          <button
+                            onClick={() => setShowAnalysisSettings(!showAnalysisSettings)}
+                            className="text-blue-600 hover:text-blue-800 text-sm underline"
+                          >
+                            (settings)
+                          </button>
+                        </div>
+
+                        {/* Settings Dropdown */}
+                        {showAnalysisSettings && (
+                          <div ref={settingsRef} className="absolute right-0 top-12 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-72">
+                            <h4 className="font-medium text-gray-900 mb-3">Analysis Settings</h4>
+
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Analysis Type
+                                </label>
+                                <select
+                                  value={analysisType}
+                                  onChange={(e) => setAnalysisType(e.target.value as any)}
+                                  className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  <option value="comprehensive">Comprehensive Analysis</option>
+                                  <option value="style_focus">Style & Aesthetics Focus</option>
+                                  <option value="mood_themes">Mood & Themes Focus</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Keyframe Strategy
+                                </label>
+                                <select
+                                  value={keyframeStrategy}
+                                  onChange={(e) => setKeyframeStrategy(e.target.value as any)}
+                                  className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  <option value="adaptive">Adaptive (Smart Defaults)</option>
+                                  <option value="uniform">Uniform Distribution</option>
+                                  <option value="scene_change">Scene Change Detection</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Target Keyframes: {targetFrames}
+                                </label>
+                                <input
+                                  type="range"
+                                  min="2"
+                                  max="16"
+                                  value={targetFrames}
+                                  onChange={(e) => setTargetFrames(parseInt(e.target.value))}
+                                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                />
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                  <span>2</span>
+                                  <span>16</span>
+                                </div>
+                              </div>
+
+                              <div className="pt-2 border-t border-gray-100">
+                                <button
+                                  onClick={() => setShowAnalysisSettings(false)}
+                                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm transition-colors"
+                                >
+                                  Close
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Video Metadata */}
+                    <p className="text-sm text-gray-500 mb-3">
+                      {formatDuration(selectedVideo.metadata.duration)} • {selectedVideo.metadata.format}
+                    </p>
 
                     {/* Analysis Progress Indicator */}
                     {isAnalyzing && (

@@ -238,7 +238,7 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
                     const videoTitle = (refreshedVideo as any).title || 'video';
 
                     // Generate a single cohesive description
-                    aggregatedLabels.scenes = [synthesizeVideoDescription(allScenes, commonElements, videoTitle)];
+                    aggregatedLabels.scenes = [await synthesizeVideoDescriptionWithAI(allScenes, videoTitle)];
                   }
 
                   // Deduplicate and limit other arrays
@@ -363,81 +363,68 @@ function extractLabelsFromText(text: string) {
   return labels;
 }
 
-// Helper function to extract common elements from scene descriptions
-function extractCommonElements(scenes: string[]): { setting: string[], subjects: string[], actions: string[] } {
-  const commonElements = {
-    setting: [] as string[],
-    subjects: [] as string[],
-    actions: [] as string[]
-  };
+// Helper function to synthesize keyframe descriptions using OpenAI
+async function synthesizeVideoDescriptionWithAI(keyframeDescriptions: string[], videoTitle: string): Promise<string> {
+  try {
+    const openai = getOpenAIClient();
 
-  // Simple keyword extraction for common elements
-  const settingKeywords = ['office', 'desk', 'room', 'environment', 'setting', 'background', 'location'];
-  const subjectKeywords = ['woman', 'man', 'person', 'people', 'character', 'individual'];
-  const actionKeywords = ['sitting', 'typing', 'working', 'wearing', 'dressed', 'standing', 'moving'];
+    const prompt = `You are analyzing a video called "${videoTitle}" by looking at descriptions of ${keyframeDescriptions.length} keyframes extracted from the video.
 
-  scenes.forEach(scene => {
-    const lowerScene = scene.toLowerCase();
+Here are the individual keyframe descriptions in chronological order:
+${keyframeDescriptions.map((desc, i) => `Frame ${i + 1}: ${desc}`).join('\n')}
 
-    settingKeywords.forEach(keyword => {
-      if (lowerScene.includes(keyword) && !commonElements.setting.includes(keyword)) {
-        commonElements.setting.push(keyword);
-      }
+Please create a single, cohesive description of the overall video that:
+1. **Captures the temporal progression** - what changes between frames
+2. **Describes the main action or movement** happening throughout the video
+3. **Identifies scene transitions** or significant changes in setting/composition
+4. **Summarizes the narrative flow** from beginning to end
+5. **Highlights any character or object movement/interaction**
+6. **Notes the overall pacing** (static, dynamic, gradual changes, etc.)
+
+Focus on the STORY and ACTION rather than just listing what's visible. Describe what HAPPENS in the video, not just what IS in the video.
+
+Respond with a single paragraph that tells the story of this video's progression.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 200,
+      temperature: 0.3
     });
 
-    subjectKeywords.forEach(keyword => {
-      if (lowerScene.includes(keyword) && !commonElements.subjects.includes(keyword)) {
-        commonElements.subjects.push(keyword);
-      }
-    });
+    const synthesis = response.choices[0]?.message?.content?.trim();
+    if (synthesis) {
+      console.log(`[ai-labeling] Synthesized video description: ${synthesis}`);
+      return synthesis;
+    }
 
-    actionKeywords.forEach(keyword => {
-      if (lowerScene.includes(keyword) && !commonElements.actions.includes(keyword)) {
-        commonElements.actions.push(keyword);
-      }
-    });
-  });
+    // Fallback to first keyframe description if synthesis fails
+    return keyframeDescriptions[0] || "Video content could not be analyzed.";
 
-  return commonElements;
+  } catch (error) {
+    console.error(`[ai-labeling] Failed to synthesize video description:`, error);
+    // Fallback to first keyframe description
+    return keyframeDescriptions[0] || "Video content could not be analyzed.";
+  }
 }
 
-// Helper function to synthesize a unified video description
-function synthesizeVideoDescription(scenes: string[], commonElements: any, videoTitle: string): string {
-  // If only one scene, return it as-is
-  if (scenes.length === 1) {
-    return scenes[0];
-  }
+// Helper function to extract common elements (simplified - mainly for fallback)
+function extractCommonElements(scenes: string[]): { subjects: string[], settings: string[], actions: string[] } {
+  // Simple keyword extraction for fallback
+  const subjects = ['person', 'woman', 'man', 'people'];
+  const settings = ['office', 'room', 'environment', 'setting'];
+  const actions = ['sitting', 'typing', 'working', 'standing'];
 
-  // For multiple scenes, create a unified description
-  const firstScene = scenes[0];
-  const hasCommonSubject = commonElements.subjects.length > 0;
-  const hasCommonSetting = commonElements.setting.length > 0;
-  const hasCommonActions = commonElements.actions.length > 0;
+  return { subjects, settings, actions };
+}
 
-  // Try to extract the main subject and setting from the first scene
-  let unifiedDescription = '';
+// Fallback synthesis function (for when OpenAI call fails)
+function synthesizeVideoDescriptionFallback(allScenes: string[]): string {
+  if (allScenes.length === 0) return "Video content could not be analyzed.";
+  if (allScenes.length === 1) return allScenes[0];
 
-  if (hasCommonSubject && hasCommonSetting) {
-    // Extract key elements to create a cohesive description
-    const subject = firstScene.match(/(A \w+|\w+ dressed|A person)/i)?.[0] || 'A person';
-    const setting = commonElements.setting[0] || 'environment';
-    const mainAction = commonElements.actions[0] || 'appears';
-
-    unifiedDescription = `${subject} ${mainAction} in ${setting === 'office' ? 'an office' : 'a ' + setting} environment. `;
-
-    // Add any consistent details that appear across keyframes
-    if (firstScene.includes('tiara')) unifiedDescription += 'The person is wearing a tiara and ';
-    if (firstScene.includes('vintage')) unifiedDescription += 'vintage-style clothing. ';
-    if (firstScene.includes('typing')) unifiedDescription += 'They are engaged in typing or working at a computer. ';
-    if (firstScene.includes('glass partitions') || firstScene.includes('background')) {
-      unifiedDescription += 'The setting shows a busy workplace with other people visible in the background.';
-    }
-  } else {
-    // Fallback: use the most descriptive scene
-    unifiedDescription = scenes.reduce((longest, current) =>
-      current.length > longest.length ? current : longest
-    );
-  }
-
-  return unifiedDescription.trim();
+  // Simple fallback: return the longest description
+  return allScenes.reduce((longest, current) =>
+    current.length > longest.length ? current : longest
+  );
 }

@@ -13,6 +13,7 @@ interface SongData {
   title?: string;
   prompt?: string;
   lyrics: string;
+  project_id?: string | null;
   cover_art?: {
     s3_url: string;
     cloudflare_url: string;
@@ -57,6 +58,12 @@ interface SongData {
   labeling_complete: boolean;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 const CDN_DOMAIN = process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN || process.env.NEXT_PUBLIC_CDN || 'cdn.yourdomain.com';
 
 function encodePath(url: string) {
@@ -83,6 +90,7 @@ function encodePath(url: string) {
 export default function AudioLabelingPage() {
   const [songs, setSongs] = useState<SongData[]>([]);
   const [selectedSong, setSelectedSong] = useState<SongData | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [genreFilter, setGenreFilter] = useState('');
   const [moodFilter, setMoodFilter] = useState('');
@@ -120,6 +128,7 @@ export default function AudioLabelingPage() {
 
   useEffect(() => {
     loadSongs();
+    loadProjects();
   }, []);
 
   // Filtered songs based on search and filters
@@ -163,6 +172,44 @@ export default function AudioLabelingPage() {
       }
     } catch (error) {
       console.error('Error loading songs:', error);
+    }
+  };
+
+  const loadProjects = async () => {
+    try {
+      const response = await fetch('/api/media-labeling/projects');
+      if (response.ok) {
+        const projectsData = await response.json();
+        setProjects(projectsData);
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
+
+  // Project assignment function
+  const updateProjectAssignment = async (projectId: string | null) => {
+    if (!selectedSong) return;
+
+    try {
+      const response = await fetch(`/api/audio-labeling/songs/${selectedSong.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update the selected song with the new data
+        setSelectedSong({...selectedSong, project_id: projectId});
+        // Refresh the songs list to show updated project assignment
+        await loadSongs();
+      } else {
+        throw new Error(result.error || 'Failed to update project assignment');
+      }
+    } catch (error) {
+      console.error('Project assignment error:', error);
     }
   };
 
@@ -636,35 +683,62 @@ export default function AudioLabelingPage() {
               <Card className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    {editingTitle ? (
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={tempTitle}
-                          onChange={(e) => setTempTitle(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
-                          className="text-2xl font-bold border-b-2 border-blue-500 bg-transparent focus:outline-none flex-1"
-                          autoFocus
-                        />
-                        <Button onClick={saveTitle} className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700">
-                          ✓
-                        </Button>
-                        <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600">
-                          ✕
-                        </Button>
+                    {/* Top Row: Title (edit) | Category Selector */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-4 flex-1">
+                        {/* Title Section */}
+                        {editingTitle ? (
+                          <div className="flex items-center space-x-2 flex-1">
+                            <span className="text-xl">🎵</span>
+                            <input
+                              type="text"
+                              value={tempTitle}
+                              onChange={(e) => setTempTitle(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
+                              className="text-2xl font-bold border-b-2 border-blue-500 bg-transparent focus:outline-none flex-1"
+                              autoFocus
+                            />
+                            <Button onClick={saveTitle} className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700">
+                              ✓
+                            </Button>
+                            <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600">
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2 group flex-1">
+                            <span className="text-xl">🎵</span>
+                            <h2 className="text-2xl font-bold">{selectedSong.title}</h2>
+                            <Button
+                              onClick={startEditingTitle}
+                              className="opacity-0 group-hover:opacity-100 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 transition-opacity"
+                            >
+                              edit
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Category Selector */}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600 font-medium">Project:</span>
+                          <select
+                            value={selectedSong.project_id || ''}
+                            onChange={(e) => updateProjectAssignment(e.target.value || null)}
+                            className="border border-gray-300 rounded px-3 py-2 bg-white text-gray-700 text-sm focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">No Project</option>
+                            {projects.map(project => (
+                              <option key={project.id} value={project.id}>
+                                {project.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="flex items-center space-x-2 group">
-                        <h2 className="text-2xl font-bold">{selectedSong.title}</h2>
-                        <Button
-                          onClick={startEditingTitle}
-                          className="opacity-0 group-hover:opacity-100 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 transition-opacity"
-                        >
-                          Edit
-                        </Button>
-                      </div>
-                    )}
+                    </div>
+
                     <p className="text-gray-600">{selectedSong.filename}</p>
+
                     {selectedSong.labeling_complete && (
                       <span className="inline-block mt-2 px-3 py-1 text-sm rounded-full bg-green-100 text-green-800">
                         ✓ Labeling Complete
@@ -759,84 +833,80 @@ export default function AudioLabelingPage() {
                 )}
 
                 {/* Production Prompt */}
-                {(selectedSong.prompt || editingPrompt) && (
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-gray-700">Prompt:</h3>
-                      {!editingPrompt && (
-                        <Button
-                          onClick={startEditingPrompt}
-                          className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700"
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                    {editingPrompt ? (
-                      <div className="space-y-2">
-                        <textarea
-                          value={tempPrompt}
-                          onChange={(e) => setTempPrompt(e.target.value)}
-                          className="w-full p-3 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-[80px]"
-                          placeholder="Enter production prompt/style description..."
-                          autoFocus
-                        />
-                        <div className="flex space-x-2">
-                          <Button onClick={savePrompt} className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700">
-                            Save
-                          </Button>
-                          <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600">
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-600 bg-amber-50 p-3 rounded-lg border-l-4 border-amber-400">
-                        {selectedSong.prompt || <em className="text-gray-400">No prompt provided</em>}
-                      </p>
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold text-gray-700">Prompt:</h3>
+                    {!editingPrompt && (
+                      <Button
+                        onClick={startEditingPrompt}
+                        className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700"
+                      >
+                        Edit
+                      </Button>
                     )}
                   </div>
-                )}
+                  {editingPrompt ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={tempPrompt}
+                        onChange={(e) => setTempPrompt(e.target.value)}
+                        className="w-full p-3 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-[80px]"
+                        placeholder="Enter production prompt/style description..."
+                        autoFocus
+                      />
+                      <div className="flex space-x-2">
+                        <Button onClick={savePrompt} className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700">
+                          Save
+                        </Button>
+                        <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600">
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`text-sm p-3 rounded-lg border-l-4 ${selectedSong.prompt ? 'text-gray-600 bg-amber-50 border-amber-400' : 'text-gray-400 bg-gray-50 border-gray-300'}`}>
+                      {selectedSong.prompt || <em>No prompt provided - click Edit to add</em>}
+                    </div>
+                  )}
+                </div>
 
                 {/* Lyrics */}
-                {(selectedSong.lyrics || editingLyrics) && (
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-gray-700">Lyrics:</h3>
-                      {!editingLyrics && (
-                        <Button
-                          onClick={startEditingLyrics}
-                          className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700"
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                    {editingLyrics ? (
-                      <div className="space-y-2">
-                        <textarea
-                          value={tempLyrics}
-                          onChange={(e) => setTempLyrics(e.target.value)}
-                          className="w-full p-3 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-[200px] font-mono text-sm"
-                          placeholder="Enter song lyrics..."
-                          autoFocus
-                        />
-                        <div className="flex space-x-2">
-                          <Button onClick={saveLyrics} className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700">
-                            Save
-                          </Button>
-                          <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600">
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg max-h-40 overflow-y-auto whitespace-pre-wrap font-mono">
-                        {selectedSong.lyrics || <em className="text-gray-400">No lyrics provided</em>}
-                      </div>
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold text-gray-700">Lyrics:</h3>
+                    {!editingLyrics && (
+                      <Button
+                        onClick={startEditingLyrics}
+                        className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700"
+                      >
+                        Edit
+                      </Button>
                     )}
                   </div>
-                )}
+                  {editingLyrics ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={tempLyrics}
+                        onChange={(e) => setTempLyrics(e.target.value)}
+                        className="w-full p-3 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-[200px] font-mono text-sm"
+                        placeholder="Enter song lyrics..."
+                        autoFocus
+                      />
+                      <div className="flex space-x-2">
+                        <Button onClick={saveLyrics} className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700">
+                          Save
+                        </Button>
+                        <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600">
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`text-sm p-3 rounded-lg max-h-40 overflow-y-auto whitespace-pre-wrap font-mono ${selectedSong.lyrics ? 'text-gray-600 bg-gray-50' : 'text-gray-400 bg-gray-50 border-2 border-dashed border-gray-300'}`}>
+                      {selectedSong.lyrics || <em>No lyrics provided - click Edit to add</em>}
+                    </div>
+                  )}
+                </div>
 
                 {/* Manual Labels Summary */}
                 <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-400">

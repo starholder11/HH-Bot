@@ -49,7 +49,7 @@ export async function PATCH(
       };
     }
 
-    // Update core song data (title, prompt, lyrics)
+    // Update core song data (title, prompt, lyrics, project_id)
     if (updates.title !== undefined) {
       songData.title = updates.title;
     }
@@ -58,6 +58,9 @@ export async function PATCH(
     }
     if (updates.lyrics !== undefined) {
       songData.lyrics = updates.lyrics;
+    }
+    if (updates.project_id !== undefined) {
+      songData.project_id = updates.project_id;
     }
 
     songData.updated_at = new Date().toISOString();
