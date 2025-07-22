@@ -4,7 +4,7 @@ import { getMediaAsset, saveMediaAsset, VideoAsset } from '@/lib/media-storage';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { assetId, strategy = 'adaptive' } = body;
+    const { assetId, strategy = 'adaptive', targetFrames } = body;
 
     if (!assetId) {
       return NextResponse.json({ error: 'Asset ID is required' }, { status: 400 });
@@ -19,16 +19,17 @@ export async function POST(request: Request) {
 
     const videoAsset = asset as VideoAsset;
 
-    // This route is called by Lambda after keyframes are extracted
-    // We should NEVER run local FFmpeg/FFprobe - only trigger AI labeling
     console.log(`[analyze-route] Current video status:`, {
-      keyframe_extraction: videoAsset.processing_status.keyframe_extraction,
-      ai_labeling: videoAsset.processing_status.ai_labeling,
-      keyframe_count: videoAsset.keyframe_count || 0
+      keyframe_extraction: videoAsset.processing_status?.keyframe_extraction,
+      ai_labeling: videoAsset.processing_status?.ai_labeling,
+      keyframe_count: videoAsset.keyframe_count || 0,
+      keyframes_present: videoAsset.keyframe_stills ? videoAsset.keyframe_stills.length : 0
     });
 
+    // CASE 1: Video has keyframes - handle AI labeling
     if (videoAsset.keyframe_stills && videoAsset.keyframe_stills.length > 0) {
-      // Keyframes already exist, trigger AI labeling if needed
+      console.log(`[analyze-route] Video has ${videoAsset.keyframe_stills.length} keyframes - checking AI labeling status`);
+
       const pendingKeyframes = videoAsset.keyframe_stills.filter(kf =>
         kf.processing_status.ai_labeling === 'pending'
       );
@@ -54,26 +55,95 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
           message: `AI labeling triggered for ${pendingKeyframes.length} keyframes`,
-          keyframes: pendingKeyframes.length
+          keyframes: pendingKeyframes.length,
+          stage: 'ai_labeling'
         });
       } else {
         return NextResponse.json({
           message: 'All keyframes already processed',
-          keyframes: videoAsset.keyframe_stills.length
+          keyframes: videoAsset.keyframe_stills.length,
+          stage: 'completed'
         });
       }
-    } else {
-      // No keyframes exist - this means Lambda processing failed
-      console.error(`[analyze-route] No keyframes found for video ${assetId} - Lambda processing failed`);
+    }
 
-      videoAsset.processing_status.keyframe_extraction = 'error';
-      videoAsset.processing_status.ai_labeling = 'failed';
-      await saveMediaAsset(assetId, videoAsset);
+    // CASE 2: Video has no keyframes - trigger initial keyframe extraction
+    else {
+      console.log(`[analyze-route] Video has no keyframes - triggering initial keyframe extraction`);
 
-      return NextResponse.json({
-        error: 'No keyframes available for analysis',
-        message: 'Video processing failed during keyframe extraction - keyframes must be extracted by Lambda first'
-      }, { status: 500 });
+      // Update video status to indicate we're starting the process
+      const updatedVideoAsset = {
+        ...videoAsset,
+        processing_status: {
+          ...videoAsset.processing_status,
+          keyframe_extraction: 'processing' as const,
+          ai_labeling: 'pending' as const
+        },
+        updated_at: new Date().toISOString()
+      };
+      await saveMediaAsset(assetId, updatedVideoAsset);
+
+      try {
+        const baseUrl = process.env.PUBLIC_API_BASE_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+        // Prepare Lambda payload for keyframe extraction
+        const lambdaPayload = {
+          Records: [
+            {
+              body: JSON.stringify({
+                assetId: assetId,
+                mediaType: 'video',
+                strategy: strategy,
+                targetFrames: targetFrames,
+                requestedAt: Date.now(),
+              })
+            }
+          ]
+        };
+
+        console.log(`[analyze-route] Triggering Lambda keyframe extraction with payload:`, lambdaPayload);
+
+        // Trigger Lambda function for keyframe extraction
+        const lambdaResponse = await fetch(`${baseUrl}/api/video-processing/lambda`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(lambdaPayload),
+        });
+
+        if (!lambdaResponse.ok) {
+          const errorData = await lambdaResponse.json().catch(() => ({ error: `HTTP ${lambdaResponse.status}` }));
+          throw new Error(`Lambda invocation failed: ${errorData.error || lambdaResponse.statusText}`);
+        }
+
+        const lambdaResult = await lambdaResponse.json();
+        console.log(`[analyze-route] Lambda invocation successful:`, lambdaResult);
+
+        return NextResponse.json({
+          message: 'Keyframe extraction initiated successfully',
+          stage: 'keyframe_extraction',
+          lambdaResult: lambdaResult
+        });
+
+      } catch (error) {
+        console.error(`[analyze-route] Failed to trigger keyframe extraction:`, error);
+
+        // Update video status to reflect the error
+        await saveMediaAsset(assetId, {
+          ...updatedVideoAsset,
+          processing_status: {
+            ...updatedVideoAsset.processing_status,
+            keyframe_extraction: 'error' as const,
+            ai_labeling: 'failed' as const
+          }
+        });
+
+        return NextResponse.json({
+          error: 'Failed to initiate keyframe extraction',
+          details: error instanceof Error ? error.message : String(error),
+          stage: 'keyframe_extraction_failed'
+        }, { status: 500 });
+      }
     }
 
   } catch (error) {
