@@ -150,7 +150,7 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
                 );
 
                 // Update parent video status if all keyframes are done
-                if (allKeyframesCompleted && videoAsset.processing_status?.ai_labeling === 'pending') {
+                if (allKeyframesCompleted && ['pending', 'processing'].includes(videoAsset.processing_status?.ai_labeling || '')) {
                   videoAsset.processing_status.ai_labeling = 'completed';
                   videoAsset.timestamps = videoAsset.timestamps || {};
                   videoAsset.timestamps.labeled_ai = new Date().toISOString();
