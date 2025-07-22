@@ -267,12 +267,17 @@ export default function VideoAnalysisPage() {
     console.log('[video-analysis] Starting analysis for video:', selectedVideo.id, selectedVideo.title);
     console.log('[video-analysis] Analysis settings:', { keyframeStrategy, targetFrames, analysisType });
 
+    // Determine if this is a re-analysis (force) based on current status
+    const currentStatus = selectedVideo.processing_status?.ai_labeling || 'not_started';
+    const isReAnalysis = currentStatus === 'completed';
+
     setIsAnalyzing(true);
     try {
       const requestBody = {
         assetId: selectedVideo.id,  // Changed from videoId to assetId to match API
         strategy: keyframeStrategy,
-        targetFrames: targetFrames
+        targetFrames: targetFrames,
+        force: isReAnalysis  // Force re-analysis for completed videos
       };
 
       console.log('[video-analysis] Request body:', requestBody);
@@ -356,20 +361,36 @@ export default function VideoAnalysisPage() {
     ).length : 0;
     const totalKeyframes = hasKeyframes && video.keyframe_stills ? video.keyframe_stills.length : 0;
 
+    // Check if there are failed keyframes
+    const failedKeyframes = hasKeyframes && video.keyframe_stills ? video.keyframe_stills.filter(kf =>
+      ['failed', 'error'].includes(kf.processing_status?.ai_labeling || '')
+    ).length : 0;
+
     switch (status) {
       case 'completed':
-        if (hasResults) {
-          // Video analysis complete, check keyframes
-          if (pendingKeyframes > 0) {
-            return {
-              status: 'processing',
-              label: `Processing Keyframes (${totalKeyframes - pendingKeyframes}/${totalKeyframes})`,
-              color: 'blue'
-            };
-          }
-          return { status: 'completed', label: 'Analyzed', color: 'green' };
+        // If there are pending keyframes, show processing status
+        if (pendingKeyframes > 0) {
+          return {
+            status: 'processing',
+            label: `Processing Keyframes (${totalKeyframes - pendingKeyframes}/${totalKeyframes})`,
+            color: 'blue'
+          };
         }
-        return { status: 'failed', label: 'Failed', color: 'red' };
+        // If there are failed keyframes, allow retry
+        if (failedKeyframes > 0) {
+          return {
+            status: 'failed',
+            label: `Failed (${failedKeyframes}/${totalKeyframes} keyframes failed)`,
+            color: 'red'
+          };
+        }
+        // Video is completed - show as analyzed even if results are empty
+        // Empty results can happen for very simple videos or if AI didn't detect much
+        return {
+          status: 'completed',
+          label: hasResults ? 'Analyzed' : 'Analyzed (minimal results)',
+          color: 'green'
+        };
 
       case 'processing':
         return { status: 'processing', label: 'Processing', color: 'blue' };

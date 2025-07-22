@@ -23,7 +23,7 @@ export function getOpenAIClient() {
 /**
  * Shared AI labeling function that can be called directly from any server context
  */
-export async function performAiLabeling(assetId: string) {
+export async function performAiLabeling(assetId: string, force: boolean = false) {
   let asset: MediaAsset | KeyframeStill | null = null;
   try {
     // Lazily create the client so the *runtime* env var is picked up every time.
@@ -38,7 +38,18 @@ export async function performAiLabeling(assetId: string) {
       throw new Error(`Asset ${assetId} is not an image or keyframe, it's a ${asset.media_type}`);
     }
 
-    console.log(`Starting AI labeling for image: ${asset.title}`);
+    console.log(`Starting AI labeling for image: ${asset.title} (force: ${force})`);
+
+    // Check if already completed and not forcing re-analysis
+    if (!force && asset.processing_status?.ai_labeling === 'completed') {
+      console.log(`[ai-labeling] Asset ${assetId} already completed, skipping (use force=true to re-analyze)`);
+      return {
+        message: 'Asset already completed',
+        stage: 'completed',
+        assetId: asset.id,
+        labels: asset.ai_labels
+      };
+    }
 
     // Set status to 'processing'
     asset.processing_status.ai_labeling = 'processing';

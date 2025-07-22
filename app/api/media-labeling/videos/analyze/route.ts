@@ -4,13 +4,13 @@ import { getMediaAsset, saveMediaAsset, VideoAsset } from '@/lib/media-storage';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { assetId, strategy = 'adaptive', targetFrames } = body;
+    const { assetId, strategy = 'adaptive', targetFrames, force = false } = body;
 
     if (!assetId) {
       return NextResponse.json({ error: 'Asset ID is required' }, { status: 400 });
     }
 
-    console.log(`[analyze-route] Video analysis request for: ${assetId}`);
+    console.log(`[analyze-route] Video analysis request for: ${assetId} (force: ${force})`);
 
     const asset = await getMediaAsset(assetId);
     if (!asset || asset.media_type !== 'video') {
@@ -30,22 +30,23 @@ export async function POST(request: Request) {
     if (videoAsset.keyframe_stills && videoAsset.keyframe_stills.length > 0) {
       console.log(`[analyze-route] Video has ${videoAsset.keyframe_stills.length} keyframes - checking AI labeling status`);
 
-      const pendingKeyframes = videoAsset.keyframe_stills.filter(kf =>
-        kf.processing_status.ai_labeling === 'pending'
-      );
+      // If force is true, re-analyze all keyframes regardless of their current status
+      const keyframesToProcess = force
+        ? videoAsset.keyframe_stills
+        : videoAsset.keyframe_stills.filter(kf => kf.processing_status.ai_labeling === 'pending');
 
-      if (pendingKeyframes.length > 0) {
-        console.log(`[analyze-route] Triggering AI labeling for ${pendingKeyframes.length} pending keyframes`);
+      if (keyframesToProcess.length > 0) {
+        console.log(`[analyze-route] ${force ? 'Force re-analyzing' : 'Triggering AI labeling for'} ${keyframesToProcess.length} keyframes`);
 
         const baseUrl = process.env.PUBLIC_API_BASE_URL ||
           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // Trigger AI labeling for all pending keyframes
-        for (const keyframe of pendingKeyframes) {
+        // Trigger AI labeling for all target keyframes
+        for (const keyframe of keyframesToProcess) {
           fetch(`${baseUrl}/api/media-labeling/images/ai-label`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ assetId: keyframe.id }),
+            body: JSON.stringify({ assetId: keyframe.id, force }),
           }).catch(err => console.error(`Failed to trigger AI labeling for keyframe ${keyframe.id}:`, err));
         }
 
@@ -54,9 +55,12 @@ export async function POST(request: Request) {
         await saveMediaAsset(assetId, videoAsset);
 
         return NextResponse.json({
-          message: `AI labeling triggered for ${pendingKeyframes.length} keyframes`,
-          keyframes: pendingKeyframes.length,
-          stage: 'ai_labeling'
+          message: force
+            ? `Force re-analyzing ${keyframesToProcess.length} keyframes`
+            : `AI labeling triggered for ${keyframesToProcess.length} keyframes`,
+          keyframes: keyframesToProcess.length,
+          stage: 'ai_labeling',
+          force
         });
       } else {
         return NextResponse.json({
