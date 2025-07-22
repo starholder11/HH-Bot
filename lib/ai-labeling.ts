@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { getMediaAsset, MediaAsset, KeyframeStill, saveMediaAsset } from '@/lib/media-storage';
+import { getMediaAsset, MediaAsset, KeyframeStill, saveMediaAsset, updateMediaAsset } from '@/lib/media-storage';
 
 function isImageAsset(asset: MediaAsset | KeyframeStill): asset is MediaAsset & { media_type: 'image' | 'keyframe_still' } {
     return asset.media_type === 'image' || asset.media_type === 'keyframe_still';
@@ -144,20 +144,32 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
               if (keyframeIndex !== -1) {
                 videoAsset.keyframe_stills[keyframeIndex] = asset;
 
-                // Check if all keyframes are now completed
-                const allKeyframesCompleted = videoAsset.keyframe_stills.every((kf: any) =>
-                  kf.processing_status?.ai_labeling === 'completed'
+                // Re-fetch parent video to get the very latest keyframe statuses – otherwise
+                // we might operate on a stale snapshot (race condition when multiple frames
+                // finish nearly simultaneously).
+                const refreshedVideo = await getMediaAsset(videoAsset.id);
+                if (!refreshedVideo) return;
+
+                const allKeyframesCompleted = ((refreshedVideo as any).keyframe_stills || []).every(
+                  (kf: any) => kf.processing_status?.ai_labeling === 'completed'
                 );
 
-                // Update parent video status if all keyframes are done
-                if (allKeyframesCompleted && ['pending', 'processing'].includes(videoAsset.processing_status?.ai_labeling || '')) {
-                  videoAsset.processing_status.ai_labeling = 'completed';
-                  videoAsset.timestamps = videoAsset.timestamps || {};
-                  videoAsset.timestamps.labeled_ai = new Date().toISOString();
+                if (
+                  allKeyframesCompleted &&
+                  ['pending', 'processing'].includes(
+                    refreshedVideo.processing_status?.ai_labeling || ''
+                  )
+                ) {
+                  await updateMediaAsset(refreshedVideo.id, {
+                    processing_status: {
+                      ...refreshedVideo.processing_status,
+                      ai_labeling: 'completed',
+                    },
+                  });
+                  console.log(
+                    `[ai-labeling] All keyframes labeled for video ${refreshedVideo.id}. Marked video ai_labeling=completed.`
+                  );
                 }
-
-                await saveMediaAsset(keyframeAsset.parent_video_id, videoAsset);
-                console.log(`Updated parent video ${keyframeAsset.parent_video_id} with completed keyframe`);
               }
             }
           }
