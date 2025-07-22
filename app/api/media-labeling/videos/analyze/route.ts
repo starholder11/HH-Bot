@@ -1,60 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMediaAsset, saveMediaAsset, KeyframeStill, VideoAsset } from '@/lib/media-storage';
-import { downloadFromS3, extractKeyframesFromVideo, ExtractedFrame } from '@/lib/video-processing';
-import { performAiLabeling } from '@/lib/ai-labeling';
-import { generateUUID } from '@/lib/utils';
-
-
-function convertExtractedFrameToKeyframeStill(frame: ExtractedFrame, videoAsset: VideoAsset, index: number, strategy: string): KeyframeStill {
-    const timestamp = frame.timestamp;
-    const keyframeFilename = `${videoAsset.title}_keyframe_${String(index + 1).padStart(2, '0')}.jpg`;
-
-    return {
-        id: generateUUID(),
-        parent_video_id: videoAsset.id,
-        project_id: videoAsset.project_id,
-        media_type: 'keyframe_still',
-        timestamp: timestamp,
-        frame_number: frame.frameNumber,
-        filename: keyframeFilename,
-        title: `${videoAsset.title} - Frame ${index + 1}`,
-        s3_url: '', // Will be populated after upload
-        cloudflare_url: '', // Will be populated after upload
-        reusable_as_image: true,
-        source_info: {
-            video_filename: videoAsset.filename,
-            timestamp: timestamp,
-            frame_number: frame.frameNumber,
-            extraction_method: strategy,
-        },
-        metadata: {
-            file_size: frame.buffer.length,
-            format: 'jpeg',
-            resolution: { width: frame.width, height: frame.height },
-            aspect_ratio: `${frame.width}:${frame.height}`,
-            color_profile: 'sRGB',
-            quality: 85,
-        },
-        ai_labels: undefined,
-        usage_tracking: {
-            times_reused: 0,
-            projects_used_in: [],
-            last_used: null,
-        },
-        processing_status: {
-            extraction: 'completed',
-            ai_labeling: 'pending',
-            manual_review: 'pending',
-        },
-        timestamps: {
-            extracted: new Date().toISOString(),
-            labeled_ai: null,
-            labeled_reviewed: null,
-        },
-        labeling_complete: false,
-    };
-}
-
+import { getMediaAsset, saveMediaAsset, VideoAsset } from '@/lib/media-storage';
 
 export async function POST(request: Request) {
   try {
@@ -74,10 +19,8 @@ export async function POST(request: Request) {
 
     const videoAsset = asset as VideoAsset;
 
-    // NOTE: This route is now called by Lambda after it extracts keyframes with FFmpeg
-    // The Lambda has already done the heavy lifting, so we just need to trigger AI labeling
-    // if keyframes exist but haven't been AI labeled yet
-
+    // This route is called by Lambda after keyframes are extracted
+    // We should NEVER run local FFmpeg/FFprobe - only trigger AI labeling
     console.log(`[analyze-route] Current video status:`, {
       keyframe_extraction: videoAsset.processing_status.keyframe_extraction,
       ai_labeling: videoAsset.processing_status.ai_labeling,
@@ -120,8 +63,8 @@ export async function POST(request: Request) {
         });
       }
     } else {
-      // No keyframes exist - this shouldn't happen if Lambda processed correctly
-      console.error(`[analyze-route] No keyframes found for video ${assetId} - Lambda processing may have failed`);
+      // No keyframes exist - this means Lambda processing failed
+      console.error(`[analyze-route] No keyframes found for video ${assetId} - Lambda processing failed`);
 
       videoAsset.processing_status.keyframe_extraction = 'error';
       videoAsset.processing_status.ai_labeling = 'failed';
@@ -129,7 +72,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         error: 'No keyframes available for analysis',
-        message: 'Video processing may have failed during keyframe extraction'
+        message: 'Video processing failed during keyframe extraction - keyframes must be extracted by Lambda first'
       }, { status: 500 });
     }
 
