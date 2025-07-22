@@ -118,18 +118,12 @@ export async function POST(request: NextRequest) {
 
     await saveMediaAsset(assetId, updatedVideoAsset);
 
-    // Trigger AI labeling for the hero keyframe (first one)
+    // Trigger AI labeling for all keyframes with proper retry logic and staggered timing
     if (keyframes.length > 0) {
-      const heroKeyframe = keyframes[0];
-
       try {
-        console.log(`[update-keyframes] Triggering AI labeling (with retry) for hero keyframe: ${heroKeyframe.id}`);
+        console.log(`[update-keyframes] Triggering AI labeling for ${keyframes.length} keyframes with staggered timing`);
 
-        // helper now imported from module scope
-
-        await postAiLabel(heroKeyframe.id);
-
-        // Mark video AI-labeling as in-progress
+        // Mark video AI-labeling as in-progress immediately
         await saveMediaAsset(assetId, {
           ...updatedVideoAsset,
           processing_status: {
@@ -137,23 +131,63 @@ export async function POST(request: NextRequest) {
             ai_labeling: 'processing' as const,
           },
         });
-      } catch (labelError) {
-        console.error(`[update-keyframes] Error triggering hero keyframe AI labeling:`, labelError);
+
+        // Trigger AI labeling for all keyframes sequentially with delays to avoid rate limiting
+        let successCount = 0;
+        let failureCount = 0;
+
+        for (let i = 0; i < keyframes.length; i++) {
+          const kf = keyframes[i];
+          const isHero = i === 0;
+
+          try {
+            // Add staggered delay to avoid overwhelming OpenAI API when processing multiple videos
+            if (i > 0) {
+              const delay = 1000 + (Math.random() * 1000); // 1-2 second delay between keyframes
+              console.log(`[update-keyframes] Waiting ${Math.round(delay)}ms before triggering keyframe ${i + 1}/${keyframes.length}`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+
+            console.log(`[update-keyframes] Triggering AI labeling for keyframe ${i + 1}/${keyframes.length} (${isHero ? 'hero' : 'standard'}): ${kf.id}`);
+
+            await postAiLabel(kf.id);
+            successCount++;
+
+            console.log(`[update-keyframes] ✅ Keyframe ${i + 1} AI labeling triggered successfully`);
+
+          } catch (labelError) {
+            failureCount++;
+            console.error(`[update-keyframes] ❌ Failed to trigger AI labeling for keyframe ${i + 1}: ${kf.id}`, labelError);
+
+            // For critical failures, we don't want to stop the entire process
+            // The lenient completion logic will handle partial failures
+          }
+        }
+
+        console.log(`[update-keyframes] AI labeling trigger summary: ${successCount}/${keyframes.length} successful, ${failureCount} failed`);
+
+        // If more than 50% of keyframes failed to trigger, mark video as failed
+        if (failureCount > keyframes.length / 2) {
+          console.error(`[update-keyframes] Too many AI labeling failures (${failureCount}/${keyframes.length}), marking video as failed`);
+          await saveMediaAsset(assetId, {
+            ...updatedVideoAsset,
+            processing_status: {
+              ...updatedVideoAsset.processing_status,
+              ai_labeling: 'failed' as const,
+            },
+          });
+        }
+
+      } catch (overallError) {
+        console.error(`[update-keyframes] Overall error in AI labeling trigger process:`, overallError);
+        await saveMediaAsset(assetId, {
+          ...updatedVideoAsset,
+          processing_status: {
+            ...updatedVideoAsset.processing_status,
+            ai_labeling: 'failed' as const,
+          },
+        });
       }
-
-       // Trigger AI labeling for remaining keyframes in parallel (with retry)
-       const otherKeyframes = keyframes.slice(1);
-       if (otherKeyframes.length > 0) {
-         console.log(`[update-keyframes] Triggering AI labeling for ${otherKeyframes.length} remaining keyframes (parallel with retry)`);
-
-         Promise.all(
-           otherKeyframes.map(kf =>
-             postAiLabel(kf.id).catch((err: unknown) =>
-               console.error(`[ai-label] keyframe ${kf.id} final failure`, err)
-             )
-           )
-         ).then(() => console.log('[update-keyframes] parallel AI labeling posts fired'));
-       }
     }
 
     console.log(`[update-keyframes] Successfully updated video ${assetId} with keyframes and triggered AI labeling`);
