@@ -328,21 +328,6 @@ export async function POST(request: NextRequest) {
 
       } catch (lambdaErr) {
         console.error('[videos/finish-upload] Error invoking Lambda directly', lambdaErr);
-        // Fallback: hit the /analyze endpoint directly so at least AI labeling can begin even
-        // if Lambda invocation fails due to missing AWS creds in the environment.
-        try {
-          const fallbackBaseUrl = process.env.PUBLIC_API_BASE_URL ||
-            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-
-          const resp = await fetch(`${fallbackBaseUrl}/api/media-labeling/videos/analyze`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ assetId: videoId, strategy: 'adaptive' })
-          });
-          console.log('[videos/finish-upload] Post-Lambda fallback /analyze status', resp.status);
-        } catch (analyzeErr) {
-          console.error('[videos/finish-upload] Post-Lambda fallback /analyze failed', analyzeErr);
-        }
       }
       autoTriggerSuccess = true;
     } catch (err) {
