@@ -127,6 +127,11 @@ export default function FileManagerPage() {
     loadProjects();
   }, []);
 
+  // Load assets when filters change - prevent race conditions
+  useEffect(() => {
+    loadAssets();
+  }, [mediaTypeFilter, projectFilter]);
+
   // Reset AI labeling state when switching between assets
   useEffect(() => {
     setIsAILabeling(false);
@@ -140,6 +145,25 @@ export default function FileManagerPage() {
       }
     };
   }, [pollingInterval]);
+
+  // Clear selected asset if it doesn't match current filters
+  useEffect(() => {
+    if (selectedAsset) {
+      // Check if selected asset matches current media type filter
+      if (mediaTypeFilter && selectedAsset.media_type !== mediaTypeFilter) {
+        console.log('[file-manager] Clearing selected asset - media type filter mismatch');
+        setSelectedAsset(null);
+        return;
+      }
+
+      // Check if selected asset matches current project filter
+      if (projectFilter && selectedAsset.project_id !== projectFilter) {
+        console.log('[file-manager] Clearing selected asset - project filter mismatch');
+        setSelectedAsset(null);
+        return;
+      }
+    }
+  }, [selectedAsset, mediaTypeFilter, projectFilter]);
 
   // Start/stop polling based on pending assets or upload state
   useEffect(() => {
@@ -166,7 +190,7 @@ export default function FileManagerPage() {
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
-  }, [isUploading, isAILabeling, assets, pollingInterval]);
+  }, [isUploading, isAILabeling, assets, pollingInterval, mediaTypeFilter, projectFilter]);
 
   const loadAssets = async () => {
     try {
@@ -184,6 +208,13 @@ export default function FileManagerPage() {
       if (selectedAsset) {
         const updatedSelectedAsset = data.find((asset: MediaAsset) => asset.id === selectedAsset.id);
         if (updatedSelectedAsset) {
+          // Validate that the updated asset still matches the selected type
+          if (updatedSelectedAsset.media_type !== selectedAsset.media_type) {
+            console.log('[file-manager] Asset media type changed, clearing selection');
+            setSelectedAsset(null);
+            return;
+          }
+
           const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'triggering' || selectedAsset.processing_status?.ai_labeling === 'processing';
           const isNowCompleted = updatedSelectedAsset.processing_status?.ai_labeling === 'completed';
 
@@ -194,6 +225,10 @@ export default function FileManagerPage() {
           }
 
           setSelectedAsset(updatedSelectedAsset);
+        } else {
+          // Selected asset no longer exists in filtered results
+          console.log('[file-manager] Selected asset no longer in filtered results, clearing selection');
+          setSelectedAsset(null);
         }
       }
     } catch (error) {
@@ -256,11 +291,8 @@ export default function FileManagerPage() {
         if (!matchesSearch) return false;
       }
 
-      // Media type filter
-      if (mediaTypeFilter && asset.media_type !== mediaTypeFilter) return false;
-
-      // Project filter
-      if (projectFilter && asset.project_id !== projectFilter) return false;
+      // Note: Media type and project filters are already applied server-side in loadAssets()
+      // So we don't need to re-filter them here to avoid race conditions
 
       // Complete only filter
       if (showCompleteOnly && !asset.labeling_complete) return false;
@@ -492,7 +524,6 @@ export default function FileManagerPage() {
               value={mediaTypeFilter}
               onChange={(e) => {
                 setMediaTypeFilter(e.target.value);
-                loadAssets();
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
@@ -509,7 +540,6 @@ export default function FileManagerPage() {
               value={projectFilter}
               onChange={(e) => {
                 setProjectFilter(e.target.value);
-                loadAssets();
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
@@ -573,7 +603,14 @@ export default function FileManagerPage() {
               return (
                 <div
                   key={asset.id}
-                  onClick={() => setSelectedAsset(asset)}
+                  onClick={() => {
+                    // Additional validation before setting selected asset
+                    if (asset && asset.media_type && ['image', 'video', 'audio'].includes(asset.media_type)) {
+                      setSelectedAsset(asset);
+                    } else {
+                      console.warn('[file-manager] Invalid asset selected:', asset);
+                    }
+                  }}
                   className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
                     selectedAsset?.id === asset.id
                       ? 'bg-blue-50 border-blue-300 shadow-md'
@@ -858,7 +895,7 @@ export default function FileManagerPage() {
                     scrolling="no"
                   />
                 </div>
-              ) : (
+              ) : selectedAsset.media_type === 'audio' ? (
                 /* Audio iframe */
                 <div className="w-full">
                   <iframe
@@ -869,6 +906,14 @@ export default function FileManagerPage() {
                     frameBorder="0"
                     scrolling="no"
                   />
+                </div>
+              ) : (
+                /* Unknown media type fallback */
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">❓</div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Unsupported Media Type</h3>
+                  <p className="text-gray-500">Media type "{selectedAsset.media_type}" is not supported for viewing.</p>
+                  <p className="text-sm text-gray-400 mt-2">Asset ID: {selectedAsset.id}</p>
                 </div>
               )}
             </div>
