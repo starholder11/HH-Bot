@@ -151,18 +151,12 @@ export default function MediaLabelingPage() {
       asset.processing_status?.upload === 'pending'
     );
 
-    const shouldPoll = isUploading || isAILabeling || hasPendingAssets;
+    // POLLING DISABLED - causing UI jumping issues
+    console.log('[media-labeling] Polling system DISABLED to prevent UI jumping');
 
-    if (shouldPoll && !pollingInterval) {
-      // Start polling every 3 seconds when there are pending assets or active processes
-      const interval = setInterval(() => {
-        console.log('[media-labeling] Polling for updates... (pending assets or active processes)');
-        loadAssets();
-      }, 3000);
-      setPollingInterval(interval);
-    } else if (!shouldPoll && pollingInterval) {
-      // Stop polling when no pending assets and no active processes
-      console.log('[media-labeling] Stopping polling - no pending assets or active processes');
+    // Clear any existing polling interval
+    if (pollingInterval) {
+      console.log('[media-labeling] Clearing existing polling interval');
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
