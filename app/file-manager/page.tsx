@@ -253,21 +253,25 @@ export default function FileManagerPage() {
 
         const shouldPoll = isUploading || isAILabeling || hasPendingAssets;
 
-    // Clear existing interval if filters changed (to avoid stale closure)
-    if (pollingInterval) {
+    if (shouldPoll && !pollingInterval) {
+      // Start polling every 3 seconds when there are pending assets or active processes
+      const interval = setInterval(() => {
+        loadAssets();
+      }, 3000);
+      setPollingInterval(interval);
+    } else if (!shouldPoll && pollingInterval) {
+      // Stop polling when no pending assets and no active processes
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
 
-    if (shouldPoll) {
-      // Start polling every 3 seconds when there are pending assets or active processes
-      const interval = setInterval(() => {
-
-        loadAssets();
-      }, 3000);
-      setPollingInterval(interval);
-    }
-  }, [isUploading, isAILabeling, assets, pollingInterval, mediaTypeFilter, projectFilter, loadAssets]);
+    // Cleanup function to clear interval when dependencies change
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [isUploading, isAILabeling, assets, mediaTypeFilter, projectFilter, loadAssets]);
 
 
 
