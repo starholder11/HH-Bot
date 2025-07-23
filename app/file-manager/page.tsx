@@ -853,7 +853,7 @@ export default function FileManagerPage() {
                     src={`/video-editor?asset=${selectedAsset.id}`}
                     className="w-full border-0 rounded-lg"
                     title="Video Editor"
-                    style={{ height: '300vh', minHeight: '2400px' }}
+                    style={{ height: '350vh', minHeight: '2800px' }}
                     frameBorder="0"
                     scrolling="no"
                   />
