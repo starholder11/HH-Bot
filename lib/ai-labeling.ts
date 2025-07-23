@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { getMediaAsset, MediaAsset, KeyframeStill, saveMediaAsset, updateMediaAsset } from '@/lib/media-storage';
+import { getMediaAsset, MediaAsset, KeyframeStill, saveMediaAsset, updateMediaAsset, getKeyframeAsset } from '@/lib/media-storage';
 
 function isImageAsset(asset: MediaAsset | KeyframeStill): asset is MediaAsset & { media_type: 'image' | 'keyframe_still' } {
     return asset.media_type === 'image' || asset.media_type === 'keyframe_still';
@@ -29,7 +29,14 @@ export async function performAiLabeling(assetId: string, force: boolean = false)
     // Lazily create the client so the *runtime* env var is picked up every time.
     const openai = getOpenAIClient();
 
+    // First try to get as regular media asset
     asset = await getMediaAsset(assetId);
+
+    // If not found, try to get as keyframe asset
+    if (!asset) {
+      asset = await getKeyframeAsset(assetId);
+    }
+
     if (!asset) {
       throw new Error(`Asset ${assetId} not found`);
     }
@@ -53,7 +60,14 @@ export async function performAiLabeling(assetId: string, force: boolean = false)
 
     // Set status to 'processing'
     asset.processing_status.ai_labeling = 'processing';
-    await saveMediaAsset(asset.id, asset);
+
+    // Save the updated status immediately using the correct save function
+    if ((asset as any).media_type === 'keyframe_still') {
+      const { saveKeyframeAsset } = await import('./media-storage');
+      await saveKeyframeAsset(asset as any);
+    } else {
+      await saveMediaAsset(asset.id, asset);
+    }
 
     // Use CloudFlare URL for better performance, fallback to S3
     const imageUrl = asset.cloudflare_url || asset.s3_url;
@@ -139,7 +153,16 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
     if (asset.timestamps) {
       asset.timestamps.labeled_ai = new Date().toISOString();
     }
-    await saveMediaAsset(assetId, asset);
+
+    // Save differently based on asset type
+    if ((asset as any).media_type === 'keyframe_still') {
+      // For keyframes, use saveKeyframeAsset
+      const { saveKeyframeAsset } = await import('./media-storage');
+      await saveKeyframeAsset(asset as any);
+    } else {
+      // For regular assets, use saveMediaAsset
+      await saveMediaAsset(assetId, asset);
+    }
 
     // If this is a keyframe, also update the parent video
     if ((asset as any).media_type === 'keyframe_still') {
@@ -333,7 +356,14 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
     if (asset) {
       // Update the asset to reflect the error
       asset.processing_status.ai_labeling = 'failed';
-      await saveMediaAsset(assetId, asset);
+
+      // Save using the correct function based on asset type
+      if ((asset as any).media_type === 'keyframe_still') {
+        const { saveKeyframeAsset } = await import('./media-storage');
+        await saveKeyframeAsset(asset as any);
+      } else {
+        await saveMediaAsset(assetId, asset as MediaAsset);
+      }
     }
     throw error; // Re-throw to propagate the error
   }
