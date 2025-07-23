@@ -299,7 +299,7 @@ export default function FileManagerPage() {
 
       return true;
     });
-  }, [assets, searchTerm, mediaTypeFilter, projectFilter, showCompleteOnly]);
+  }, [assets, searchTerm, showCompleteOnly]);
 
   // Create new project
   const createProject = async () => {
