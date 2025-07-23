@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Project as ProjectType } from '@/lib/project-storage';
@@ -99,6 +99,63 @@ function encodePath(url: string) {
   }
 }
 
+const AssetListItem = memo(function AssetListItem({
+  asset,
+  isSelected,
+  onSelect,
+  getAssetIcon,
+  getAssetDisplayInfo
+}: {
+  asset: MediaAsset;
+  isSelected: boolean;
+  onSelect: (asset: MediaAsset) => void;
+  getAssetIcon: (asset: MediaAsset) => string;
+  getAssetDisplayInfo: (asset: MediaAsset) => { primaryLabel: string; secondaryInfo: string };
+}) {
+  const displayInfo = getAssetDisplayInfo(asset);
+
+  return (
+    <div
+      onClick={() => onSelect(asset)}
+      className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
+        isSelected
+          ? 'bg-blue-50 border-blue-300 shadow-md'
+          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+      }`}
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">{getAssetIcon(asset)}</span>
+            <div className="text-sm font-medium truncate">{asset.title}</div>
+          </div>
+          <div className="text-xs text-gray-500 truncate">{asset.filename}</div>
+          <div className="text-xs text-blue-600 mt-1">
+            {displayInfo.primaryLabel}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            {displayInfo.secondaryInfo}
+          </div>
+          {asset.manual_labels?.mood?.length > 0 && (
+            <div className="text-xs text-purple-600 mt-1">
+              {(asset.manual_labels?.mood || []).slice(0, 2).join(', ')}
+              {(asset.manual_labels?.mood || []).length > 2 && '...'}
+            </div>
+          )}
+        </div>
+        <div className="ml-2 flex flex-col items-end space-y-1">
+          {asset.labeling_complete && (
+            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓</span>
+          )}
+          {asset.cover_art && (
+            <span className="text-xs text-gray-400">🖼️</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
 export default function FileManagerPage() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -121,16 +178,20 @@ export default function FileManagerPage() {
   // Polling state
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // Asset cache for stable references
+  const assetCacheRef = useRef<Map<string, MediaAsset>>(new Map());
+  const lastUpdateTimestamp = useRef<string>('');
+
   // Load assets and projects
   useEffect(() => {
-    loadAssets();
+    loadAssetsIncremental();
     loadProjects();
   }, []);
 
   // Define loadAssets with useCallback to prevent infinite re-renders
-  const loadAssets = useCallback(async () => {
+  const loadAssetsIncremental = useCallback(async () => {
     try {
-      let data: MediaAsset[] = [];
+      let newData: MediaAsset[] = [];
 
       if (mediaTypeFilter === 'audio') {
         // For audio filter, fetch from audio-labeling API (which uses S3 JSON files)
@@ -138,7 +199,7 @@ export default function FileManagerPage() {
         const audioData = await response.json();
 
         // Transform audio data to match MediaAsset interface
-        data = audioData.map((song: any) => ({
+        newData = audioData.map((song: any) => ({
           id: song.id,
           title: song.title || song.filename || 'Untitled',
           media_type: 'audio' as const,
@@ -162,18 +223,33 @@ export default function FileManagerPage() {
         const params = new URLSearchParams();
         if (mediaTypeFilter && mediaTypeFilter !== 'audio') params.append('type', mediaTypeFilter);
         if (projectFilter) params.append('project', projectFilter);
+        // Add timestamp to only get changes since last update during polling
+        if (lastUpdateTimestamp.current) params.append('since', lastUpdateTimestamp.current);
 
         const queryString = params.toString();
         const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
-        data = await response.json();
+        newData = await response.json();
       }
 
-      setAssets(data);
+      // Smart merge: only update changed items, preserve stable references
+      const cache = assetCacheRef.current;
+      const updatedAssets: MediaAsset[] = [];
+      const hasChanges = mergeAssetsWithCache(newData, cache, updatedAssets);
 
-      // Update selected asset with fresh data if it exists
-      if (selectedAsset) {
-        const updatedSelectedAsset = data.find((asset: MediaAsset) => asset.id === selectedAsset.id);
-        if (updatedSelectedAsset) {
+      // Only trigger re-render if there are actual changes AND no asset is selected
+      if ((hasChanges || assets.length === 0) && !selectedAsset) {
+        console.log('[file-manager] Updating assets list - changes detected and no selection');
+        setAssets(updatedAssets);
+
+        // Update timestamp for next incremental fetch
+        lastUpdateTimestamp.current = new Date().toISOString();
+      } else if (hasChanges && selectedAsset) {
+        // If there are changes but an asset is selected, update cache but don't re-render list
+        console.log('[file-manager] Changes detected but asset selected - updating cache only');
+
+        // Update selected asset with fresh data if it exists and changed
+        const updatedSelectedAsset = cache.get(selectedAsset.id);
+        if (updatedSelectedAsset && updatedSelectedAsset !== selectedAsset) {
           // Validate that the updated asset still matches the selected type
           if (updatedSelectedAsset.media_type !== selectedAsset.media_type) {
             console.log('[file-manager] Asset media type changed, clearing selection');
@@ -190,23 +266,84 @@ export default function FileManagerPage() {
             setIsAILabeling(false);
           }
 
+          console.log('[file-manager] Updating selected asset with fresh data');
           setSelectedAsset(updatedSelectedAsset);
-        } else {
+        } else if (!updatedSelectedAsset) {
           // Selected asset no longer exists in filtered results
           console.log('[file-manager] Selected asset no longer in filtered results, clearing selection');
           setSelectedAsset(null);
         }
+
+        // Update timestamp for next incremental fetch
+        lastUpdateTimestamp.current = new Date().toISOString();
+      } else if (!hasChanges) {
+        console.log('[file-manager] No changes detected - skipping update');
       }
     } catch (error) {
       console.error('Error loading assets:', error);
     }
-  }, [mediaTypeFilter, projectFilter, selectedAsset, isAILabeling]);
+  }, [mediaTypeFilter, projectFilter, selectedAsset, isAILabeling, assets.length]);
+
+  // Smart merge function that maintains stable object references
+  const mergeAssetsWithCache = (newData: MediaAsset[], cache: Map<string, MediaAsset>, result: MediaAsset[]): boolean => {
+    let hasChanges = false;
+
+    // Create a set of new IDs for quick lookup
+    const newIds = new Set(newData.map(asset => asset.id));
+
+    // Update/add new and changed assets
+    for (const newAsset of newData) {
+      const existing = cache.get(newAsset.id);
+
+      if (!existing || hasAssetChanged(existing, newAsset)) {
+        // Asset is new or changed - update cache and mark as changed
+        cache.set(newAsset.id, newAsset);
+        hasChanges = true;
+      }
+
+      // Always add the cached version (which is now up to date) to result
+      result.push(cache.get(newAsset.id)!);
+    }
+
+    // Remove assets that are no longer present
+    const removedIds: string[] = [];
+    for (const id of Array.from(cache.keys())) {
+      if (!newIds.has(id)) {
+        removedIds.push(id);
+        hasChanges = true;
+      }
+    }
+
+    removedIds.forEach(id => cache.delete(id));
+
+    return hasChanges;
+  };
+
+  // Check if asset has meaningful changes
+  const hasAssetChanged = (existing: MediaAsset, updated: MediaAsset): boolean => {
+    // Check key fields that would affect UI
+    const keyFields: (keyof MediaAsset)[] = [
+      'title', 'filename', 'processing_status', 'ai_labels', 'manual_labels',
+      'labeling_complete', 'project_id', 'updated_at'
+    ];
+
+    for (const field of keyFields) {
+      if (JSON.stringify(existing[field]) !== JSON.stringify(updated[field])) {
+        return true;
+      }
+    }
+
+    return false;
+  };
 
   // Load assets when filters change - prevent race conditions
   useEffect(() => {
+    // Clear cache when filters change to start fresh
+    assetCacheRef.current.clear();
+    lastUpdateTimestamp.current = '';
 
-    loadAssets();
-  }, [mediaTypeFilter, projectFilter, loadAssets]);
+    loadAssetsIncremental();
+  }, [mediaTypeFilter, projectFilter, loadAssetsIncremental]);
 
   // Reset AI labeling state when switching between assets
   useEffect(() => {
@@ -251,18 +388,19 @@ export default function FileManagerPage() {
       asset.processing_status?.upload === 'pending'
     );
 
-        // Don't poll when a video is selected to prevent iframe reloading
-        const isVideoSelected = selectedAsset?.media_type === 'video';
-        const shouldPoll = (isUploading || isAILabeling || hasPendingAssets) && !isVideoSelected;
+    // CRITICAL FIX: Stop ALL polling when ANY asset is selected to prevent jumping
+    const shouldPoll = (isUploading || isAILabeling || hasPendingAssets) && !selectedAsset;
 
     if (shouldPoll && !pollingInterval) {
       // Start polling every 3 seconds when there are pending assets or active processes
       const interval = setInterval(() => {
-        loadAssets();
+        console.log('[file-manager] Polling for updates (no asset selected)');
+        loadAssetsIncremental();
       }, 3000);
       setPollingInterval(interval);
     } else if (!shouldPoll && pollingInterval) {
-      // Stop polling when no pending assets and no active processes
+      // Stop polling when no pending assets and no active processes OR when asset is selected
+      console.log('[file-manager] Stopping polling -', selectedAsset ? 'asset selected' : 'no pending work');
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
@@ -273,7 +411,7 @@ export default function FileManagerPage() {
         clearInterval(pollingInterval);
       }
     };
-  }, [isUploading, isAILabeling, assets, mediaTypeFilter, projectFilter, loadAssets]);
+  }, [isUploading, isAILabeling, assets, selectedAsset, loadAssetsIncremental]);
 
 
 
@@ -287,7 +425,7 @@ export default function FileManagerPage() {
     }
   };
 
-  // Filter assets based on search and filters
+  // Optimized filtered assets with stable references
   const filteredAssets = useMemo(() => {
     return assets.filter(asset => {
       // Search filter
@@ -319,7 +457,7 @@ export default function FileManagerPage() {
           (asset.media_type === 'audio' && asset.lyrics && asset.lyrics.toLowerCase().includes(searchLower)) ||
           (asset.media_type === 'audio' && asset.prompt && asset.prompt.toLowerCase().includes(searchLower)) ||
 
-                    // Audio manual labels (for custom styles like "Madchester")
+          // Audio manual labels (for custom styles like "Madchester")
           (asset.media_type === 'audio' && asset.manual_labels?.custom_styles?.some((style: string) => style.toLowerCase().includes(searchLower))) ||
           (asset.media_type === 'audio' && asset.manual_labels?.custom_moods?.some((mood: string) => mood.toLowerCase().includes(searchLower))) ||
           (asset.media_type === 'audio' && asset.manual_labels?.custom_themes?.some((theme: string) => theme.toLowerCase().includes(searchLower))) ||
@@ -332,13 +470,13 @@ export default function FileManagerPage() {
         if (!matchesSearch) return false;
       }
 
-      // Note: Media type and project filters are already applied server-side in loadAssets()
+      // Note: Media type and project filters are already applied server-side in loadAssetsIncremental()
       // So we don't need to re-filter them here to avoid race conditions
 
       // Complete only filter
       if (showCompleteOnly && !asset.labeling_complete) return false;
 
-            return true;
+      return true;
     });
   }, [assets, searchTerm, showCompleteOnly]);
 
@@ -381,7 +519,7 @@ export default function FileManagerPage() {
         const result = await response.json();
         console.log('AI labeling successful:', result);
         // Refresh the asset data
-        await loadAssets();
+        await loadAssetsIncremental();
         // Update selected asset if it's the one we just processed
         if (selectedAsset?.id === assetId) {
           const updatedAsset = assets.find(a => a.id === assetId);
@@ -427,7 +565,7 @@ export default function FileManagerPage() {
         // Update the selected asset with the new data
         setSelectedAsset(result.asset);
         // Refresh the assets list to show the updated filename
-        await loadAssets();
+        await loadAssetsIncremental();
         setIsEditingFilename(false);
         setNewFilename('');
         // Success - no popup needed
@@ -459,7 +597,7 @@ export default function FileManagerPage() {
         // Update the selected asset with the new data
         setSelectedAsset(result);
         // Refresh the assets list to show updated project assignment
-        await loadAssets();
+        await loadAssetsIncremental();
 
         // Success - no popup needed
       } else {
@@ -640,57 +778,23 @@ export default function FileManagerPage() {
           </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredAssets.map((asset: MediaAsset) => {
-              const displayInfo = getAssetDisplayInfo(asset);
-              return (
-                <div
-                  key={asset.id}
-                  onClick={() => {
-                    // Additional validation before setting selected asset
-                    if (asset && asset.media_type && ['image', 'video', 'audio'].includes(asset.media_type)) {
-                      setSelectedAsset(asset);
-                    } else {
-                      console.warn('[file-manager] Invalid asset selected:', asset);
-                    }
-                  }}
-                  className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                    selectedAsset?.id === asset.id
-                      ? 'bg-blue-50 border-blue-300 shadow-md'
-                      : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm">{getAssetIcon(asset)}</span>
-                        <div className="text-sm font-medium truncate">{asset.title}</div>
-                      </div>
-                      <div className="text-xs text-gray-500 truncate">{asset.filename}</div>
-                      <div className="text-xs text-blue-600 mt-1">
-                        {displayInfo.primaryLabel}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {displayInfo.secondaryInfo}
-                      </div>
-                      {asset.manual_labels?.mood?.length > 0 && (
-                        <div className="text-xs text-purple-600 mt-1">
-                          {(asset.manual_labels?.mood || []).slice(0, 2).join(', ')}
-                          {(asset.manual_labels?.mood || []).length > 2 && '...'}
-                        </div>
-                      )}
-                    </div>
-                    <div className="ml-2 flex flex-col items-end space-y-1">
-                      {asset.labeling_complete && (
-                        <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓</span>
-                      )}
-                      {asset.cover_art && (
-                        <span className="text-xs text-gray-400">🖼️</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredAssets.map((asset: MediaAsset) => (
+              <AssetListItem
+                key={asset.id}
+                asset={asset}
+                isSelected={selectedAsset?.id === asset.id}
+                onSelect={(selectedAsset) => {
+                  // Additional validation before setting selected asset
+                  if (selectedAsset && selectedAsset.media_type && ['image', 'video', 'audio'].includes(selectedAsset.media_type)) {
+                    setSelectedAsset(selectedAsset);
+                  } else {
+                    console.warn('[file-manager] Invalid asset selected:', selectedAsset);
+                  }
+                }}
+                getAssetIcon={getAssetIcon}
+                getAssetDisplayInfo={getAssetDisplayInfo}
+              />
+            ))}
           </div>
         </div>
 
@@ -987,7 +1091,7 @@ export default function FileManagerPage() {
               onClose={() => setIsUploading(false)}
               projects={projects}
               onUploadComplete={() => {
-                loadAssets();
+                loadAssetsIncremental();
                 loadProjects();
               }}
             />
