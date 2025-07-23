@@ -135,7 +135,7 @@ export default function FileManagerPage() {
       if (projectFilter) params.append('project', projectFilter);
 
       const queryString = params.toString();
-      console.log(`[file-manager] Loading assets with filters - mediaType: '${mediaTypeFilter}', project: '${projectFilter}', query: '${queryString || 'no filters'}'`);
+
 
       // Avoid "/assets?" which Next treats as a different route and returns 404
       const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
@@ -177,7 +177,7 @@ export default function FileManagerPage() {
 
   // Load assets when filters change - prevent race conditions
   useEffect(() => {
-    console.log(`[file-manager] Filter changed - mediaType: '${mediaTypeFilter}', project: '${projectFilter}'`);
+
     loadAssets();
   }, [mediaTypeFilter, projectFilter, loadAssets]);
 
@@ -531,7 +531,7 @@ export default function FileManagerPage() {
             <select
               value={mediaTypeFilter}
               onChange={(e) => {
-                console.log(`[file-manager] Setting media type filter to: '${e.target.value}'`);
+
                 setMediaTypeFilter(e.target.value);
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
