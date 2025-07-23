@@ -175,20 +175,21 @@ export default function FileManagerPage() {
       asset.processing_status?.upload === 'pending'
     );
 
-    const shouldPoll = isUploading || isAILabeling || hasPendingAssets;
+        const shouldPoll = isUploading || isAILabeling || hasPendingAssets;
 
-    if (shouldPoll && !pollingInterval) {
+    // Clear existing interval if filters changed (to avoid stale closure)
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+
+    if (shouldPoll) {
       // Start polling every 3 seconds when there are pending assets or active processes
       const interval = setInterval(() => {
-        console.log('[file-manager] Polling for updates... (pending assets or active processes)');
+
         loadAssets();
       }, 3000);
       setPollingInterval(interval);
-    } else if (!shouldPoll && pollingInterval) {
-      // Stop polling when no pending assets and no active processes
-      console.log('[file-manager] Stopping polling - no pending assets or active processes');
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
     }
   }, [isUploading, isAILabeling, assets, pollingInterval, mediaTypeFilter, projectFilter]);
 
@@ -199,17 +200,13 @@ export default function FileManagerPage() {
       if (projectFilter) params.append('project', projectFilter);
 
       const queryString = params.toString();
-      console.log(`[file-manager] Loading assets with query: ${queryString || 'no filters'}`);
+
 
       // Avoid "/assets?" which Next treats as a different route and returns 404
       const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
       const data = await response.json();
 
-      console.log(`[file-manager] Received ${data.length} assets from API`);
-      if (mediaTypeFilter) {
-        const filteredCount = data.filter((asset: MediaAsset) => asset.media_type === mediaTypeFilter).length;
-        console.log(`[file-manager] Of those, ${filteredCount} match media type '${mediaTypeFilter}'`);
-      }
+
 
       setAssets(data);
 
@@ -257,8 +254,7 @@ export default function FileManagerPage() {
 
   // Filter assets based on search and filters
   const filteredAssets = useMemo(() => {
-    console.log(`[file-manager] Computing filteredAssets from ${assets.length} assets with searchTerm='${searchTerm}', showCompleteOnly=${showCompleteOnly}`);
-    const result = assets.filter(asset => {
+    return assets.filter(asset => {
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
@@ -307,11 +303,8 @@ export default function FileManagerPage() {
       // Complete only filter
       if (showCompleteOnly && !asset.labeling_complete) return false;
 
-      return true;
+            return true;
     });
-
-    console.log(`[file-manager] Filtered down to ${result.length} assets`);
-    return result;
   }, [assets, searchTerm, showCompleteOnly]);
 
   // Create new project
@@ -540,10 +533,10 @@ export default function FileManagerPage() {
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="">All Media</option>
-              <option value="audio">🎵 Audio</option>
-              <option value="image">🖼️ Images</option>
-              <option value="video">🎬 Videos</option>
+              <option key="all" value="">All Media</option>
+              <option key="audio" value="audio">🎵 Audio</option>
+              <option key="image" value="image">🖼️ Images</option>
+              <option key="video" value="video">🎬 Videos</option>
             </select>
           </div>
 
@@ -556,7 +549,7 @@ export default function FileManagerPage() {
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="">All Projects</option>
+              <option key="all-projects" value="">All Projects</option>
               {projects.map(project => (
                 <option key={project.id} value={project.id}>{project.name}</option>
               ))}
@@ -611,7 +604,7 @@ export default function FileManagerPage() {
           </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredAssets.map((asset) => {
+            {filteredAssets.map((asset: MediaAsset) => {
               const displayInfo = getAssetDisplayInfo(asset);
               return (
                 <div
@@ -739,7 +732,7 @@ export default function FileManagerPage() {
                             onChange={(e) => updateProjectAssignment(e.target.value || null)}
                             className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
                           >
-                            <option value="">No Project</option>
+                            <option key="no-project" value="">No Project</option>
                             {projects.map(project => (
                               <option key={project.id} value={project.id}>
                                 {project.name}
@@ -1290,7 +1283,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
           onChange={(e) => setSelectedProject(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">No Project</option>
+                                <option key="no-project-upload" value="">No Project</option>
           {projects.map(project => (
             <option key={project.id} value={project.id}>{project.name}</option>
           ))}
