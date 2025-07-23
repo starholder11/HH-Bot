@@ -853,7 +853,7 @@ export default function FileManagerPage() {
                     src={`/video-editor?asset=${selectedAsset.id}`}
                     className="w-full border-0 rounded-lg"
                     title="Video Editor"
-                    style={{ height: '120vh' }}
+                    style={{ height: '180vh', minHeight: '1400px' }}
                     frameBorder="0"
                     scrolling="no"
                   />
@@ -865,7 +865,7 @@ export default function FileManagerPage() {
                     src={`/audio-editor?asset=${selectedAsset.id}`}
                     className="w-full border-0 rounded-lg"
                     title="Audio Editor"
-                    style={{ height: '200vh', minHeight: '1600px' }}
+                    style={{ height: '250vh', minHeight: '2000px' }}
                     frameBorder="0"
                     scrolling="no"
                   />
