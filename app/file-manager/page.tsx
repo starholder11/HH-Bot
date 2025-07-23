@@ -851,9 +851,11 @@ export default function FileManagerPage() {
                 <div className="w-full">
                   <iframe
                     src={`/video-editor?asset=${selectedAsset.id}`}
-                    className="w-full min-h-screen border-0 rounded-lg"
+                    className="w-full border-0 rounded-lg"
                     title="Video Editor"
-                    style={{ height: '100vh' }}
+                    style={{ height: '120vh' }}
+                    frameBorder="0"
+                    scrolling="no"
                   />
                 </div>
               ) : (
@@ -861,9 +863,11 @@ export default function FileManagerPage() {
                 <div className="w-full">
                   <iframe
                     src={`/audio-editor?asset=${selectedAsset.id}`}
-                    className="w-full min-h-screen border-0 rounded-lg"
+                    className="w-full border-0 rounded-lg"
                     title="Audio Editor"
-                    style={{ height: '100vh' }}
+                    style={{ height: '150vh' }}
+                    frameBorder="0"
+                    scrolling="no"
                   />
                 </div>
               )}
