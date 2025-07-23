@@ -11,8 +11,19 @@ const PREFIX = process.env.MEDIA_DATA_PREFIX || 'media-labeling/assets/';
 const isProd = process.env.NODE_ENV === 'production';
 const hasBucket = !!(process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET);
 
+// Helper function to convert stream to string
+async function streamToString(stream: Readable): Promise<string> {
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    stream.on('error', (err) => reject(err));
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+  });
+}
+
 // Performance optimization: limit how many assets we load by default
 const DEFAULT_ASSET_LIMIT = 100;
+const DEFAULT_S3_LIMIT = 1000; // Default limit for S3 listing
 
 // Base media asset interface
 export interface BaseMediaAsset {
@@ -144,14 +155,7 @@ export interface AudioAsset extends BaseMediaAsset {
 
 export type MediaAsset = ImageAsset | VideoAsset | AudioAsset;
 
-function streamToString(stream: Readable): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    stream.on('data', chunk => chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk));
-    stream.on('error', err => reject(err));
-    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-  });
-}
+
 
 /**
  * Convert existing audio song to new AudioAsset format
@@ -224,103 +228,125 @@ function convertSongToAudioAsset(song: any): AudioAsset {
  * List all media assets, optionally filtered by type
  */
 export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): Promise<MediaAsset[]> {
-  const allAssets: MediaAsset[] = [];
+  console.log(`[media-storage] Loading assets with mediaType filter: ${mediaType || 'all'}`);
+  const startTime = Date.now();
 
-  // 1. Get new multimedia assets
-  if (hasBucket) {
-    try {
+  try {
+    if (isProd && hasBucket) {
+      // Production: Fetch directly from S3 efficiently
       const s3 = getS3Client();
       const bucket = getBucketName();
-      const objects = await s3.send(
-        new ListObjectsV2Command({ Bucket: bucket, Prefix: PREFIX })
-      );
 
-      if (objects.Contents) {
-        const keys = objects.Contents.map(c => c.Key).filter(k => k && k.endsWith('.json')) as string[];
+      console.log('[media-storage] Listing objects from S3...');
+      const response = await s3.send(new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: PREFIX,
+        MaxKeys: DEFAULT_S3_LIMIT, // Only fetch the most recent assets
+      }));
 
-                // Performance optimization: only load the most recent assets
-        console.log(`[media-storage] Found ${keys.length} assets, loading recent ${Math.min(keys.length, DEFAULT_ASSET_LIMIT * 2)}...`);
-        const startTime = Date.now();
+      const keys = (response.Contents || [])
+        .filter(obj => obj.Key?.endsWith('.json'))
+        .map(obj => obj.Key!)
+        .sort((a, b) => {
+          // Sort by key name (which includes timestamp) for most recent first
+          return b.localeCompare(a);
+        })
+        .slice(0, DEFAULT_S3_LIMIT);
 
-        // Take only recent keys for performance (S3 keys are sorted)
-        const recentKeys = keys.slice(0, DEFAULT_ASSET_LIMIT * 2); // Load extra to account for filtering
+      console.log(`[media-storage] Found ${keys.length} asset files, fetching JSON content...`);
 
-        const concurrency = 30; // Balanced concurrency
-        for (let i = 0; i < recentKeys.length; i += concurrency) {
-          const slice = recentKeys.slice(i, i + concurrency);
-          const batch = await Promise.all(slice.map(async key => {
-            const assetId = key.slice(PREFIX.length, -5);
-            try {
-              return await getMediaAsset(assetId);
-            } catch {
+      // Fetch JSON content directly with higher concurrency
+      const allAssets: MediaAsset[] = [];
+      const concurrency = 50;
+
+      for (let i = 0; i < keys.length; i += concurrency) {
+        const slice = keys.slice(i, i + concurrency);
+        const batch = await Promise.all(slice.map(async key => {
+          try {
+            const getObjectResponse = await s3.send(new GetObjectCommand({
+              Bucket: bucket,
+              Key: key,
+            }));
+
+            if (!getObjectResponse.Body) return null;
+
+            const jsonContent = await streamToString(getObjectResponse.Body as Readable);
+            const asset = JSON.parse(jsonContent) as MediaAsset;
+
+            // Apply media type filter here to avoid unnecessary processing
+            if (mediaType && asset.media_type !== mediaType) {
               return null;
             }
-          }));
-          batch.forEach(a => { if (a) allAssets.push(a); });
-        }
-        const loadTime = Date.now() - startTime;
-        console.log(`[media-storage] Loaded ${allAssets.length} assets in ${loadTime}ms`);
+
+            return asset;
+          } catch (error) {
+            console.warn(`[media-storage] Failed to fetch asset ${key}:`, error);
+            return null;
+          }
+        }));
+
+        batch.forEach(asset => {
+          if (asset) allAssets.push(asset);
+        });
       }
-    } catch (err) {
-      console.warn('Failed to load new multimedia assets:', err);
-    }
-  } else {
-    // Local fallback for new assets
-    const dataDir = path.join(process.cwd(), 'media-sources', 'assets');
-    try {
-      await fs.access(dataDir);
-      const files = await fs.readdir(dataDir);
-      const jsonFiles = files.filter(f => f.endsWith('.json'));
 
-      for (const file of jsonFiles) {
-        try {
-          const content = await fs.readFile(path.join(dataDir, file), 'utf-8');
-          const asset = JSON.parse(content);
-          allAssets.push(asset);
-        } catch (err) {
-          console.error('Error reading media asset file', file, err);
+      // Sort by creation date (newest first) and limit results
+      allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const limitedAssets = allAssets.slice(0, DEFAULT_ASSET_LIMIT);
+
+      const elapsed = Date.now() - startTime;
+      console.log(`[media-storage] S3 loading completed in ${elapsed}ms: ${limitedAssets.length}/${allAssets.length} assets (filtered by ${mediaType || 'none'})`);
+
+      return limitedAssets;
+    } else {
+      // Development: Read from local files efficiently
+      console.log('[media-storage] Loading from local files...');
+      const dataDir = path.join(process.cwd(), 'media-sources', 'assets');
+
+      try {
+        const files = await fs.readdir(dataDir);
+        const jsonFiles = files
+          .filter(file => file.endsWith('.json'))
+          .sort((a, b) => b.localeCompare(a)) // Most recent first
+          .slice(0, DEFAULT_ASSET_LIMIT);
+
+        console.log(`[media-storage] Found ${jsonFiles.length} local asset files`);
+
+        const allAssets: MediaAsset[] = [];
+
+        for (const file of jsonFiles) {
+          try {
+            const filePath = path.join(dataDir, file);
+            const content = await fs.readFile(filePath, 'utf-8');
+            const asset = JSON.parse(content) as MediaAsset;
+
+            // Apply media type filter
+            if (mediaType && asset.media_type !== mediaType) {
+              continue;
+            }
+
+            allAssets.push(asset);
+          } catch (error) {
+            console.warn(`[media-storage] Failed to read local asset ${file}:`, error);
+          }
         }
+
+        // Sort by creation date (newest first)
+        allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        const elapsed = Date.now() - startTime;
+        console.log(`[media-storage] Local loading completed in ${elapsed}ms: ${allAssets.length} assets (filtered by ${mediaType || 'none'})`);
+
+        return allAssets;
+      } catch (error) {
+        console.warn('[media-storage] Failed to read local assets directory:', error);
+        return [];
       }
-    } catch {
-      // Directory doesn't exist, no new assets
     }
+  } catch (error) {
+    console.error('[media-storage] Error loading media assets:', error);
+    return [];
   }
-
-  // 2. Get existing audio files and convert them - only if needed for performance
-  if (!mediaType || mediaType === 'audio') {
-    try {
-      console.log('[media-storage] Loading audio assets...');
-      const existingSongs = await listSongs();
-      const audioAssets = existingSongs.map(convertSongToAudioAsset);
-      allAssets.push(...audioAssets);
-      console.log(`[media-storage] Loaded ${audioAssets.length} audio assets`);
-    } catch (err) {
-      console.warn('Failed to load existing audio files:', err);
-    }
-  } else {
-    console.log(`[media-storage] Skipping audio assets (filtering for ${mediaType})`);
-  }
-
-  // 3. Filter by media type if specified
-  const filteredAssets = mediaType ? allAssets.filter(a => a.media_type === mediaType) : allAssets;
-
-  // 4. Remove duplicates (in case a song exists in both systems)
-  const uniqueAssets = filteredAssets.reduce((acc: MediaAsset[], current) => {
-    const existing = acc.find(asset => asset.id === current.id);
-    if (!existing) {
-      acc.push(current);
-    }
-    return acc;
-  }, []);
-
-  // 5. Sort by creation date (newest first) and limit results for performance
-  uniqueAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  // Performance optimization: return only the most recent assets
-  const limitedAssets = uniqueAssets.slice(0, DEFAULT_ASSET_LIMIT);
-  console.log(`[media-storage] Returning ${limitedAssets.length} of ${uniqueAssets.length} total assets`);
-
-  return limitedAssets;
 }
 
 /**
