@@ -130,16 +130,43 @@ export default function FileManagerPage() {
   // Define loadAssets with useCallback to prevent infinite re-renders
   const loadAssets = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      if (mediaTypeFilter) params.append('type', mediaTypeFilter);
-      if (projectFilter) params.append('project', projectFilter);
+      let data: MediaAsset[] = [];
 
-      const queryString = params.toString();
+      if (mediaTypeFilter === 'audio') {
+        // For audio filter, fetch from audio-labeling API (which uses S3 JSON files)
+        const response = await fetch('/api/audio-labeling/songs');
+        const audioData = await response.json();
 
+        // Transform audio data to match MediaAsset interface
+        data = audioData.map((song: any) => ({
+          id: song.id,
+          title: song.title || song.filename || 'Untitled',
+          media_type: 'audio' as const,
+          file_path: song.file_path || song.s3_key,
+          url: song.url || song.file_path,
+          status: song.status || 'completed',
+          created_at: song.created_at || new Date().toISOString(),
+          updated_at: song.updated_at || new Date().toISOString(),
+          project: song.project || projectFilter || null,
+          metadata: {
+            duration: song.metadata?.duration,
+            file_size: song.metadata?.file_size,
+            format: song.metadata?.format,
+            artist: song.metadata?.artist,
+            album: song.metadata?.album,
+            ...song.metadata
+          }
+        }));
+      } else {
+        // For images, videos, and "all media", use existing media-labeling API
+        const params = new URLSearchParams();
+        if (mediaTypeFilter && mediaTypeFilter !== 'audio') params.append('type', mediaTypeFilter);
+        if (projectFilter) params.append('project', projectFilter);
 
-      // Avoid "/assets?" which Next treats as a different route and returns 404
-      const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
-      const data = await response.json();
+        const queryString = params.toString();
+        const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
+        data = await response.json();
+      }
 
       setAssets(data);
 
