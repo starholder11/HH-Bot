@@ -954,7 +954,7 @@ export default function FileManagerPage() {
                 <div className="text-center py-8">
                   <div className="text-6xl mb-4">❓</div>
                   <h3 className="text-xl font-semibold text-gray-700 mb-2">Unsupported Media Type</h3>
-                  <p className="text-gray-500">Media type "{selectedAsset.media_type}" is not supported for viewing.</p>
+                  <p className="text-gray-500">Media type &quot;{selectedAsset.media_type}&quot; is not supported for viewing.</p>
                   <p className="text-sm text-gray-400 mt-2">Asset ID: {selectedAsset.id}</p>
                 </div>
               )}
