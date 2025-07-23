@@ -776,6 +776,77 @@ export async function getVideoKeyframes(videoId: string): Promise<KeyframeStill[
 }
 
 /**
+ * Get all keyframes across all projects and videos
+ */
+export async function getAllKeyframes(): Promise<KeyframeStill[]> {
+  const s3Client = getS3Client();
+  const bucketName = getBucketName();
+
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: `${PREFIX}keyframes/`,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Contents) {
+      return [];
+    }
+
+    const keyframes: KeyframeStill[] = [];
+
+    for (const item of response.Contents) {
+      if (!item.Key || !item.Key.endsWith('.json')) continue;
+
+      try {
+        const keyframeData = await getKeyframeAsset(
+          path.basename(item.Key, '.json')
+        );
+
+        if (keyframeData) {
+          keyframes.push(keyframeData);
+        }
+      } catch (error) {
+        console.warn(`Failed to load keyframe ${item.Key}:`, error);
+      }
+    }
+
+    return keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
+
+  } catch (error) {
+    console.error('Error listing all keyframes:', error);
+
+    if (!isProd || !hasBucket) {
+      // Try local storage fallback
+      try {
+        const localDir = path.join(process.cwd(), 'local-storage', 'keyframes');
+        const files = await fs.readdir(localDir);
+        const jsonFiles = files.filter(file => file.endsWith('.json'));
+
+        const keyframes: KeyframeStill[] = [];
+        for (const file of jsonFiles) {
+          try {
+            const localPath = path.join(localDir, file);
+            const data = await fs.readFile(localPath, 'utf-8');
+            const keyframe = JSON.parse(data) as KeyframeStill;
+            keyframes.push(keyframe);
+          } catch (error) {
+            console.warn(`Failed to read local keyframe ${file}:`, error);
+          }
+        }
+
+        return keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
+      } catch (localError) {
+        console.warn('Failed to read local keyframes directory:', localError);
+      }
+    }
+
+    return [];
+  }
+}
+
+/**
  * Get all keyframes for a project (across all videos in the project)
  */
 export async function getProjectKeyframes(projectId: string): Promise<KeyframeStill[]> {
