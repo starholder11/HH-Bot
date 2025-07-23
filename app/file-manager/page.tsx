@@ -848,22 +848,24 @@ export default function FileManagerPage() {
                 </Card>
               ) : selectedAsset.media_type === 'video' ? (
                 /* Video iframe */
-                <Card className="p-6">
+                <div className="w-full">
                   <iframe
                     src={`/video-editor?asset=${selectedAsset.id}`}
-                    className="w-full h-96 border-0 rounded-lg"
+                    className="w-full min-h-screen border-0 rounded-lg"
                     title="Video Editor"
+                    style={{ height: '100vh' }}
                   />
-                </Card>
+                </div>
               ) : (
                 /* Audio iframe */
-                <Card className="p-6">
+                <div className="w-full">
                   <iframe
                     src={`/audio-editor?asset=${selectedAsset.id}`}
-                    className="w-full h-96 border-0 rounded-lg"
+                    className="w-full min-h-screen border-0 rounded-lg"
                     title="Audio Editor"
+                    style={{ height: '100vh' }}
                   />
-                </Card>
+                </div>
               )}
             </div>
           ) : (
