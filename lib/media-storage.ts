@@ -232,8 +232,8 @@ export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): 
   const startTime = Date.now();
 
   try {
-    if (isProd && hasBucket) {
-      // Production: Fetch directly from S3 efficiently
+    if (hasBucket) {
+      // S3 is configured: Fetch directly from S3 efficiently
       const s3 = getS3Client();
       const bucket = getBucketName();
 
