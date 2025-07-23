@@ -75,7 +75,7 @@ interface MediaAsset {
 }
 
 interface Project {
-  id: string;
+  project_id: string;  // Changed from id to project_id to match API
   name: string;
   description: string;
   created_at: string;
@@ -531,7 +531,7 @@ export default function MediaLabelingPage() {
             >
               <option value="">All Projects</option>
               {projects.map(project => (
-                <option key={project.id} value={project.id}>{project.name}</option>
+                <option key={project.project_id} value={project.project_id}>{project.name}</option>
               ))}
             </select>
           </div>
@@ -712,9 +712,7 @@ export default function MediaLabelingPage() {
                           >
                             <option value="">No Project</option>
                             {projects.map(project => (
-                              <option key={project.id} value={project.id}>
-                                {project.name}
-                              </option>
+                              <option key={project.project_id} value={project.project_id}>{project.name}</option>
                             ))}
                           </select>
                         </div>
@@ -983,9 +981,7 @@ export default function MediaLabelingPage() {
                           >
                             <option value="">No Project</option>
                             {projects.map(project => (
-                              <option key={project.id} value={project.id}>
-                                {project.name}
-                              </option>
+                              <option key={project.project_id} value={project.project_id}>{project.name}</option>
                             ))}
                           </select>
                         </div>
@@ -1519,27 +1515,32 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
 
-  // Handle file selection
+  // Handle file selection - now supports all media types
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
 
     const newFiles: UploadFile[] = Array.from(files)
       .filter(file => {
+        const audioTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/aac'];
         const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         const videoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/ogg', 'video/3gpp', 'video/x-ms-wmv'];
-        const validTypes = mediaType === 'image' ? imageTypes : videoTypes;
-        const maxSize = mediaType === 'image' ? 50 * 1024 * 1024 : 500 * 1024 * 1024; // 50MB for images, 500MB for videos
-        const formatNames = mediaType === 'image' ? 'JPEG, PNG, GIF, or WebP' : 'MP4, MOV, AVI, WebM, OGV, 3GP, or WMV';
 
-        if (!validTypes.includes(file.type)) {
-          console.warn(`${file.name} is not a supported ${mediaType} format. Please upload ${formatNames} files.`);
+        const allSupportedTypes = [...audioTypes, ...imageTypes, ...videoTypes];
+
+        // Get max sizes for different file types
+        const maxSize = file.type.startsWith('audio/') ? 100 * 1024 * 1024 : // 100MB for audio
+                        file.type.startsWith('image/') ? 50 * 1024 * 1024 :   // 50MB for images
+                        file.type.startsWith('video/') ? 500 * 1024 * 1024 :  // 500MB for videos
+                        50 * 1024 * 1024; // Default 50MB
+
+        if (!allSupportedTypes.includes(file.type)) {
+          console.warn(`${file.name} is not a supported file format. Please upload audio (MP3, WAV, M4A), image (JPEG, PNG, GIF, WebP), or video (MP4, MOV, AVI, WebM, OGV, 3GP, WMV) files.`);
           return false;
         }
         if (file.size > maxSize) {
           const maxSizeMB = maxSize / (1024 * 1024);
-          console.warn(`${file.name} is too large. Maximum file size is ${maxSizeMB}MB.`);
+          console.warn(`${file.name} is too large. Maximum file size for ${file.type.split('/')[0]} files is ${maxSizeMB}MB.`);
           return false;
         }
         return true;
@@ -1549,7 +1550,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
         id: Math.random().toString(36).substr(2, 9),
         progress: 0,
         status: 'pending' as const,
-        previewUrl: URL.createObjectURL(file)
+        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
       }));
 
     setUploadFiles(prev => [...prev, ...newFiles]);
@@ -1583,7 +1584,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
     });
   };
 
-  // Upload single file
+  // Upload single file - now handles audio, image, and video
   const uploadFile = async (uploadFile: UploadFile): Promise<void> => {
     const { file, id } = uploadFile;
 
@@ -1593,9 +1594,18 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
         f.id === id ? { ...f, status: 'uploading' as const } : f
       ));
 
+      // Determine API path based on file type
+      const getApiPath = (fileType: string) => {
+        if (fileType.startsWith('audio/')) return 'audio-labeling';
+        if (fileType.startsWith('image/')) return 'media-labeling/images';
+        if (fileType.startsWith('video/')) return 'media-labeling/videos';
+        throw new Error(`Unsupported file type: ${fileType}`);
+      };
+
+      const apiPath = getApiPath(file.type);
+
       // Step 1: Get presigned URL
-      const apiPath = mediaType === 'image' ? 'images' : 'videos';
-      const presignedResponse = await fetch(`/api/media-labeling/${apiPath}/get-upload-url`, {
+      const presignedResponse = await fetch(`/api/${apiPath}/get-upload-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1609,7 +1619,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
         throw new Error('Failed to get upload URL');
       }
 
-      const { uploadUrl, key } = await presignedResponse.json();
+      const { uploadUrl, key, s3Url, cloudflareUrl } = await presignedResponse.json();
 
       // Step 2: Upload to S3 with progress tracking
       const xhr = new XMLHttpRequest();
@@ -1628,18 +1638,43 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
           if (xhr.status === 200) {
             try {
               // Step 3: Complete upload and create asset record
-              const completeResponse = await fetch(`/api/media-labeling/${apiPath}/finish-upload`, {
+              const completeEndpoint = file.type.startsWith('audio/')
+                ? '/api/audio-labeling/finish-upload'
+                : `/api/${apiPath}/finish-upload`;
+
+              const completePayload = file.type.startsWith('audio/')
+                ? {
+                    s3Url,
+                    cloudflareUrl,
+                    key,
+                    originalFilename: file.name
+                  }
+                : {
+                    key,
+                    originalFilename: file.name,
+                    projectId: selectedProject || null
+                  };
+
+              const completeResponse = await fetch(completeEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  key,
-                  originalFilename: file.name,
-                  projectId: selectedProject || null
-                }),
+                body: JSON.stringify(completePayload),
               });
 
               if (!completeResponse.ok) {
                 throw new Error('Failed to complete upload');
+              }
+
+              // For audio files, also update project assignment if needed
+              if (file.type.startsWith('audio/') && selectedProject) {
+                const audioResult = await completeResponse.json();
+                if (audioResult.song?.id) {
+                  await fetch(`/api/audio-labeling/songs/${audioResult.song.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_id: selectedProject })
+                  });
+                }
               }
 
               setUploadFiles(prev => prev.map(f =>
@@ -1729,39 +1764,6 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
 
   return (
     <div className="space-y-6">
-      {/* Media Type Selection */}
-      <div>
-        <label className="block text-sm font-medium mb-2">Media Type</label>
-        <div className="flex space-x-4">
-          <button
-            onClick={() => {
-              setMediaType('image');
-              setUploadFiles([]); // Clear files when switching types
-            }}
-            className={`flex-1 py-2 px-4 rounded-lg border transition-colors ${
-              mediaType === 'image'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            🖼️ Images
-          </button>
-          <button
-            onClick={() => {
-              setMediaType('video');
-              setUploadFiles([]); // Clear files when switching types
-            }}
-            className={`flex-1 py-2 px-4 rounded-lg border transition-colors ${
-              mediaType === 'video'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            🎬 Videos
-          </button>
-        </div>
-      </div>
-
       {/* Project Selection */}
       <div>
         <label className="block text-sm font-medium mb-2">Assign to Project (optional)</label>
@@ -1772,12 +1774,12 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
         >
           <option value="">No Project</option>
           {projects.map(project => (
-            <option key={project.id} value={project.id}>{project.name}</option>
+            <option key={project.project_id} value={project.project_id}>{project.name}</option>
           ))}
         </select>
       </div>
 
-      {/* File Drop Zone */}
+      {/* File Drop Zone - Now supports all media types */}
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -1789,18 +1791,15 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
         }`}
       >
         <div className="space-y-2">
-          <div className="text-4xl">{mediaType === 'image' ? '🖼️' : '🎬'}</div>
-          <div className="text-lg font-medium">Drop {mediaType}s here or click to browse</div>
+          <div className="text-4xl">📁</div>
+          <div className="text-lg font-medium">Drop media files here or click to browse</div>
           <div className="text-sm text-gray-500">
-            {mediaType === 'image'
-              ? 'Supports JPEG, PNG, GIF, WebP up to 50MB each'
-              : 'Supports MP4, MOV, AVI, WebM, OGV, 3GP, WMV up to 500MB each'
-            }
+            Supports audio (MP3, WAV, M4A), images (JPEG, PNG, GIF, WebP), and videos (MP4, MOV, AVI, WebM)
           </div>
           <input
             type="file"
             multiple
-            accept={mediaType === 'image' ? 'image/*' : 'video/*'}
+            accept="audio/*,image/*,video/*"
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
             id="file-upload"
@@ -1832,20 +1831,34 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
                 key={uploadFile.id}
                 className="flex items-center space-x-3 p-3 border rounded-lg"
               >
-                {/* Preview */}
-                {uploadFile.previewUrl && (
-                  <img
-                    src={uploadFile.previewUrl}
-                    alt="Preview"
-                    className="w-12 h-12 object-cover rounded"
-                  />
-                )}
+                {/* Preview - show appropriate preview for each file type */}
+                <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded border">
+                  {uploadFile.previewUrl ? (
+                    <img
+                      src={uploadFile.previewUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover rounded"
+                    />
+                  ) : uploadFile.file.type.startsWith('audio/') ? (
+                    <span className="text-2xl">🎵</span>
+                  ) : uploadFile.file.type.startsWith('video/') ? (
+                    <span className="text-2xl">🎬</span>
+                  ) : (
+                    <span className="text-2xl">📄</span>
+                  )}
+                </div>
 
                 {/* File Info */}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{uploadFile.file.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {(uploadFile.file.size / (1024 * 1024)).toFixed(1)} MB
+                  <div className="text-xs text-gray-500 flex items-center space-x-2">
+                    <span>{(uploadFile.file.size / (1024 * 1024)).toFixed(1)} MB</span>
+                    <span>•</span>
+                    <span className="uppercase">
+                      {uploadFile.file.type.startsWith('audio/') ? 'Audio' :
+                       uploadFile.file.type.startsWith('image/') ? 'Image' :
+                       uploadFile.file.type.startsWith('video/') ? 'Video' : 'Unknown'}
+                    </span>
                   </div>
 
                   {/* Progress Bar */}
