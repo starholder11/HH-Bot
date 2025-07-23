@@ -865,7 +865,7 @@ export default function FileManagerPage() {
                     src={`/audio-editor?asset=${selectedAsset.id}`}
                     className="w-full border-0 rounded-lg"
                     title="Audio Editor"
-                    style={{ height: '150vh' }}
+                    style={{ height: '200vh', minHeight: '1600px' }}
                     frameBorder="0"
                     scrolling="no"
                   />
