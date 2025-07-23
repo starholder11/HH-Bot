@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { Header } from '@/components/layout/Header'
+import { ConditionalHeader } from '@/components/layout/ConditionalHeader'
 
 export const metadata: Metadata = {
   title: 'HH Bot Chat',
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <Header />
+        <ConditionalHeader />
         {children}
       </body>
     </html>
