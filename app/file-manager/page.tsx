@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Project as ProjectType } from '@/lib/project-storage';
@@ -127,11 +127,59 @@ export default function FileManagerPage() {
     loadProjects();
   }, []);
 
+  // Define loadAssets with useCallback to prevent infinite re-renders
+  const loadAssets = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (mediaTypeFilter) params.append('type', mediaTypeFilter);
+      if (projectFilter) params.append('project', projectFilter);
+
+      const queryString = params.toString();
+      console.log(`[file-manager] Loading assets with filters - mediaType: '${mediaTypeFilter}', project: '${projectFilter}', query: '${queryString || 'no filters'}'`);
+
+      // Avoid "/assets?" which Next treats as a different route and returns 404
+      const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
+      const data = await response.json();
+
+      setAssets(data);
+
+      // Update selected asset with fresh data if it exists
+      if (selectedAsset) {
+        const updatedSelectedAsset = data.find((asset: MediaAsset) => asset.id === selectedAsset.id);
+        if (updatedSelectedAsset) {
+          // Validate that the updated asset still matches the selected type
+          if (updatedSelectedAsset.media_type !== selectedAsset.media_type) {
+            console.log('[file-manager] Asset media type changed, clearing selection');
+            setSelectedAsset(null);
+            return;
+          }
+
+          const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'triggering' || selectedAsset.processing_status?.ai_labeling === 'processing';
+          const isNowCompleted = updatedSelectedAsset.processing_status?.ai_labeling === 'completed';
+
+          // If AI labeling just completed, stop AI labeling flag
+          if (wasProcessing && isNowCompleted && isAILabeling) {
+            console.log('[file-manager] AI labeling completed for:', updatedSelectedAsset.title);
+            setIsAILabeling(false);
+          }
+
+          setSelectedAsset(updatedSelectedAsset);
+        } else {
+          // Selected asset no longer exists in filtered results
+          console.log('[file-manager] Selected asset no longer in filtered results, clearing selection');
+          setSelectedAsset(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading assets:', error);
+    }
+  }, [mediaTypeFilter, projectFilter, selectedAsset, isAILabeling]);
+
   // Load assets when filters change - prevent race conditions
   useEffect(() => {
     console.log(`[file-manager] Filter changed - mediaType: '${mediaTypeFilter}', project: '${projectFilter}'`);
     loadAssets();
-  }, [mediaTypeFilter, projectFilter]);
+  }, [mediaTypeFilter, projectFilter, loadAssets]);
 
   // Reset AI labeling state when switching between assets
   useEffect(() => {
@@ -192,56 +240,9 @@ export default function FileManagerPage() {
       }, 3000);
       setPollingInterval(interval);
     }
-  }, [isUploading, isAILabeling, assets, pollingInterval, mediaTypeFilter, projectFilter]);
-
-  const loadAssets = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (mediaTypeFilter) params.append('type', mediaTypeFilter);
-      if (projectFilter) params.append('project', projectFilter);
-
-              const queryString = params.toString();
-        console.log(`[file-manager] Loading assets with filters - mediaType: '${mediaTypeFilter}', project: '${projectFilter}', query: '${queryString || 'no filters'}'`);
-
-        // Avoid "/assets?" which Next treats as a different route and returns 404
-      const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
-      const data = await response.json();
+  }, [isUploading, isAILabeling, assets, pollingInterval, mediaTypeFilter, projectFilter, loadAssets]);
 
 
-
-      setAssets(data);
-
-      // Update selected asset with fresh data if it exists
-      if (selectedAsset) {
-        const updatedSelectedAsset = data.find((asset: MediaAsset) => asset.id === selectedAsset.id);
-        if (updatedSelectedAsset) {
-          // Validate that the updated asset still matches the selected type
-          if (updatedSelectedAsset.media_type !== selectedAsset.media_type) {
-            console.log('[file-manager] Asset media type changed, clearing selection');
-            setSelectedAsset(null);
-            return;
-          }
-
-          const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'triggering' || selectedAsset.processing_status?.ai_labeling === 'processing';
-          const isNowCompleted = updatedSelectedAsset.processing_status?.ai_labeling === 'completed';
-
-          // If AI labeling just completed, stop AI labeling flag
-          if (wasProcessing && isNowCompleted && isAILabeling) {
-            console.log('[file-manager] AI labeling completed for:', updatedSelectedAsset.title);
-            setIsAILabeling(false);
-          }
-
-          setSelectedAsset(updatedSelectedAsset);
-        } else {
-          // Selected asset no longer exists in filtered results
-          console.log('[file-manager] Selected asset no longer in filtered results, clearing selection');
-          setSelectedAsset(null);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading assets:', error);
-    }
-  };
 
   const loadProjects = async () => {
     try {
