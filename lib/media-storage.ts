@@ -11,51 +11,8 @@ const PREFIX = process.env.MEDIA_DATA_PREFIX || 'media-labeling/assets/';
 const isProd = process.env.NODE_ENV === 'production';
 const hasBucket = !!(process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET);
 
-// Simple in-memory cache for performance
-interface CacheEntry {
-  data: MediaAsset[];
-  timestamp: number;
-  mediaType?: string;
-}
-
-const CACHE_TTL_MS = 30 * 1000; // 30 seconds cache
-const assetCache = new Map<string, CacheEntry>();
-
-function getCacheKey(mediaType?: string): string {
-  return mediaType || 'all';
-}
-
-function isCacheValid(entry: CacheEntry): boolean {
-  return (Date.now() - entry.timestamp) < CACHE_TTL_MS;
-}
-
-function getCachedAssets(mediaType?: string): MediaAsset[] | null {
-  const key = getCacheKey(mediaType);
-  const entry = assetCache.get(key);
-
-  if (entry && isCacheValid(entry)) {
-    console.log(`[media-storage] Cache hit for ${key} (${entry.data.length} assets)`);
-    return entry.data;
-  }
-
-  return null;
-}
-
-function setCachedAssets(assets: MediaAsset[], mediaType?: string): void {
-  const key = getCacheKey(mediaType);
-  assetCache.set(key, {
-    data: assets,
-    timestamp: Date.now(),
-    mediaType
-  });
-  console.log(`[media-storage] Cached ${assets.length} assets for ${key}`);
-}
-
-// Clear cache when assets are modified
-function clearAssetCache(): void {
-  assetCache.clear();
-  console.log('[media-storage] Asset cache cleared');
-}
+// Performance optimization: limit how many assets we load by default
+const DEFAULT_ASSET_LIMIT = 100;
 
 // Base media asset interface
 export interface BaseMediaAsset {
@@ -267,11 +224,6 @@ function convertSongToAudioAsset(song: any): AudioAsset {
  * List all media assets, optionally filtered by type
  */
 export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): Promise<MediaAsset[]> {
-  const cachedAssets = getCachedAssets(mediaType);
-  if (cachedAssets) {
-    return cachedAssets;
-  }
-
   const allAssets: MediaAsset[] = [];
 
   // 1. Get new multimedia assets
@@ -286,12 +238,16 @@ export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): 
       if (objects.Contents) {
         const keys = objects.Contents.map(c => c.Key).filter(k => k && k.endsWith('.json')) as string[];
 
-        // Process in batches for performance - increased concurrency for better speed
-        console.log(`[media-storage] Loading ${keys.length} assets from S3...`);
+                // Performance optimization: only load the most recent assets
+        console.log(`[media-storage] Found ${keys.length} assets, loading recent ${Math.min(keys.length, DEFAULT_ASSET_LIMIT * 2)}...`);
         const startTime = Date.now();
-        const concurrency = 50; // Increased from 20 to 50
-        for (let i = 0; i < keys.length; i += concurrency) {
-          const slice = keys.slice(i, i + concurrency);
+
+        // Take only recent keys for performance (S3 keys are sorted)
+        const recentKeys = keys.slice(0, DEFAULT_ASSET_LIMIT * 2); // Load extra to account for filtering
+
+        const concurrency = 30; // Balanced concurrency
+        for (let i = 0; i < recentKeys.length; i += concurrency) {
+          const slice = recentKeys.slice(i, i + concurrency);
           const batch = await Promise.all(slice.map(async key => {
             const assetId = key.slice(PREFIX.length, -5);
             try {
@@ -301,12 +257,6 @@ export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): 
             }
           }));
           batch.forEach(a => { if (a) allAssets.push(a); });
-
-          // Progress logging
-          const processed = Math.min(i + concurrency, keys.length);
-          if (processed % 100 === 0 || processed === keys.length) {
-            console.log(`[media-storage] Loaded ${processed}/${keys.length} assets (${Math.round(processed/keys.length*100)}%)`);
-          }
         }
         const loadTime = Date.now() - startTime;
         console.log(`[media-storage] Loaded ${allAssets.length} assets in ${loadTime}ms`);
@@ -363,10 +313,14 @@ export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): 
     return acc;
   }, []);
 
-  // 5. Sort by creation date (newest first)
+  // 5. Sort by creation date (newest first) and limit results for performance
   uniqueAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  setCachedAssets(uniqueAssets, mediaType);
-  return uniqueAssets;
+
+  // Performance optimization: return only the most recent assets
+  const limitedAssets = uniqueAssets.slice(0, DEFAULT_ASSET_LIMIT);
+  console.log(`[media-storage] Returning ${limitedAssets.length} of ${uniqueAssets.length} total assets`);
+
+  return limitedAssets;
 }
 
 /**
@@ -415,8 +369,7 @@ export async function saveMediaAsset(assetId: string, assetData: MediaAsset): Pr
           CacheControl: 'max-age=31536000',
         })
       );
-      clearAssetCache(); // Clear cache on save
-      return;
+              return;
     } catch (err) {
       console.error('saveMediaAsset: S3 write failed', err);
       if (isProd) {
@@ -432,7 +385,6 @@ export async function saveMediaAsset(assetId: string, assetData: MediaAsset): Pr
     await fs.mkdir(dataDir, { recursive: true });
   } catch {}
   await fs.writeFile(path.join(dataDir, `${assetId}.json`), JSON.stringify(assetData, null, 2));
-  clearAssetCache(); // Clear cache on save
 }
 
 /**
@@ -453,9 +405,8 @@ export async function updateMediaAsset(
     updated_at: new Date().toISOString()
   } as MediaAsset;
 
-  await saveMediaAsset(assetId, updatedAsset);
-  clearAssetCache(); // Clear cache on update
-  return updatedAsset;
+      await saveMediaAsset(assetId, updatedAsset);
+    return updatedAsset;
 }
 
 /**
@@ -471,7 +422,6 @@ export async function deleteMediaAsset(assetId: string): Promise<boolean> {
       const bucket = getBucketName();
       const key = `${PREFIX}${assetId}.json`;
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-      clearAssetCache(); // Clear cache on delete
       return true;
     } catch (err) {
       console.error('deleteMediaAsset: S3 delete failed', err);
@@ -486,7 +436,6 @@ export async function deleteMediaAsset(assetId: string): Promise<boolean> {
   const filePath = path.join(process.cwd(), 'media-sources', 'assets', `${assetId}.json`);
   try {
     await fs.unlink(filePath);
-    clearAssetCache(); // Clear cache on delete
     return true;
   } catch (err: any) {
     if (err.code === 'ENOENT') return false;
