@@ -227,8 +227,19 @@ function convertSongToAudioAsset(song: any): AudioAsset {
 /**
  * List all media assets, optionally filtered by type
  */
-export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): Promise<MediaAsset[]> {
-  console.log(`[media-storage] Loading assets with mediaType filter: ${mediaType || 'all'}`);
+export async function listMediaAssets(
+  mediaType?: 'image' | 'video' | 'audio',
+  options?: {
+    page?: number;
+    limit?: number;
+    loadAll?: boolean; // For when we want all assets (like for search)
+  }
+): Promise<{ assets: MediaAsset[], totalCount: number, hasMore: boolean }> {
+  const page = options?.page || 1;
+  const limit = options?.limit || DEFAULT_ASSET_LIMIT;
+  const loadAll = options?.loadAll || false;
+
+  console.log(`[media-storage] Loading assets with mediaType filter: ${mediaType || 'all'}, page: ${page}, limit: ${limit}, loadAll: ${loadAll}`);
   const startTime = Date.now();
 
   try {
@@ -290,14 +301,29 @@ export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): 
         });
       }
 
-      // Sort by creation date (newest first) and limit results
+      // Sort by creation date (newest first)
       allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      const limitedAssets = allAssets.slice(0, DEFAULT_ASSET_LIMIT);
+
+      const totalCount = allAssets.length;
+
+      // Apply pagination unless loadAll is true
+      let resultAssets = allAssets;
+      if (!loadAll) {
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        resultAssets = allAssets.slice(startIndex, endIndex);
+      }
+
+      const hasMore = !loadAll && (page * limit) < totalCount;
 
       const elapsed = Date.now() - startTime;
-      console.log(`[media-storage] S3 loading completed in ${elapsed}ms: ${limitedAssets.length}/${allAssets.length} assets (filtered by ${mediaType || 'none'})`);
+      console.log(`[media-storage] S3 loading completed in ${elapsed}ms: ${resultAssets.length}/${totalCount} assets (filtered by ${mediaType || 'none'})`);
 
-      return limitedAssets;
+      return {
+        assets: resultAssets,
+        totalCount,
+        hasMore
+      };
     } else {
       // Development: Read from local files efficiently
       console.log('[media-storage] Loading from local files...');
@@ -337,15 +363,27 @@ export async function listMediaAssets(mediaType?: 'image' | 'video' | 'audio'): 
         const elapsed = Date.now() - startTime;
         console.log(`[media-storage] Local loading completed in ${elapsed}ms: ${allAssets.length} assets (filtered by ${mediaType || 'none'})`);
 
-        return allAssets;
+        return {
+          assets: allAssets,
+          totalCount: allAssets.length,
+          hasMore: false // Local loading doesn't support pagination
+        };
       } catch (error) {
         console.warn('[media-storage] Failed to read local assets directory:', error);
-        return [];
+        return {
+          assets: [],
+          totalCount: 0,
+          hasMore: false
+        };
       }
     }
   } catch (error) {
     console.error('[media-storage] Error loading media assets:', error);
-    return [];
+    return {
+      assets: [],
+      totalCount: 0,
+      hasMore: false
+    };
   }
 }
 
@@ -476,10 +514,10 @@ export async function searchMediaAssets(
   query: string,
   mediaType?: 'image' | 'video' | 'audio'
 ): Promise<MediaAsset[]> {
-  const allAssets = await listMediaAssets(mediaType);
+  const result = await listMediaAssets(mediaType, { loadAll: true }); // Load all for search
   const lowerQuery = query.toLowerCase();
 
-  return allAssets.filter(asset => {
+  return result.assets.filter(asset => {
     // Standard search fields
     const standardMatch =
       asset.title.toLowerCase().includes(lowerQuery) ||
@@ -511,8 +549,8 @@ export async function searchMediaAssets(
  * Get assets by project ID
  */
 export async function getAssetsByProject(projectId: string): Promise<MediaAsset[]> {
-  const allAssets = await listMediaAssets();
-  return allAssets.filter(asset => asset.project_id === projectId);
+  const result = await listMediaAssets(undefined, { loadAll: true });
+  return result.assets.filter(asset => asset.project_id === projectId);
 }
 
 /**
@@ -524,7 +562,8 @@ export async function getAssetStatistics(): Promise<{
   by_status: Record<string, number>;
   recent_uploads: number; // Last 24 hours
 }> {
-  const allAssets = await listMediaAssets();
+  const result = await listMediaAssets(undefined, { loadAll: true });
+  const allAssets = result.assets;
   const now = new Date();
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
