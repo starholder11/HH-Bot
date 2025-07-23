@@ -199,9 +199,18 @@ export default function FileManagerPage() {
       if (projectFilter) params.append('project', projectFilter);
 
       const queryString = params.toString();
+      console.log(`[file-manager] Loading assets with query: ${queryString || 'no filters'}`);
+
       // Avoid "/assets?" which Next treats as a different route and returns 404
       const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
       const data = await response.json();
+
+      console.log(`[file-manager] Received ${data.length} assets from API`);
+      if (mediaTypeFilter) {
+        const filteredCount = data.filter((asset: MediaAsset) => asset.media_type === mediaTypeFilter).length;
+        console.log(`[file-manager] Of those, ${filteredCount} match media type '${mediaTypeFilter}'`);
+      }
+
       setAssets(data);
 
       // Update selected asset with fresh data if it exists
@@ -248,7 +257,8 @@ export default function FileManagerPage() {
 
   // Filter assets based on search and filters
   const filteredAssets = useMemo(() => {
-    return assets.filter(asset => {
+    console.log(`[file-manager] Computing filteredAssets from ${assets.length} assets with searchTerm='${searchTerm}', showCompleteOnly=${showCompleteOnly}`);
+    const result = assets.filter(asset => {
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
@@ -299,6 +309,9 @@ export default function FileManagerPage() {
 
       return true;
     });
+
+    console.log(`[file-manager] Filtered down to ${result.length} assets`);
+    return result;
   }, [assets, searchTerm, showCompleteOnly]);
 
   // Create new project
