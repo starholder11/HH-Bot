@@ -65,6 +65,13 @@ interface MediaAsset {
     cloudflare_url: string;
     key: string;
   };
+  // Keyframe-specific metadata (when image is from video keyframe)
+  _keyframe_metadata?: {
+    parent_video_id: string;
+    timestamp: string;
+    frame_number: number;
+    source_video: string;
+  };
 }
 
 interface Project {
@@ -637,6 +644,11 @@ export default function FileManagerPage() {
 
   // Get asset icon based on type
   const getAssetIcon = (asset: MediaAsset) => {
+    // Special handling for keyframes
+    if (asset._keyframe_metadata) {
+      return '🎬→🖼️'; // Video-to-image indicator for keyframes
+    }
+
     switch (asset.media_type) {
       case 'image': return '🖼️';
       case 'video': return '🎬';
@@ -647,6 +659,14 @@ export default function FileManagerPage() {
 
   // Get asset display info
   const getAssetDisplayInfo = (asset: MediaAsset) => {
+    // Special handling for keyframes
+    if (asset._keyframe_metadata) {
+      return {
+        primaryLabel: `Keyframe from ${asset._keyframe_metadata.source_video}`,
+        secondaryInfo: `Frame ${asset._keyframe_metadata.frame_number} at ${asset._keyframe_metadata.timestamp} | ${asset.metadata.width}×${asset.metadata.height}`
+      };
+    }
+
     switch (asset.media_type) {
       case 'audio':
         const primaryGenre = (asset.manual_labels?.style || []).find(s => s) ||
@@ -884,6 +904,11 @@ export default function FileManagerPage() {
                         ) : (
                           <div className="flex items-center space-x-2 flex-1">
                             <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
+                            {selectedAsset._keyframe_metadata && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
+                                🎬 Keyframe
+                              </span>
+                            )}
                             <Button
                               onClick={startFilenameEdit}
                               className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
@@ -1035,7 +1060,9 @@ export default function FileManagerPage() {
                     {/* Image Details - moved after AI Analysis */}
                     {selectedAsset.metadata && (
                       <div className="mt-6">
-                        <h3 className="text-lg font-semibold text-gray-700 mb-3">Image Details</h3>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                          {selectedAsset._keyframe_metadata ? 'Keyframe Details' : 'Image Details'}
+                        </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <div className="text-xs text-gray-500 font-medium">Dimensions</div>
@@ -1062,6 +1089,33 @@ export default function FileManagerPage() {
                             </div>
                           </div>
                         </div>
+
+                        {/* Keyframe-specific details */}
+                        {selectedAsset._keyframe_metadata && (
+                          <div className="mt-4">
+                            <h4 className="text-md font-semibold text-gray-700 mb-3">Video Source Information</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                                <div className="text-xs text-blue-600 font-medium">Source Video</div>
+                                <div className="text-sm font-bold text-gray-900 mt-1">
+                                  {selectedAsset._keyframe_metadata.source_video}
+                                </div>
+                              </div>
+                              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                                <div className="text-xs text-blue-600 font-medium">Timestamp</div>
+                                <div className="text-sm font-bold text-gray-900 mt-1">
+                                  {selectedAsset._keyframe_metadata.timestamp}
+                                </div>
+                              </div>
+                              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                                <div className="text-xs text-blue-600 font-medium">Frame Number</div>
+                                <div className="text-sm font-bold text-gray-900 mt-1">
+                                  #{selectedAsset._keyframe_metadata.frame_number}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                 </Card>
