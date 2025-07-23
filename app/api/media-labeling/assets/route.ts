@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listMediaAssets, searchMediaAssets, getAssetStatistics, KeyframeStill } from '@/lib/media-storage';
+import { listMediaAssets, searchMediaAssets, getAssetStatistics, KeyframeStill, getAllKeyframes } from '@/lib/media-storage';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,40 +25,42 @@ export async function GET(request: NextRequest) {
       assets = await listMediaAssets(mediaType || undefined);
     }
 
-    // KEYFRAME INTEGRATION: When filtering for images, also include keyframes
-    if (mediaType === 'image') {
-      console.log(`[assets-api] Including keyframes for image filter`);
+    // KEYFRAME INTEGRATION: When filtering for images OR loading all media, also include keyframes
+    if (mediaType === 'image' || !mediaType) {
+      console.log(`[assets-api] Including keyframes for ${mediaType ? 'image filter' : 'all media'}`);
 
-      // Get keyframes separately (they have media_type: 'keyframe_still')
-      const allAssets = await listMediaAssets() as any[]; // Get all assets without filter
-      const keyframes = allAssets.filter((asset: any) => asset.media_type === 'keyframe_still') as KeyframeStill[];
+      // Get keyframes separately (they're stored in a different directory)
+      const keyframes = await getAllKeyframes();
 
-      console.log(`[assets-api] Found ${keyframes.length} keyframes to include with images`);
+      console.log(`[assets-api] Found ${keyframes.length} keyframes to include`);
 
       // Transform keyframes to look like image assets for the UI
-      const transformedKeyframes = keyframes.map((keyframe: KeyframeStill) => ({
-        id: keyframe.id,
-        filename: keyframe.filename,
-        s3_url: keyframe.s3_url,
-        cloudflare_url: keyframe.cloudflare_url,
-        title: keyframe.title,
-        media_type: 'image' as const, // Present as image to the UI
-        metadata: {
-          width: keyframe.metadata.resolution.width,
-          height: keyframe.metadata.resolution.height,
-          format: keyframe.metadata.format,
-          file_size: keyframe.metadata.file_size,
-          color_space: keyframe.metadata.color_profile,
-          aspect_ratio: keyframe.metadata.aspect_ratio,
-        },
-        ai_labels: keyframe.ai_labels || {
-          scenes: [],
-          objects: [],
-          style: [],
-          mood: [],
-          themes: [],
-          confidence_scores: {},
-        },
+      const transformedKeyframes = keyframes.map((keyframe: KeyframeStill) => {
+        console.log(`[assets-api] Transforming keyframe ${keyframe.id}: has ai_labels=${!!keyframe.ai_labels}, scenes count=${keyframe.ai_labels?.scenes?.length || 0}`);
+
+        return {
+          id: keyframe.id,
+          filename: keyframe.filename,
+          s3_url: keyframe.s3_url,
+          cloudflare_url: keyframe.cloudflare_url,
+          title: keyframe.title,
+          media_type: 'image' as const, // Present as image to the UI
+          metadata: {
+            width: keyframe.metadata.resolution.width,
+            height: keyframe.metadata.resolution.height,
+            format: keyframe.metadata.format,
+            file_size: keyframe.metadata.file_size,
+            color_space: keyframe.metadata.color_profile,
+            aspect_ratio: keyframe.metadata.aspect_ratio,
+          },
+          ai_labels: keyframe.ai_labels || {
+            scenes: [],
+            objects: [],
+            style: [],
+            mood: [],
+            themes: [],
+            confidence_scores: {},
+          },
         manual_labels: {
           scenes: [],
           objects: [],
@@ -90,7 +92,8 @@ export async function GET(request: NextRequest) {
           frame_number: keyframe.frame_number,
           source_video: keyframe.source_info.video_filename
         }
-      }));
+      };
+      });
 
       // Add transformed keyframes to the asset list
       assets = [...assets, ...transformedKeyframes];

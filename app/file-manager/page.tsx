@@ -983,6 +983,24 @@ export default function FileManagerPage() {
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-gray-700">AI Analysis</h3>
 
+                      {/* Show processing state for keyframes with empty AI labels */}
+                      {selectedAsset._keyframe_metadata &&
+                       (!selectedAsset.ai_labels.scenes || selectedAsset.ai_labels.scenes.length === 0) && (
+                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                          <div className="flex items-center">
+                            <div className="text-yellow-600 mr-3">
+                              🧠
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-semibold text-yellow-800 mb-1">AI Analysis Processing</h4>
+                              <p className="text-sm text-yellow-700">
+                                This keyframe is being analyzed by our AI vision system. Analysis results will appear here once processing is complete.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Scene Description */}
                       {selectedAsset.ai_labels.scenes.length > 0 && (
                         <div>
