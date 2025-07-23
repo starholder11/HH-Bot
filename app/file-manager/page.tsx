@@ -394,32 +394,26 @@ export default function FileManagerPage() {
     hasPendingAssetsRef.current = hasPending;
   }, [assets]);
 
-  // Start/stop polling based on state - STABLE dependencies only
+  // COMPLETELY DISABLE POLLING - this is the root cause of jumping
+  // Polling is causing constant asset list re-renders and jumping behavior
+  // Instead, we'll rely on user-initiated refreshes and upload completion callbacks
   useEffect(() => {
-    const shouldPoll = (isUploading || isAILabeling || hasPendingAssetsRef.current) && !selectedAsset;
+    console.log('[file-manager] Polling system DISABLED to prevent UI jumping');
 
-    if (shouldPoll && !pollingInterval) {
-      // Start polling every 3 seconds when there are pending assets or active processes
-      console.log('[file-manager] Starting polling - upload:', isUploading, 'AI:', isAILabeling, 'pending:', hasPendingAssetsRef.current);
-      const interval = setInterval(() => {
-        console.log('[file-manager] Polling for updates (no asset selected)');
-        loadAssetsIncremental();
-      }, 3000);
-      setPollingInterval(interval);
-    } else if (!shouldPoll && pollingInterval) {
-      // Stop polling when no pending assets and no active processes OR when asset is selected
-      console.log('[file-manager] Stopping polling -', selectedAsset ? 'asset selected' : 'no pending work');
+    // Clear any existing polling interval
+    if (pollingInterval) {
+      console.log('[file-manager] Clearing existing polling interval');
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
 
-    // Cleanup function to clear interval when dependencies change
+    // Don't start any new polling
     return () => {
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
     };
-  }, [isUploading, isAILabeling, selectedAsset, pollingInterval, loadAssetsIncremental]);
+  }, [pollingInterval]);
 
 
 
@@ -771,6 +765,16 @@ export default function FileManagerPage() {
               Assets ({filteredAssets.length}/{assets.length})
             </h2>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  console.log('[file-manager] Manual refresh triggered');
+                  loadAssetsIncremental();
+                }}
+                className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                title="Refresh asset list"
+              >
+                🔄
+              </button>
               <div className="text-sm text-gray-500">
                 {assets.filter(a => a.labeling_complete).length} complete
               </div>
