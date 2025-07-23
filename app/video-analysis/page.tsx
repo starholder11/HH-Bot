@@ -123,23 +123,8 @@ export default function VideoAnalysisPage() {
     };
   }, [pollingInterval]);
 
-  // Enhanced polling logic - poll when there are any pending videos OR when actively analyzing
-  useEffect(() => {
-    const hasPendingVideos = videos.some(video =>
-      ['triggering', 'pending', 'processing'].includes(video.processing_status?.ai_labeling || '') ||
-      ['pending', 'processing'].includes(video.processing_status?.keyframe_extraction || '')
-    );
-
-    // POLLING DISABLED - causing UI jumping issues across the app
-    console.log('[video-analysis] Polling system DISABLED to prevent UI jumping');
-
-    // Clear any existing polling interval
-    if (pollingInterval) {
-      console.log('[video-analysis] Clearing existing polling interval');
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
-    }
-  }, [isAnalyzing, pollingInterval]);
+  // POLLING COMPLETELY DISABLED - useEffect removed to prevent infinite re-renders
+  // The dependencies [pollingInterval] were causing infinite loops
 
   // SECOND POLLING DISABLED - was causing additional UI jumping
   useEffect(() => {

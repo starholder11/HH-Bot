@@ -141,26 +141,8 @@ export default function MediaLabelingPage() {
     };
   }, [pollingInterval]);
 
-  // Start/stop polling based on pending assets or upload state
-  useEffect(() => {
-    const hasPendingAssets = assets.some(asset =>
-      asset.processing_status?.ai_labeling === 'triggering' ||
-      asset.processing_status?.ai_labeling === 'processing' ||
-      asset.processing_status?.ai_labeling === 'pending' ||
-      asset.processing_status?.metadata_extraction === 'pending' ||
-      asset.processing_status?.upload === 'pending'
-    );
-
-    // POLLING DISABLED - causing UI jumping issues
-    console.log('[media-labeling] Polling system DISABLED to prevent UI jumping');
-
-    // Clear any existing polling interval
-    if (pollingInterval) {
-      console.log('[media-labeling] Clearing existing polling interval');
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
-    }
-  }, [isUploading, isAILabeling, assets, pollingInterval]);
+  // POLLING COMPLETELY DISABLED - useEffect removed to prevent infinite re-renders
+  // The dependencies [assets, pollingInterval] were causing infinite loops
 
   const loadAssets = async () => {
     try {
