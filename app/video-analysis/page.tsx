@@ -130,39 +130,21 @@ export default function VideoAnalysisPage() {
       ['pending', 'processing'].includes(video.processing_status?.keyframe_extraction || '')
     );
 
-    const shouldPoll = isAnalyzing || hasPendingVideos;
+    // POLLING DISABLED - causing UI jumping issues across the app
+    console.log('[video-analysis] Polling system DISABLED to prevent UI jumping');
 
-    if (shouldPoll && !pollingInterval) {
-      // Start polling every 3 seconds when there are pending videos or during analysis
-      const interval = setInterval(() => {
-        console.log('[video-analysis] Polling for updates... (pending videos or analysis in progress)');
-        fetchVideos();
-      }, 3000);
-      setPollingInterval(interval);
-    } else if (!shouldPoll && pollingInterval) {
-      // Stop polling when no pending videos and no active analysis
-      console.log('[video-analysis] Stopping polling - no pending videos or analysis');
+    // Clear any existing polling interval
+    if (pollingInterval) {
+      console.log('[video-analysis] Clearing existing polling interval');
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
   }, [isAnalyzing, pollingInterval]);
 
-  // Start polling when videos are first loaded if there are pending videos
+  // SECOND POLLING DISABLED - was causing additional UI jumping
   useEffect(() => {
-    if (videos.length > 0 && !pollingInterval) {
-      const hasPendingVideos = videos.some(video =>
-        ['triggering', 'pending', 'processing'].includes(video.processing_status?.ai_labeling || '') ||
-        ['pending', 'processing'].includes(video.processing_status?.keyframe_extraction || '')
-      );
-
-      if (hasPendingVideos) {
-        console.log('[video-analysis] Starting initial polling for pending videos');
-        const interval = setInterval(() => {
-          fetchVideos();
-        }, 3000);
-        setPollingInterval(interval);
-      }
-    }
+    console.log('[video-analysis] Second polling system DISABLED to prevent UI jumping');
+    // No polling will be started here anymore
   }, [videos.length]);
 
   // Sync selectedVideo with selectedVideoId whenever videos array changes
