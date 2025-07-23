@@ -65,6 +65,13 @@ interface MediaAsset {
     cloudflare_url: string;
     key: string;
   };
+  // Keyframe-specific metadata (when transformed from video keyframes)
+  _keyframe_metadata?: {
+    parent_video_id: string;
+    timestamp: string;
+    frame_number: number;
+    source_video: string;
+  };
 }
 
 interface Project {
@@ -151,7 +158,7 @@ export default function MediaLabelingPage() {
       if (projectFilter) params.append('project', projectFilter);
 
       const queryString = params.toString();
-      // Avoid “/assets?” which Next treats as a different route and returns 404
+      // Avoid "//assets?" which Next treats as a different route and returns 404
       const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
       const data = await response.json();
       setAssets(data);
@@ -376,6 +383,11 @@ export default function MediaLabelingPage() {
 
   // Get asset icon based on type
   const getAssetIcon = (asset: MediaAsset) => {
+    // Special icon for keyframes
+    if (asset._keyframe_metadata) {
+      return '🎬→🖼️';
+    }
+
     switch (asset.media_type) {
       case 'image': return '🖼️';
       case 'video': return '🎬';
@@ -386,6 +398,34 @@ export default function MediaLabelingPage() {
 
   // Get asset display info
   const getAssetDisplayInfo = (asset: MediaAsset) => {
+    // Special display for keyframes
+    if (asset._keyframe_metadata) {
+      const hasAi = asset.ai_labels && (
+        (asset.ai_labels.scenes && asset.ai_labels.scenes.length > 0) ||
+        (asset.ai_labels.objects && asset.ai_labels.objects.length > 0)
+      );
+
+      // If AI analysis present, surface a succinct preview similar to KeyframeTimeline
+      if (hasAi) {
+        const scene = asset.ai_labels.scenes?.[0];
+        // Grab up to three objects to preview
+        const objectsPreview = (asset.ai_labels.objects || []).slice(0, 3).join(', ');
+
+        return {
+          primaryLabel: scene || `Keyframe from ${asset._keyframe_metadata.source_video}`,
+          secondaryInfo: objectsPreview
+            ? `${objectsPreview}${(asset.ai_labels.objects || []).length > 3 ? '…' : ''}`
+            : `Frame ${asset._keyframe_metadata.frame_number} at ${asset._keyframe_metadata.timestamp} | ${asset.metadata.width}×${asset.metadata.height}`
+        };
+      }
+
+      // Fallback (no AI yet)
+      return {
+        primaryLabel: `Keyframe from ${asset._keyframe_metadata.source_video}`,
+        secondaryInfo: `Frame ${asset._keyframe_metadata.frame_number} at ${asset._keyframe_metadata.timestamp} | ${asset.metadata.width}×${asset.metadata.height}`
+      };
+    }
+
     switch (asset.media_type) {
       case 'audio':
         const primaryGenre = (asset.manual_labels?.style || []).find(s => s) ||
@@ -641,6 +681,11 @@ export default function MediaLabelingPage() {
                         ) : (
                           <div className="flex items-center space-x-2 flex-1">
                             <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
+                            {selectedAsset._keyframe_metadata && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
+                                🎬 Keyframe
+                              </span>
+                            )}
                             <Button
                               onClick={startFilenameEdit}
                               className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
@@ -714,6 +759,21 @@ export default function MediaLabelingPage() {
                   {selectedAsset.ai_labels && (
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-gray-700">AI Analysis</h3>
+
+                      {/* Show processing state for keyframes with empty AI labels */}
+                      {selectedAsset._keyframe_metadata &&
+                       (!selectedAsset.ai_labels.scenes || selectedAsset.ai_labels.scenes.length === 0) && (
+                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                          <div className="flex items-center">
+                            <div className="text-yellow-700">
+                              <p className="text-sm font-medium">🧠 AI Analysis Processing...</p>
+                              <p className="text-xs mt-1">
+                                This keyframe was generated from video analysis. AI labeling may take a moment to complete.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Scene Description */}
                       {selectedAsset.ai_labels.scenes.length > 0 && (
@@ -789,10 +849,39 @@ export default function MediaLabelingPage() {
                       </div>
                     )}
 
+                    {/* Keyframe Source Information */}
+                    {selectedAsset._keyframe_metadata && (
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold text-gray-700 mb-3">Video Source Information</h3>
+                        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <div className="text-xs text-blue-600 font-medium mb-1">Source Video</div>
+                              <div className="text-sm text-blue-800 font-semibold">
+                                {selectedAsset._keyframe_metadata.source_video}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-blue-600 font-medium mb-1">Timestamp</div>
+                              <div className="text-sm text-blue-800 font-semibold">
+                                {selectedAsset._keyframe_metadata.timestamp}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-blue-600 font-medium mb-1">Frame Number</div>
+                              <div className="text-sm text-blue-800 font-semibold">
+                                #{selectedAsset._keyframe_metadata.frame_number}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Image Details - moved after AI Analysis */}
                     {selectedAsset.metadata && (
                       <div className="mt-6">
-                        <h3 className="text-lg font-semibold text-gray-700 mb-3">Image Details</h3>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-3">{selectedAsset._keyframe_metadata ? 'Keyframe Details' : 'Image Details'}</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <div className="text-xs text-gray-500 font-medium">Dimensions</div>
