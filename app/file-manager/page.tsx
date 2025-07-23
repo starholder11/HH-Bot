@@ -177,6 +177,10 @@ export default function FileManagerPage() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(100); // Show 100 assets per page
+
   // Filename editing state
   const [isEditingFilename, setIsEditingFilename] = useState(false);
   const [newFilename, setNewFilename] = useState('');
@@ -513,6 +517,17 @@ export default function FileManagerPage() {
     });
   }, [filteredAssetIds, searchTerm, showCompleteOnly]);
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedAssets = filteredAssets.slice(startIndex, endIndex);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, mediaTypeFilter, projectFilter, showCompleteOnly]);
+
   // Create new project
   const createProject = async () => {
     if (!newProjectName.trim()) return;
@@ -806,7 +821,7 @@ export default function FileManagerPage() {
         <div className="lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              Assets ({filteredAssets.length}/{assets.length})
+              Assets ({filteredAssets.length} total, showing {paginatedAssets.length})
             </h2>
             <div className="flex items-center space-x-2">
               <button
@@ -834,7 +849,7 @@ export default function FileManagerPage() {
           </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredAssets.map((asset: MediaAsset) => (
+            {paginatedAssets.map((asset: MediaAsset) => (
               <AssetListItem
                 key={asset.id}
                 asset={asset}
@@ -852,6 +867,53 @@ export default function FileManagerPage() {
               />
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between border-t pt-4">
+              <div className="text-sm text-gray-500">
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredAssets.length)} of {filteredAssets.length} assets
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                    if (pageNumber > totalPages) return null;
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => setCurrentPage(pageNumber)}
+                        className={`px-2 py-1 text-xs border rounded ${
+                          currentPage === pageNumber
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
