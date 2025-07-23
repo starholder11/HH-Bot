@@ -236,48 +236,49 @@ export default function FileManagerPage() {
       const updatedAssets: MediaAsset[] = [];
       const hasChanges = mergeAssetsWithCache(newData, cache, updatedAssets);
 
-      // Only trigger re-render if there are actual changes AND no asset is selected
-      if ((hasChanges || assets.length === 0) && !selectedAsset) {
-        console.log('[file-manager] Updating assets list - changes detected and no selection');
-        setAssets(updatedAssets);
+            // ULTRA-STABLE: Only update when absolutely necessary
+      if (hasChanges || assets.length === 0) {
+        // Always update the cache regardless of selection state
+        const currentAssets = Array.from(cache.values());
 
         // Update timestamp for next incremental fetch
         lastUpdateTimestamp.current = new Date().toISOString();
-      } else if (hasChanges && selectedAsset) {
-        // If there are changes but an asset is selected, update cache but don't re-render list
-        console.log('[file-manager] Changes detected but asset selected - updating cache only');
 
-        // Update selected asset with fresh data if it exists and changed
-        const updatedSelectedAsset = cache.get(selectedAsset.id);
-        if (updatedSelectedAsset && updatedSelectedAsset !== selectedAsset) {
-          // Validate that the updated asset still matches the selected type
-          if (updatedSelectedAsset.media_type !== selectedAsset.media_type) {
-            console.log('[file-manager] Asset media type changed, clearing selection');
+        // If no asset is selected, safe to update the visible list
+        if (!selectedAsset) {
+          console.log('[file-manager] Updating assets list - no selection, safe to update');
+          setAssets(currentAssets);
+        } else {
+          // Asset is selected - only update if the selection is no longer valid
+          const updatedSelectedAsset = cache.get(selectedAsset.id);
+
+          if (!updatedSelectedAsset) {
+            // Selected asset no longer exists - clear selection and update list
+            console.log('[file-manager] Selected asset no longer exists - clearing selection and updating list');
             setSelectedAsset(null);
-            return;
+            setAssets(currentAssets);
+          } else if (updatedSelectedAsset !== selectedAsset) {
+            // Selected asset has changes - update selection but keep list stable
+            console.log('[file-manager] Updating selected asset data only - keeping list stable');
+
+            const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'triggering' || selectedAsset.processing_status?.ai_labeling === 'processing';
+            const isNowCompleted = updatedSelectedAsset.processing_status?.ai_labeling === 'completed';
+
+            // If AI labeling just completed, stop AI labeling flag
+            if (wasProcessing && isNowCompleted && isAILabeling) {
+              console.log('[file-manager] AI labeling completed for:', updatedSelectedAsset.title);
+              setIsAILabeling(false);
+            }
+
+            setSelectedAsset(updatedSelectedAsset);
+            // NOTE: Not updating assets list to prevent jumping
+          } else {
+            // Selected asset unchanged - just log
+            console.log('[file-manager] Cache updated but selected asset unchanged - no UI updates needed');
           }
-
-          const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'triggering' || selectedAsset.processing_status?.ai_labeling === 'processing';
-          const isNowCompleted = updatedSelectedAsset.processing_status?.ai_labeling === 'completed';
-
-          // If AI labeling just completed, stop AI labeling flag
-          if (wasProcessing && isNowCompleted && isAILabeling) {
-            console.log('[file-manager] AI labeling completed for:', updatedSelectedAsset.title);
-            setIsAILabeling(false);
-          }
-
-          console.log('[file-manager] Updating selected asset with fresh data');
-          setSelectedAsset(updatedSelectedAsset);
-        } else if (!updatedSelectedAsset) {
-          // Selected asset no longer exists in filtered results
-          console.log('[file-manager] Selected asset no longer in filtered results, clearing selection');
-          setSelectedAsset(null);
         }
-
-        // Update timestamp for next incremental fetch
-        lastUpdateTimestamp.current = new Date().toISOString();
-      } else if (!hasChanges) {
-        console.log('[file-manager] No changes detected - skipping update');
+      } else {
+        console.log('[file-manager] No changes detected - skipping all updates');
       }
     } catch (error) {
       console.error('Error loading assets:', error);
@@ -378,21 +379,28 @@ export default function FileManagerPage() {
     }
   }, [selectedAsset, mediaTypeFilter, projectFilter]);
 
-  // Start/stop polling based on pending assets or upload state
+  // Check for pending assets without causing re-renders
+  const hasPendingAssetsRef = useRef(false);
+
+  // Update pending status when assets change, but don't trigger polling restart
   useEffect(() => {
-    const hasPendingAssets = assets.some(asset =>
+    const hasPending = assets.some(asset =>
       asset.processing_status?.ai_labeling === 'triggering' ||
       asset.processing_status?.ai_labeling === 'processing' ||
       asset.processing_status?.ai_labeling === 'pending' ||
       asset.processing_status?.metadata_extraction === 'pending' ||
       asset.processing_status?.upload === 'pending'
     );
+    hasPendingAssetsRef.current = hasPending;
+  }, [assets]);
 
-    // CRITICAL FIX: Stop ALL polling when ANY asset is selected to prevent jumping
-    const shouldPoll = (isUploading || isAILabeling || hasPendingAssets) && !selectedAsset;
+  // Start/stop polling based on state - STABLE dependencies only
+  useEffect(() => {
+    const shouldPoll = (isUploading || isAILabeling || hasPendingAssetsRef.current) && !selectedAsset;
 
     if (shouldPoll && !pollingInterval) {
       // Start polling every 3 seconds when there are pending assets or active processes
+      console.log('[file-manager] Starting polling - upload:', isUploading, 'AI:', isAILabeling, 'pending:', hasPendingAssetsRef.current);
       const interval = setInterval(() => {
         console.log('[file-manager] Polling for updates (no asset selected)');
         loadAssetsIncremental();
@@ -411,7 +419,7 @@ export default function FileManagerPage() {
         clearInterval(pollingInterval);
       }
     };
-  }, [isUploading, isAILabeling, assets, selectedAsset, loadAssetsIncremental]);
+  }, [isUploading, isAILabeling, selectedAsset, pollingInterval, loadAssetsIncremental]);
 
 
 
