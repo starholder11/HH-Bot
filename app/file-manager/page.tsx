@@ -180,7 +180,11 @@ export default function FileManagerPage() {
 
   // Asset cache for stable references
   const assetCacheRef = useRef<Map<string, MediaAsset>>(new Map());
-  const lastUpdateTimestamp = useRef<string>('');
+  const [filteredAssetIds, setFilteredAssetIds] = useState<string[]>([]); // NEW: separate filtered IDs
+
+  // Mounted state to prevent state updates on unmounted component
+  const isMounted = useRef(true);
+
 
   // Load assets and projects
   useEffect(() => {
@@ -223,70 +227,64 @@ export default function FileManagerPage() {
         const params = new URLSearchParams();
         if (mediaTypeFilter && mediaTypeFilter !== 'audio') params.append('type', mediaTypeFilter);
         if (projectFilter) params.append('project', projectFilter);
-        // Add timestamp to only get changes since last update during polling
-        if (lastUpdateTimestamp.current) params.append('since', lastUpdateTimestamp.current);
 
         const queryString = params.toString();
         const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
         newData = await response.json();
       }
 
-      // Smart merge: only update changed items, preserve stable references
+      if (!isMounted.current) return; // Prevent state update on unmounted component
+
+      // --- REFACTORED MERGE LOGIC ---
+      // 1. Merge new data into the master cache
       const cache = assetCacheRef.current;
-      const updatedAssets: MediaAsset[] = [];
-      const hasChanges = mergeAssetsWithCache(newData, cache, updatedAssets);
-
-            // ULTRA-STABLE: Only update when absolutely necessary
-      if (hasChanges || assets.length === 0) {
-        // Always update the cache regardless of selection state
-        const currentAssets = Array.from(cache.values());
-
-        // Update timestamp for next incremental fetch
-        lastUpdateTimestamp.current = new Date().toISOString();
-
-        // If no asset is selected, safe to update the visible list
-        if (!selectedAsset) {
-          console.log('[file-manager] Updating assets list - no selection, safe to update');
-          setAssets(currentAssets);
-        } else {
-          // Asset is selected - only update if the selection is no longer valid
-          const updatedSelectedAsset = cache.get(selectedAsset.id);
-
-          if (!updatedSelectedAsset) {
-            // Selected asset no longer exists - clear selection and update list
-            console.log('[file-manager] Selected asset no longer exists - clearing selection and updating list');
-            setSelectedAsset(null);
-            setAssets(currentAssets);
-          } else if (updatedSelectedAsset !== selectedAsset) {
-            // Selected asset has changes - update selection but keep list stable
-            console.log('[file-manager] Updating selected asset data only - keeping list stable');
-
-            const wasProcessing = selectedAsset.processing_status?.ai_labeling === 'triggering' || selectedAsset.processing_status?.ai_labeling === 'processing';
-            const isNowCompleted = updatedSelectedAsset.processing_status?.ai_labeling === 'completed';
-
-            // If AI labeling just completed, stop AI labeling flag
-            if (wasProcessing && isNowCompleted && isAILabeling) {
-              console.log('[file-manager] AI labeling completed for:', updatedSelectedAsset.title);
-              setIsAILabeling(false);
-            }
-
-            setSelectedAsset(updatedSelectedAsset);
-            // NOTE: Not updating assets list to prevent jumping
-          } else {
-            // Selected asset unchanged - just log
-            console.log('[file-manager] Cache updated but selected asset unchanged - no UI updates needed');
-          }
+      let hasCacheChanged = false;
+      for (const asset of newData) {
+        const existing = cache.get(asset.id);
+        if (!existing || hasAssetChanged(existing, asset)) {
+          cache.set(asset.id, asset);
+          hasCacheChanged = true;
         }
-      } else {
-        console.log('[file-manager] No changes detected - skipping all updates');
       }
+
+      // 2. Determine the new set of filtered IDs from the API response
+      const newFilteredIds = new Set(newData.map(a => a.id));
+
+      // 3. Update the filtered IDs state if it has changed
+      setFilteredAssetIds(prevIds => {
+        const currentFilteredIds = new Set(prevIds);
+        const isEqual = newFilteredIds.size === currentFilteredIds.size && Array.from(newFilteredIds).every(id => currentFilteredIds.has(id));
+        if (!isEqual) {
+          return Array.from(newFilteredIds);
+        }
+        return prevIds; // Return previous state to avoid re-render
+      });
+
+
+      // 4. If the master cache was updated, trigger a re-render of the assets list
+      if (hasCacheChanged) {
+        setAssets(Array.from(cache.values()) as MediaAsset[]);
+      }
+
+
+      // --- STABLE SELECTION LOGIC ---
+      if (selectedAsset) {
+        const updatedSelectedAsset = cache.get(selectedAsset.id);
+        if (updatedSelectedAsset && hasAssetChanged(selectedAsset, updatedSelectedAsset)) {
+          setSelectedAsset(updatedSelectedAsset);
+        }
+      }
+
+
     } catch (error) {
       console.error('Error loading assets:', error);
     }
-  }, [mediaTypeFilter, projectFilter, selectedAsset, isAILabeling, assets.length]);
+  }, [mediaTypeFilter, projectFilter]); // Dependencies simplified
 
   // Smart merge function that maintains stable object references
   const mergeAssetsWithCache = (newData: MediaAsset[], cache: Map<string, MediaAsset>, result: MediaAsset[]): boolean => {
+    // --- NEW: guard against duplicate IDs returned from API ---
+    const processedIds = new Set<string>(); // track IDs we have already handled
     let hasChanges = false;
 
     // Create a set of new IDs for quick lookup
@@ -294,6 +292,12 @@ export default function FileManagerPage() {
 
     // Update/add new and changed assets
     for (const newAsset of newData) {
+      if (processedIds.has(newAsset.id)) {
+        // Skip duplicates silently – they will cause React key warnings & jumping
+        continue;
+      }
+      processedIds.add(newAsset.id);
+
       const existing = cache.get(newAsset.id);
 
       if (!existing || hasAssetChanged(existing, newAsset)) {
@@ -340,11 +344,39 @@ export default function FileManagerPage() {
   // Load assets when filters change - prevent race conditions
   useEffect(() => {
     // Clear cache when filters change to start fresh
-    assetCacheRef.current.clear();
-    lastUpdateTimestamp.current = '';
+    // assetCacheRef.current.clear();
 
     loadAssetsIncremental();
-  }, [mediaTypeFilter, projectFilter, loadAssetsIncremental]);
+  }, [mediaTypeFilter, projectFilter]);
+
+  // NEW: Add a dedicated effect to synchronize selection with filters and assets
+  useEffect(() => {
+    if (selectedAsset) {
+      // Check 1: Does the selected asset match the media type filter?
+      if (mediaTypeFilter && selectedAsset.media_type !== mediaTypeFilter) {
+        console.log(`[file-manager] Clearing selected asset - media type filter mismatch. Filter: ${mediaTypeFilter}, Asset type: ${selectedAsset.media_type}`);
+        setSelectedAsset(null);
+        return; // Exit early
+      }
+
+      // Check 2: Does the selected asset match the project filter?
+      if (projectFilter && selectedAsset.project_id !== projectFilter) {
+        console.log(`[file-manager] Clearing selected asset - project filter mismatch. Filter: ${projectFilter}, Asset project: ${selectedAsset.project_id}`);
+        setSelectedAsset(null);
+        return; // Exit early
+      }
+
+      // Check 3: Does the selected asset still exist in the main list?
+      // Use the asset cache as the single source of truth for all known assets
+      const assetStillExists = assetCacheRef.current.has(selectedAsset.id);
+      if (!assetStillExists) {
+        console.log('[file-manager] Clearing selected asset - it no longer exists in the cache.');
+        setSelectedAsset(null);
+        return; // Exit early
+      }
+    }
+  }, [mediaTypeFilter, projectFilter, selectedAsset]);
+
 
   // Reset AI labeling state when switching between assets
   useEffect(() => {
@@ -353,31 +385,14 @@ export default function FileManagerPage() {
 
   // Cleanup polling on unmount
   useEffect(() => {
+    isMounted.current = true;
     return () => {
+      isMounted.current = false;
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
     };
   }, [pollingInterval]);
-
-  // Clear selected asset if it doesn't match current filters
-  useEffect(() => {
-    if (selectedAsset) {
-      // Check if selected asset matches current media type filter
-      if (mediaTypeFilter && selectedAsset.media_type !== mediaTypeFilter) {
-        console.log('[file-manager] Clearing selected asset - media type filter mismatch');
-        setSelectedAsset(null);
-        return;
-      }
-
-      // Check if selected asset matches current project filter
-      if (projectFilter && selectedAsset.project_id !== projectFilter) {
-        console.log('[file-manager] Clearing selected asset - project filter mismatch');
-        setSelectedAsset(null);
-        return;
-      }
-    }
-  }, [selectedAsset, mediaTypeFilter, projectFilter]);
 
   // Check for pending assets without causing re-renders
   const hasPendingAssetsRef = useRef(false);
@@ -420,8 +435,11 @@ export default function FileManagerPage() {
   const loadProjects = async () => {
     try {
       const response = await fetch('/api/media-labeling/projects');
-      const data = await response.json();
-      setProjects(data);
+      const projectData = (await response.json()) as Project[];
+
+      // --- NEW: remove duplicate project ids to prevent React key warnings ---
+      const uniqueProjects: Project[] = Array.from(new Map(projectData.map((p: Project) => [p.id, p])).values());
+      setProjects(uniqueProjects);
     } catch (error) {
       console.error('Error loading projects:', error);
     }
@@ -429,7 +447,13 @@ export default function FileManagerPage() {
 
   // Optimized filtered assets with stable references
   const filteredAssets = useMemo(() => {
-    return assets.filter(asset => {
+    const masterAssetList = Array.from(assetCacheRef.current.values());
+    return masterAssetList.filter(asset => {
+      // Filter 1: The asset must be in the list of currently filtered IDs
+      if (!filteredAssetIds.includes(asset.id)) {
+        return false;
+      }
+
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
@@ -480,7 +504,7 @@ export default function FileManagerPage() {
 
       return true;
     });
-  }, [assets, searchTerm, showCompleteOnly]);
+  }, [filteredAssetIds, searchTerm, showCompleteOnly]);
 
   // Create new project
   const createProject = async () => {
