@@ -251,7 +251,9 @@ export default function FileManagerPage() {
       asset.processing_status?.upload === 'pending'
     );
 
-        const shouldPoll = isUploading || isAILabeling || hasPendingAssets;
+        // Don't poll when a video is selected to prevent iframe reloading
+        const isVideoSelected = selectedAsset?.media_type === 'video';
+        const shouldPoll = (isUploading || isAILabeling || hasPendingAssets) && !isVideoSelected;
 
     if (shouldPoll && !pollingInterval) {
       // Start polling every 3 seconds when there are pending assets or active processes
