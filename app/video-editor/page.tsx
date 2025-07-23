@@ -95,8 +95,8 @@ export default function VideoEditorPage() {
     const assetId = params.get('asset');
     if (assetId) {
       fetchVideoAsset(assetId);
+      // Projects are loaded lazily when user clicks dropdown
     }
-    fetchProjects();
   }, []);
 
   // Click outside to close settings dropdown
@@ -115,15 +115,17 @@ export default function VideoEditorPage() {
 
   const fetchVideoAsset = async (assetId: string) => {
     try {
-      const response = await fetch(`/api/media-labeling/assets?type=video`);
+      // Direct API call to fetch single asset by ID (much faster!)
+      const response = await fetch(`/api/media-labeling/assets/${assetId}`);
       if (response.ok) {
-        const data = await response.json();
-        const videoAssets = Array.isArray(data) ? data : (data.assets || []);
-        const videos = videoAssets.filter((asset: any) => asset.media_type === 'video');
-        const video = videos.find((v: any) => v.id === assetId);
-        if (video) {
+        const video = await response.json();
+        if (video.media_type === 'video') {
           setSelectedVideo(video);
+        } else {
+          console.error('Asset is not a video:', video.media_type);
         }
+      } else {
+        console.error('Video asset not found:', response.status);
       }
     } catch (error) {
       console.error('Error fetching video asset:', error);
@@ -139,6 +141,13 @@ export default function VideoEditorPage() {
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
+    }
+  };
+
+  // Lazy load projects when user interacts with project dropdown
+  const handleProjectDropdownClick = () => {
+    if (projects.length === 0) {
+      fetchProjects();
     }
   };
 
@@ -400,6 +409,7 @@ export default function VideoEditorPage() {
                 <select
                   value={selectedVideo.project_id || ''}
                   onChange={(e) => updateProjectAssignment(e.target.value || null)}
+                  onClick={handleProjectDropdownClick}
                   className="border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 text-sm"
                 >
                   <option value="">No Category</option>
