@@ -180,6 +180,7 @@ export default function FileManagerPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(100); // Show 100 assets per page
+  const [totalAssetCount, setTotalAssetCount] = useState(0); // Track total from server
 
   // Filename editing state
   const [isEditingFilename, setIsEditingFilename] = useState(false);
@@ -207,6 +208,7 @@ export default function FileManagerPage() {
   const loadAssetsIncremental = useCallback(async () => {
     try {
       let newData: MediaAsset[] = [];
+      let totalCount = 0;
 
       if (mediaTypeFilter === 'audio') {
         // For audio filter, fetch from audio-labeling API (which uses S3 JSON files)
@@ -233,18 +235,27 @@ export default function FileManagerPage() {
             ...song.metadata
           }
         }));
+        totalCount = newData.length;
       } else {
-        // For images, videos, and "all media", use existing media-labeling API
+        // For images, videos, and "all media", use existing media-labeling API with pagination
         const params = new URLSearchParams();
         if (mediaTypeFilter && mediaTypeFilter !== 'audio') params.append('type', mediaTypeFilter);
         if (projectFilter) params.append('project', projectFilter);
+        params.append('page', currentPage.toString());
+        params.append('limit', itemsPerPage.toString());
 
         const queryString = params.toString();
         const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
-        newData = await response.json();
+        const result = await response.json();
+
+        newData = result.assets || [];
+        totalCount = result.totalCount || 0;
       }
 
       if (!isMounted.current) return; // Prevent state update on unmounted component
+
+      // Update total asset count for pagination
+      setTotalAssetCount(totalCount);
 
       // --- REFACTORED MERGE LOGIC ---
       // 1. Merge new data into the master cache
@@ -290,7 +301,7 @@ export default function FileManagerPage() {
     } catch (error) {
       console.error('Error loading assets:', error);
     }
-  }, [mediaTypeFilter, projectFilter]); // Dependencies simplified
+  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage]); // Dependencies simplified
 
   // Smart merge function that maintains stable object references
   const mergeAssetsWithCache = (newData: MediaAsset[], cache: Map<string, MediaAsset>, result: MediaAsset[]): boolean => {
@@ -358,7 +369,7 @@ export default function FileManagerPage() {
     // assetCacheRef.current.clear();
 
     loadAssetsIncremental();
-  }, [mediaTypeFilter, projectFilter]);
+  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage]);
 
   // NEW: Add a dedicated effect to synchronize selection with filters and assets
   useEffect(() => {
@@ -517,11 +528,8 @@ export default function FileManagerPage() {
     });
   }, [filteredAssetIds, searchTerm, showCompleteOnly]);
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedAssets = filteredAssets.slice(startIndex, endIndex);
+  // Server-side pagination - no need for client-side pagination calculations
+  // The filteredAssets already represent the current page from the server
 
   // Reset page when filters change
   useEffect(() => {
@@ -821,7 +829,7 @@ export default function FileManagerPage() {
         <div className="lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              Assets ({filteredAssets.length} total, showing {paginatedAssets.length})
+              Assets ({totalAssetCount} total, page {currentPage})
             </h2>
             <div className="flex items-center space-x-2">
               <button
@@ -849,7 +857,7 @@ export default function FileManagerPage() {
           </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {paginatedAssets.map((asset: MediaAsset) => (
+            {filteredAssets.map((asset: MediaAsset) => (
               <AssetListItem
                 key={asset.id}
                 asset={asset}
@@ -868,11 +876,12 @@ export default function FileManagerPage() {
             ))}
           </div>
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
+          {/* Server-side Pagination Controls */}
+          {totalAssetCount > itemsPerPage && (
             <div className="mt-4 flex items-center justify-between border-t pt-4">
               <div className="text-sm text-gray-500">
-                Showing {startIndex + 1}-{Math.min(endIndex, filteredAssets.length)} of {filteredAssets.length} assets
+                Page {currentPage} of {Math.ceil(totalAssetCount / itemsPerPage)}
+                ({totalAssetCount} total assets)
               </div>
               <div className="flex items-center space-x-2">
                 <button
@@ -884,7 +893,8 @@ export default function FileManagerPage() {
                 </button>
 
                 <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  {Array.from({ length: Math.min(5, Math.ceil(totalAssetCount / itemsPerPage)) }, (_, i) => {
+                    const totalPages = Math.ceil(totalAssetCount / itemsPerPage);
                     const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
                     if (pageNumber > totalPages) return null;
 
@@ -905,8 +915,8 @@ export default function FileManagerPage() {
                 </div>
 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalAssetCount / itemsPerPage), prev + 1))}
+                  disabled={currentPage === Math.ceil(totalAssetCount / itemsPerPage)}
                   className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Next

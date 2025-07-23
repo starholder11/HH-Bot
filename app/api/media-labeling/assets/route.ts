@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     const searchQuery = searchParams.get('search');
     const projectId = searchParams.get('project');
     const stats = searchParams.get('stats') === 'true';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '100');
 
     // Return statistics if requested
     if (stats) {
@@ -16,13 +18,25 @@ export async function GET(request: NextRequest) {
     }
 
     let assets;
+    let totalCount = 0;
+    let hasMore = false;
 
     if (searchQuery) {
-      // Search across assets
+      // Search across assets (load all for search)
       assets = await searchMediaAssets(searchQuery, mediaType || undefined);
+      totalCount = assets.length;
+      // Apply pagination to search results
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedAssets = assets.slice(startIndex, endIndex);
+      hasMore = endIndex < totalCount;
+      assets = paginatedAssets;
     } else {
-      // List assets with optional type filter
-      assets = await listMediaAssets(mediaType || undefined);
+      // List assets with pagination
+      const result = await listMediaAssets(mediaType || undefined, { page, limit });
+      assets = result.assets;
+      totalCount = result.totalCount;
+      hasMore = result.hasMore;
     }
 
     // KEYFRAME INTEGRATION: When filtering for images OR loading all media, also include keyframes
@@ -107,7 +121,7 @@ export async function GET(request: NextRequest) {
       assets = assets.filter(asset => asset.project_id === projectId);
     }
 
-    return NextResponse.json(assets);
+    return NextResponse.json({ assets, totalCount, hasMore });
   } catch (error) {
     console.error('Error fetching media assets:', error);
     return NextResponse.json(
