@@ -375,9 +375,14 @@ export default function FileManagerPage() {
     if (selectedAsset) {
       // Check 1: Does the selected asset match the media type filter?
       if (mediaTypeFilter && selectedAsset.media_type !== mediaTypeFilter) {
-        console.log(`[file-manager] Clearing selected asset - media type filter mismatch. Filter: ${mediaTypeFilter}, Asset type: ${selectedAsset.media_type}`);
-        setSelectedAsset(null);
-        return; // Exit early
+        // Special case: keyframes should be compatible with image filter
+        const isKeyframeWithImageFilter = mediaTypeFilter === 'image' && selectedAsset.media_type === 'keyframe_still';
+
+        if (!isKeyframeWithImageFilter) {
+          console.log(`[file-manager] Clearing selected asset - media type filter mismatch. Filter: ${mediaTypeFilter}, Asset type: ${selectedAsset.media_type}`);
+          setSelectedAsset(null);
+          return; // Exit early
+        }
       }
 
       // Check 2: Does the selected asset match the project filter?
@@ -469,7 +474,7 @@ export default function FileManagerPage() {
   // Optimized filtered assets with stable references
   const filteredAssets = useMemo(() => {
     const masterAssetList = Array.from(assetCacheRef.current.values());
-    return masterAssetList.filter(asset => {
+    const result = masterAssetList.filter(asset => {
       // Filter 1: The asset must be in the list of currently filtered IDs
       if (!filteredAssetIds.includes(asset.id)) {
         return false;
@@ -522,10 +527,9 @@ export default function FileManagerPage() {
 
       return true;
     });
-  }, [filteredAssetIds, searchTerm]);
 
-  // Server-side pagination - no need for client-side pagination calculations
-  // The filteredAssets already represent the current page from the server
+    return result;
+  }, [filteredAssetIds, searchTerm]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -832,7 +836,7 @@ export default function FileManagerPage() {
                   if (selectedAsset && selectedAsset.media_type && ['image', 'video', 'audio', 'keyframe_still'].includes(selectedAsset.media_type)) {
                     setSelectedAsset(selectedAsset);
                   } else {
-                    console.warn('[file-manager] Invalid asset selected:', selectedAsset);
+                    console.warn('[file-manager] ❌ Invalid asset selected:', selectedAsset);
                   }
                 }}
                 getAssetIcon={getAssetIcon}
