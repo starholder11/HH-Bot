@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/Card';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Project as ProjectType } from '@/lib/project-storage';
 
 interface MediaAsset {
@@ -802,38 +803,45 @@ export default function FileManagerPage() {
 
           {/* Media Type Filter */}
           <div>
-            <select
-              value={mediaTypeFilter}
-              onChange={(e) => {
-
-                setMediaTypeFilter(e.target.value);
+            <Select
+              value={mediaTypeFilter || 'all'}
+              onValueChange={(val) => {
+                setMediaTypeFilter(val === 'all' ? '' : val);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option key="all" value="">All Media</option>
-              <option key="audio" value="audio">Audio</option>
-              <option key="image" value="image">Images</option>
-              <option key="video" value="video">Videos</option>
-            </select>
+              <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <SelectValue placeholder="All Media" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Media</SelectItem>
+                <SelectItem value="audio">Audio</SelectItem>
+                <SelectItem value="image">Images</SelectItem>
+                <SelectItem value="video">Videos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Project Filter */}
           <div className="flex items-center space-x-2">
-            <select
-              value={projectFilter}
-              onChange={(e) => {
-                setProjectFilter(e.target.value);
+            <Select
+              value={projectFilter || 'none'}
+              onValueChange={(val) => {
+                setProjectFilter(val === 'none' ? '' : val);
               }}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option key="all-projects" value="">All Projects</option>
-              {projects.map(project => (
-                <option key={project.project_id} value={project.project_id}>{project.name}</option>
-              ))}
-            </select>
+              <SelectTrigger className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <SelectValue placeholder="All Projects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">All Projects</SelectItem>
+                {projects.map(project => (
+                  <SelectItem key={project.project_id} value={project.project_id}>{project.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               onClick={() => setShowCreateProject(true)}
-                              className="px-2 py-0.5 text-xs bg-slate-500 hover:bg-slate-600 rounded text-white transition-colors whitespace-nowrap"
+              className="px-2 py-0.5 text-xs bg-slate-500 hover:bg-slate-600 rounded text-white transition-colors whitespace-nowrap"
             >
               New Project
             </Button>
