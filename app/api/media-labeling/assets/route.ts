@@ -48,6 +48,31 @@ export async function GET(request: NextRequest) {
       assets = assets.filter(asset => asset.project_id === projectId);
     }
 
+    // 🚫 Filter logic with incremental refill when excludeKeyframes flag is on
+    if (excludeKeyframes) {
+      let nonKeyframes = assets.filter(a => a.media_type !== 'keyframe_still');
+
+      // If we didn’t fill the page, keep fetching subsequent pages until we either
+      // 1) have enough non-keyframe assets to satisfy `limit`, or
+      // 2) there are no more assets available.
+      let nextPage = page + 1;
+      let keepFetching = nonKeyframes.length < limit && hasMore;
+      while (keepFetching) {
+        const next = await listMediaAssets(mediaType || undefined, { page: nextPage, limit });
+        const nextFiltered = next.assets.filter(a => a.media_type !== 'keyframe_still');
+        nonKeyframes = [...nonKeyframes, ...nextFiltered];
+        hasMore = next.hasMore;
+        nextPage += 1;
+        keepFetching = nonKeyframes.length < limit && hasMore;
+        // safety: do not fetch more than 10 pages per request
+        if (nextPage - page > 10) keepFetching = false;
+      }
+
+      // Trim to requested limit for the response
+      assets = nonKeyframes.slice(0, limit);
+      totalCount = nonKeyframes.length;
+    }
+
     // 🔑 KEYFRAME INCLUSION: Add keyframes for "all media" and "image" types
     // This ensures keyframes are selectable on initial load
     // Only include keyframes if NOT explicitly excluded
@@ -92,13 +117,6 @@ export async function GET(request: NextRequest) {
         console.warn(`[assets-api] Failed to load keyframes:`, keyframeError);
         // Continue without keyframes rather than failing the entire request
       }
-    }
-
-    // 🚫 Filter out keyframes when excludeKeyframes flag is on (AFTER keyframe inclusion)
-    if (excludeKeyframes) {
-      console.log(`[assets-api] Exclude keyframes enabled - filtering out keyframes`);
-      assets = assets.filter(asset => asset.media_type !== 'keyframe_still');
-      totalCount = assets.length;
     }
 
     return NextResponse.json({ assets, totalCount, hasMore });
