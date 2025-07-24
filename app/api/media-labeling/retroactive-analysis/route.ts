@@ -6,13 +6,14 @@ export async function POST(request: NextRequest) {
     console.log('[retroactive-analysis] Starting retroactive analysis for videos with pending keyframes...');
 
     // Get all video assets
-    const allVideos = await listMediaAssets('video') as VideoAsset[];
-    console.log(`[retroactive-analysis] Found ${allVideos.length} total videos`);
+    const { assets: allVideos } = await listMediaAssets('video', { loadAll: true });
+    const videoAssets = allVideos as VideoAsset[];
+    console.log(`[retroactive-analysis] Found ${videoAssets.length} total videos`);
 
     // Filter videos that have:
     // 1. Completed video-level AI labeling
     // 2. Any keyframes with pending AI labeling
-    const videosNeedingRetroactiveAnalysis = allVideos.filter((video: VideoAsset) => {
+    const videosNeedingRetroactiveAnalysis = videoAssets.filter((video: VideoAsset) => {
       // Must have completed video-level AI labeling
       if (video.processing_status?.ai_labeling !== 'completed') {
         return false;
