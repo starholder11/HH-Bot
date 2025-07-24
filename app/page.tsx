@@ -23,11 +23,15 @@ export default function Home() {
               An exploration of networked media and the new forms it enables. We start with the word. It acts as the founding source code from which everything else is rendered upon.
             </BodyText>
             <div className="flex gap-4 justify-center">
-              <Button href="/timeline" size="lg">
-                Explore Timeline
+              <Button asChild size="lg">
+                <a href="/timeline">
+                  Explore Timeline
+                </a>
               </Button>
-              <Button href="/about" variant="outline" size="lg">
-                Learn More
+              <Button asChild variant="outline" size="lg">
+                <a href="/about">
+                  Learn More
+                </a>
               </Button>
             </div>
           </section>
@@ -38,7 +42,9 @@ export default function Home() {
               {timelineEntries.length === 0 ? (
                 <Card>
                   <BodyText>No timeline entries yet. Check back soon for updates!</BodyText>
-                  <Button href="/admin" className="mt-4">Add Content</Button>
+                  <Button asChild className="mt-4">
+                    <a href="/admin">Add Content</a>
+                  </Button>
                 </Card>
               ) : (
                 timelineEntries.slice(0, 3).map((entry) => (
