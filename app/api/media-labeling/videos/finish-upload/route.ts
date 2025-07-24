@@ -261,11 +261,16 @@ export async function POST(request: NextRequest) {
     try {
       console.log('Enqueuing analysis job for:', videoId);
 
+      // Compute callback URL once so we can inject it into every downstream payload
+      const baseUrl = process.env.PUBLIC_API_BASE_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
       await enqueueAnalysisJob({
         assetId: videoId,
         mediaType: 'video',
         strategy: 'adaptive',
         requestedAt: Date.now(),
+        callbackBaseUrl: baseUrl,
       });
 
       // Update status to indicate job queued
@@ -300,6 +305,7 @@ export async function POST(request: NextRequest) {
                 mediaType: 'video',
                 strategy: 'adaptive',
                 requestedAt: Date.now(),
+                callbackBaseUrl: baseUrl,
               })
             }
           ]
