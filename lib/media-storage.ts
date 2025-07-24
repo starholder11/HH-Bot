@@ -1,5 +1,6 @@
 import { ListObjectsV2Command, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 import { getS3Client, getBucketName } from './s3-config';
@@ -32,6 +33,10 @@ const PREFIX = process.env.MEDIA_DATA_PREFIX || 'media-labeling/assets/';
 
 const isProd = process.env.NODE_ENV === 'production';
 const hasBucket = !!(process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET);
+
+// Cache for keyframes to avoid repeated lookups
+let keyframesCache: { keyframes: KeyframeStill[], fetchedAt: number } | null = null;
+const KEYFRAMES_CACHE_TTL_MS = parseInt(process.env.KEYFRAMES_CACHE_TTL_MS || '30000'); // 30 seconds
 
 // Helper function to convert stream to string
 async function streamToString(stream: Readable): Promise<string> {
@@ -856,70 +861,94 @@ export async function getVideoKeyframes(videoId: string): Promise<KeyframeStill[
  * Get all keyframes across all projects and videos
  */
 export async function getAllKeyframes(): Promise<KeyframeStill[]> {
-  const s3Client = getS3Client();
-  const bucketName = getBucketName();
+  // Check cache first
+  if (keyframesCache && (Date.now() - keyframesCache.fetchedAt < KEYFRAMES_CACHE_TTL_MS)) {
+    console.log(`[media-storage] Using cached keyframes (age ${Math.round((Date.now() - keyframesCache.fetchedAt) / 1000)}s, ${keyframesCache.keyframes.length} keyframes)`);
+    return keyframesCache.keyframes;
+  }
+
+  console.log('[media-storage] Loading keyframes...');
+  const startTime = Date.now();
 
   try {
-    const command = new ListObjectsV2Command({
-      Bucket: bucketName,
-      Prefix: `${PREFIX}keyframes/`,
-    });
+    // First, ensure we have the S3 key list cached
+    const allKeys = await getCachedS3Keys();
 
-    const response = await s3Client.send(command);
+    // Filter for keyframe JSON files
+    const keyframeKeys = allKeys.filter(key =>
+      key.startsWith(`${PREFIX}keyframes/`) && key.endsWith('.json')
+    );
 
-    if (!response.Contents) {
+    console.log(`[media-storage] Found ${keyframeKeys.length} keyframe files`);
+
+    if (keyframeKeys.length === 0) {
+      keyframesCache = { keyframes: [], fetchedAt: Date.now() };
       return [];
     }
 
+    // Batch fetch keyframe JSON files (limit to prevent timeouts)
+    const MAX_CONCURRENT_KEYFRAMES = 20;
     const keyframes: KeyframeStill[] = [];
 
-    for (const item of response.Contents) {
-      if (!item.Key || !item.Key.endsWith('.json')) continue;
+    for (let i = 0; i < keyframeKeys.length; i += MAX_CONCURRENT_KEYFRAMES) {
+      const batch = keyframeKeys.slice(i, i + MAX_CONCURRENT_KEYFRAMES);
 
-      try {
-        const keyframeData = await getKeyframeAsset(
-          path.basename(item.Key, '.json')
-        );
-
-        if (keyframeData) {
-          keyframes.push(keyframeData);
+      const batchPromises = batch.map(async (key) => {
+        try {
+          const keyframeId = path.basename(key, '.json');
+          return await getKeyframeAsset(keyframeId);
+        } catch (error) {
+          console.warn(`Failed to load keyframe ${key}:`, error);
+          return null;
         }
-      } catch (error) {
-        console.warn(`Failed to load keyframe ${item.Key}:`, error);
-      }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      keyframes.push(...batchResults.filter(kf => kf !== null) as KeyframeStill[]);
     }
 
-    return keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
+    // Sort by extraction time
+    keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
+
+    // Cache the results
+    keyframesCache = { keyframes, fetchedAt: Date.now() };
+
+    const duration = Date.now() - startTime;
+    console.log(`[media-storage] Keyframes loaded in ${duration}ms: ${keyframes.length} keyframes`);
+
+    return keyframes;
 
   } catch (error) {
-    console.error('Error listing all keyframes:', error);
+    console.error('Error loading keyframes:', error);
 
     if (!isProd || !hasBucket) {
       // Try local storage fallback
       try {
         const localDir = path.join(process.cwd(), 'local-storage', 'keyframes');
-        const files = await fs.readdir(localDir);
-        const jsonFiles = files.filter(file => file.endsWith('.json'));
+        if (fsSync.existsSync(localDir)) {
+          const files = fsSync.readdirSync(localDir);
+          const keyframes: KeyframeStill[] = [];
 
-        const keyframes: KeyframeStill[] = [];
-        for (const file of jsonFiles) {
-          try {
-            const localPath = path.join(localDir, file);
-            const data = await fs.readFile(localPath, 'utf-8');
-            const keyframe = JSON.parse(data) as KeyframeStill;
-            keyframes.push(keyframe);
-          } catch (error) {
-            console.warn(`Failed to read local keyframe ${file}:`, error);
+          for (const file of files) {
+            if (file.endsWith('.json')) {
+              try {
+                const content = fsSync.readFileSync(path.join(localDir, file), 'utf8');
+                const keyframe = JSON.parse(content) as KeyframeStill;
+                keyframes.push(keyframe);
+              } catch (parseError) {
+                console.warn(`Failed to parse local keyframe ${file}:`, parseError);
+              }
+            }
           }
-        }
 
-        return keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
+          return keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
+        }
       } catch (localError) {
-        console.warn('Failed to read local keyframes directory:', localError);
+        console.warn('Failed to load local keyframes:', localError);
       }
     }
 
-    return [];
+    throw error;
   }
 }
 
@@ -1180,5 +1209,35 @@ export async function getProjectHierarchy(projectId: string): Promise<ProjectHie
     totalKeyframes,
     reusableKeyframes,
   };
+}
+
+// Helper function to get the cached S3 keys (reuse main cache)
+async function getCachedS3Keys(): Promise<string[]> {
+  const s3Client = getS3Client();
+  const bucketName = getBucketName();
+
+  // Check if we already have the keys cached from listMediaAssets
+  if (s3KeysCache && (Date.now() - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL)) {
+    return s3KeysCache.keys;
+  }
+
+  // If not cached, fetch them (this will populate the cache for listMediaAssets too)
+  console.log('[media-storage] Fetching S3 key list for keyframes...');
+  const command = new ListObjectsV2Command({
+    Bucket: bucketName,
+    Prefix: PREFIX,
+    MaxKeys: 1000,
+  });
+
+  const response = await s3Client.send(command);
+  const keys = (response.Contents || [])
+    .filter(obj => obj.Key?.endsWith('.json'))
+    .map(obj => obj.Key!)
+    .sort((a, b) => b.localeCompare(a)); // newest first
+
+  // Cache the results
+  s3KeysCache = { keys, fetchedAt: Date.now() };
+
+  return keys;
 }
 
