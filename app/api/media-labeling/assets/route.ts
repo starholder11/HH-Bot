@@ -51,6 +51,25 @@ export async function GET(request: NextRequest) {
     // 🚫 NEW: Hard-filter out keyframes when excludeKeyframes flag is on
     if (excludeKeyframes) {
       assets = assets.filter(asset => asset.media_type !== 'keyframe_still');
+      // Ensure we still fill up to the requested page size when we removed many keyframes
+      if (assets.length < limit) {
+        let extraPage = page + 1;
+        while (assets.length < limit) {
+          const extra = await listMediaAssets(mediaType || undefined, { page: extraPage, limit });
+          if (!extra.assets.length) break; // no more data
+
+          const extraFiltered = extra.assets.filter(a => a.media_type !== 'keyframe_still');
+          assets.push(...extraFiltered);
+          if (extraFiltered.length === 0) {
+            // All assets on this page were keyframes – try next page
+            extraPage++;
+            continue;
+          }
+          if (extraFiltered.length < limit) {
+            extraPage++;
+          }
+        }
+      }
       totalCount = assets.length;
     }
 
