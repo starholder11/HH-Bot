@@ -48,12 +48,6 @@ export async function GET(request: NextRequest) {
       assets = assets.filter(asset => asset.project_id === projectId);
     }
 
-    // 🚫 Filter out keyframes when excludeKeyframes flag is on
-    if (excludeKeyframes) {
-      assets = assets.filter(asset => asset.media_type !== 'keyframe_still');
-      totalCount = assets.length;
-    }
-
     // 🔑 KEYFRAME INCLUSION: Add keyframes for "all media" and "image" types
     // This ensures keyframes are selectable on initial load
     // Only include keyframes if NOT explicitly excluded
@@ -100,9 +94,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Log exclude keyframes status for debugging
+    // 🚫 Filter out keyframes when excludeKeyframes flag is on (AFTER keyframe inclusion)
     if (excludeKeyframes) {
-      console.log(`[assets-api] Exclude keyframes enabled - keyframes will not be included`);
+      console.log(`[assets-api] Exclude keyframes enabled - filtering out keyframes`);
+      assets = assets.filter(asset => asset.media_type !== 'keyframe_still');
+      totalCount = assets.length;
     }
 
     return NextResponse.json({ assets, totalCount, hasMore });
