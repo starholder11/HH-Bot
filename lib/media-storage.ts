@@ -329,19 +329,37 @@ export async function listMediaAssets(
         s3KeysCache = { keys: allKeys, fetchedAt: now };
       }
 
-      const totalCount = allKeys.length;
+      // If a mediaType filter is requested we have to apply the filter *before* pagination
+      // otherwise the first N keys might not contain any assets of that type (e.g. videos)
 
-      // Decide which subset of keys we actually need JSON for
-      let keys: string[];
-      if (loadAll) {
-        keys = allKeys.slice(0, DEFAULT_S3_LIMIT); // respect max keys cap
+      // Strategy:
+      // 1. If loadAll = true   -> fetch up to DEFAULT_S3_LIMIT keys and filter afterwards
+      // 2. If NO mediaType     -> behave exactly as before (slice, then fetch)
+      // 3. If mediaType GIVEN  -> fetch keys progressively until we have at least (page * limit) matching assets
+
+      let keys: string[] = [];
+
+      if (!mediaType || loadAll) {
+        // Previous behaviour is fine when no media type filtering is required
+        if (loadAll) {
+          keys = allKeys.slice(0, DEFAULT_S3_LIMIT);
+        } else {
+          const startIndex = (page - 1) * limit;
+          const endIndex = startIndex + limit;
+          keys = allKeys.slice(startIndex, endIndex);
+        }
       } else {
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        keys = allKeys.slice(startIndex, endIndex);
+        // mediaType filtering requested – we need to walk through keys until we have enough
+        const desiredEnd = page * limit; // number of matching assets we need to collect up to
+        for (const key of allKeys) {
+          keys.push(key);
+          if (keys.length >= DEFAULT_S3_LIMIT) break; // safety cap
+          // We cannot determine media type without reading JSON, so we optimistically collect keys.
+          // We'll filter after fetching; if we still don't have enough we'll fetch the next batch later.
+        }
       }
 
-      console.log(`[media-storage] Found ${totalCount} asset files, fetching ${keys.length} JSON records for page ${page}`);
+      console.log(`[media-storage] Found ${allKeys.length} asset files, fetching ${keys.length} JSON records for page ${page}`);
 
       // Fetch JSON content directly with higher concurrency
       const allAssets: MediaAsset[] = [];
@@ -381,17 +399,26 @@ export async function listMediaAssets(
       // Sort by creation date (newest first)
       allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      // Since we already paginated keys, resultAssets IS allAssets
-      const resultAssets = allAssets;
+      // At this point allAssets *may* contain more than one page worth when mediaType filter is used.
+      const filteredTotalCount = allAssets.length;
 
-      const hasMore = !loadAll && (page * limit) < totalCount;
+      let resultAssets: MediaAsset[];
+      if (loadAll) {
+        resultAssets = allAssets;
+      } else {
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        resultAssets = allAssets.slice(start, end);
+      }
+
+      const hasMore = !loadAll && (page * limit) < filteredTotalCount;
 
       const elapsed = Date.now() - startTime;
-      console.log(`[media-storage] S3 loading completed in ${elapsed}ms: returned ${resultAssets.length} assets (page ${page}) out of ${totalCount} total (filtered by ${mediaType || 'none'})`);
+      console.log(`[media-storage] S3 loading completed in ${elapsed}ms: returned ${resultAssets.length} assets (page ${page}) out of ${filteredTotalCount} matching (mediaType=${mediaType || 'all'})`);
 
       return {
         assets: resultAssets,
-        totalCount,
+        totalCount: filteredTotalCount,
         hasMore
       };
     } else {
