@@ -180,8 +180,25 @@ export interface AudioAsset extends BaseMediaAsset {
   };
 }
 
-export type MediaAsset = ImageAsset | VideoAsset | AudioAsset;
+export interface KeyframeAsset extends BaseMediaAsset {
+  media_type: 'keyframe_still';
+  parent_video_id: string;
+  timestamp: string;
+  frame_number: number;
+  source_info?: {
+    video_filename: string;
+    timestamp: string;
+    frame_number: number;
+    extraction_method: string;
+  };
+  _keyframe_metadata?: {
+    source_video: string;
+    frame_number: number;
+    timestamp: string;
+  };
+}
 
+export type MediaAsset = ImageAsset | VideoAsset | AudioAsset | KeyframeAsset;
 
 
 /**
@@ -249,6 +266,21 @@ function convertSongToAudioAsset(song: any): AudioAsset {
     prompt: song.prompt,
     cover_art: song.cover_art,
   };
+}
+
+// Helper function to match media types, including logical groupings
+function isMediaTypeMatch(asset: MediaAsset, targetType: string): boolean {
+  // Direct match
+  if (asset.media_type === targetType) {
+    return true;
+  }
+
+  // Video search should include keyframes since they represent video content
+  if (targetType === 'video' && asset.media_type === 'keyframe_still') {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -335,7 +367,7 @@ export async function listMediaAssets(
             const asset = JSON.parse(jsonContent) as MediaAsset;
 
             // Apply media type filter here to avoid unnecessary processing
-            if (mediaType && asset.media_type !== mediaType) {
+            if (mediaType && !isMediaTypeMatch(asset, mediaType)) {
               return null;
             }
 
@@ -390,7 +422,7 @@ export async function listMediaAssets(
             const asset = JSON.parse(content) as MediaAsset;
 
             // Apply media type filter
-            if (mediaType && asset.media_type !== mediaType) {
+            if (mediaType && !isMediaTypeMatch(asset, mediaType)) {
               continue;
             }
 
