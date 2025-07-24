@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
 
     // 🔑 KEYFRAME INCLUSION: Add keyframes for "all media" and "image" types
     // This ensures keyframes are selectable on initial load
+    // RE-ENABLED FOR DEBUGGING
     if (!searchQuery && (!mediaType || mediaType === 'image')) {
       console.log(`[assets-api] Including keyframes for ${mediaType || 'all media'}`);
 

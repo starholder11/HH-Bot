@@ -886,12 +886,18 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
       return [];
     }
 
+    // Limit the number of keyframes we load for performance
+    // Most UI use cases don't need more than 100 recent keyframes
+    const MAX_KEYFRAMES_TO_LOAD = 100;
+    const limitedKeys = keyframeKeys.slice(0, MAX_KEYFRAMES_TO_LOAD);
+    console.log(`[media-storage] Loading ${limitedKeys.length} of ${keyframeKeys.length} available keyframes`);
+
     // Batch fetch keyframe JSON files (limit to prevent timeouts)
-    const MAX_CONCURRENT_KEYFRAMES = 20;
+    const MAX_CONCURRENT_KEYFRAMES = 10; // Reduced for stability
     const keyframes: KeyframeStill[] = [];
 
-    for (let i = 0; i < keyframeKeys.length; i += MAX_CONCURRENT_KEYFRAMES) {
-      const batch = keyframeKeys.slice(i, i + MAX_CONCURRENT_KEYFRAMES);
+    for (let i = 0; i < limitedKeys.length; i += MAX_CONCURRENT_KEYFRAMES) {
+      const batch = limitedKeys.slice(i, i + MAX_CONCURRENT_KEYFRAMES);
 
       const batchPromises = batch.map(async (key) => {
         try {
