@@ -40,9 +40,14 @@ export async function GET(request: NextRequest) {
       hasMore = result.hasMore;
     }
 
+    // Apply project filter first
+    if (projectId) {
+      assets = assets.filter(asset => asset.project_id === projectId);
+    }
+
     // 🔑 KEYFRAME INCLUSION: Add keyframes for "all media" and "image" types
     // This ensures keyframes are selectable on initial load
-    // RE-ENABLED FOR DEBUGGING
+    // Only include keyframes if NOT explicitly excluded
     if (!excludeKeyframes && !searchQuery && (!mediaType || mediaType === 'image')) {
       console.log(`[assets-api] Including keyframes for ${mediaType || 'all media'}`);
 
@@ -86,16 +91,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Apply project filter (handles any previously added keyframes as well)
-    if (projectId) {
-      assets = assets.filter(asset => asset.project_id === projectId);
-    }
-
-    // Exclude keyframes if requested by caller (works for search + regular listing)
+    // Log exclude keyframes status for debugging
     if (excludeKeyframes) {
-      const before = assets.length;
-      assets = assets.filter(asset => asset.media_type !== 'keyframe_still' && !('_keyframe_metadata' in asset));
-      totalCount -= (before - assets.length);
+      console.log(`[assets-api] Exclude keyframes enabled - keyframes will not be included`);
     }
 
     return NextResponse.json({ assets, totalCount, hasMore });
