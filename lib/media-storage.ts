@@ -5,6 +5,28 @@ import { Readable } from 'stream';
 import { getS3Client, getBucketName } from './s3-config';
 import { listSongs } from './song-storage'; // Import existing audio functionality
 
+// -----------------------------------------------------------------------------
+// Simple in-memory cache to avoid listing the same S3 bucket over and over.
+// A single dev-server instance can receive dozens of /assets?page=1 requests in
+// quick succession (Fast-Refresh, React state churn, etc.). Listing objects is
+// the slowest part (2-4 s). We therefore cache the list of JSON keys for a
+// short period (default 60 seconds). In production (serverless) this helps too
+// because each warm Lambda invocation can reuse the cached list.
+// -----------------------------------------------------------------------------
+
+interface S3KeysCache {
+  keys: string[];
+  fetchedAt: number; // epoch ms
+}
+
+// Module-level variable – unique per process
+let s3KeysCache: S3KeysCache | null = null;
+
+// How long to keep the cache alive (ms). Override via env if needed.
+const S3_LIST_CACHE_TTL = process.env.S3_LIST_CACHE_TTL_MS
+  ? parseInt(process.env.S3_LIST_CACHE_TTL_MS, 10)
+  : 60_000; // 1 minute by default
+
 // Prefix for media asset JSON files in S3
 const PREFIX = process.env.MEDIA_DATA_PREFIX || 'media-labeling/assets/';
 
@@ -248,17 +270,32 @@ export async function listMediaAssets(
       const s3 = getS3Client();
       const bucket = getBucketName();
 
-      console.log('[media-storage] Listing objects from S3...');
-      const response = await s3.send(new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: PREFIX,
-        MaxKeys: DEFAULT_S3_LIMIT, // Only fetch the most recent assets
-      }));
+      let allKeys: string[];
 
-      const allKeys = (response.Contents || [])
-        .filter(obj => obj.Key?.endsWith('.json'))
-        .map(obj => obj.Key!)
-        .sort((a, b) => b.localeCompare(a)); // newest first
+      const now = Date.now();
+
+      // Return cached keys if still fresh
+      if (s3KeysCache && now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL) {
+        allKeys = s3KeysCache.keys;
+        console.log(`[media-storage] Using cached S3 key list (age ${(now - s3KeysCache.fetchedAt) / 1000}s, ${allKeys.length} keys)`);
+      } else {
+        console.log('[media-storage] Listing objects from S3…');
+        const response = await s3.send(
+          new ListObjectsV2Command({
+            Bucket: bucket,
+            Prefix: PREFIX,
+            MaxKeys: DEFAULT_S3_LIMIT, // Only fetch the most recent assets
+          })
+        );
+
+        allKeys = (response.Contents || [])
+          .filter(obj => obj.Key?.endsWith('.json'))
+          .map(obj => obj.Key!)
+          .sort((a, b) => b.localeCompare(a)); // newest first
+
+        // Update cache
+        s3KeysCache = { keys: allKeys, fetchedAt: now };
+      }
 
       const totalCount = allKeys.length;
 

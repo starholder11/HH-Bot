@@ -565,22 +565,29 @@ export default function FileManagerPage() {
   // Determine if the search bar is active (non-empty)
   const isSearchActive = searchTerm.trim().length > 0;
 
+  // Keep a ref to filteredAssets so the keydown handler always sees the latest list
+  const filteredAssetsRef = useRef<MediaAsset[]>(filteredAssets);
+  useEffect(() => {
+    filteredAssetsRef.current = filteredAssets;
+  }, [filteredAssets]);
+
   const handleAssetListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!assetListFocused) return;
-    if (filteredAssets.length === 0) return;
+    const list = filteredAssetsRef.current;
+    if (list.length === 0) return;
 
-    const currentIndex = selectedAsset ? filteredAssets.findIndex(a => a.id === selectedAsset.id) : -1;
+    const currentIndex = selectedAsset ? list.findIndex(a => a.id === selectedAsset.id) : -1;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      const nextIndex = currentIndex < filteredAssets.length - 1 ? currentIndex + 1 : 0;
-      setSelectedAsset(filteredAssets[nextIndex]);
+      const nextIndex = currentIndex < list.length - 1 ? currentIndex + 1 : 0;
+      setSelectedAsset(list[nextIndex]);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      const prevIndex = currentIndex > 0 ? currentIndex - 1 : filteredAssets.length - 1;
-      setSelectedAsset(filteredAssets[prevIndex]);
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : list.length - 1;
+      setSelectedAsset(list[prevIndex]);
     }
-  }, [assetListFocused, filteredAssets, selectedAsset]);
+  }, [assetListFocused, selectedAsset]);
 
   // Reset page when filters change
   useEffect(() => {
