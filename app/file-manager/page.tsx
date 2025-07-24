@@ -1317,12 +1317,9 @@ export default function FileManagerPage() {
                 </div>
               )}
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a Media Asset</h3>
-              <p className="text-gray-500">Choose an asset from the list to view details and labels.</p>
-            </div>
-          )}
+          ) : !isSearchActive ? (
+            <div className="text-gray-500 flex items-center justify-center h-full">Select an asset to view or edit.</div>
+          ) : null}
         </div>
       </div>
 

@@ -255,16 +255,24 @@ export async function listMediaAssets(
         MaxKeys: DEFAULT_S3_LIMIT, // Only fetch the most recent assets
       }));
 
-      const keys = (response.Contents || [])
+      const allKeys = (response.Contents || [])
         .filter(obj => obj.Key?.endsWith('.json'))
         .map(obj => obj.Key!)
-        .sort((a, b) => {
-          // Sort by key name (which includes timestamp) for most recent first
-          return b.localeCompare(a);
-        })
-        .slice(0, DEFAULT_S3_LIMIT);
+        .sort((a, b) => b.localeCompare(a)); // newest first
 
-      console.log(`[media-storage] Found ${keys.length} asset files, fetching JSON content...`);
+      const totalCount = allKeys.length;
+
+      // Decide which subset of keys we actually need JSON for
+      let keys: string[];
+      if (loadAll) {
+        keys = allKeys.slice(0, DEFAULT_S3_LIMIT); // respect max keys cap
+      } else {
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        keys = allKeys.slice(startIndex, endIndex);
+      }
+
+      console.log(`[media-storage] Found ${totalCount} asset files, fetching ${keys.length} JSON records for page ${page}`);
 
       // Fetch JSON content directly with higher concurrency
       const allAssets: MediaAsset[] = [];
@@ -304,20 +312,13 @@ export async function listMediaAssets(
       // Sort by creation date (newest first)
       allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      const totalCount = allAssets.length;
-
-      // Apply pagination unless loadAll is true
-      let resultAssets = allAssets;
-      if (!loadAll) {
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        resultAssets = allAssets.slice(startIndex, endIndex);
-      }
+      // Since we already paginated keys, resultAssets IS allAssets
+      const resultAssets = allAssets;
 
       const hasMore = !loadAll && (page * limit) < totalCount;
 
       const elapsed = Date.now() - startTime;
-      console.log(`[media-storage] S3 loading completed in ${elapsed}ms: ${resultAssets.length}/${totalCount} assets (filtered by ${mediaType || 'none'})`);
+      console.log(`[media-storage] S3 loading completed in ${elapsed}ms: returned ${resultAssets.length} assets (page ${page}) out of ${totalCount} total (filtered by ${mediaType || 'none'})`);
 
       return {
         assets: resultAssets,
