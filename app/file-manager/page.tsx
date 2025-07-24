@@ -979,11 +979,11 @@ export default function FileManagerPage() {
               {filteredAssets.length === 0 ? (
                 <div className="text-gray-500">No assets match your search.</div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-h-[70vh] overflow-y-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-h-[70vh] overflow-y-auto px-1">
                   {filteredAssets.map((asset) => (
                     <div
                       key={asset.id}
-                      className={`border rounded-lg p-1 cursor-pointer hover:ring-2 hover:ring-blue-500 ${selectedAsset?.id === asset.id ? 'ring-2 ring-blue-600' : ''}`}
+                      className={`border rounded-lg p-2 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-shadow ${selectedAsset?.id === asset.id ? 'ring-2 ring-blue-600' : ''}`}
                       onClick={() => {
                         setSelectedAsset(asset);
                         setSearchTerm(''); // Clear search to open editor
@@ -993,14 +993,17 @@ export default function FileManagerPage() {
                         <img
                           src={encodePath(asset.cloudflare_url || asset.s3_url)}
                           alt={asset.title}
-                          className="w-full h-24 object-cover rounded"
+                          className="w-full h-40 object-cover rounded"
                         />
                       ) : asset.media_type === 'video' ? (
-                        <div className="w-full h-24 bg-black flex items-center justify-center text-white text-2xl">🎬</div>
+                        <div className="w-full h-40 bg-black flex items-center justify-center text-white text-4xl">🎬</div>
                       ) : (
-                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center text-gray-700 text-2xl">🎵</div>
+                        <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-700 text-4xl">🎵</div>
                       )}
-                      <div className="mt-1 text-xs truncate">{asset.title || asset.filename}</div>
+                      <div className="mt-2 text-sm flex items-center justify-center whitespace-nowrap">
+                        <span className="mr-1">{getAssetIcon(asset)}</span>
+                        <span className="truncate max-w-full">{asset.filename}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
