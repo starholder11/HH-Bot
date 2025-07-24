@@ -365,13 +365,51 @@ export async function listMediaAssets(
           keys = allKeys.slice(startIndex, endIndex);
         }
       } else {
-        // mediaType filtering requested – we need to walk through keys until we have enough
-        const desiredEnd = page * limit; // number of matching assets we need to collect up to
-        for (const key of allKeys) {
-          keys.push(key);
-          if (keys.length >= DEFAULT_S3_LIMIT) break; // safety cap
-          // We cannot determine media type without reading JSON, so we optimistically collect keys.
-          // We'll filter after fetching; if we still don't have enough we'll fetch the next batch later.
+        // mediaType filtering requested – fetch keys incrementally and stop early once we have enough matches
+
+        const concurrency = 50;
+        const desiredMatches = page * limit;
+        let collectedMatches = 0;
+        let startIdx = 0;
+
+        while (collectedMatches < desiredMatches && startIdx < allKeys.length && keys.length < DEFAULT_S3_LIMIT) {
+          const slice = allKeys.slice(startIdx, startIdx + concurrency);
+          startIdx += concurrency;
+
+          // Fetch slice JSON to check media_type quickly
+          const batchAssets: Array<MediaAsset | null> = await Promise.all(slice.map(async key => {
+            try {
+              const getObjectResponse = await s3.send(
+                new GetObjectCommand({
+                  Bucket: bucket,
+                  Key: key,
+                })
+              );
+              if (!getObjectResponse.Body) return null;
+              const jsonContent = await streamToString(getObjectResponse.Body as Readable);
+              const asset = JSON.parse(jsonContent) as MediaAsset;
+
+              if (excludeKeyframes && asset.media_type === 'keyframe_still') {
+                return null;
+              }
+
+              if (!isMediaTypeMatch(asset, mediaType)) {
+                return null;
+              }
+              return asset;
+            } catch {
+              return null;
+            }
+          }));
+
+          const matchedKeys = slice.filter((_, idx) => batchAssets[idx]);
+          keys.push(...matchedKeys);
+          collectedMatches += matchedKeys.length;
+        }
+
+        if (keys.length === 0) {
+          // Fallback: if nothing matched, default back to first page slice
+          keys = allKeys.slice(0, limit);
         }
       }
 
