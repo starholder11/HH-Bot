@@ -4,7 +4,7 @@ import { SiteTitle } from '@/components/layout/SiteTitle';
 import { ContentContainer } from '@/components/layout/ContentContainer';
 import { Heading } from '@/components/typography/Heading';
 import { BodyText } from '@/components/typography/BodyText';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/Card';
 import { Footer } from '@/components/layout/Footer';
 
