@@ -164,6 +164,21 @@ const AssetListItem = memo(function AssetListItem({
   );
 });
 
+// Helper function to get asset type icon
+const getAssetIcon = (asset: MediaAsset) => {
+  switch (asset.media_type) {
+    case 'image':
+    case 'keyframe_still':
+      return '🖼️';
+    case 'video':
+      return '🎬';
+    case 'audio':
+      return '🎵';
+    default:
+      return '📄';
+  }
+};
+
 export default function FileManagerPage() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
