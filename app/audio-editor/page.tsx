@@ -557,12 +557,6 @@ export default function AudioEditorPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No audio selected.</p>
-          <Button
-            onClick={() => setShowUploadModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Upload Audio
-          </Button>
         </div>
       </div>
     );
@@ -628,13 +622,6 @@ export default function AudioEditorPage() {
                       </select>
                     </div>
 
-                    {/* Upload Button */}
-                    <Button
-                      onClick={() => setShowUploadModal(true)}
-                      className={`px-3 py-1 text-sm ${isUploading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
-                    >
-                      {isUploading ? 'Uploading...' : '+ Upload Audio'}
-                    </Button>
                   </div>
                 </div>
 
