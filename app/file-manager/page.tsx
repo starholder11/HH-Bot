@@ -388,6 +388,10 @@ export default function FileManagerPage() {
         } else {
           console.log(`[file-manager] ✅ KEEPING: Keyframe bypasses media type filter`);
         }
+      } else if (!mediaTypeFilter) {
+        console.log(`[file-manager] ℹ️  NO FILTER: Media filter is empty, all asset types should be allowed`);
+      } else {
+        console.log(`[file-manager] ✅ KEEPING: Asset matches filter ${mediaTypeFilter}`);
       }
 
       // Check 2: Does the selected asset match the project filter?
@@ -416,6 +420,15 @@ export default function FileManagerPage() {
     }
   }, [mediaTypeFilter, projectFilter, selectedAsset]);
 
+  // Debug effect to track media filter changes
+  useEffect(() => {
+    console.log(`[file-manager] 📊 MEDIA FILTER CHANGED: "${mediaTypeFilter}" (${typeof mediaTypeFilter})`);
+  }, [mediaTypeFilter]);
+
+  // Debug effect to track project filter changes
+  useEffect(() => {
+    console.log(`[file-manager] 📊 PROJECT FILTER CHANGED: "${projectFilter}" (${typeof projectFilter})`);
+  }, [projectFilter]);
 
   // Reset AI labeling state when switching between assets
   useEffect(() => {
@@ -845,11 +858,14 @@ export default function FileManagerPage() {
                 asset={asset}
                 isSelected={selectedAsset?.id === asset.id}
                 onSelect={(selectedAsset) => {
+                  console.log(`[file-manager] 🖱️  CLICK ATTEMPT: Asset ${selectedAsset.id} (${selectedAsset.media_type}) | Current Filter: ${mediaTypeFilter}`);
+
                   // Additional validation before setting selected asset
                   if (selectedAsset && selectedAsset.media_type && ['image', 'video', 'audio', 'keyframe_still'].includes(selectedAsset.media_type)) {
+                    console.log(`[file-manager] ✅ CLICK SUCCESS: Setting selectedAsset to ${selectedAsset.id}`);
                     setSelectedAsset(selectedAsset);
                   } else {
-                    console.warn('[file-manager] ❌ Invalid asset selected:', selectedAsset);
+                    console.warn('[file-manager] ❌ CLICK REJECTED: Invalid asset selected:', selectedAsset);
                   }
                 }}
                 getAssetIcon={getAssetIcon}
