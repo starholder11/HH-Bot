@@ -518,16 +518,16 @@ export async function searchMediaAssets(
   const lowerQuery = query.toLowerCase();
 
   return result.assets.filter(asset => {
-    // Standard search fields
+    // Standard search fields with safe navigation
     const standardMatch =
       asset.title.toLowerCase().includes(lowerQuery) ||
       asset.filename.toLowerCase().includes(lowerQuery) ||
-      asset.manual_labels.custom_tags.some(tag => tag.toLowerCase().includes(lowerQuery)) ||
-      asset.manual_labels.scenes.some(scene => scene.toLowerCase().includes(lowerQuery)) ||
-      asset.manual_labels.objects.some(obj => obj.toLowerCase().includes(lowerQuery)) ||
-      asset.manual_labels.themes.some(theme => theme.toLowerCase().includes(lowerQuery)) ||
-      asset.manual_labels.style.some(style => style.toLowerCase().includes(lowerQuery)) ||
-      asset.manual_labels.mood.some(mood => mood.toLowerCase().includes(lowerQuery));
+      (asset.manual_labels?.custom_tags || []).some(tag => tag.toLowerCase().includes(lowerQuery)) ||
+      (asset.manual_labels?.scenes || []).some(scene => scene.toLowerCase().includes(lowerQuery)) ||
+      (asset.manual_labels?.objects || []).some(obj => obj.toLowerCase().includes(lowerQuery)) ||
+      (asset.manual_labels?.themes || []).some(theme => theme.toLowerCase().includes(lowerQuery)) ||
+      (asset.manual_labels?.style || []).some(style => style.toLowerCase().includes(lowerQuery)) ||
+      (asset.manual_labels?.mood || []).some(mood => mood.toLowerCase().includes(lowerQuery));
 
     // Audio-specific search fields
     if (asset.media_type === 'audio') {
