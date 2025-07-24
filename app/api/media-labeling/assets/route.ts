@@ -48,6 +48,12 @@ export async function GET(request: NextRequest) {
       assets = assets.filter(asset => asset.project_id === projectId);
     }
 
+    // 🚫 NEW: Hard-filter out keyframes when excludeKeyframes flag is on
+    if (excludeKeyframes) {
+      assets = assets.filter(asset => asset.media_type !== 'keyframe_still');
+      totalCount = assets.length;
+    }
+
     // 🔑 KEYFRAME INCLUSION: Add keyframes for "all media" and "image" types
     // This ensures keyframes are selectable on initial load
     // Only include keyframes if NOT explicitly excluded
