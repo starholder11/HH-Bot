@@ -48,6 +48,38 @@ export async function POST(request: NextRequest) {
 
     const videoAsset = asset as VideoAsset;
 
+    // 🔑 DEDUPLICATION: Check if keyframes already exist for this video
+    if (videoAsset.keyframe_stills && videoAsset.keyframe_stills.length > 0) {
+      console.log(`[update-keyframes] Video ${assetId} already has ${videoAsset.keyframe_stills.length} keyframes. Skipping duplicate creation.`);
+
+      // Check if we need to trigger AI labeling for existing keyframes that haven't been processed
+      const unprocessedKeyframes = videoAsset.keyframe_stills.filter(
+        kf => kf.processing_status?.ai_labeling === 'pending' || !kf.processing_status?.ai_labeling
+      );
+
+      if (unprocessedKeyframes.length > 0) {
+        console.log(`[update-keyframes] Found ${unprocessedKeyframes.length} existing keyframes that need AI labeling`);
+
+        // Trigger AI labeling for unprocessed keyframes
+        for (const kf of unprocessedKeyframes) {
+          try {
+            await postAiLabel(kf.id);
+            console.log(`[update-keyframes] ✅ Triggered AI labeling for existing keyframe ${kf.id}`);
+          } catch (error) {
+            console.error(`[update-keyframes] ❌ Failed to trigger AI labeling for existing keyframe ${kf.id}:`, error);
+          }
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        videoId: assetId,
+        keyframesCreated: 0,
+        existingKeyframes: videoAsset.keyframe_stills.length,
+        message: 'Keyframes already exist, skipped duplicate creation'
+      });
+    }
+
     // Create keyframe still assets
     const keyframes: KeyframeStill[] = keyframeAssets.map((kf: any) => ({
       id: generateUUID(),
