@@ -375,10 +375,11 @@ export default function FileManagerPage() {
     if (selectedAsset) {
       // Check 1: Does the selected asset match the media type filter?
       if (mediaTypeFilter && selectedAsset.media_type !== mediaTypeFilter) {
-        // Special case: keyframes should be compatible with image filter
-        const isKeyframeWithImageFilter = mediaTypeFilter === 'image' && selectedAsset.media_type === 'keyframe_still';
+        // Special case: keyframes should be selectable regardless of media type filter
+        // since they're special assets representing video frames but viewable as images
+        const isKeyframeAsset = selectedAsset.media_type === 'keyframe_still';
 
-        if (!isKeyframeWithImageFilter) {
+        if (!isKeyframeAsset) {
           console.log(`[file-manager] Clearing selected asset - media type filter mismatch. Filter: ${mediaTypeFilter}, Asset type: ${selectedAsset.media_type}`);
           setSelectedAsset(null);
           return; // Exit early
