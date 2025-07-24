@@ -562,6 +562,9 @@ export default function FileManagerPage() {
     return result;
   }, [filteredAssetIds, searchTerm]);
 
+  // Determine if the search bar is active (non-empty)
+  const isSearchActive = searchTerm.trim().length > 0;
+
   const handleAssetListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!assetListFocused) return;
     if (filteredAssets.length === 0) return;
@@ -961,7 +964,45 @@ export default function FileManagerPage() {
 
         {/* Main Content */}
         <div className="lg:col-span-2">
-          {selectedAsset ? (
+
+          {/* Search Results Thumbnail Grid */}
+          {isSearchActive && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Search Results ({filteredAssets.length})</h2>
+              {filteredAssets.length === 0 ? (
+                <div className="text-gray-500">No assets match your search.</div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-h-[70vh] overflow-y-auto">
+                  {filteredAssets.map((asset) => (
+                    <div
+                      key={asset.id}
+                      className={`border rounded-lg p-1 cursor-pointer hover:ring-2 hover:ring-blue-500 ${selectedAsset?.id === asset.id ? 'ring-2 ring-blue-600' : ''}`}
+                      onClick={() => {
+                        setSelectedAsset(asset);
+                        setSearchTerm(''); // Clear search to open editor
+                      }}
+                    >
+                      {asset.media_type === 'image' || asset.media_type === 'keyframe_still' ? (
+                        <img
+                          src={encodePath(asset.cloudflare_url || asset.s3_url)}
+                          alt={asset.title}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                      ) : asset.media_type === 'video' ? (
+                        <div className="w-full h-24 bg-black flex items-center justify-center text-white text-2xl">🎬</div>
+                      ) : (
+                        <div className="w-full h-24 bg-gray-200 flex items-center justify-center text-gray-700 text-2xl">🎵</div>
+                      )}
+                      <div className="mt-1 text-xs truncate">{asset.title || asset.filename}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Asset Editor */}
+          {!isSearchActive && selectedAsset ? (
             <div className="space-y-6">
                             {/* Image Gallery Card */}
               {selectedAsset.media_type === 'image' || selectedAsset.media_type === 'keyframe_still' ? (
