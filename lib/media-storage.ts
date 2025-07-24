@@ -275,6 +275,11 @@ function isMediaTypeMatch(asset: MediaAsset, targetType: string): boolean {
     return true;
   }
 
+  // Video search should include keyframes since they represent video content
+  if (targetType === 'video' && asset.media_type === 'keyframe_still') {
+    return true;
+  }
+
   return false;
 }
 
