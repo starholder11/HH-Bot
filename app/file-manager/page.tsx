@@ -373,6 +373,8 @@ export default function FileManagerPage() {
   // NEW: Add a dedicated effect to synchronize selection with filters and assets
   useEffect(() => {
     if (selectedAsset) {
+      console.log(`[file-manager] 🔍 SELECTION CHECK: Asset ${selectedAsset.id} (${selectedAsset.media_type}) | Media Filter: ${mediaTypeFilter} | Project Filter: ${projectFilter}`);
+
       // Check 1: Does the selected asset match the media type filter?
       if (mediaTypeFilter && selectedAsset.media_type !== mediaTypeFilter) {
         // Special case: keyframes should be selectable regardless of media type filter
@@ -380,17 +382,27 @@ export default function FileManagerPage() {
         const isKeyframeAsset = selectedAsset.media_type === 'keyframe_still';
 
         if (!isKeyframeAsset) {
-          console.log(`[file-manager] Clearing selected asset - media type filter mismatch. Filter: ${mediaTypeFilter}, Asset type: ${selectedAsset.media_type}`);
+          console.log(`[file-manager] ❌ CLEARING: Media type filter mismatch. Filter: ${mediaTypeFilter}, Asset type: ${selectedAsset.media_type}`);
           setSelectedAsset(null);
           return; // Exit early
+        } else {
+          console.log(`[file-manager] ✅ KEEPING: Keyframe bypasses media type filter`);
         }
       }
 
       // Check 2: Does the selected asset match the project filter?
       if (projectFilter && selectedAsset.project_id !== projectFilter) {
-        console.log(`[file-manager] Clearing selected asset - project filter mismatch. Filter: ${projectFilter}, Asset project: ${selectedAsset.project_id}`);
-        setSelectedAsset(null);
-        return; // Exit early
+        // Special case: keyframes should be selectable regardless of project filter
+        // since they're special assets representing video frames but viewable as images
+        const isKeyframeAsset = selectedAsset.media_type === 'keyframe_still';
+
+        if (!isKeyframeAsset) {
+          console.log(`[file-manager] ❌ CLEARING: Project filter mismatch. Filter: ${projectFilter}, Asset project: ${selectedAsset.project_id}`);
+          setSelectedAsset(null);
+          return; // Exit early
+        } else {
+          console.log(`[file-manager] ✅ KEEPING: Keyframe bypasses project filter`);
+        }
       }
 
       // Check 3: Does the selected asset still exist in the main list?
