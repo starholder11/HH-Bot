@@ -19,8 +19,9 @@ export async function POST(request: NextRequest) {
       videosToEvaluate = [asset as VideoAsset];
     } else if (forceAll) {
       // Evaluate all videos that are stuck in processing
-      const allVideos = await listMediaAssets('video') as VideoAsset[];
-      videosToEvaluate = allVideos.filter(video =>
+      const { assets: allVideos } = await listMediaAssets('video', { loadAll: true });
+      const videoAssets = allVideos as VideoAsset[];
+      videosToEvaluate = videoAssets.filter(video =>
         ['processing', 'pending'].includes(video.processing_status?.ai_labeling || '') &&
         video.keyframe_stills &&
         video.keyframe_stills.length > 0
