@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/Card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Image, Video, Music, FileText } from 'lucide-react';
 import { Project as ProjectType } from '@/lib/project-storage';
 
 interface MediaAsset {
@@ -117,7 +118,7 @@ const AssetListItem = memo(function AssetListItem({
   asset: MediaAsset;
   isSelected: boolean;
   onSelect: (asset: MediaAsset) => void;
-  getAssetIcon: (asset: MediaAsset) => string;
+  getAssetIcon: (asset: MediaAsset) => JSX.Element;
   getAssetDisplayInfo: (asset: MediaAsset) => { primaryLabel: string; secondaryInfo: string };
 }) {
   const displayInfo = getAssetDisplayInfo(asset);
@@ -169,13 +170,13 @@ const getAssetIcon = (asset: MediaAsset) => {
   switch (asset.media_type) {
     case 'image':
     case 'keyframe_still':
-      return '🖼️';
+      return <Image className="w-5 h-5 text-gray-500" />;
     case 'video':
-      return '🎬';
+      return <Video className="w-5 h-5 text-gray-500" />;
     case 'audio':
-      return '🎵';
+      return <Music className="w-5 h-5 text-gray-500" />;
     default:
-      return '📄';
+      return <FileText className="w-5 h-5 text-gray-500" />;
   }
 };
 
@@ -742,14 +743,14 @@ export default function FileManagerPage() {
   const getAssetIcon = (asset: MediaAsset) => {
     // Special handling for keyframes
     if (asset._keyframe_metadata) {
-      return 'KEY'; // Video-to-image indicator for keyframes
+      return <Video className="w-5 h-5 text-gray-500" />; // Video-to-image indicator for keyframes
     }
 
     switch (asset.media_type) {
-      case 'image': return 'IMG';
-      case 'video': return 'VID';
-      case 'audio': return 'AUD';
-      default: return 'FILE';
+      case 'image': return <Image className="w-5 h-5 text-gray-500" />;
+      case 'video': return <Video className="w-5 h-5 text-gray-500" />;
+      case 'audio': return <Music className="w-5 h-5 text-gray-500" />;
+      default: return <FileText className="w-5 h-5 text-gray-500" />;
     }
   };
 
@@ -1011,9 +1012,13 @@ export default function FileManagerPage() {
                           className="w-full h-40 object-cover rounded"
                         />
                       ) : asset.media_type === 'video' ? (
-                        <div className="w-full h-40 bg-black flex items-center justify-center text-white text-4xl">🎬</div>
+                        <div className="w-full h-40 bg-black flex items-center justify-center text-white">
+                          <Video className="w-16 h-16" />
+                        </div>
                       ) : (
-                        <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-700 text-4xl">🎵</div>
+                        <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-700">
+                          <Music className="w-16 h-16" />
+                        </div>
                       )}
                       <div className="mt-2 text-sm flex items-center justify-center whitespace-nowrap">
                         <span className="mr-1">{getAssetIcon(asset)}</span>
