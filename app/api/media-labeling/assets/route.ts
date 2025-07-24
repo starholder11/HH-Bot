@@ -4,7 +4,8 @@ import { listMediaAssets, searchMediaAssets, getAssetStatistics, KeyframeStill, 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const mediaType = searchParams.get('type') as 'image' | 'video' | 'audio' | null;
+    const mediaTypeParam = searchParams.get('type');
+    const mediaType = (mediaTypeParam === 'all' ? null : mediaTypeParam) as 'image' | 'video' | 'audio' | null;
     const searchQuery = searchParams.get('search');
     const projectId = searchParams.get('project');
     const stats = searchParams.get('stats') === 'true';
