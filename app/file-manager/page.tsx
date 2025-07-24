@@ -244,14 +244,11 @@ export default function FileManagerPage() {
         // Transform audio data to match MediaAsset interface
         newData = audioData.map((song: any) => ({
           id: song.id,
+          filename: song.filename || song.s3_key?.split('/').pop() || 'Unknown Filename',
+          s3_url: song.s3_url || song.s3_key || '',
+          cloudflare_url: song.cloudflare_url || song.url || '',
           title: song.title || song.filename || 'Untitled',
           media_type: 'audio' as const,
-          file_path: song.file_path || song.s3_key,
-          url: song.url || song.file_path,
-          status: song.status || 'completed',
-          created_at: song.created_at || new Date().toISOString(),
-          updated_at: song.updated_at || new Date().toISOString(),
-          project: song.project || projectFilter || null,
           metadata: {
             duration: song.metadata?.duration,
             file_size: song.metadata?.file_size,
@@ -259,7 +256,17 @@ export default function FileManagerPage() {
             artist: song.metadata?.artist,
             album: song.metadata?.album,
             ...song.metadata
-          }
+          },
+          ai_labels: song.ai_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+          manual_labels: song.manual_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] },
+          processing_status: song.processing_status || { upload: 'completed', metadata_extraction: 'completed', ai_labeling: 'completed', manual_review: 'completed' },
+          timestamps: song.timestamps || { uploaded: song.created_at || new Date().toISOString(), metadata_extracted: null, labeled_ai: null, labeled_reviewed: null },
+          labeling_complete: song.labeling_complete === true,
+          project_id: song.project_id || projectFilter || null,
+          created_at: song.created_at || new Date().toISOString(),
+          updated_at: song.updated_at || new Date().toISOString(),
+          lyrics: song.lyrics || '',
+          prompt: song.prompt || '',
         }));
         totalCount = newData.length;
       } else {
