@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const stats = searchParams.get('stats') === 'true';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '100');
+    const excludeKeyframes = searchParams.get('exclude_keyframes') === 'true';
 
     // Return statistics if requested
     if (stats) {
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
     // 🔑 KEYFRAME INCLUSION: Add keyframes for "all media" and "image" types
     // This ensures keyframes are selectable on initial load
     // RE-ENABLED FOR DEBUGGING
-    if (!searchQuery && (!mediaType || mediaType === 'image')) {
+    if (!excludeKeyframes && !searchQuery && (!mediaType || mediaType === 'image')) {
       console.log(`[assets-api] Including keyframes for ${mediaType || 'all media'}`);
 
       try {
@@ -85,9 +86,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filter by project if specified (this handles the case where keyframes were added)
+    // Apply project filter (handles any previously added keyframes as well)
     if (projectId) {
       assets = assets.filter(asset => asset.project_id === projectId);
+    }
+
+    // Exclude keyframes if requested by caller (works for search + regular listing)
+    if (excludeKeyframes) {
+      const before = assets.length;
+      assets = assets.filter(asset => asset.media_type !== 'keyframe_still' && !('_keyframe_metadata' in asset));
+      totalCount -= (before - assets.length);
     }
 
     return NextResponse.json({ assets, totalCount, hasMore });

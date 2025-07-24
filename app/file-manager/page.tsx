@@ -169,8 +169,14 @@ const AssetListItem = memo(function AssetListItem({
 const getAssetIcon = (asset: MediaAsset) => {
   switch (asset.media_type) {
     case 'image':
-    case 'keyframe_still':
       return <Image className="w-5 h-5 text-gray-500" />;
+    case 'keyframe_still':
+      return (
+        <span className="flex items-center space-x-0.5">
+          <Video className="w-4 h-4 text-gray-500" />
+          <Image className="w-4 h-4 text-gray-500" />
+        </span>
+      );
     case 'video':
       return <Video className="w-5 h-5 text-gray-500" />;
     case 'audio':
@@ -187,6 +193,7 @@ export default function FileManagerPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [mediaTypeFilter, setMediaTypeFilter] = useState<string>('');
   const [projectFilter, setProjectFilter] = useState<string>('');
+  const [excludeKeyframes, setExcludeKeyframes] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAILabeling, setIsAILabeling] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -216,7 +223,6 @@ export default function FileManagerPage() {
   const [assetListFocused, setAssetListFocused] = useState(false);
 
   // handleAssetListKeyDown will be defined after filteredAssets is declared
-
 
   // Load assets and projects
   useEffect(() => {
@@ -263,6 +269,7 @@ export default function FileManagerPage() {
         if (projectFilter) params.append('project', projectFilter);
         params.append('page', currentPage.toString());
         params.append('limit', itemsPerPage.toString());
+        if (excludeKeyframes) params.append('exclude_keyframes','true');
 
         const queryString = params.toString();
         const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
@@ -321,7 +328,7 @@ export default function FileManagerPage() {
     } catch (error) {
       console.error('Error loading assets:', error);
     }
-  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage]); // Dependencies simplified
+  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage, excludeKeyframes]); // Dependencies simplified
 
   // Smart merge function that maintains stable object references
   const mergeAssetsWithCache = (newData: MediaAsset[], cache: Map<string, MediaAsset>, result: MediaAsset[]): boolean => {
@@ -389,7 +396,7 @@ export default function FileManagerPage() {
     // assetCacheRef.current.clear();
 
     loadAssetsIncremental();
-  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage]);
+  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage, excludeKeyframes]);
 
   // NEW: Add a dedicated effect to synchronize selection with filters and assets
   useEffect(() => {
@@ -608,7 +615,7 @@ export default function FileManagerPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, mediaTypeFilter, projectFilter]);
+  }, [searchTerm, mediaTypeFilter, projectFilter, excludeKeyframes]);
 
   // Create new project
   const createProject = async () => {
