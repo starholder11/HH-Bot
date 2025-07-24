@@ -272,6 +272,7 @@ export default function FileManagerPage() {
         if (excludeKeyframes) params.append('exclude_keyframes','true');
 
         const queryString = params.toString();
+        console.log(`[file-manager] 🔍 API Request: /api/media-labeling/assets?${queryString} | excludeKeyframes=${excludeKeyframes}`);
         const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
         const result = await response.json();
 
@@ -906,7 +907,10 @@ export default function FileManagerPage() {
               <input
                 type="checkbox"
                 checked={excludeKeyframes}
-                onChange={(e) => setExcludeKeyframes(e.target.checked)}
+                onChange={(e) => {
+                  console.log(`[file-manager] 🔧 Exclude Keyframes changed: ${e.target.checked}`);
+                  setExcludeKeyframes(e.target.checked);
+                }}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span>Exclude Keyframes</span>
