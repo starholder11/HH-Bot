@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/Card';
 import { COMPREHENSIVE_GENRES, COMPREHENSIVE_MOODS, COMPREHENSIVE_THEMES } from '@/lib/enhanced-music-analysis';
 

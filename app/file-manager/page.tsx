@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/Card';
 import { Project as ProjectType } from '@/lib/project-storage';
 
@@ -695,14 +695,14 @@ export default function FileManagerPage() {
   const getAssetIcon = (asset: MediaAsset) => {
     // Special handling for keyframes
     if (asset._keyframe_metadata) {
-      return '🎬→🖼️'; // Video-to-image indicator for keyframes
+      return 'KEY'; // Video-to-image indicator for keyframes
     }
 
     switch (asset.media_type) {
-      case 'image': return '🖼️';
-      case 'video': return '🎬';
-      case 'audio': return '🎵';
-      default: return '📄';
+      case 'image': return 'IMG';
+      case 'video': return 'VID';
+      case 'audio': return 'AUD';
+      default: return 'FILE';
     }
   };
 
@@ -745,14 +745,14 @@ export default function FileManagerPage() {
   if (assets.length === 0) {
     return (
       <div className="container mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6">File Manager</h1>
+        <h1 className="text-3xl font-light tracking-tight mb-6">Media Library</h1>
         <div className="text-center py-8">
           <p className="text-gray-600 mb-4">No media assets found. Upload some files to get started.</p>
           <Button
             onClick={() => setIsUploading(true)}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            + Upload Media
+            Upload Media
           </Button>
         </div>
       </div>
@@ -764,27 +764,27 @@ export default function FileManagerPage() {
       {/* Header with Search and Filters */}
       <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">File Manager</h1>
+            <h1 className="text-3xl font-light tracking-tight">Media Library</h1>
             <div className="flex gap-3">
               <Button
                 onClick={() => setIsUploading(true)}
-                className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                  isUploading ? 'bg-gray-400 text-white' : 'bg-green-600 text-white hover:bg-green-700'
+                className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                  isUploading ? 'bg-gray-400 text-white' : 'bg-slate-600 text-white hover:bg-slate-700'
                 }`}
               >
-                {isUploading ? '⏳ Uploading...' : '⬆️ Upload'}
+                {isUploading ? 'Uploading...' : 'Upload'}
               </Button>
               <a
                 href="/keyframe-browser"
-                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors font-medium inline-flex items-center gap-2"
+                                  className="bg-slate-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-slate-700 transition-colors font-medium inline-flex items-center gap-2"
               >
-                🖼️ Keyframe Browser
+                Keyframe Browser
               </a>
               <a
                 href="/video-analysis"
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium inline-flex items-center gap-2"
+                                  className="bg-slate-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-slate-700 transition-colors font-medium inline-flex items-center gap-2"
               >
-                🎬 Video Analysis Dashboard
+                Analysis Dashboard
               </a>
             </div>
           </div>
@@ -811,9 +811,9 @@ export default function FileManagerPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option key="all" value="">All Media</option>
-              <option key="audio" value="audio">🎵 Audio</option>
-              <option key="image" value="image">🖼️ Images</option>
-              <option key="video" value="video">🎬 Videos</option>
+              <option key="audio" value="audio">Audio</option>
+              <option key="image" value="image">Images</option>
+              <option key="video" value="video">Videos</option>
             </select>
           </div>
 
@@ -833,9 +833,9 @@ export default function FileManagerPage() {
             </select>
             <Button
               onClick={() => setShowCreateProject(true)}
-              className="px-2 py-0.5 text-xs bg-purple-500 hover:bg-purple-600 rounded text-white transition-colors whitespace-nowrap"
+                              className="px-2 py-0.5 text-xs bg-slate-500 hover:bg-slate-600 rounded text-white transition-colors whitespace-nowrap"
             >
-              + Project
+              New Project
             </Button>
           </div>
 
@@ -936,7 +936,7 @@ export default function FileManagerPage() {
                     <div className="flex-1">
                       {/* Title/Filename Section */}
                       <div className="flex items-center space-x-2 mb-3">
-                        <span className="text-xl">🖼️</span>
+                        <span className="text-xl">IMG</span>
                         {isEditingFilename ? (
                           <div className="flex items-center space-x-2 flex-1">
                             <input
@@ -962,21 +962,21 @@ export default function FileManagerPage() {
                                   : 'bg-green-600 hover:bg-green-700'
                               }`}
                             >
-                              {isRenamingFile ? '...' : '✓'}
+                              {isRenamingFile ? '...' : 'Save'}
                             </Button>
-                            <Button
-                              onClick={cancelFilenameEdit}
-                              className="px-1.5 py-0.5 text-xs bg-gray-300 hover:bg-gray-400 rounded text-gray-700 transition-colors"
-                            >
-                              ✕
-                            </Button>
+                                                          <Button
+                                onClick={cancelFilenameEdit}
+                                className="px-1.5 py-0.5 text-xs bg-gray-300 hover:bg-gray-400 rounded text-gray-700 transition-colors"
+                              >
+                                Cancel
+                              </Button>
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2 flex-1">
                             <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
                             {selectedAsset._keyframe_metadata && (
                               <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
-                                🎬 Keyframe
+                                Keyframe
                               </span>
                             )}
                             <Button
@@ -987,11 +987,11 @@ export default function FileManagerPage() {
                             </Button>
                           </div>
                         )}
-                        {selectedAsset.labeling_complete && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">
-                            ✓ Complete
-                          </span>
-                        )}
+                                                  {selectedAsset.labeling_complete && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">
+                              Complete
+                            </span>
+                          )}
                       </div>
 
                       {/* Project Assignment Section */}
@@ -1027,7 +1027,7 @@ export default function FileManagerPage() {
                           : 'bg-purple-500 hover:bg-purple-600'
                       }`}
                     >
-                      {isAILabeling ? '🤖 Analyzing...' : '🤖 AI Labels'}
+                                              {isAILabeling ? 'Analyzing...' : 'AI Labels'}
                     </Button>
                   </div>
 
@@ -1243,7 +1243,6 @@ export default function FileManagerPage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <div className="text-6xl mb-4">🎵🖼️🎬</div>
               <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a Media Asset</h3>
               <p className="text-gray-500">Choose an asset from the list to view details and labels.</p>
             </div>
