@@ -296,13 +296,15 @@ export async function listMediaAssets(
     page?: number;
     limit?: number;
     loadAll?: boolean; // For when we want all assets (like for search)
+    excludeKeyframes?: boolean; // NEW: skip keyframe_still assets entirely
   }
 ): Promise<{ assets: MediaAsset[], totalCount: number, hasMore: boolean }> {
   const page = options?.page || 1;
   const limit = options?.limit || DEFAULT_ASSET_LIMIT;
   const loadAll = options?.loadAll || false;
+  const excludeKeyframes = options?.excludeKeyframes || false;
 
-  console.log(`[media-storage] Loading assets with mediaType filter: ${mediaType || 'all'}, page: ${page}, limit: ${limit}, loadAll: ${loadAll}`);
+  console.log(`[media-storage] Loading assets with mediaType filter: ${mediaType || 'all'}, page: ${page}, limit: ${limit}, loadAll: ${loadAll}, excludeKeyframes: ${excludeKeyframes}`);
   const startTime = Date.now();
 
   try {
@@ -338,6 +340,11 @@ export async function listMediaAssets(
         s3KeysCache = { keys: allKeys, fetchedAt: now };
       }
 
+      // Optional keyframe exclusion – filter keys that live under /keyframes/ directory before anything else
+      if (excludeKeyframes) {
+        allKeys = allKeys.filter(k => !k.includes('/keyframes/'));
+      }
+
       // If a mediaType filter is requested we have to apply the filter *before* pagination
       // otherwise the first N keys might not contain any assets of that type (e.g. videos)
 
@@ -368,7 +375,7 @@ export async function listMediaAssets(
         }
       }
 
-      console.log(`[media-storage] Found ${allKeys.length} asset files, fetching ${keys.length} JSON records for page ${page}`);
+      console.log(`[media-storage] Found ${allKeys.length} asset files${excludeKeyframes ? ' (keyframes excluded)' : ''}, fetching ${keys.length} JSON records for page ${page}`);
 
       // Check if we can use cached parsed assets
       let allAssets: MediaAsset[] = [];
@@ -418,6 +425,11 @@ export async function listMediaAssets(
         // Sort by creation date (newest first)
         allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+        // Final safety filter: drop any keyframe assets if excludeKeyframes is true
+        if (excludeKeyframes) {
+          allAssets = allAssets.filter(a => a.media_type !== 'keyframe_still');
+        }
+
         // Update parsed assets cache
         parsedAssetsCache = {
           assets: allAssets,
@@ -438,7 +450,10 @@ export async function listMediaAssets(
         resultAssets = allAssets.slice(start, end);
       }
 
-      const hasMore = !loadAll && (page * limit) < filteredTotalCount;
+      // Re-compute hasMore after optional keyframe exclusion
+      const endIndexEvaluated = page * limit;
+      const totalAfterFilter = allKeys.length;
+      const hasMore = endIndexEvaluated < totalAfterFilter;
 
       const elapsed = Date.now() - startTime;
       console.log(`[media-storage] S3 loading completed in ${elapsed}ms: returned ${resultAssets.length} assets (page ${page}) out of ${filteredTotalCount} matching (mediaType=${mediaType || 'all'})`);

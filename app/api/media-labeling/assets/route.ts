@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       assets = paginatedAssets;
     } else {
       // List assets with pagination
-      const result = await listMediaAssets(mediaType || undefined, { page, limit });
+      const result = await listMediaAssets(mediaType || undefined, { page, limit, excludeKeyframes });
       assets = result.assets;
       totalCount = result.totalCount;
       hasMore = result.hasMore;
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       let nextPage = page + 1;
       let keepFetching = nonKeyframes.length < limit && hasMore;
       while (keepFetching) {
-        const next = await listMediaAssets(mediaType || undefined, { page: nextPage, limit });
+        const next = await listMediaAssets(mediaType || undefined, { page: nextPage, limit, excludeKeyframes });
         const nextFiltered = next.assets.filter(a => a.media_type !== 'keyframe_still');
         nonKeyframes = [...nonKeyframes, ...nextFiltered];
         hasMore = next.hasMore;
