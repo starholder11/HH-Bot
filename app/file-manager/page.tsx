@@ -197,6 +197,10 @@ export default function FileManagerPage() {
   // Mounted state to prevent state updates on unmounted component
   const isMounted = useRef(true);
 
+  const [assetListFocused, setAssetListFocused] = useState(false);
+
+  // handleAssetListKeyDown will be defined after filteredAssets is declared
+
 
   // Load assets and projects
   useEffect(() => {
@@ -558,6 +562,23 @@ export default function FileManagerPage() {
     return result;
   }, [filteredAssetIds, searchTerm]);
 
+  const handleAssetListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!assetListFocused) return;
+    if (filteredAssets.length === 0) return;
+
+    const currentIndex = selectedAsset ? filteredAssets.findIndex(a => a.id === selectedAsset.id) : -1;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextIndex = currentIndex < filteredAssets.length - 1 ? currentIndex + 1 : 0;
+      setSelectedAsset(filteredAssets[nextIndex]);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : filteredAssets.length - 1;
+      setSelectedAsset(filteredAssets[prevIndex]);
+    }
+  }, [assetListFocused, filteredAssets, selectedAsset]);
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -859,7 +880,13 @@ export default function FileManagerPage() {
             <h2 className="text-xl font-semibold">Assets</h2>
           </div>
 
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+          <div
+            className="space-y-2 max-h-96 overflow-y-auto outline-none"
+            tabIndex={0}
+            onKeyDown={handleAssetListKeyDown}
+            onMouseEnter={() => setAssetListFocused(true)}
+            onMouseLeave={() => setAssetListFocused(false)}
+          >
             {filteredAssets.map((asset: MediaAsset) => (
               <AssetListItem
                 key={asset.id}
