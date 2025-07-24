@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Image, Video, Music, FileText } from 'lucide-react';
 import { Project as ProjectType } from '@/lib/project-storage';
+import MediaThumbnail from '@/components/MediaThumbnail';
 
 interface MediaAsset {
   id: string;
@@ -1062,21 +1063,17 @@ export default function FileManagerPage() {
                         setTimeout(() => setSearchTerm(''), 0);
                       }}
                     >
-                      {asset.media_type === 'image' || asset.media_type === 'keyframe_still' ? (
-                        <img
-                          src={encodePath(asset.cloudflare_url || asset.s3_url)}
-                          alt={asset.title}
-                          className="w-full h-40 object-cover rounded"
-                        />
-                      ) : asset.media_type === 'video' ? (
-                        <div className="w-full h-40 bg-black flex items-center justify-center text-white">
-                          <Video className="w-16 h-16" />
-                        </div>
-                      ) : (
-                        <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-700">
-                          <Music className="w-16 h-16" />
-                        </div>
-                      )}
+                      <MediaThumbnail
+                        asset={asset}
+                        className="w-full h-40 mb-2"
+                        onDoubleClick={() => {
+                          if (asset.media_type === 'video') {
+                            window.open(`/video-editor?asset=${asset.id}`, '_blank');
+                          } else if (asset.media_type === 'audio') {
+                            window.open(`/audio-editor?asset=${asset.id}`, '_blank');
+                          }
+                        }}
+                      />
                       <div className="mt-2 text-sm flex items-center justify-center whitespace-nowrap">
                         <span className="mr-1">{getAssetIcon(asset)}</span>
                         <span className="truncate max-w-full">{getDisplayName(asset)}</span>
