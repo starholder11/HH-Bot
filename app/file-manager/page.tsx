@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/Card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { ImageIcon, Video, Music, FileText } from 'lucide-react';
+import { Image, Video, Music, FileText } from 'lucide-react';
 import { Project as ProjectType } from '@/lib/project-storage';
 
 interface MediaAsset {
@@ -170,7 +170,7 @@ const getAssetIcon = (asset: MediaAsset) => {
   switch (asset.media_type) {
     case 'image':
     case 'keyframe_still':
-      return <ImageIcon className="w-5 h-5 text-gray-500" />;
+      return <Image className="w-5 h-5 text-gray-500" />;
     case 'video':
       return <Video className="w-5 h-5 text-gray-500" />;
     case 'audio':
@@ -747,7 +747,7 @@ export default function FileManagerPage() {
     }
 
     switch (asset.media_type) {
-      case 'image': return <ImageIcon className="w-5 h-5 text-gray-500" />;
+      case 'image': return <Image className="w-5 h-5 text-gray-500" />;
       case 'video': return <Video className="w-5 h-5 text-gray-500" />;
       case 'audio': return <Music className="w-5 h-5 text-gray-500" />;
       default: return <FileText className="w-5 h-5 text-gray-500" />;
