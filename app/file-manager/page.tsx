@@ -748,16 +748,22 @@ export default function FileManagerPage() {
 
   // Get asset icon based on type
   const getAssetIcon = (asset: MediaAsset) => {
-    // Special handling for keyframes
-    if (asset._keyframe_metadata) {
-      return <Video className="w-5 h-5 text-gray-500" />; // Video-to-image indicator for keyframes
-    }
-
     switch (asset.media_type) {
-      case 'image': return <Image className="w-5 h-5 text-gray-500" />;
-      case 'video': return <Video className="w-5 h-5 text-gray-500" />;
-      case 'audio': return <Music className="w-5 h-5 text-gray-500" />;
-      default: return <FileText className="w-5 h-5 text-gray-500" />;
+      case 'image':
+        return <Image className="w-5 h-5 text-gray-500" />;
+      case 'keyframe_still':
+        return (
+          <span className="flex items-center space-x-0.5">
+            <Video className="w-4 h-4 text-gray-500" />
+            <Image className="w-4 h-4 text-gray-500" />
+          </span>
+        );
+      case 'video':
+        return <Video className="w-5 h-5 text-gray-500" />;
+      case 'audio':
+        return <Music className="w-5 h-5 text-gray-500" />;
+      default:
+        return <FileText className="w-5 h-5 text-gray-500" />;
     }
   };
 
@@ -769,7 +775,7 @@ export default function FileManagerPage() {
     }
 
     // For keyframes, show a cleaner name
-    if (asset._keyframe_metadata) {
+    if (asset.media_type === 'keyframe_still' && asset._keyframe_metadata) {
       return `Frame ${asset._keyframe_metadata.frame_number}`;
     }
 
@@ -892,6 +898,19 @@ export default function FileManagerPage() {
                 <SelectItem value="video">Videos</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Exclude Keyframes Toggle */}
+          <div className="flex items-center space-x-2">
+            <label className="flex items-center space-x-2 text-sm">
+              <input
+                type="checkbox"
+                checked={excludeKeyframes}
+                onChange={(e) => setExcludeKeyframes(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>Exclude Keyframes</span>
+            </label>
           </div>
 
           {/* Project Filter */}
