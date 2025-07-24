@@ -754,6 +754,25 @@ export default function FileManagerPage() {
     }
   };
 
+  // Get a user-friendly display name for thumbnails
+  const getDisplayName = (asset: MediaAsset) => {
+    // Use title if it's meaningful (not just the filename)
+    if (asset.title && asset.title !== asset.filename && !asset.title.includes('_keyframe_')) {
+      return asset.title;
+    }
+
+    // For keyframes, show a cleaner name
+    if (asset._keyframe_metadata) {
+      return `Frame ${asset._keyframe_metadata.frame_number}`;
+    }
+
+    // For regular files, clean up the filename
+    return asset.filename
+      .replace(/^[a-f0-9-]+_/, '') // Remove UUID prefix
+      .replace(/_keyframe_\d+/, '') // Remove keyframe suffix
+      .replace(/\.[^.]+$/, ''); // Remove extension
+  };
+
   // Get asset display info
   const getAssetDisplayInfo = (asset: MediaAsset) => {
     // Special handling for keyframes
@@ -991,8 +1010,8 @@ export default function FileManagerPage() {
           {/* Search Results Thumbnail Grid */}
           {isSearchActive && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Search Results ({filteredAssets.length})</h2>
-              {filteredAssets.length === 0 ? (
+              <h2 className="text-xl font-semibold">Search Results ({filteredAssets?.length || 0})</h2>
+              {!filteredAssets || filteredAssets.length === 0 ? (
                 <div className="text-gray-500">No assets match your search.</div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-h-[70vh] overflow-y-auto px-1">
@@ -1002,7 +1021,8 @@ export default function FileManagerPage() {
                       className={`border rounded-lg p-2 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-shadow ${selectedAsset?.id === asset.id ? 'ring-2 ring-blue-600' : ''}`}
                       onClick={() => {
                         setSelectedAsset(asset);
-                        setSearchTerm(''); // Clear search to open editor
+                        // Use timeout to prevent race condition with search results rendering
+                        setTimeout(() => setSearchTerm(''), 0);
                       }}
                     >
                       {asset.media_type === 'image' || asset.media_type === 'keyframe_still' ? (
@@ -1022,7 +1042,7 @@ export default function FileManagerPage() {
                       )}
                       <div className="mt-2 text-sm flex items-center justify-center whitespace-nowrap">
                         <span className="mr-1">{getAssetIcon(asset)}</span>
-                        <span className="truncate max-w-full">{asset.filename}</span>
+                        <span className="truncate max-w-full">{getDisplayName(asset)}</span>
                       </div>
                     </div>
                   ))}
