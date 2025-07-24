@@ -38,6 +38,15 @@ const hasBucket = !!(process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET);
 let keyframesCache: { keyframes: KeyframeStill[], fetchedAt: number } | null = null;
 const KEYFRAMES_CACHE_TTL_MS = parseInt(process.env.KEYFRAMES_CACHE_TTL_MS || '30000'); // 30 seconds
 
+// Cache for parsed assets to avoid re-parsing JSON
+interface ParsedAssetsCache {
+  assets: MediaAsset[];
+  fetchedAt: number;
+  keys: string[]; // track which keys this cache corresponds to
+}
+let parsedAssetsCache: ParsedAssetsCache | null = null;
+const PARSED_ASSETS_CACHE_TTL_MS = parseInt(process.env.PARSED_ASSETS_CACHE_TTL_MS || '60000'); // 1 minute
+
 // Helper function to convert stream to string
 async function streamToString(stream: Readable): Promise<string> {
   const chunks: Buffer[] = [];
@@ -361,9 +370,19 @@ export async function listMediaAssets(
 
       console.log(`[media-storage] Found ${allKeys.length} asset files, fetching ${keys.length} JSON records for page ${page}`);
 
-      // Fetch JSON content directly with higher concurrency
-      const allAssets: MediaAsset[] = [];
-      const concurrency = 50;
+      // Check if we can use cached parsed assets
+      let allAssets: MediaAsset[] = [];
+      const keysString = keys.join(',');
+
+      if (parsedAssetsCache &&
+          now - parsedAssetsCache.fetchedAt < PARSED_ASSETS_CACHE_TTL_MS &&
+          parsedAssetsCache.keys.join(',') === keysString) {
+        console.log(`[media-storage] Using cached parsed assets (age ${(now - parsedAssetsCache.fetchedAt) / 1000}s, ${parsedAssetsCache.assets.length} assets)`);
+        allAssets = parsedAssetsCache.assets;
+      } else {
+        console.log(`[media-storage] Fetching and parsing ${keys.length} JSON files from S3`);
+        // Fetch JSON content directly with higher concurrency
+        const concurrency = 50;
 
       for (let i = 0; i < keys.length; i += concurrency) {
         const slice = keys.slice(i, i + concurrency);
@@ -396,8 +415,16 @@ export async function listMediaAssets(
         });
       }
 
-      // Sort by creation date (newest first)
-      allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // Sort by creation date (newest first)
+        allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        // Update parsed assets cache
+        parsedAssetsCache = {
+          assets: allAssets,
+          fetchedAt: now,
+          keys: keys
+        };
+      }
 
       // At this point allAssets *may* contain more than one page worth when mediaType filter is used.
       const filteredTotalCount = allAssets.length;

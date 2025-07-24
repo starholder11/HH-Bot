@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100');
     const excludeKeyframes = searchParams.get('exclude_keyframes') === 'true';
 
+    console.log(`[assets-api] Request params: mediaType=${mediaType}, excludeKeyframes=${excludeKeyframes}, searchQuery=${searchQuery}`);
+
     // Return statistics if requested
     if (stats) {
       const statistics = await getAssetStatistics();
