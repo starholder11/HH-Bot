@@ -6,7 +6,7 @@ async function analyzeVideoCompletionStatus() {
   console.log('🔍 Analyzing video completion status...\n');
 
   try {
-    const videos = await listMediaAssets('video') as VideoAsset[];
+    const { assets: videos } = await listMediaAssets('video') as { assets: VideoAsset[]; totalCount: number; hasMore: boolean };
 
     const processingVideos = videos.filter(v =>
       ['processing', 'pending'].includes(v.processing_status?.ai_labeling || '')
