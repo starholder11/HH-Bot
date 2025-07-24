@@ -11,7 +11,7 @@ interface MediaAsset {
   s3_url: string;
   cloudflare_url: string;
   title: string;
-  media_type: 'image' | 'video' | 'audio';
+  media_type: 'image' | 'video' | 'audio' | 'keyframe_still';
   metadata: any;
   ai_labels: {
     scenes: string[];
@@ -170,7 +170,6 @@ export default function FileManagerPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [mediaTypeFilter, setMediaTypeFilter] = useState<string>('');
   const [projectFilter, setProjectFilter] = useState<string>('');
-  const [showCompleteOnly, setShowCompleteOnly] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAILabeling, setIsAILabeling] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -521,12 +520,9 @@ export default function FileManagerPage() {
       // Note: Media type and project filters are already applied server-side in loadAssetsIncremental()
       // So we don't need to re-filter them here to avoid race conditions
 
-      // Complete only filter
-      if (showCompleteOnly && !asset.labeling_complete) return false;
-
       return true;
     });
-  }, [filteredAssetIds, searchTerm, showCompleteOnly]);
+  }, [filteredAssetIds, searchTerm]);
 
   // Server-side pagination - no need for client-side pagination calculations
   // The filteredAssets already represent the current page from the server
@@ -534,7 +530,7 @@ export default function FileManagerPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, mediaTypeFilter, projectFilter, showCompleteOnly]);
+  }, [searchTerm, mediaTypeFilter, projectFilter]);
 
   // Create new project
   const createProject = async () => {
@@ -740,6 +736,14 @@ export default function FileManagerPage() {
                   <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold">File Manager</h1>
             <div className="flex gap-3">
+              <Button
+                onClick={() => setIsUploading(true)}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  isUploading ? 'bg-gray-400 text-white' : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {isUploading ? '⏳ Uploading...' : '⬆️ Upload'}
+              </Button>
               <a
                 href="/keyframe-browser"
                 className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors font-medium inline-flex items-center gap-2"
@@ -784,76 +788,37 @@ export default function FileManagerPage() {
           </div>
 
           {/* Project Filter */}
-          <div>
+          <div className="flex items-center space-x-2">
             <select
               value={projectFilter}
               onChange={(e) => {
                 setProjectFilter(e.target.value);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option key="all-projects" value="">All Projects</option>
               {projects.map(project => (
                 <option key={project.project_id} value={project.project_id}>{project.name}</option>
               ))}
             </select>
-          </div>
-
-          {/* Complete Filter */}
-          <div className="flex items-center">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={showCompleteOnly}
-                onChange={(e) => setShowCompleteOnly(e.target.checked)}
-                className="rounded"
-              />
-              <span className="text-sm">Complete Only</span>
-            </label>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center space-x-2">
             <Button
               onClick={() => setShowCreateProject(true)}
-              className="px-2 py-0.5 text-xs bg-purple-500 hover:bg-purple-600 rounded text-white transition-colors"
+              className="px-2 py-0.5 text-xs bg-purple-500 hover:bg-purple-600 rounded text-white transition-colors whitespace-nowrap"
             >
               + Project
             </Button>
           </div>
+
+          {/* Spacer to maintain grid layout */}
+          <div></div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
         {/* Asset List */}
         <div className="lg:col-span-1">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              Assets ({totalAssetCount} total, page {currentPage})
-            </h2>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => {
-                  console.log('[file-manager] Manual refresh triggered');
-                  loadAssetsIncremental();
-                }}
-                className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
-                title="Refresh asset list"
-              >
-                🔄
-              </button>
-              <div className="text-sm text-gray-500">
-                {assets.filter(a => a.labeling_complete).length} complete
-              </div>
-              <Button
-                onClick={() => setIsUploading(true)}
-                className={`px-2 py-0.5 text-xs rounded text-white transition-colors ${
-                  isUploading ? 'bg-gray-400' : 'bg-green-500 hover:bg-green-600'
-                }`}
-              >
-                {isUploading ? 'Uploading...' : '+ Upload'}
-              </Button>
-            </div>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold">Assets</h2>
           </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -864,7 +829,7 @@ export default function FileManagerPage() {
                 isSelected={selectedAsset?.id === asset.id}
                 onSelect={(selectedAsset) => {
                   // Additional validation before setting selected asset
-                  if (selectedAsset && selectedAsset.media_type && ['image', 'video', 'audio'].includes(selectedAsset.media_type)) {
+                  if (selectedAsset && selectedAsset.media_type && ['image', 'video', 'audio', 'keyframe_still'].includes(selectedAsset.media_type)) {
                     setSelectedAsset(selectedAsset);
                   } else {
                     console.warn('[file-manager] Invalid asset selected:', selectedAsset);
@@ -931,7 +896,7 @@ export default function FileManagerPage() {
           {selectedAsset ? (
             <div className="space-y-6">
                             {/* Image Gallery Card */}
-              {selectedAsset.media_type === 'image' ? (
+              {selectedAsset.media_type === 'image' || selectedAsset.media_type === 'keyframe_still' ? (
                 <Card className="p-6">
                   {/* Header */}
                   <div className="flex justify-between items-start mb-6">
@@ -1631,9 +1596,6 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
             <h3 className="text-lg font-medium">
               Upload Queue ({uploadFiles.length} files)
             </h3>
-            <div className="text-sm text-gray-500">
-              {completedCount} completed • {errorCount} errors • {pendingCount} pending
-            </div>
           </div>
 
           <div className="max-h-64 overflow-y-auto space-y-2">

@@ -83,7 +83,7 @@ async function processVideoJob(job) {
   const keyframeAssets = await uploadKeyframesToS3(keyframes, assetId);
 
   // Trigger AI labeling for video and keyframes
-  await triggerAILabeling(assetId, keyframeAssets);
+  await triggerAILabeling(assetId, keyframeAssets, job.callbackBaseUrl);
 
   // Clean up temp files
   await fs.unlink(videoPath).catch(() => {});
@@ -266,13 +266,16 @@ async function uploadKeyframesToS3(keyframes, assetId) {
   return keyframeAssets;
 }
 
-async function triggerAILabeling(assetId, keyframeAssets) {
+async function triggerAILabeling(assetId, keyframeAssets, callbackBaseUrl) {
   console.log(`[worker] Triggering AI labeling for video ${assetId} and ${keyframeAssets.length} keyframes`);
 
-  // Call the update-keyframes endpoint to trigger AI labeling
-  const baseUrl = process.env.PUBLIC_API_BASE_URL ??
+  // Use the callback URL passed from the Next.js API instead of environment variables
+  const baseUrl = callbackBaseUrl ||
+                 (process.env.PUBLIC_API_BASE_URL ??
                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                  'https://hh-bot-lyart.vercel.app');
+                  'https://hh-bot-lyart.vercel.app'));
+
+  console.log(`[worker] Using callback URL: ${baseUrl}`);
 
   const updateUrl = `${baseUrl}/api/media-labeling/videos/update-keyframes`;
 

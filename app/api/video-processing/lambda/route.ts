@@ -15,11 +15,29 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     console.log('[video-processing] Payload:', payload);
 
+    // Add callback URL to payload so Lambda knows where to call back
+    const baseUrl = process.env.PUBLIC_API_BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+    // Inject callback URL into each record's body
+    const enhancedPayload = {
+      ...payload,
+      Records: payload.Records.map((record: any) => ({
+        ...record,
+        body: JSON.stringify({
+          ...JSON.parse(record.body),
+          callbackBaseUrl: baseUrl
+        })
+      }))
+    };
+
+    console.log('[video-processing] Enhanced payload with callback URL:', baseUrl);
+
     const functionName = 'video-processor'; // Simple - we only have one function
 
     const command = new InvokeCommand({
       FunctionName: functionName,
-      Payload: Buffer.from(JSON.stringify(payload)),
+      Payload: Buffer.from(JSON.stringify(enhancedPayload)),
     });
 
     console.log('[video-processing] Invoking Lambda function:', functionName);
