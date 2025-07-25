@@ -321,16 +321,27 @@ export class LanceDBIngestionService {
 
   // Process text content for LanceDB
   async processTextContent(content: TextContent): Promise<LanceDBRecord> {
-    // Combine frontmatter and content for embedding
+    // Clean and normalize text content for better embeddings
+    const cleanContent = content.content
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/`[^`]*`/g, '') // Remove inline code
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Convert links to text
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1') // Convert images to text
+      .replace(/[#*_~`]/g, '') // Remove markdown formatting
+      .replace(/\n+/g, ' ') // Normalize line breaks
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+
+    // Combine cleaned content with metadata for embedding
     const textParts = [
       content.title,
       content.description || '',
-      content.content,
+      cleanContent,
     ];
 
-    // Add frontmatter fields
-    if (content.frontmatter.tags) {
-      textParts.push(...content.frontmatter.tags);
+    // Add relevant frontmatter fields (but not all tags)
+    if (content.frontmatter.tags && Array.isArray(content.frontmatter.tags)) {
+      textParts.push(content.frontmatter.tags.join(' '));
     }
 
     const combinedText = textParts.filter(Boolean).join(' ');

@@ -203,6 +203,33 @@ curl -X POST http://localhost:8000/search \
                        └─────────────────┘    └─────────────────┘
 ```
 
+## Embedding Process
+
+### Text Content Processing
+
+**CRITICAL**: Text content must be cleaned before embedding to ensure semantic relevance:
+
+```typescript
+// Clean text content before embedding
+const cleanContent = content.content
+  .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+  .replace(/`[^`]*`/g, '') // Remove inline code
+  .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Convert links to text
+  .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1') // Convert images to text
+  .replace(/[#*_~`]/g, '') // Remove markdown formatting
+  .replace(/\n+/g, ' ') // Normalize line breaks
+  .replace(/\s+/g, ' ') // Normalize whitespace
+  .trim();
+```
+
+### Best Practices
+
+1. **Always clean text content** before generating embeddings
+2. **Remove markdown formatting** and frontmatter
+3. **Normalize whitespace** and line breaks
+4. **Test semantic relevance** with known queries
+5. **Re-ingest content** if embeddings become corrupted
+
 ## Monitoring
 
 ### Logs
@@ -240,6 +267,13 @@ The service exposes several monitoring endpoints:
    - Tune embedding cache size
    - Consider processing batch sizes
    - Monitor EFS usage
+
+4. **Poor search relevance (CRITICAL)**
+   - **Root Cause**: Raw markdown content being embedded without cleaning
+   - **Symptoms**: Irrelevant results with high similarity scores (e.g., "Hello World" returning 96% for "barry_lyndon")
+   - **Fix**: Clean text content before embedding (remove markdown formatting, frontmatter, code blocks)
+   - **Implementation**: Use `processTextContent()` with cleaned text processing in `lib/lancedb-ingestion.ts`
+   - **Verification**: Re-ingest all text content with cleaned embeddings using `scripts/re-ingest-all-text.ts`
 
 ### Debug Mode
 

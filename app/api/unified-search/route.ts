@@ -83,7 +83,32 @@ export async function POST(request: NextRequest) {
       // Use LanceDB for text content, but also include media results
       console.log('📄 Using LanceDB for text search + direct media lookup...');
       const rawResponse = await ingestionService.search(query, limit * 2);
-      resultsArray = (rawResponse as any)?.results || [];
+      let textResults = (rawResponse as any)?.results || [];
+
+              // TEMPORARY FIX: Filter out irrelevant text results with artificially high scores
+        // This addresses the LanceDB corruption issue where random text gets high scores
+        textResults = textResults.filter((result: any) => {
+          // If it's a text result with >80% score, check if it's actually relevant
+          if (result.content_type === 'text' && result.score > 0.8) {
+          const searchableText = [
+            result.title,
+            result.description,
+            result.metadata?.frontmatter?.tags?.join(' ') || ''
+          ].filter(Boolean).join(' ').toLowerCase();
+
+          const queryWords = query.toLowerCase().split(/\s+/);
+          const hasRelevantMatch = queryWords.some(word =>
+            searchableText.includes(word) ||
+            word.length > 3 && searchableText.includes(word.substring(0, 3))
+          );
+
+          // Only keep high-scoring results that actually contain query words
+          return hasRelevantMatch;
+        }
+        return true; // Keep all other results
+      });
+
+      resultsArray = textResults;
 
       // Also add media results for comprehensive search
       try {
