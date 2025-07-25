@@ -127,25 +127,27 @@ export async function POST(request: NextRequest) {
             asset.ai_labels?.themes?.join(' ')
           ].filter(Boolean).join(' ');
 
-          // Calculate simple text similarity (cosine similarity would be better but this is faster)
-          const queryWords = query.toLowerCase().split(/\s+/);
+          // Calculate more accurate text similarity
+          const queryWords = query.toLowerCase().split(/\s+/).filter(word => word.length > 2);
           const textWords = searchableText.toLowerCase().split(/\s+/);
 
           let matchScore = 0;
           let totalWords = queryWords.length;
 
           for (const queryWord of queryWords) {
-            if (textWords.some(word => word.includes(queryWord) || queryWord.includes(word))) {
+            // Check for exact matches first, then partial matches
+            if (textWords.some(word => word === queryWord)) {
               matchScore += 1;
+            } else if (textWords.some(word => word.includes(queryWord) || queryWord.includes(word))) {
+              matchScore += 0.5; // Partial match gets half score
             }
           }
 
           // Convert to percentage score (0-1)
           const similarityScore = totalWords > 0 ? matchScore / totalWords : 0;
 
-          // Boost score for exact filename matches
-          const filenameMatch = asset.filename.toLowerCase().includes(query.toLowerCase()) ? 0.8 : 0;
-          const finalScore = Math.min(0.99, similarityScore + filenameMatch);
+          // Remove filename boosting entirely to prevent irrelevant results
+          const finalScore = Math.min(0.99, similarityScore);
 
           return {
             id: asset.id,
@@ -161,6 +163,20 @@ export async function POST(request: NextRequest) {
 
                 resultsArray = [...resultsArray, ...mediaResults];
         console.log(`✅ Added ${mediaResults.length} media results with semantic scoring`);
+
+        // Debug: Check for HOMBRE specifically
+        const hombreResults = mediaResults.filter(result =>
+          result.title.toLowerCase().includes('hombre') ||
+          result.metadata?.filename?.toLowerCase().includes('hombre')
+        );
+        if (hombreResults.length > 0) {
+          console.log(`🎵 Found ${hombreResults.length} HOMBRE results in media results`);
+          hombreResults.forEach(result => {
+            console.log(`   - ${result.title} (${result.content_type}) - Score: ${(result.score * 100).toFixed(1)}%`);
+          });
+        } else {
+          console.log(`❌ HOMBRE not found in media results`);
+        }
 
 
       } catch (error) {
@@ -187,12 +203,19 @@ export async function POST(request: NextRequest) {
       .filter((result: SearchResult) => {
         const passes = applyFilters(result, filters);
         if (!passes) {
-          console.log(`❌ Filtered out: ${result.id} (${result.content_type})`);
+          console.log(`❌ Filtered out: ${result.title} (${result.content_type})`);
         }
         return passes;
       })
       .sort((a, b) => b.score - a.score) // Sort by score DESC so media appears in top results
       .slice(0, limit);
+
+    // Debug: Check final results for media
+    const mediaResults = processedResults.filter(r => ['video', 'image', 'audio'].includes(r.content_type));
+    console.log(`📊 Media results after filtering: ${mediaResults.length}`);
+    mediaResults.slice(0, 3).forEach(result => {
+      console.log(`   - ${result.title} (${result.content_type}) - Score: ${(result.score * 100).toFixed(1)}%`);
+    });
 
 
 
