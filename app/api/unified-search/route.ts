@@ -88,18 +88,54 @@ export async function POST(request: NextRequest) {
       // Also add media results for comprehensive search
       try {
         const mediaAssets = await ingestionService.loadMediaAssets();
-        const mediaResults = mediaAssets.slice(0, limit).map(asset => ({
-          id: asset.id,
-          content_type: asset.media_type,
-          title: asset.title,
-          description: `${asset.media_type}: ${asset.filename}`,
-          score: 0.9, // High score to ensure media appears in top results
-          metadata: asset,
-          s3_url: asset.s3_url,
-          cloudflare_url: asset.cloudflare_url
+
+        // Calculate semantic similarity scores for media
+        const mediaResults = await Promise.all(mediaAssets.slice(0, limit).map(async (asset) => {
+          // Create searchable text from media metadata
+          const searchableText = [
+            asset.title,
+            asset.filename,
+            asset.metadata?.ai_labels?.scenes?.join(' '),
+            asset.metadata?.ai_labels?.objects?.join(' '),
+            asset.metadata?.ai_labels?.style?.join(' '),
+            asset.metadata?.ai_labels?.mood?.join(' '),
+            asset.metadata?.ai_labels?.themes?.join(' ')
+          ].filter(Boolean).join(' ');
+
+          // Calculate simple text similarity (cosine similarity would be better but this is faster)
+          const queryWords = query.toLowerCase().split(/\s+/);
+          const textWords = searchableText.toLowerCase().split(/\s+/);
+
+          let matchScore = 0;
+          let totalWords = queryWords.length;
+
+          for (const queryWord of queryWords) {
+            if (textWords.some(word => word.includes(queryWord) || queryWord.includes(word))) {
+              matchScore += 1;
+            }
+          }
+
+          // Convert to percentage score (0-1)
+          const similarityScore = totalWords > 0 ? matchScore / totalWords : 0;
+
+          // Boost score for exact filename matches
+          const filenameMatch = asset.filename.toLowerCase().includes(query.toLowerCase()) ? 0.3 : 0;
+          const finalScore = Math.min(0.95, similarityScore + filenameMatch);
+
+          return {
+            id: asset.id,
+            content_type: asset.media_type,
+            title: asset.title,
+            description: `${asset.media_type}: ${asset.filename}`,
+            score: finalScore,
+            metadata: asset,
+            s3_url: asset.s3_url,
+            cloudflare_url: asset.cloudflare_url
+          };
         }));
+
         resultsArray = [...resultsArray, ...mediaResults];
-        console.log(`✅ Added ${mediaResults.length} media results to comprehensive search`);
+        console.log(`✅ Added ${mediaResults.length} media results with semantic scoring`);
       } catch (error) {
         console.error('Failed to add media results:', error);
       }
