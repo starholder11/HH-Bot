@@ -3,7 +3,7 @@ import LanceDBIngestionService from '@/lib/lancedb-ingestion';
 
 interface SearchResult {
   id: string;
-  content_type: 'media' | 'text';
+  content_type: 'video' | 'image' | 'audio' | 'text';
   title: string;
   description: string;
   score: number;
@@ -46,13 +46,68 @@ export async function POST(request: NextRequest) {
 
     const ingestionService = new LanceDBIngestionService();
 
-    // Perform semantic search
-    const rawResponse = await ingestionService.search(query, limit * 2); // Get more results to filter
+    // TEMPORARY FIX: LanceDB vector search is broken for media content
+    // For media searches, bypass LanceDB and use direct S3 lookup
+    let resultsArray: any[] = [];
 
-    // Extract results array from the response
-    const resultsArray = (rawResponse as any)?.results || [];
+        if (filters.content_type === 'media' || filters.media_type || ['video', 'image', 'audio'].includes(filters.content_type as any)) {
+      console.log('🎬 Using direct media search (bypassing LanceDB)...');
+
+      // Load media assets directly from S3
+      const mediaAssets = await ingestionService.loadMediaAssets();
+      console.log(`📁 Found ${mediaAssets.length} media assets from S3`);
+
+      // Filter by media type if specified
+      let filteredAssets = mediaAssets;
+      if (filters.media_type) {
+        filteredAssets = mediaAssets.filter(asset => asset.media_type === filters.media_type);
+      } else if (filters.content_type && filters.content_type !== 'media') {
+        // Filter by specific content type (video, image, audio)
+        filteredAssets = mediaAssets.filter(asset => asset.media_type === filters.content_type);
+      }
+
+      // Convert to search result format
+      resultsArray = filteredAssets.slice(0, limit).map(asset => ({
+        id: asset.id,
+        content_type: asset.media_type,
+        title: asset.title,
+        description: `${asset.media_type}: ${asset.filename}`,
+        score: 0.8, // Default high score for media
+        metadata: asset,
+        s3_url: asset.s3_url,
+        cloudflare_url: asset.cloudflare_url
+      }));
+
+      console.log(`✅ Returning ${resultsArray.length} media results`);
+    } else {
+      // Use LanceDB for text content, but also include media results
+      console.log('📄 Using LanceDB for text search + direct media lookup...');
+      const rawResponse = await ingestionService.search(query, limit * 2);
+      resultsArray = (rawResponse as any)?.results || [];
+
+      // Also add media results for comprehensive search
+      try {
+        const mediaAssets = await ingestionService.loadMediaAssets();
+        const mediaResults = mediaAssets.slice(0, limit).map(asset => ({
+          id: asset.id,
+          content_type: asset.media_type,
+          title: asset.title,
+          description: `${asset.media_type}: ${asset.filename}`,
+          score: 0.9, // High score to ensure media appears in top results
+          metadata: asset,
+          s3_url: asset.s3_url,
+          cloudflare_url: asset.cloudflare_url
+        }));
+        resultsArray = [...resultsArray, ...mediaResults];
+        console.log(`✅ Added ${mediaResults.length} media results to comprehensive search`);
+      } catch (error) {
+        console.error('Failed to add media results:', error);
+      }
+    }
 
     // Process and filter results
+    console.log(`🔍 Processing ${resultsArray.length} total results (text + media)`);
+
     const processedResults: SearchResult[] = resultsArray
       .map((result: any) => ({
         id: result.id,
@@ -66,12 +121,21 @@ export async function POST(request: NextRequest) {
         cloudflare_url: result.cloudflare_url,
         preview: generatePreview(result),
       }))
-      .filter((result: SearchResult) => applyFilters(result, filters))
+      .filter((result: SearchResult) => {
+        const passes = applyFilters(result, filters);
+        if (!passes) {
+          console.log(`❌ Filtered out: ${result.id} (${result.content_type})`);
+        }
+        return passes;
+      })
+      .sort((a, b) => b.score - a.score) // Sort by score DESC so media appears in top results
       .slice(0, limit);
+
+    console.log(`✅ Final processed results: ${processedResults.length} (${processedResults.filter(r => ['video', 'image', 'audio'].includes(r.content_type)).length} media)`);
 
     // Group results by content type for better UX
     const groupedResults = {
-      media: processedResults.filter(r => r.content_type === 'media'),
+      media: processedResults.filter(r => ['video', 'image', 'audio'].includes(r.content_type)),
       text: processedResults.filter(r => r.content_type === 'text'),
       all: processedResults,
     };
@@ -156,7 +220,12 @@ function generatePreview(result: any): string {
 function applyFilters(result: SearchResult, filters: SearchFilters): boolean {
   // Content type filter
   if (filters.content_type && filters.content_type !== 'all') {
-    if (result.content_type !== filters.content_type) {
+    if (filters.content_type === 'media') {
+      // For 'media' filter, accept video, image, audio
+      if (!['video', 'image', 'audio'].includes(result.content_type)) {
+        return false;
+      }
+    } else if (result.content_type !== filters.content_type) {
       return false;
     }
   }
