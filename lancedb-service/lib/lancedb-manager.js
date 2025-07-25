@@ -242,6 +242,22 @@ class LanceDBManager {
     }
   }
 
+  async recreateTable() {
+    logger.info('Attempting to recreate table `content`...');
+    try {
+      await this.db.dropTable('content');
+      logger.info('Dropped existing table `content`.');
+    } catch (error) {
+      if (!`${error.message}`.includes('does not exist')) {
+        logger.error(`Failed to drop table: ${error.message}`);
+        throw error;
+      }
+      logger.info('Table `content` did not exist, skipping drop.');
+    }
+    await this.ensureTable();
+    logger.info('Table `content` recreated successfully.');
+  }
+
   async testConnection() {
     try {
       if (!this.isInitialized) {
@@ -264,6 +280,40 @@ class LanceDBManager {
         success: false,
         message: `Connection failed: ${error.message}`
       };
+    }
+  }
+
+  async getAllRecords() {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    try {
+      // Get all records from the table
+      const results = await this.table
+        .search([0]) // Dummy vector for filter-only query
+        .limit(10000) // Large limit to get all records
+        .toArray();
+
+      // Transform results back to our format
+      const transformedResults = results.map(result => ({
+        id: result.id,
+        content_type: result.content_type,
+        title: result.title,
+        description: result.description,
+        combined_text: result.combined_text,
+        score: 0.5, // Default score since we're not doing vector search
+        metadata: JSON.parse(result.metadata || '{}'),
+        created_at: result.created_at,
+        updated_at: result.updated_at
+      }));
+
+      logger.info(`📋 Retrieved ${transformedResults.length} total records`);
+      return transformedResults;
+
+    } catch (error) {
+      logger.error('❌ Failed to get all records:', error);
+      throw error;
     }
   }
 }
