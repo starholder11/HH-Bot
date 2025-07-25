@@ -131,7 +131,7 @@ export class LanceDBIngestionService {
       const apiRecord = {
         id: record.id,
         content_type: record.content_type === 'media'
-          ? record.metadata?.media_type || 'audio'  // Map 'media' to specific type based on metadata
+          ? (record.metadata?.media_type === 'keyframe_still' ? 'image' : record.metadata?.media_type || 'audio')  // Map keyframes to image, others to their type
           : record.content_type,  // Keep 'text' as-is
         title: record.title,
         content_text: record.combined_text,
@@ -142,6 +142,15 @@ export class LanceDBIngestionService {
         metadata: record.metadata,
       };
 
+      // DEBUG: Log the payload being sent
+      console.log('🔍 Sending to LanceDB:');
+      console.log('   - ID:', apiRecord.id);
+      console.log('   - Content Type:', apiRecord.content_type);
+      console.log('   - Title:', apiRecord.title);
+      console.log('   - Content Text Length:', apiRecord.content_text.length);
+      console.log('   - References:', apiRecord.references);
+      console.log('   - Metadata Keys:', Object.keys(apiRecord.metadata));
+
       const response = await fetch(`${LANCEDB_API_URL}/embeddings`, {
         method: 'POST',
         headers: {
@@ -151,7 +160,10 @@ export class LanceDBIngestionService {
       });
 
       if (!response.ok) {
-        throw new Error(`LanceDB API error: ${response.statusText}`);
+        // DEBUG: Get the full error response
+        const errorText = await response.text();
+        console.error('❌ LanceDB API Error Response:', errorText);
+        throw new Error(`LanceDB API error: ${response.statusText} - ${errorText}`);
       }
     } catch (error) {
       console.error('Error adding to LanceDB:', error);
@@ -385,16 +397,15 @@ export class LanceDBIngestionService {
       const { listMediaAssets } = await import('./media-storage');
       const { listSongs } = await import('./song-storage');
 
-      // Load all media assets (images, videos) from S3
+      // Load all media assets (images, videos, keyframes) from S3
       const mediaResult = await listMediaAssets(undefined, {
         loadAll: true,
-        excludeKeyframes: true // Avoid duplicate keyframe assets
+        excludeKeyframes: false // Include keyframes for comprehensive search
       });
 
-      // Filter out keyframe assets to avoid duplicates
-      const filteredAssets = mediaResult.assets.filter(asset => asset.media_type !== 'keyframe_still');
-      console.log(`✅ Loaded ${filteredAssets.length} media assets from S3 (${mediaResult.assets.length - filteredAssets.length} keyframes excluded)`);
-      assets.push(...filteredAssets);
+      // Include all assets including keyframes
+      console.log(`✅ Loaded ${mediaResult.assets.length} media assets from S3 (including keyframes)`);
+      assets.push(...mediaResult.assets);
 
       // Load all songs/audio from S3
       const songs = await listSongs();
