@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
           const similarityScore = totalWords > 0 ? matchScore / totalWords : 0;
 
           // Boost score for exact filename matches
-          const filenameMatch = asset.filename.toLowerCase().includes(query.toLowerCase()) ? 0.3 : 0;
-          const finalScore = Math.min(0.95, similarityScore + filenameMatch);
+          const filenameMatch = asset.filename.toLowerCase().includes(query.toLowerCase()) ? 0.8 : 0;
+          const finalScore = Math.min(0.99, similarityScore + filenameMatch);
 
           return {
             id: asset.id,
