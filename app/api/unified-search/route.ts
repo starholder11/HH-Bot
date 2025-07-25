@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
       let filteredAssets = mediaAssets;
       if (filters.media_type) {
         filteredAssets = mediaAssets.filter(asset => asset.media_type === filters.media_type);
-      } else if (filters.content_type && filters.content_type !== 'media') {
+      } else if (filters.content_type && filters.content_type !== 'media' && ['video', 'image', 'audio'].includes(filters.content_type as any)) {
         // Filter by specific content type (video, image, audio)
-        filteredAssets = mediaAssets.filter(asset => asset.media_type === filters.content_type);
+        filteredAssets = mediaAssets.filter(asset => asset.media_type === (filters.content_type as 'video' | 'image' | 'audio'));
       }
 
       // Convert to search result format
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
 
 // Helper function to generate preview text
 function generatePreview(result: any): string {
-  if (result.content_type === 'audio' || result.content_type === 'media') {
+  if (result.content_type === 'audio' || result.content_type === 'video' || result.content_type === 'image') {
     const labels = result.metadata?.ai_labels;
     if (labels) {
       const previewParts = [
@@ -231,7 +231,7 @@ function applyFilters(result: SearchResult, filters: SearchFilters): boolean {
   }
 
   // Media type filter (only applies to media content)
-  if (filters.media_type && result.content_type === 'media') {
+  if (filters.media_type && ['video', 'image', 'audio'].includes(result.content_type)) {
     if (result.metadata?.media_type !== filters.media_type) {
       return false;
     }
@@ -250,7 +250,7 @@ function applyFilters(result: SearchResult, filters: SearchFilters): boolean {
 
   // Tags filter (check if any of the specified tags exist in AI labels)
   if (filters.tags && filters.tags.length > 0) {
-    if (result.content_type === 'media') {
+    if (['video', 'image', 'audio'].includes(result.content_type)) {
       const allLabels = [
         ...(result.metadata?.ai_labels?.scenes || []),
         ...(result.metadata?.ai_labels?.objects || []),

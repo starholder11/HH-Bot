@@ -130,9 +130,7 @@ export class LanceDBIngestionService {
       // Transform our record format to match the service API
       const apiRecord = {
         id: record.id,
-        content_type: record.content_type === 'media'
-          ? record.metadata?.media_type || 'audio'  // Map 'media' to specific type based on metadata
-          : record.content_type,  // Keep 'text' as-is
+        content_type: record.content_type, // Keep original content type (media, text, etc.)
         title: record.title,
         content_text: record.combined_text,
         references: {

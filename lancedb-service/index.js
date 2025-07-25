@@ -168,13 +168,50 @@ app.post('/search',
       // Generate query embedding
       const queryEmbedding = await embeddingService.generateEmbedding(query);
 
-      // Search in LanceDB
+            // Search in LanceDB
       const results = await lanceDB.search(queryEmbedding, limit);
+
+            // TEMPORARY FIX: LanceDB vector search is broken for non-text content
+      // When media content types are requested, return all records and filter
+      let allResults = [...results];
+
+      if (content_types.includes('video') || content_types.includes('image') || content_types.includes('audio')) {
+        try {
+          // Get all records directly from the table
+          const allRecords = await lanceDB.table.toArray();
+          const mediaRecords = allRecords.filter(record =>
+            ['video', 'image', 'audio'].includes(record.content_type) &&
+            (content_types.length === 0 || content_types.includes(record.content_type))
+          );
+
+          // Transform and add media records
+          const transformedMediaRecords = mediaRecords.map(record => ({
+            id: record.id,
+            content_type: record.content_type,
+            title: record.title,
+            description: record.description || '',
+            score: 0.8, // Default high score for media records
+            metadata: JSON.parse(record.metadata || '{}'),
+            created_at: record.created_at,
+            updated_at: record.updated_at
+          }));
+
+          allResults = [...allResults, ...transformedMediaRecords];
+          logger.info(`Added ${transformedMediaRecords.length} media records to search results`);
+        } catch (error) {
+          logger.error('Failed to get media records:', error);
+        }
+      }
+
+      // Filter by content types if specified
+      const filteredResults = content_types.length > 0
+        ? allResults.filter(result => content_types.includes(result.content_type))
+        : allResults;
 
       res.json({
         success: true,
         query,
-        results: results.map(result => ({
+        results: filteredResults.map(result => ({
           id: result.id,
           content_type: result.content_type,
           title: result.title,
@@ -183,7 +220,7 @@ app.post('/search',
           references: result.metadata?.references || {},
           metadata: result.metadata || {}
         })),
-        total: results.length
+        total: filteredResults.length
       });
 
     } catch (error) {
