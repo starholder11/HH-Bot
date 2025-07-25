@@ -4,7 +4,10 @@ import path from 'path';
 import matter from 'gray-matter';
 
 // LanceDB client configuration
-const LANCEDB_API_URL = process.env.LANCEDB_API_URL || 'http://lanced-LoadB-8Uaoj1d09YEx-937819970.us-east-1.elb.amazonaws.com';
+// Default to the new production load-balancer URL if the env var isn't provided
+const LANCEDB_API_URL =
+  process.env.LANCEDB_API_URL ||
+  'http://lanced-LoadB-oFgwzoUCRPPr-1582930674.us-east-1.elb.amazonaws.com';
 
 interface LanceDBRecord {
   id: string;
@@ -53,16 +56,25 @@ interface TextContent {
 }
 
 export class LanceDBIngestionService {
-  private openai: OpenAI;
+  private openai?: OpenAI;
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    // Only initialize OpenAI client if an API key is present.  This prevents
+    // errors in environments (e.g. Vercel preview/prod) where the key has not
+    // been configured but we still want read-only search functionality that
+    // relies on the remote LanceDB service to generate embeddings.
+    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim().length > 0) {
+      this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    }
   }
 
   // Generate embeddings using OpenAI
   async generateEmbedding(text: string): Promise<number[]> {
+    // Ensure the OpenAI client is available
+    if (!this.openai) {
+      throw new Error('OPENAI_API_KEY is missing – cannot generate embeddings');
+    }
+
     try {
       const response = await this.openai.embeddings.create({
         model: 'text-embedding-3-small',
