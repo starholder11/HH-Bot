@@ -59,3 +59,4 @@ lambda-layer/
 # Ignore Lambda container dependencies
 lambda-video-processor/node_modules/
 lambda-video-processor/*.zip
+lancedb-service/node_modules/

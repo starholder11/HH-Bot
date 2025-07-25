@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "ingest-lancedb": "npx tsx scripts/ingest-to-lancedb.ts"
   },
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.842.0",
@@ -35,6 +36,7 @@
     "fuse.js": "^7.1.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.0",
+    "lancedb": "^0.0.1",
     "lucide-react": "^0.400.0",
     "music-metadata": "^11.7.0",
     "next": "^14.2.30",

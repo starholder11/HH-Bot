@@ -1,0 +1,29 @@
+📋 COPY THESE 3 THINGS FROM AWS CONSOLE:
+
+1. Go to: https://console.aws.amazon.com
+2. Search: "VPC"
+3. Click: "VPC Dashboard"
+
+STEP 1: Get VPC ID
+- Click "Your VPCs"
+- Copy the VPC ID (looks like: vpc-1234567890abcdef0)
+
+STEP 2: Get Public Subnet IDs
+- Click "Subnets"
+- Look for subnets with "Auto-assign public IPv4: Yes"
+- Copy 2 subnet IDs (looks like: subnet-123abc, subnet-456def)
+
+STEP 3: Get Private Subnet IDs
+- Still in "Subnets"
+- Look for subnets with "Auto-assign public IPv4: No"
+- Copy 2 subnet IDs (looks like: subnet-789ghi, subnet-012jkl)
+
+If you only see public subnets (or only 2 total), that's fine -
+we can use public subnets for both in testing.
+
+PASTE THEM HERE:
+VPC_ID: vpc-CHANGEME
+PUBLIC_SUBNET_IDS: subnet-CHANGEME1,subnet-CHANGEME2
+PRIVATE_SUBNET_IDS: subnet-CHANGEME3,subnet-CHANGEME4
+
+Then I'll update the config automatically!
