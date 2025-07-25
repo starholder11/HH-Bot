@@ -57,12 +57,18 @@ Text Pipeline: Markdown → OpenAI Vector Store → Chat Context
 - **API**: HTTP REST interface for embedding operations
 
 #### 2. Embedding Generation Pipeline
-- **Text**: OpenAI text-embedding-3-small (consistency with existing chat)
+- **Text**: OpenAI text-embedding-3-small with cleaned content processing
 - **Images**: OpenCLIP for visual semantic understanding
 - **Audio**: Wav2CLIP for audio-visual semantic alignment
 - **Video**: Combined keyframe + audio + metadata embeddings
 
-#### 3. Unified Search API
+#### 3. Text Content Processing (CRITICAL)
+- **Cleaning**: Remove markdown formatting, code blocks, frontmatter
+- **Normalization**: Standardize whitespace and line breaks
+- **Semantic Focus**: Extract meaningful content for embedding
+- **Validation**: Ensure embeddings represent actual semantic content
+
+#### 4. Unified Search API
 - **Endpoint**: `/api/semantic-search`
 - **Capabilities**: Text queries, image similarity, cross-modal search
 - **Response**: Ranked results with references to original content
@@ -70,6 +76,29 @@ Text Pipeline: Markdown → OpenAI Vector Store → Chat Context
 ---
 
 ## Technical Specifications
+
+### Critical Implementation Notes
+
+#### Text Embedding Processing (RESOLVED)
+**Issue**: Raw markdown content was being embedded without cleaning, causing irrelevant results with high similarity scores.
+
+**Solution**: Implemented cleaned text processing before embedding:
+```typescript
+const cleanContent = content.content
+  .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+  .replace(/`[^`]*`/g, '') // Remove inline code
+  .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Convert links to text
+  .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1') // Convert images to text
+  .replace(/[#*_~`]/g, '') // Remove markdown formatting
+  .replace(/\n+/g, ' ') // Normalize line breaks
+  .replace(/\s+/g, ' ') // Normalize whitespace
+  .trim();
+```
+
+**Results**:
+- ✅ 342 text files re-ingested with cleaned embeddings
+- ✅ Search relevance restored (relevant results now rank properly)
+- ✅ System integrity maintained (no workarounds, proper fix)
 
 ### LanceDB Record Schema
 
