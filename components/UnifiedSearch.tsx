@@ -5,27 +5,31 @@ import { Search, Filter, Loader2, FileText, Music, Video, Image, ExternalLink } 
 
 interface SearchResult {
   id: string;
-  content_type: 'text' | 'audio' | 'video' | 'image';
+  content_type: 'text' | 'media';
   title: string;
-  content_text: string;
-  references: {
-    s3_url?: string;
-    cloudflare_url?: string;
-    slug?: string;
-  };
-  metadata: any;
+  description: string;
+  preview?: string;
   score?: number;
+  metadata: any;
+  url?: string;
+  s3_url?: string;
+  cloudflare_url?: string;
 }
 
 interface SearchResponse {
   success: boolean;
-  results?: SearchResult[];
+  results?: {
+    media: SearchResult[];
+    text: SearchResult[];
+    all: SearchResult[];
+  };
   error?: string;
   details?: string;
 }
 
 const contentTypeIcons = {
   text: FileText,
+  media: Music,
   audio: Music,
   video: Video,
   image: Image,
@@ -33,6 +37,7 @@ const contentTypeIcons = {
 
 const contentTypeColors = {
   text: 'bg-blue-100 text-blue-800',
+  media: 'bg-purple-100 text-purple-800',
   audio: 'bg-purple-100 text-purple-800',
   video: 'bg-red-100 text-red-800',
   image: 'bg-green-100 text-green-800',
@@ -70,7 +75,7 @@ export default function UnifiedSearch() {
       const data: SearchResponse = await response.json();
 
       if (data.success && data.results) {
-        setResults(data.results);
+        setResults(data.results.all || []);
       } else {
         setError(data.error || 'Search failed');
         setResults([]);
@@ -92,9 +97,10 @@ export default function UnifiedSearch() {
   };
 
   const getResultUrl = (result: SearchResult) => {
-    if (result.references.cloudflare_url) return result.references.cloudflare_url;
-    if (result.references.s3_url) return result.references.s3_url;
-    if (result.references.slug) return `/timeline/${result.references.slug}`;
+    if (result.cloudflare_url) return result.cloudflare_url;
+    if (result.s3_url) return result.s3_url;
+    if (result.url) return result.url;
+    if (result.metadata?.slug) return `/timeline/${result.metadata.slug}`;
     return null;
   };
 
@@ -132,21 +138,24 @@ export default function UnifiedSearch() {
             <span className="text-sm font-medium text-gray-700">Content Types:</span>
           </div>
 
-          {Object.entries(contentTypeIcons).map(([type, Icon]) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => toggleContentType(type)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedTypes.includes(type)
-                  ? contentTypeColors[type as keyof typeof contentTypeColors]
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </button>
-          ))}
+          {['text', 'audio', 'video', 'image'].map((type) => {
+            const Icon = contentTypeIcons[type as keyof typeof contentTypeIcons];
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => toggleContentType(type)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  selectedTypes.includes(type)
+                    ? contentTypeColors[type as keyof typeof contentTypeColors]
+                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            );
+          })}
 
           <div className="ml-auto flex items-center gap-2">
             <label className="text-sm text-gray-600">Limit:</label>
@@ -224,7 +233,7 @@ export default function UnifiedSearch() {
                             {result.title}
                           </h3>
                           <p className="text-gray-600 line-clamp-3 mb-3">
-                            {result.content_text}
+                            {result.preview || result.description}
                           </p>
 
                           {result.metadata && Object.keys(result.metadata).length > 0 && (

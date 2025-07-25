@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { connect } = require('@lancedb/lancedb');
+const { Schema, Field, Utf8, Float32, FixedSizeList } = require('apache-arrow');
 const logger = require('./logger');
 
 class LanceDBManager {
@@ -44,20 +45,20 @@ class LanceDBManager {
         this.table = await this.db.openTable('content');
         logger.info('📋 Opened existing content table');
       } catch (error) {
-        // Table doesn't exist, create it with schema
-        const schema = [
-          { name: 'id', type: 'string' },
-          { name: 'content_type', type: 'string' },
-          { name: 'title', type: 'string' },
-          { name: 'description', type: 'string' },
-          { name: 'combined_text', type: 'string' },
-          { name: 'embedding', type: 'list<float>' },
-          { name: 'metadata', type: 'string' }, // JSON string
-          { name: 'created_at', type: 'string' },
-          { name: 'updated_at', type: 'string' }
-        ];
+        // Table doesn't exist, create it with proper Arrow schema
+        const schema = new Schema([
+          new Field('id', new Utf8()),
+          new Field('content_type', new Utf8()),
+          new Field('title', new Utf8()),
+          new Field('description', new Utf8()),
+          new Field('combined_text', new Utf8()),
+          new Field('embedding', new FixedSizeList(1536, new Float32())), // OpenAI embeddings are 1536 dimensions
+          new Field('metadata', new Utf8()), // JSON string
+          new Field('created_at', new Utf8()),
+          new Field('updated_at', new Utf8())
+        ]);
 
-        this.table = await this.db.createTable('content', [], { schema });
+        this.table = await this.db.createTable('content', [], schema);
         logger.info('🆕 Created new content table with schema');
       }
     } catch (error) {
