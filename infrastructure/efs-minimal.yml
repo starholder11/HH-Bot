@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Minimal EFS Storage for LanceDB'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID where EFS will be deployed
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet IDs for EFS mount targets
+
+  EnvironmentName:
+    Type: String
+    Default: 'hh-bot-lancedb'
+    Description: Environment name for resource naming
+
+Resources:
+  # Security Group for EFS
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-efs-sg'
+      GroupDescription: 'Security group for EFS mount targets'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: 172.31.0.0/16
+          Description: 'Allow NFS from VPC'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-efs-sg'
+
+  # EFS File System
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      Encrypted: true
+      PerformanceMode: generalPurpose
+      ThroughputMode: provisioned
+      ProvisionedThroughputInMibps: 100
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-efs'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # Mount Targets
+  EFSMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [0, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [1, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  # EFS Access Point
+  EFSAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      PosixUser:
+        Uid: 1001
+        Gid: 1001
+      RootDirectory:
+        Path: '/lancedb'
+        CreationInfo:
+          OwnerUid: 1001
+          OwnerGid: 1001
+          Permissions: '755'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-efs-access-point'
+
+Outputs:
+  EFSFileSystemId:
+    Description: 'EFS File System ID'
+    Value: !Ref EFSFileSystem
+    Export:
+      Name: !Sub '${EnvironmentName}-efs-id'
+
+  EFSAccessPointId:
+    Description: 'EFS Access Point ID'
+    Value: !Ref EFSAccessPoint
+    Export:
+      Name: !Sub '${EnvironmentName}-efs-access-point-id'
+
+  EFSSecurityGroupId:
+    Description: 'EFS Security Group ID'
+    Value: !Ref EFSSecurityGroup
+    Export:
+      Name: !Sub '${EnvironmentName}-efs-sg-id'

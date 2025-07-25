@@ -1,0 +1,154 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EFS Storage for LanceDB Vector Database'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID where EFS will be deployed
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnet IDs for EFS mount targets
+
+  EnvironmentName:
+    Type: String
+    Default: 'hh-bot-lancedb'
+    Description: Environment name for resource naming
+
+  KmsKeyId:
+    Type: String
+    Default: 'alias/aws/elasticfilesystem'
+    Description: KMS key for EFS encryption
+
+Resources:
+  # Security Group for EFS
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-efs-sg'
+      GroupDescription: 'Security group for EFS mount targets'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: 172.31.0.0/16
+          Description: 'Allow NFS from VPC'
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: 'Allow all outbound'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-efs-sg'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+
+
+  # EFS File System
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      CreationToken: !Sub '${EnvironmentName}-lancedb-efs'
+      Encrypted: true
+      KmsKeyId: !Ref KmsKeyId
+      PerformanceMode: generalPurpose
+      ThroughputMode: provisioned
+      ProvisionedThroughputInMibps: 100
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-lancedb-efs'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Purpose
+          Value: 'LanceDB Vector Storage'
+      FileSystemPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action:
+              - elasticfilesystem:CreateFileSystem
+              - elasticfilesystem:DeleteFileSystem
+            Resource: '*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'true'
+
+  # EFS Mount Targets (one per subnet)
+  EFSMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [0, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [1, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+
+
+  # EFS Access Point for LanceDB
+  EFSAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      PosixUser:
+        Uid: 1001
+        Gid: 1001
+      RootDirectory:
+        Path: '/lancedb'
+        CreationInfo:
+          OwnerUid: 1001
+          OwnerGid: 1001
+          Permissions: '755'
+      AccessPointTags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-lancedb-access-point'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # CloudWatch Log Group for EFS
+  EFSLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/efs/${EnvironmentName}'
+      RetentionInDays: 30
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+
+
+Outputs:
+  EFSFileSystemId:
+    Description: 'EFS File System ID'
+    Value: !Ref EFSFileSystem
+    Export:
+      Name: !Sub '${EnvironmentName}-efs-filesystem-id'
+
+  EFSAccessPointId:
+    Description: 'EFS Access Point ID'
+    Value: !Ref EFSAccessPoint
+    Export:
+      Name: !Sub '${EnvironmentName}-efs-access-point-id'
+
+  EFSSecurityGroupId:
+    Description: 'EFS Security Group ID'
+    Value: !Ref EFSSecurityGroup
+    Export:
+      Name: !Sub '${EnvironmentName}-efs-sg-id'
+
+
+
+  EFSMountCommand:
+    Description: 'Command to mount EFS'
+    Value: !Sub 'sudo mount -t efs -o tls ${EFSFileSystem}:/ /mnt/efs'
