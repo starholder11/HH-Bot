@@ -115,16 +115,16 @@ export async function POST(request: NextRequest) {
         const mediaAssets = await ingestionService.loadMediaAssets();
 
         // Calculate semantic similarity scores for media
-        const mediaResults = await Promise.all(mediaAssets.slice(0, limit).map(async (asset) => {
+        const mediaResults = await Promise.all(mediaAssets.map(async (asset) => {
           // Create searchable text from media metadata
           const searchableText = [
             asset.title,
             asset.filename,
-            asset.metadata?.ai_labels?.scenes?.join(' '),
-            asset.metadata?.ai_labels?.objects?.join(' '),
-            asset.metadata?.ai_labels?.style?.join(' '),
-            asset.metadata?.ai_labels?.mood?.join(' '),
-            asset.metadata?.ai_labels?.themes?.join(' ')
+            asset.ai_labels?.scenes?.join(' '),
+            asset.ai_labels?.objects?.join(' '),
+            asset.ai_labels?.style?.join(' '),
+            asset.ai_labels?.mood?.join(' '),
+            asset.ai_labels?.themes?.join(' ')
           ].filter(Boolean).join(' ');
 
           // Calculate simple text similarity (cosine similarity would be better but this is faster)
@@ -159,8 +159,10 @@ export async function POST(request: NextRequest) {
           };
         }));
 
-        resultsArray = [...resultsArray, ...mediaResults];
+                resultsArray = [...resultsArray, ...mediaResults];
         console.log(`✅ Added ${mediaResults.length} media results with semantic scoring`);
+
+
       } catch (error) {
         console.error('Failed to add media results:', error);
       }
@@ -191,6 +193,8 @@ export async function POST(request: NextRequest) {
       })
       .sort((a, b) => b.score - a.score) // Sort by score DESC so media appears in top results
       .slice(0, limit);
+
+
 
     console.log(`✅ Final processed results: ${processedResults.length} (${processedResults.filter(r => ['video', 'image', 'audio'].includes(r.content_type)).length} media)`);
 
@@ -293,7 +297,7 @@ function applyFilters(result: SearchResult, filters: SearchFilters): boolean {
 
   // Media type filter (only applies to media content)
   if (filters.media_type && ['video', 'image', 'audio'].includes(result.content_type)) {
-    if (result.metadata?.media_type !== filters.media_type) {
+    if (result.content_type !== filters.media_type) {
       return false;
     }
   }
