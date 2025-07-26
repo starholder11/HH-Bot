@@ -45,21 +45,21 @@ class LanceDBManager {
         this.table = await this.db.openTable('content');
         logger.info('📋 Opened existing content table');
       } catch (error) {
-        // Table doesn't exist, create it with proper Arrow schema
-        const schema = new Schema([
-          new Field('id', new Utf8()),
-          new Field('content_type', new Utf8()),
-          new Field('title', new Utf8()),
-          new Field('description', new Utf8()),
-          new Field('combined_text', new Utf8()),
-          new Field('embedding', new FixedSizeList(1536, new Float32())), // OpenAI embeddings are 1536 dimensions
-          new Field('metadata', new Utf8()), // JSON string
-          new Field('created_at', new Utf8()),
-          new Field('updated_at', new Utf8())
-        ]);
+        // Table doesn't exist, create it with sample data
+        const sampleData = [{
+          id: 'sample',
+          content_type: 'text',
+          title: 'Sample',
+          description: 'Sample record',
+          combined_text: 'Sample text',
+          embedding: new Array(1536).fill(0),
+          metadata: '{}',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }];
 
-        this.table = await this.db.createTable('content', [], schema);
-        logger.info('🆕 Created new content table with schema');
+        this.table = await this.db.createTable('content', sampleData);
+        logger.info('🆕 Created new content table with sample data');
       }
     } catch (error) {
       logger.error('❌ Failed to ensure table:', error);

@@ -90,23 +90,26 @@ export async function POST(request: NextRequest) {
         textResults = textResults.filter((result: any) => {
           // If it's a text result with >80% score, check if it's actually relevant
           if (result.content_type === 'text' && result.score > 0.8) {
-          const searchableText = [
-            result.title,
-            result.description,
-            result.metadata?.frontmatter?.tags?.join(' ') || ''
-          ].filter(Boolean).join(' ').toLowerCase();
+            // Check multiple sources for relevance
+            const searchableText = [
+              result.title,
+              result.description,
+              result.metadata?.frontmatter?.tags?.join(' ') || '',
+              result.metadata?.slug || '', // Add slug to searchable text
+              result.combined_text || '' // Add the actual content text
+            ].filter(Boolean).join(' ').toLowerCase();
 
-          const queryWords = query.toLowerCase().split(/\s+/);
-          const hasRelevantMatch = queryWords.some(word =>
-            searchableText.includes(word) ||
-            word.length > 3 && searchableText.includes(word.substring(0, 3))
-          );
+            const queryWords = query.toLowerCase().split(/\s+/);
+            const hasRelevantMatch = queryWords.some(word =>
+              searchableText.includes(word) ||
+              word.length > 3 && searchableText.includes(word.substring(0, 3))
+            );
 
-          // Only keep high-scoring results that actually contain query words
-          return hasRelevantMatch;
-        }
-        return true; // Keep all other results
-      });
+            // Only keep high-scoring results that actually contain query words
+            return hasRelevantMatch;
+          }
+          return true; // Keep all other results
+        });
 
       resultsArray = textResults;
 

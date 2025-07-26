@@ -322,6 +322,36 @@ app.put('/embeddings/:id',
   }
 );
 
+// List all embeddings (debug endpoint)
+app.get('/embeddings',
+  async (req, res) => {
+    try {
+      logger.info('Listing all embeddings');
+
+      const records = await lanceDB.getAllRecords();
+
+      res.json({
+        success: true,
+        total: records.length,
+        records: records.map(record => ({
+          id: record.id,
+          content_type: record.content_type,
+          title: record.title,
+          created_at: record.created_at
+        }))
+      });
+
+    } catch (error) {
+      logger.error('Error listing embeddings:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to list embeddings',
+        details: error.message
+      });
+    }
+  }
+);
+
 // Delete embedding
 app.delete('/embeddings/:id',
   [param('id').notEmpty().withMessage('ID is required')],
