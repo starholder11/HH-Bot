@@ -102,7 +102,15 @@ export default function UnifiedSearch() {
     if (result.cloudflare_url) return result.cloudflare_url;
     if (result.s3_url) return result.s3_url;
     if (result.url) return result.url;
-    if (result.metadata?.slug) return `/timeline/${result.metadata.slug}`;
+    if (result.metadata?.slug) {
+      // Check if slug already starts with "timeline/" to avoid double path
+      const slug = result.metadata.slug;
+      if (slug.startsWith('timeline/')) {
+        return `/${slug}`;
+      } else {
+        return `/timeline/${slug}`;
+      }
+    }
     return null;
   };
 
