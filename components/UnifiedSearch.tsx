@@ -104,7 +104,11 @@ export default function UnifiedSearch() {
     if (result.url) return result.url;
     if (result.metadata?.slug) {
       // Check if slug already starts with "timeline/" to avoid double path
-      const slug = result.metadata.slug;
+      // Also remove "/content" from the end of the slug
+      let slug = result.metadata.slug;
+      if (slug.endsWith('/content')) {
+        slug = slug.replace('/content', '');
+      }
       if (slug.startsWith('timeline/')) {
         return `/${slug}`;
       } else {
