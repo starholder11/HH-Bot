@@ -5,7 +5,7 @@ import { Search, Filter, Loader2, FileText, Music, Video, Image, ExternalLink } 
 
 interface SearchResult {
   id: string;
-  content_type: 'text' | 'media';
+  content_type: 'text' | 'media' | 'audio' | 'video' | 'image' | 'keyframe_still';
   title: string;
   description: string;
   preview?: string;
@@ -33,6 +33,7 @@ const contentTypeIcons = {
   audio: Music,
   video: Video,
   image: Image,
+  keyframe_still: Image, // Add keyframe_still mapping
 };
 
 const contentTypeColors = {
@@ -41,6 +42,7 @@ const contentTypeColors = {
   audio: 'bg-purple-100 text-purple-800',
   video: 'bg-red-100 text-red-800',
   image: 'bg-green-100 text-green-800',
+  keyframe_still: 'bg-green-100 text-green-800', // Add keyframe_still mapping
 };
 
 export default function UnifiedSearch() {
