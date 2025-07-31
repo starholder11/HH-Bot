@@ -2,10 +2,10 @@ import { OpenAI } from 'openai';
 import matter from 'gray-matter';
 
 // LanceDB client configuration
-// Default to the new production load-balancer URL if the env var isn't provided
+// Default to local service for development
 const LANCEDB_API_URL =
   process.env.LANCEDB_API_URL ||
-  'http://lanced-LoadB-oFgwzoUCRPPr-1582930674.us-east-1.elb.amazonaws.com';
+  'http://localhost:8000';
 
 interface LanceDBRecord {
   id: string;
@@ -127,19 +127,19 @@ export class LanceDBIngestionService {
   // Send record to LanceDB
   async addToLanceDB(record: LanceDBRecord): Promise<void> {
     try {
-      // Transform our record format to match the service API
+      // Transform our record format to match the working service API
       const apiRecord = {
         id: record.id,
-        content_type: record.content_type === 'media'
-          ? (record.metadata?.media_type === 'keyframe_still' ? 'image' : record.metadata?.media_type || 'audio')  // Map keyframes to image, others to their type
-          : record.content_type,  // Keep 'text' as-is
+        content_type: record.content_type,
         title: record.title,
-        content_text: record.combined_text,
-        references: {
+        embedding: record.embedding, // Already number[] from generateEmbedding
+        searchable_text: record.combined_text,
+        content_hash: record.id, // Use ID as hash for now
+        references: JSON.stringify({
           s3_url: record.s3_url,
           cloudflare_url: record.cloudflare_url,
-        },
-        metadata: record.metadata,
+          metadata: record.metadata
+        })
       };
 
       // DEBUG: Log the payload being sent
@@ -147,11 +147,11 @@ export class LanceDBIngestionService {
       console.log('   - ID:', apiRecord.id);
       console.log('   - Content Type:', apiRecord.content_type);
       console.log('   - Title:', apiRecord.title);
-      console.log('   - Content Text Length:', apiRecord.content_text.length);
-      console.log('   - References:', apiRecord.references);
-      console.log('   - Metadata Keys:', Object.keys(apiRecord.metadata));
+      console.log('   - Searchable Text Length:', apiRecord.searchable_text.length);
+      console.log('   - Embedding Length:', apiRecord.embedding.length);
+      console.log('   - Embedding Type:', Array.isArray(apiRecord.embedding) ? 'number[]' : typeof apiRecord.embedding);
 
-      const response = await fetch(`${LANCEDB_API_URL}/embeddings`, {
+      const response = await fetch(`${LANCEDB_API_URL}/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,13 +160,19 @@ export class LanceDBIngestionService {
       });
 
       if (!response.ok) {
-        // DEBUG: Get the full error response
         const errorText = await response.text();
-        console.error('❌ LanceDB API Error Response:', errorText);
-        throw new Error(`LanceDB API error: ${response.statusText} - ${errorText}`);
+        throw new Error(`LanceDB API error (${response.status}): ${errorText}`);
       }
-    } catch (error) {
-      console.error('Error adding to LanceDB:', error);
+
+      const result = await response.json();
+      console.log(`✅ Successfully added record: ${record.id}`);
+    } catch (error: any) {
+      console.error('❌ Failed to add record to LanceDB:', {
+        id: record.id,
+        error: error.message,
+        content_type: record.content_type,
+        title: record.title
+      });
       throw error;
     }
   }

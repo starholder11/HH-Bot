@@ -60,8 +60,83 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'lancedb-service',
-    version: process.env.npm_package_version || '1.0.0'
+    version: '1.0.0'
   });
+});
+
+// Debug endpoint to check table schema and index
+app.get('/debug/table-info', async (req, res) => {
+  try {
+    if (!lanceDB || !lanceDB.table) {
+      return res.json({ error: 'LanceDB not initialized' });
+    }
+
+    const schema = await lanceDB.table.schema();
+    const indexInfo = await lanceDB.table.listIndices();
+    const rowCount = await lanceDB.table.countRows();
+
+    res.json({
+      schema: schema,
+      indices: indexInfo,
+      rowCount: rowCount,
+      tableExists: true
+    });
+  } catch (error) {
+    res.json({ error: error.message });
+  }
+});
+
+// Create vector index endpoint
+app.post('/debug/create-index', async (req, res) => {
+  try {
+    if (!lanceDB || !lanceDB.table) {
+      return res.status(503).json({ error: 'LanceDB not initialized' });
+    }
+
+    const success = await lanceDB.createVectorIndex();
+
+    if (success) {
+      res.json({
+        success: true,
+        message: 'Vector index created successfully'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create vector index'
+      });
+    }
+  } catch (error) {
+    logger.error('Error creating vector index:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create vector index',
+      details: error.message
+    });
+  }
+});
+
+// Table info endpoint for debugging
+app.get('/table-info', async (req, res) => {
+  try {
+    const table = await lanceDB.getTable();
+    const schema = await table.schema();
+    const count = await table.countRows();
+
+    res.json({
+      success: true,
+      schema: schema,
+      rowCount: count,
+      tableName: 'content'
+    });
+  } catch (error) {
+    logger.error('Error getting table info:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get table info',
+      details: error.message
+    });
+  }
 });
 
 // Ready check (for load balancer)
@@ -168,13 +243,15 @@ app.post('/search',
       // Generate query embedding
       const queryEmbedding = await embeddingService.generateEmbedding(query);
 
-            // Search in LanceDB
+      // Search in LanceDB
       const results = await lanceDB.search(queryEmbedding, limit);
 
-            // TEMPORARY FIX: LanceDB vector search is broken for non-text content
+      // TEMPORARY FIX: LanceDB vector search is broken for non-text content
       // When media content types are requested, return all records and filter
       let allResults = [...results];
 
+      // TEMPORARILY DISABLED - This might be causing the vector search error
+      /*
       if (content_types.includes('video') || content_types.includes('image') || content_types.includes('audio')) {
         try {
           // Get all records directly from the table
@@ -193,7 +270,7 @@ app.post('/search',
             score: 0.8, // Default high score for media records
             metadata: JSON.parse(record.metadata || '{}'),
             created_at: record.created_at,
-            updated_at: record.updated_at
+            updated_at: result.updated_at
           }));
 
           allResults = [...allResults, ...transformedMediaRecords];
@@ -202,6 +279,7 @@ app.post('/search',
           logger.error('Failed to get media records:', error);
         }
       }
+      */
 
       // Filter by content types if specified
       const filteredResults = content_types.length > 0
@@ -352,6 +430,71 @@ app.get('/embeddings',
   }
 );
 
+// Recreate table endpoint (for fixing schema issues)
+app.post('/recreate-table', async (req, res) => {
+  try {
+    logger.info('Recreating table with proper schema...');
+
+    // Drop the existing table completely
+    try {
+      await lanceDB.db.dropTable('content');
+      logger.info('Dropped existing content table');
+    } catch (error) {
+      logger.info('Table did not exist, continuing...');
+    }
+
+    // Recreate the table with proper schema
+    await lanceDB.ensureTable();
+
+    res.json({
+      success: true,
+      message: 'Table recreated successfully with proper vector schema'
+    });
+
+  } catch (error) {
+    logger.error('Error recreating table:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to recreate table',
+      details: error.message
+    });
+  }
+});
+
+// Test endpoint to add sample data
+app.post('/test/add-sample', async (req, res) => {
+  try {
+    logger.info('Adding sample data for testing...');
+
+    const sampleRecord = {
+      id: 'test-hombre',
+      content_type: 'audio',
+      title: 'Hombre',
+      description: 'Test audio file',
+      combined_text: 'Hombre audio file test',
+      embedding: new Array(1536).fill(0.1), // Sample embedding
+      metadata: JSON.stringify({ filename: 'hombre.mp3' }),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    await lanceDB.addRecord(sampleRecord);
+
+    res.json({
+      success: true,
+      message: 'Sample data added successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error adding sample data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add sample data',
+      details: error.message
+    });
+  }
+});
+
 // Delete embedding
 app.delete('/embeddings/:id',
   [param('id').notEmpty().withMessage('ID is required')],
@@ -483,7 +626,7 @@ async function startServer() {
     logger.info('Initializing LanceDB service...');
 
     // Initialize LanceDB
-    lanceDB = new LanceDBManager(process.env.LANCEDB_PATH || '/mnt/efs/lancedb');
+    lanceDB = new LanceDBManager(process.env.LANCEDB_PATH || (process.env.NODE_ENV === 'development' ? '/tmp/lancedb' : '/mnt/efs/lancedb'));
     await lanceDB.initialize();
 
     // Initialize embedding service
