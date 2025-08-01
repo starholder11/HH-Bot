@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
-import { LanceDBIngestionService } from '../lib/lancedb-ingestion';
+import './bootstrap-env';
+import { LanceDBIngestionService } from '../lib/lancedb-ingestion-backup';
 
 async function ingestMediaOnly() {
   console.log('🎬 Starting media-only ingestion to LanceDB...');
