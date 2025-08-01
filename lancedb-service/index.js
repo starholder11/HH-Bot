@@ -106,10 +106,9 @@ function normalizeEmbedding(inp) {
   app.post('/build-index', async (_, res) => {
     try {
       await table.createIndex('embedding', {
-        type: 'IVF_PQ',
-        // Smaller nlist for ~1.5k rows improves recall and avoids empty partitions
-        num_partitions: 32,
-        num_sub_vectors: 64,
+        type: 'IVF_FLAT',
+        num_partitions: 1, // brute-force within single list
+        // num_sub_vectors not used for FLAT
         metric_type: 'cosine',
         replace: true
       });
