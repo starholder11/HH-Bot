@@ -101,8 +101,8 @@ export async function POST(request: NextRequest) {
           title: result.title || result.id,
           description: result.searchable_text ? result.searchable_text.substring(0, 200) + '...' : '',
           score: (() => {
-            const d = typeof result._distance === 'number' ? result._distance : (result.score ?? 0);
-            // LanceDB cosine distance is 0..2 → convert to 0‒1 similarity
+            let d = typeof result._distance === 'number' ? result._distance : (typeof result.score === 'number' ? result.score : NaN);
+            if (!Number.isFinite(d)) d = 2; // treat missing distance as worst match
             const sim = 1 - Math.min(Math.max(d, 0), 2) / 2;
             return sim; // 0..1 similarity
           })(),
