@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
           content_type: result.content_type,
           title: result.title || result.id,
           description: result.searchable_text ? result.searchable_text.substring(0, 200) + '...' : '',
-          score: 1 - (result.score || 0), // Convert distance to similarity
+          score: 1 - (typeof result._distance === 'number' ? result._distance : (result.score ?? 0)), // Convert distance to similarity
           metadata: result.references ? JSON.parse(result.references) : {},
           preview: result.searchable_text ? result.searchable_text.substring(0, 200) + '...' : result.title,
         }))
