@@ -266,7 +266,7 @@ export default function UnifiedSearch() {
 
                         {result.score && (
                           <div className="text-sm text-gray-500">
-                            Score: {(result.score * 100).toFixed(1)}%
+                            Score: {result.score.toFixed(1)}%
                           </div>
                         )}
                       </div>
