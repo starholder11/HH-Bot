@@ -130,17 +130,18 @@ export class LanceDBIngestionService {
       // Transform our record format to match the service API
       const apiRecord = {
         id: record.id,
-        content_type: record.content_type, // Keep original content type (media, text, etc.)
+        content_type: record.content_type,
         title: record.title,
-        content_text: record.combined_text,
-        references: {
+        embedding: record.embedding,
+        searchable_text: record.combined_text,
+        content_hash: null,
+        references: JSON.stringify({
           s3_url: record.s3_url,
           cloudflare_url: record.cloudflare_url,
-        },
-        metadata: record.metadata,
+        }),
       };
 
-      const response = await fetch(`${LANCEDB_API_URL}/embeddings`, {
+      const response = await fetch(`${LANCEDB_API_URL}/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
