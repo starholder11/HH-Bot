@@ -6,15 +6,39 @@ const arrow = require('apache-arrow');
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Replace the early OpenAI instantiation with a lazy getter to avoid crashing when the key is absent
+let openai = null;
+function getOpenAI() {
+  if (openai) return openai;
+  const key = process.env.OPENAI_API_KEY;
+  if (!key || key.trim() === '') {
+    console.warn('⚠️ OPENAI_API_KEY not set – text → embedding search will be disabled. Provide the key to enable full search.');
+    return null;
+  }
+  openai = new OpenAI({ apiKey: key });
+  return openai;
+}
 
 let db = null;
 let table = null;
 
 // Define the vector column type explicitly
 const DIM = 1536;
+
+function buildFixedSizeListVector(rowsAsNumberArrays) {
+  const type = new arrow.FixedSizeList(DIM, new arrow.Field("item", new arrow.Float32(), false));
+  // Arrow API differences between versions – try both Builder.new and makeBuilder
+  const builder = (arrow.Builder && arrow.Builder.new)
+    ? arrow.Builder.new({ type })
+    : arrow.makeBuilder({ type });
+  for (const arr of rowsAsNumberArrays) {
+    if (!Array.isArray(arr) || arr.length !== DIM) {
+      throw new Error(`embedding must be number[${DIM}], got len ${arr?.length}`);
+    }
+    builder.append(arr);
+  }
+  return builder.finish().toVector();
+}
 
 async function initializeDatabase() {
   try {
@@ -23,58 +47,32 @@ async function initializeDatabase() {
     db = await lancedb.connect('/tmp/lancedb');
     console.log('✅ Connected to LanceDB');
 
-        // Drop existing tables
-    try {
-      await db.dropTable('semantic_search');
-      console.log('🗑️ Dropped existing table');
-    } catch (error) {
-      console.log('ℹ️ No existing table to drop');
+    // Check if table already exists
+    const TABLE_NAME = 'semantic_search_v5';
+    const existingTables = await db.tableNames();
+
+    if (existingTables.includes(TABLE_NAME)) {
+      console.log('✅ Using existing table');
+      table = await db.openTable(TABLE_NAME);
+    } else {
+      console.log('🆕 Creating new table with explicit schema');
+
+      // Define schema explicitly with FixedSizeList(1536, Float32)
+      const schema = new arrow.Schema([
+        new arrow.Field("id", new arrow.Utf8(), false),
+        new arrow.Field("content_type", new arrow.Utf8(), false),
+        new arrow.Field("title", new arrow.Utf8(), true),
+        new arrow.Field("embedding", new arrow.FixedSizeList(DIM, new arrow.Field("item", new arrow.Float32(), false)), false),
+        new arrow.Field("searchable_text", new arrow.Utf8(), true),
+        new arrow.Field("content_hash", new arrow.Utf8(), true),
+        new arrow.Field("last_updated", new arrow.Utf8(), true),
+        new arrow.Field("references", new arrow.Utf8(), true)
+      ]);
+
+      // Create empty table with explicit schema
+      table = await db.createEmptyTable(TABLE_NAME, schema);
+      console.log('✅ Created table with explicit vector schema');
     }
-
-    // Also try dropping with different names to ensure clean slate
-    try {
-      await db.dropTable('semantic_search_v2');
-      console.log('🗑️ Dropped backup table');
-    } catch (error) {
-      // Ignore
-    }
-
-    try {
-      await db.dropTable('semantic_search_v3');
-      console.log('🗑️ Dropped v3 table');
-    } catch (error) {
-      // Ignore
-    }
-
-    try {
-      await db.dropTable('semantic_search_v4');
-      console.log('🗑️ Dropped v4 table');
-    } catch (error) {
-      // Ignore
-    }
-
-    try {
-      await db.dropTable('semantic_search_v5');
-      console.log('🗑️ Dropped v5 table');
-    } catch (error) {
-      // Ignore
-    }
-
-    // Define schema explicitly with FixedSizeList(1536, Float32)
-    const schema = new arrow.Schema([
-      new arrow.Field("id", new arrow.Utf8(), false),
-      new arrow.Field("content_type", new arrow.Utf8(), false),
-      new arrow.Field("title", new arrow.Utf8(), true),
-      new arrow.Field("embedding", new arrow.FixedSizeList(DIM, new arrow.Field("item", new arrow.Float32(), false)), false),
-      new arrow.Field("searchable_text", new arrow.Utf8(), true),
-      new arrow.Field("content_hash", new arrow.Utf8(), true),
-      new arrow.Field("last_updated", new arrow.Utf8(), true),
-      new arrow.Field("references", new arrow.Utf8(), true)
-    ]);
-
-                // Create empty table with explicit schema
-    table = await db.createEmptyTable('semantic_search_v5', schema);
-    console.log('✅ Created table with explicit vector schema');
 
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
@@ -105,10 +103,34 @@ app.get('/debug/schema', async (req, res) => {
 app.post('/add', async (req, res) => {
   try {
     const { id, content_type, title, embedding, embedding_b64, searchable_text, content_hash, references } = req.body;
+
+    // Validate required non-nullable fields
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: "id is required and must be a non-empty string" });
+    }
+    if (!content_type || typeof content_type !== 'string') {
+      return res.status(400).json({ error: "content_type is required and must be a non-empty string" });
+    }
+
     let embeddingArr;
 
     if (Array.isArray(embedding)) {
       embeddingArr = embedding;
+    } else if (typeof embedding === 'object' && embedding !== null) {
+      // Handle the case where Float32Array was JSON-serialized into a struct-like object
+      console.log('Received embedding as struct-like object, converting...');
+
+      // Check if this looks like a serialized Float32Array (object with numeric keys)
+      const keys = Object.keys(embedding);
+      if (keys.length === DIM && keys.every(k => !isNaN(parseInt(k)))) {
+        // Convert struct-like object back to plain number[] array
+        embeddingArr = Object.keys(embedding)
+          .sort((a, b) => parseInt(a) - parseInt(b))  // Sort keys numerically
+          .map(key => Number(embedding[key]));        // Convert to numbers
+        console.log('✅ Converted struct-like embedding back to number[]');
+      } else {
+        return res.status(400).json({ error: "Invalid embedding format: object with non-numeric keys" });
+      }
     } else if (typeof embedding_b64 === "string") {
       const buf = Buffer.from(embedding_b64, "base64");
       if (buf.byteLength !== DIM * 4) {
@@ -129,6 +151,7 @@ app.post('/add', async (req, res) => {
       embedding: embeddingArr, // Plain number[] - LanceDB will respect the schema
       searchable_text: searchable_text ?? null,
       content_hash: content_hash ?? null,
+      last_updated: new Date().toISOString(), // Add the missing field from schema
       references: typeof references === "string" ? references : JSON.stringify(references ?? {})
     };
 
@@ -137,7 +160,38 @@ app.post('/add', async (req, res) => {
       throw new Error(`Invalid embedding format: must be number[${DIM}]`);
     }
 
-    await table.add([record]);
+    // Build Arrow vectors in the EXACT schema order
+    const ids = arrow.Vector.from([id]);
+    const ctypes = arrow.Vector.from([content_type]);
+    const titles = arrow.Vector.from([title ?? null]);
+    const embeds = buildFixedSizeListVector([embeddingArr]);
+    const texts = arrow.Vector.from([searchable_text ?? null]);
+    const hashes = arrow.Vector.from([content_hash ?? null]);
+    const updated = arrow.Vector.from([new Date().toISOString()]);
+    const refs = arrow.Vector.from([typeof references === "string" ? references : JSON.stringify(references ?? {})]);
+
+    // Construct RecordBatch with existing table schema
+    const schema = await table.schema();
+    const batch = arrow.RecordBatch.new(schema, [ids, ctypes, titles, embeds, texts, hashes, updated, refs]);
+
+    if (typeof table.addBatches === 'function') {
+      await table.addBatches([batch]);
+    } else if (typeof table.addArrow === 'function') {
+      await table.addArrow(arrow.Table.new([ids, ctypes, titles, embeds, texts, hashes, updated, refs], schema));
+    } else {
+      // Fallback – should not happen on recent @lancedb builds
+      await table.add([{
+        id,
+        content_type,
+        title: title ?? null,
+        embedding: embeddingArr,
+        searchable_text: searchable_text ?? null,
+        content_hash: content_hash ?? null,
+        last_updated: new Date().toISOString(),
+        references: typeof references === "string" ? references : JSON.stringify(references ?? {})
+      }]);
+    }
+
     console.log(`✅ Added record: ${id}`);
 
     res.json({ success: true, id });
@@ -174,7 +228,11 @@ app.post('/search', async (req, res) => {
       searchEmbedding = Float32Array.from(query_embedding);
     } else if (query) {
       // Generate embedding from text
-      const response = await openai.embeddings.create({
+      const openaiInstance = getOpenAI();
+      if (!openaiInstance) {
+        return res.status(503).json({ error: 'OpenAI API key not configured' });
+      }
+      const response = await openaiInstance.embeddings.create({
         model: 'text-embedding-3-small',
         input: query,
       });
@@ -195,11 +253,12 @@ app.post('/search', async (req, res) => {
         id: result.id,
         content_type: result.content_type,
         title: result.title,
-        score: 1 - (result._distance || 0), // Convert distance to similarity
+        score: result._distance, // Use raw distance for now, lower is better
         searchable_text: result.searchable_text,
         references: JSON.parse(result.references || '{}')
       }))
-      .filter(result => result.score >= threshold);
+      .sort((a, b) => a.score - b.score) // Sort by distance (lower is better)
+      .slice(0, limit); // Take top results instead of threshold filtering
 
     console.log(`🔍 Search for "${query || 'embedding'}": ${formattedResults.length} results`);
 
@@ -246,10 +305,17 @@ app.get('/count', async (req, res) => {
 app.get('/scan', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
-    const results = await table.toArrow();
-    const limitedResults = results.slice(0, limit);
 
-    const formattedResults = limitedResults.map(result => ({
+    // Create a dummy vector for scanning purposes
+    const dummyVector = new Float32Array(DIM).fill(0.1);
+
+    // Use search with dummy vector to get records
+    const results = await table
+      .search(dummyVector)
+      .limit(limit)
+      .toArray();
+
+    const formattedResults = results.map(result => ({
       id: result.id,
       content_type: result.content_type,
       title: result.title,
@@ -258,7 +324,7 @@ app.get('/scan', async (req, res) => {
     }));
 
     res.json({
-      total: results.length,
+      total: 'unknown', // We can't get total without scanning all
       shown: formattedResults.length,
       results: formattedResults
     });
