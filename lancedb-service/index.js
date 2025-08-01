@@ -75,7 +75,8 @@ function normalizeEmbedding(inp) {
       if (!emb || emb.length !== DIM) {
         return res.status(400).json({ error: `embedding must be number[${DIM}]` });
       }
-      record.embedding = emb;
+      // Ensure values are Float32 so Arrow accepts the batch
+      record.embedding = Float32Array.from(emb.map(Number));
       await table.add([record]);
       res.json({ status: 'ok' });
     } catch (error) {
@@ -87,7 +88,7 @@ function normalizeEmbedding(inp) {
   app.post('/search', async (req, res) => {
     try {
       const { query_embedding, limit = 5 } = req.body;
-      const emb = normalizeEmbedding(query_embedding);
+      const emb = normalizeEmbedding(query_embedding).map(Number);
       if (!emb || emb.length !== DIM) {
         return res.status(400).json({ error: `query_embedding must be number[${DIM}]` });
       }
