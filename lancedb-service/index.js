@@ -107,7 +107,8 @@ function normalizeEmbedding(inp) {
     try {
       await table.createIndex('embedding', {
         type: 'IVF_PQ',
-        num_partitions: 256,
+        // Smaller nlist for ~1.5k rows improves recall and avoids empty partitions
+        num_partitions: 32,
         num_sub_vectors: 64,
         metric_type: 'cosine',
         replace: true

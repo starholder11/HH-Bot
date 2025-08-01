@@ -50,7 +50,8 @@ export default function UnifiedSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  // Default to showing text plus all media types unless the user tweaks the filter drawer
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['text', 'media']);
   const [limit, setLimit] = useState(10);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -152,7 +153,7 @@ export default function UnifiedSearch() {
             <span className="text-sm font-medium text-gray-700">Content Types:</span>
           </div>
 
-          {['text', 'audio', 'video', 'image'].map((type) => {
+          {['text', 'media', 'audio', 'video', 'image'].map((type) => {
             const Icon = contentTypeIcons[type as keyof typeof contentTypeIcons];
             return (
               <button

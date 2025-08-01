@@ -111,8 +111,12 @@ export async function POST(request: NextRequest) {
         }))
         .filter((result: SearchResult) => {
           // Filter by content types if specified
-          if (content_types.length > 0 && !content_types.includes(result.content_type)) {
-            return false;
+          if (content_types.length > 0) {
+            // Treat "media" as shorthand for video,image,audio
+            const mediaTypes = ['video', 'image', 'audio'];
+            const matches = content_types.includes(result.content_type) ||
+              (content_types.includes('media') && mediaTypes.includes(result.content_type));
+            if (!matches) return false;
           }
 
           // Apply other filters
