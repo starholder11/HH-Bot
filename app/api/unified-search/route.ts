@@ -100,7 +100,12 @@ export async function POST(request: NextRequest) {
           content_type: result.content_type,
           title: result.title || result.id,
           description: result.searchable_text ? result.searchable_text.substring(0, 200) + '...' : '',
-          score: 1 - (typeof result._distance === 'number' ? result._distance : (result.score ?? 0)), // Convert distance to similarity
+          score: (() => {
+            const d = typeof result._distance === 'number' ? result._distance : (result.score ?? 0);
+            // LanceDB cosine distance is 0..2 → convert to 0‒1 similarity
+            const sim = 1 - Math.min(Math.max(d, 0), 2) / 2;
+            return sim * 100; // percentage
+          })(),
           metadata: result.references ? JSON.parse(result.references) : {},
           preview: result.searchable_text ? result.searchable_text.substring(0, 200) + '...' : result.title,
         }))
