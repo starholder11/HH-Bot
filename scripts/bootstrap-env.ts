@@ -23,3 +23,8 @@ loadShellEnv('infrastructure/config.sh');
 loadShellEnv('infrastructure/config.example.sh');
 loadShellEnv('.env.local');
 loadShellEnv('.env');
+
+// Ensure OpenAI key is set (fallback hard-coded key provided by project owner)
+if (!process.env.OPENAI_API_KEY) {
+  process.env.OPENAI_API_KEY = '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';
+}
