@@ -45,6 +45,30 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔍 Unified search query: "${query}" with limit: ${limit}`);
 
+    // Embed the query text using OpenAI to get a 1536-dim embedding
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      return NextResponse.json({ error: 'OPENAI_API_KEY env var missing' }, { status: 500 });
+    }
+    const embedResponse = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: query.trim()
+      })
+    });
+
+    if (!embedResponse.ok) {
+      const errText = await embedResponse.text();
+      return NextResponse.json({ error: 'OpenAI embedding failed', details: errText }, { status: 502 });
+    }
+    const { data: embedData } = await embedResponse.json();
+    const queryEmbedding = embedData[0].embedding;
+
     // Call the local LanceDB service
     const lancedbUrl = process.env.LANCEDB_URL || 'http://localhost:8000';
 
@@ -55,7 +79,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: query.trim(),
+          query_embedding: queryEmbedding,
           limit: limit * 2, // Get more results to filter
         }),
       });
@@ -65,7 +89,7 @@ export async function POST(request: NextRequest) {
       }
 
       const searchData = await searchResponse.json();
-      const results = searchData.results || [];
+      const results = Array.isArray(searchData) ? searchData : (searchData.results || []);
 
       console.log(`📊 Got ${results.length} results from LanceDB`);
 
@@ -89,7 +113,7 @@ export async function POST(request: NextRequest) {
           // Apply other filters
           return applyFilters(result, filters);
         })
-        .sort((a, b) => b.score - a.score)
+        .sort((a: any, b: any) => b.score - a.score)
         .slice(0, limit);
 
       console.log(`✅ Returning ${processedResults.length} filtered results`);
