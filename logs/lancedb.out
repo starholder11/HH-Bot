@@ -1,0 +1,24 @@
+🚀 Initializing LanceDB...
+✅ Opened existing table
+✅ Connected to LanceDB
+🚀 LanceDB service running on port 8000
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 28 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 28 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 28 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 30 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 27 of 256.
+    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.

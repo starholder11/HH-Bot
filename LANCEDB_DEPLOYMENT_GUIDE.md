@@ -688,6 +688,15 @@ When deployment fails, check these items in order:
 - Monitor embedding API rate limits
 - Track ingestion success rates
 
+### Automatic Index Maintenance
+LanceDB vector indexes (e.g., IVF\_PQ or HNSW) are immutable **snapshots**. New rows added after the index is created are only considered via a brute-force scan unless you rebuild the index. In production you should:
+
+1. **Batch & schedule** – Let the service keep ingesting normally, then trigger `/build-index` (with `replace:true`) during low-traffic windows whenever ≥ _N_ new rows (e.g., 5 000) have arrived.
+2. **Async worker** – Run a small cron/Lambda/background job that checks row growth or a `needs_index` flag and performs the rebuild automatically.
+3. **HNSW option** – Watch the LanceDB roadmap; HNSW will eventually support true incremental inserts, at which point you can switch to that index type to avoid full rebuilds.
+
+This ensures fresh vectors are picked up without manual intervention while keeping query latency low.
+
 ## File Structure Reference
 
 ```

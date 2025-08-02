@@ -75,9 +75,17 @@ function normalizeEmbedding(inp) {
       if (!emb || emb.length !== DIM) {
         return res.status(400).json({ error: `embedding must be number[${DIM}]` });
       }
-      // Ensure values are Float32 so Arrow accepts the batch
-      record.embedding = Float32Array.from(emb.map(Number));
-      await table.add([record]);
+      // Build a clean object that matches the table schema exactly
+      const clean = {
+        id: record.id,
+        content_type: record.content_type,
+        title: record.title,
+        embedding: emb.map(Number), // plain number[] so Arrow maps to FixedSizeList
+        searchable_text: record.searchable_text,
+        content_hash: record.content_hash ?? null,
+        references: record.references ?? null,
+      };
+      await table.add([clean]);
       res.json({ status: 'ok' });
     } catch (error) {
       console.error('❌ /add failed', error);
@@ -115,6 +123,18 @@ function normalizeEmbedding(inp) {
       res.json({ status: 'index_built' });
     } catch (error) {
       console.error('❌ /build-index failed', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete all text rows (ids starting with "text_" or content_type = 'text') before re-ingestion
+  app.post('/delete-text', async (_, res) => {
+    try {
+      const deletedCount = await table.delete("content_type = 'text'");
+      console.log(`🗑️  Deleted ${deletedCount} text rows`);
+      res.json({ status: 'text_rows_deleted', deleted: deletedCount });
+    } catch (error) {
+      console.error('❌ /delete-text failed', error);
       res.status(500).json({ error: error.message });
     }
   });

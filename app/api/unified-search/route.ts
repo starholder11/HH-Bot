@@ -11,6 +11,7 @@ interface SearchResult {
   s3_url?: string;
   cloudflare_url?: string;
   preview?: string;
+  searchable_text?: string;
 }
 
 interface SearchFilters {
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest) {
       content_types?: string[];
       filters?: SearchFilters;
     } = await request.json();
+
+    const queryTokens = query.toLowerCase().split(/\s+/).filter(tok => tok.length > 2);
 
     if (!query || query.trim().length === 0) {
       return NextResponse.json({
@@ -80,7 +83,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           query_embedding: queryEmbedding,
-          limit: limit * 2, // Get more results to filter
+          limit: Math.max(limit * 50, 500), // Fetch enough chunks to aggregate top-3 per doc
         }),
       });
 
@@ -97,7 +100,18 @@ export async function POST(request: NextRequest) {
       const processedResults: SearchResult[] = results
         .map((result: any) => ({
           id: result.id,
-          content_type: result.content_type,
+          content_type: (() => {
+            if (result.content_type !== 'media') return result.content_type;
+            // Heuristically derive subtype from refs URLs
+            try {
+              const refs = result.references ? JSON.parse(result.references) : {};
+              const url: string = refs.s3_url || refs.cloudflare_url || '';
+              if (/\/audio\//.test(url) || /\.mp3$/i.test(url)) return 'audio';
+              if (/\/video\//.test(url) || /\.mp4$/i.test(url)) return 'video';
+              if (/\/image\//.test(url) || /\.(png|jpg|jpeg)$/i.test(url)) return 'image';
+            } catch { /* fallthrough */ }
+            return 'video';
+          })(),
           title: result.title || result.id,
           description: result.searchable_text ? result.searchable_text.substring(0, 200) + '...' : '',
           score: (() => {
@@ -112,26 +126,81 @@ export async function POST(request: NextRequest) {
         .filter((result: SearchResult) => {
           // Filter by content types if specified
           if (content_types.length > 0) {
-            // Treat "media" as shorthand for video,image,audio
+            // Treat "media" as shorthand for video,image,audio and alias keyframe stills
             const mediaTypes = ['video', 'image', 'audio'];
-            const matches = content_types.includes(result.content_type) ||
-              (content_types.includes('media') && mediaTypes.includes(result.content_type));
+            let ctype = result.content_type;
+            try {
+              const url = (result.metadata?.s3_url || result.metadata?.cloudflare_url || '').toString();
+              if (ctype === 'video' && /\.(png|jpg|jpeg)$/i.test(url)) {
+                ctype = 'image';
+              }
+            } catch {/* ignore */}
+            const matches = content_types.includes(ctype) ||
+              (content_types.includes('media') && mediaTypes.includes(ctype));
             if (!matches) return false;
           }
 
           // Apply other filters
           return applyFilters(result, filters);
         })
-        .sort((a: any, b: any) => b.score - a.score)
-        .slice(0, limit);
+        .sort((a: any, b: any) => b.score - a.score);
 
       console.log(`✅ Returning ${processedResults.length} filtered results`);
 
-      // Group results by content type for better UX
+      // --- Aggregate top-3 chunk similarity per document ---
+      const mediaResults: SearchResult[] = [];
+      const docMap = new Map<string, { rep: SearchResult; scores: number[] }>();
+
+      for (const res of processedResults) {
+        if (['video', 'image', 'audio'].includes(res.content_type)) {
+          mediaResults.push(res);
+          continue;
+        }
+        // text chunk
+        const parent = res.id.split('#')[0];
+        let entry = docMap.get(parent);
+        if (!entry) {
+          entry = { rep: res, scores: [] };
+          docMap.set(parent, entry);
+        }
+        entry.scores.push(res.score);
+        if (res.score > entry.rep.score) {
+          entry.rep = res;
+        }
+      }
+
+      const textResults: SearchResult[] = Array.from(docMap.values()).map(({ rep, scores }) => {
+        const top3 = scores.sort((a, b) => b - a).slice(0, 3);
+        const avg = top3.reduce((a, b) => a + b, 0) / top3.length;
+        return { ...rep, score: avg };
+      }).sort((a, b) => b.score - a.score);
+
+      // Apply final limit per category
+      // Hard filter: keep only docs that include every query token (if any)
+      const tokenMatch = (r: SearchResult) => {
+        const hay = (r.searchable_text || r.preview || r.title).toLowerCase();
+        return queryTokens.every(t => hay.includes(t));
+      };
+
+      const finalText = textResults.filter(tokenMatch).slice(0, limit);
+      const finalMedia = mediaResults.filter(tokenMatch).slice(0, limit);
+
+      // Cheap keyword bump: if all query tokens appear in the preview (or title) give +0.15
+      const bumpIfContains = (r: SearchResult) => {
+        const hay = (r.searchable_text || r.preview || r.title).toLowerCase();
+        return queryTokens.every(t => hay.includes(t));
+      };
+      for (const r of textResults) {
+        if (bumpIfContains(r)) r.score += 0.15;
+      }
+      for (const r of mediaResults) {
+        if (bumpIfContains(r)) r.score += 0.15;
+      }
+
       const groupedResults = {
-        media: processedResults.filter(r => ['video', 'image', 'audio'].includes(r.content_type)),
-        text: processedResults.filter(r => r.content_type === 'text'),
-        all: processedResults,
+        media: finalMedia,
+        text: finalText,
+        all: [...finalMedia, ...finalText].sort((a, b) => b.score - a.score).slice(0, limit),
       };
 
       const responseData = {

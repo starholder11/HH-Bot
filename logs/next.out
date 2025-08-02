@@ -1,0 +1,295 @@
+- info Loaded env from /Users/c_fur1/Desktop/HH-Bot/.env.local
+- warn You have enabled experimental feature (serverComponentsExternalPackages) in next.config.js.
+- warn Experimental features are not covered by semver, and may cause unexpected or broken application behavior. Use at your own risk.
+
+- [32mready[39m started server on [::]:3000, url: http://localhost:3000
+- [35mevent[39m compiled client and server successfully in 146 ms (20 modules)
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 96 ms (20 modules)
+- [36minfo[39m Loaded env from /Users/c_fur1/Desktop/HH-Bot/.env.local
+- [36minfo[39m Loaded env from /Users/c_fur1/Desktop/HH-Bot/.env.local
+- [36mwait[39m compiling /unified-search/page (client and server)...
+- [35mevent[39m compiled client and server successfully in 1083 ms (431 modules)
+- [36mwait[39m compiling /api/search-index/route (client and server)...
+- [35mevent[39m compiled successfully in 112 ms (223 modules)
+[search-index] Failed to list timeline entries: 401 Unauthorized - https://api.github.com/repos/starholder11/HH-Bot/contents/content/timeline?ref=main
+- [36mwait[39m compiling /api/unified-search/route (client and server)...
+- [35mevent[39m compiled successfully in 147 ms (225 modules)
+🔍 Unified search query: "almond al" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "almond al" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 0 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 383 ms (431 modules)
+- [36mwait[39m compiling...
+- [35mevent[39m compiled successfully in 481 ms (264 modules)
+- [36mwait[39m compiling /api/search-index/route (client and server)...
+- [35mevent[39m compiled successfully in 73 ms (223 modules)
+[search-index] Failed to list timeline entries: 401 Unauthorized - https://api.github.com/repos/starholder11/HH-Bot/contents/content/timeline?ref=main
+- [36mwait[39m compiling /api/unified-search/route (client and server)...
+- [35mevent[39m compiled successfully in 110 ms (225 modules)
+🔍 Unified search query: "almond al" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "hyperreal hospitality" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "four moons" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "second moon" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "arecibo" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "arecibo" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "emily" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "emily calypso" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "migration" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+🔍 Unified search query: "collision" with limit: 10
+📊 Got 20 results from LanceDB
+✅ Returning 10 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 417 ms (431 modules)
+- [36mwait[39m compiling...
+- [35mevent[39m compiled successfully in 381 ms (264 modules)
+- [36mwait[39m compiling...
+- [35mevent[39m compiled successfully in 242 ms (264 modules)
+- [36mwait[39m compiling /api/unified-search/route (client and server)...
+- [35mevent[39m compiled successfully in 62 ms (221 modules)
+🔍 Unified search query: "Almond Al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "Almond Al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 448 ms (485 modules)
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 377 ms (431 modules)
+- [36mwait[39m compiling...
+- [35mevent[39m compiled successfully in 211 ms (264 modules)
+- [36mwait[39m compiling /api/unified-search/route (client and server)...
+- [35mevent[39m compiled successfully in 50 ms (221 modules)
+🔍 Unified search query: "Almond Al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 359 ms (485 modules)
+- [36mwait[39m compiling /api/search-index/route (client and server)...
+- [35mevent[39m compiled successfully in 90 ms (225 modules)
+[search-index] Failed to list timeline entries: 401 Unauthorized - https://api.github.com/repos/starholder11/HH-Bot/contents/content/timeline?ref=main
+🔍 Unified search query: "almond al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 314 ms (489 modules)
+🔍 Unified search query: "Almond Al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 249 ms (489 modules)
+🔍 Unified search query: "almond al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "almond al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 299 ms (485 modules)
+🔍 Unified search query: "Almond Al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 257 ms (485 modules)
+🔍 Unified search query: "almond al" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "emily" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "dark matter" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "orgasms" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "orgasm" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "monkey" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "dark matter" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "vaporwave" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "god" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "the war on god" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 334 ms (485 modules)
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 299 ms (485 modules)
+🔍 Unified search query: "god" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 378 ms (485 modules)
+- [36mwait[39m compiling /api/search-index/route (client and server)...
+- [35mevent[39m compiled successfully in 22 ms (225 modules)
+[search-index] Failed to list timeline entries: 401 Unauthorized - https://api.github.com/repos/starholder11/HH-Bot/contents/content/timeline?ref=main
+🔍 Unified search query: "god" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+🔍 Unified search query: "god" with limit: 10
+📊 Got 100 results from LanceDB
+✅ Returning 100 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 406 ms (489 modules)
+🔍 Unified search query: "god" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 327 ms (485 modules)
+- [36mwait[39m compiling /api/search-index/route (client and server)...
+- [35mevent[39m compiled successfully in 32 ms (223 modules)
+[search-index] Failed to list timeline entries: 401 Unauthorized - https://api.github.com/repos/starholder11/HH-Bot/contents/content/timeline?ref=main
+- [36mwait[39m compiling /api/unified-search/route (client and server)...
+- [35mevent[39m compiled successfully in 25 ms (225 modules)
+🔍 Unified search query: "gravity's rainbow" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+🔍 Unified search query: "rocket emoji man" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+🔍 Unified search query: "almond al" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+🔍 Unified search query: "dark matter" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+🔍 Unified search query: "philosophy" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+🔍 Unified search query: "philosophy" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 2500 filtered results
+🔍 Unified search query: "sheen" with limit: 50
+📊 Got 2436 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "heavy duty" with limit: 50
+📊 Got 2435 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "surreal turtles" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "surreal turtle" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "surreal turtle" with limit: 20
+📊 Got 1000 results from LanceDB
+✅ Returning 1000 filtered results
+🔍 Unified search query: "surreal turtle" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 405 filtered results
+🔍 Unified search query: "surreal turtle" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 405 filtered results
+🔍 Unified search query: "lemon duck" with limit: 50
+📊 Got 2470 results from LanceDB
+✅ Returning 338 filtered results
+🔍 Unified search query: "lemon" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 338 filtered results
+🔍 Unified search query: "latex" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 338 filtered results
+🔍 Unified search query: "watt" with limit: 50
+📊 Got 2430 results from LanceDB
+✅ Returning 2430 filtered results
+🔍 Unified search query: "energy" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 2500 filtered results
+🔍 Unified search query: "energy" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 331 filtered results
+🔍 Unified search query: "barry" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 337 filtered results
+🔍 Unified search query: "barry" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 337 filtered results
+🔍 Unified search query: "barry" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "barbie" with limit: 50
+📊 Got 2493 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "suomi" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "suomi pop" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "goose" with limit: 50
+📊 Got 2452 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "rap" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 0 filtered results
+🔍 Unified search query: "rap" with limit: 50
+📊 Got 2500 results from LanceDB
+✅ Returning 338 filtered results
+🔍 Unified search query: "beat" with limit: 5
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 339 ms (485 modules)
+🔍 Unified search query: "beat" with limit: 5
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 401 ms (485 modules)
+🔍 Unified search query: "surreal turtle" with limit: 5
+📊 Got 500 results from LanceDB
+✅ Returning 500 filtered results
+- [36mwait[39m compiling...
+- [35mevent[39m compiled client and server successfully in 283 ms (485 modules)
+- [36mwait[39m compiling /api/search-index/route (client and server)...
+- [35mevent[39m compiled successfully in 23 ms (225 modules)
+[search-index] Failed to list timeline entries: 401 Unauthorized - https://api.github.com/repos/starholder11/HH-Bot/contents/content/timeline?ref=main
+🔍 Unified search query: "haunted" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 63 filtered results
+🔍 Unified search query: "stomp" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 137 filtered results
+🔍 Unified search query: "land of tomorrow" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 2 filtered results
+🔍 Unified search query: "land of tomorrow" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 40 filtered results
+🔍 Unified search query: "land of tomorrow" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 40 filtered results
+🔍 Unified search query: "code" with limit: 10
+📊 Got 500 results from LanceDB
+✅ Returning 258 filtered results
