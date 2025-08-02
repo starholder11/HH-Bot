@@ -7,11 +7,11 @@ RUN apt-get update && apt-get install -y python3 make g++ curl && rm -rf /var/li
 WORKDIR /app
 
 # Copy package files and install prod deps only
-COPY lancedb-service/package.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # Copy service source
-COPY lancedb-service/index.js ./index.js
+COPY index.js ./index.js
 
 # Create data dir used by LanceDB (can be overridden)
 RUN mkdir -p /tmp/lancedb-data

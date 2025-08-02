@@ -614,11 +614,10 @@ const embedding = new Array(1536).fill(0).map((_, idx) => {
 
 #### `build-index.js` - Vector Index Creation
 ```javascript
-// Builds IVF_PQ index on embedding column
-await table.createIndex(column, {
-  type: 'IVF_PQ',
-  num_partitions: 256,
-  num_sub_vectors: 64,
+// For corpora ≤50k vectors we now use IVF_FLAT (brute-force list)
+await table.createIndex('embedding', {
+  type: 'IVF_FLAT',
+  num_partitions: 1,
   metric_type: 'cosine',
   replace: true
 });

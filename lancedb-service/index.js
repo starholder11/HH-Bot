@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const { connect } = require('@lancedb/lancedb');
 const arrow = require('apache-arrow');
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 const DB_PATH = process.env.LANCEDB_PATH || '/tmp/lancedb-data';
 const TABLE_NAME = 'semantic_search';
 const DIM = 1536;

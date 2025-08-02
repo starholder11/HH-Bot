@@ -15,19 +15,19 @@ export AWS_S3_BUCKET="hh-bot-images-2025-prod"
 # The video-processor Lambda likely runs in the default VPC
 # You can find these in AWS Console -> VPC or by running with admin credentials:
 # aws ec2 describe-vpcs --query 'Vpcs[?IsDefault==`true`].VpcId' --output text
-export VPC_ID="vpc-CHANGEME"  # Update with your actual VPC ID
+export VPC_ID="vpc-45bdcd38"  # Update with your actual VPC ID
 
 # Subnet Configuration - NEEDS TO BE UPDATED WITH ACTUAL VALUES
 # aws ec2 describe-subnets --filters "Name=vpc-id,Values=YOUR_VPC_ID" --query 'Subnets[*].[SubnetId,AvailabilityZone,MapPublicIpOnLaunch]' --output table
-export PUBLIC_SUBNET_IDS="subnet-CHANGEME1,subnet-CHANGEME2"   # Update with your public subnet IDs
-export PRIVATE_SUBNET_IDS="subnet-CHANGEME3,subnet-CHANGEME4"  # Update with your private subnet IDs
+export PUBLIC_SUBNET_IDS="subnet-fc7b5c9a,subnet-d20b60e3,subnet-a796b7f8,subnet-54a08275,subnet-7ef20532,subnet-f14f56ff"   # Update with your public subnet IDs
+export PRIVATE_SUBNET_IDS=""  # Update with your private subnet IDs
 
 # Container Configuration - Will be set after building
 export CONTAINER_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/lancedb-service:latest"
 
 # Secrets Configuration - OpenAI API key for embeddings
 # Create with: aws secretsmanager create-secret --name "hh-bot-openai-api-key" --secret-string '{"OPENAI_API_KEY":"your-key-here"}'
-export OPENAI_API_KEY_SECRET_ARN="arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:hh-bot-openai-api-key-CHANGEME"
+export OPENAI_API_KEY_SECRET_ARN="arn:aws:secretsmanager:us-east-1:781939061434:secret:openai-api-key-plain-ObIbHG"
 
 # ECS Service Configuration
 export DESIRED_TASK_COUNT="2"
