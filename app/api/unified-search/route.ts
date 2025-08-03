@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Embed the query text using OpenAI to get a 1536-dim embedding
     const openaiApiKey = process.env.OPENAI_API_KEY;
+    console.log('🔑 OpenAI API Key present:', !!openaiApiKey, openaiApiKey ? `${openaiApiKey.slice(0, 10)}...` : 'null');
     if (!openaiApiKey) {
       return NextResponse.json({ error: 'OPENAI_API_KEY env var missing' }, { status: 500 });
     }
@@ -67,8 +68,10 @@ export async function POST(request: NextRequest) {
 
     if (!embedResponse.ok) {
       const errText = await embedResponse.text();
+      console.log('❌ OpenAI API Error:', embedResponse.status, errText);
       return NextResponse.json({ error: 'OpenAI embedding failed', details: errText }, { status: 502 });
     }
+    console.log('✅ OpenAI API Success:', embedResponse.status);
     const { data: embedData } = await embedResponse.json();
     const queryEmbedding = embedData[0].embedding;
 
