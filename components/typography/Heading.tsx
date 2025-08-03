@@ -19,4 +19,4 @@ export function Heading({ children, level, className = '' }: HeadingProps) {
       {children}
     </Component>
   );
-} 
+}

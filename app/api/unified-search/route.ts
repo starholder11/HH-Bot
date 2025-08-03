@@ -46,25 +46,25 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔍 Unified search query: "${query}" with limit: ${limit}`);
+    console.log(`🔍 FIXED VERSION - Unified search query: "${query}" with limit: ${limit}`);
 
     // Get OpenAI API key with proper validation and cleaning
     let openaiApiKey = process.env.OPENAI_API_KEY;
-    
+
     if (!openaiApiKey) {
       return NextResponse.json({ error: 'OPENAI_API_KEY environment variable is not set' }, { status: 500 });
     }
-    
+
     // Clean the key - remove any whitespace, newlines, or other garbage
     openaiApiKey = openaiApiKey.trim();
-    
+
     // Validate key format
     if (!openaiApiKey.startsWith('sk-')) {
       return NextResponse.json({ error: 'Invalid OpenAI API key format' }, { status: 500 });
     }
-    
+
     console.log('🔑 Using OpenAI key:', `${openaiApiKey.slice(0, 10)}...${openaiApiKey.slice(-4)}`);
-    
+
     const authHeader = `Bearer ${openaiApiKey}`;
     const embedResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
