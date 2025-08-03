@@ -119,7 +119,7 @@ const AssetListItem = memo(function AssetListItem({
   asset: MediaAsset;
   isSelected: boolean;
   onSelect: (asset: MediaAsset) => void;
-  getAssetIcon: (asset: MediaAsset) => JSX.Element;
+  getAssetIcon: (asset: MediaAsset) => React.ReactElement;
   getAssetDisplayInfo: (asset: MediaAsset) => { primaryLabel: string; secondaryInfo: string };
 }) {
   const displayInfo = getAssetDisplayInfo(asset);
