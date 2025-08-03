@@ -5,7 +5,7 @@ interface HeadingProps {
 }
 
 export function Heading({ children, level, className = '' }: HeadingProps) {
-  const Component = `h${level}` as keyof JSX.IntrinsicElements;
+  const Component = `h${level}` as keyof React.JSX.IntrinsicElements;
   const sizeClasses = {
     1: 'text-wp-2xl font-normal',
     2: 'text-wp-xl font-normal',
