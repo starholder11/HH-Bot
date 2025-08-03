@@ -1,3 +1,5 @@
+"use client";
+
 import ReactMarkdown from 'react-markdown';
 import type { TimelineEntry } from '@/lib/content-reader';
 import YearReviewTemplate from './templates/YearReviewTemplate';
@@ -7,7 +9,7 @@ interface TimelineEntryProps {
   entry: TimelineEntry;
 }
 
-export default async function TimelineEntry({ entry }: TimelineEntryProps) {
+export default function TimelineEntry({ entry }: TimelineEntryProps) {
   // Check if this should use year review template
   const isYearEntry = entry.metadata?.categories?.includes('Year');
   const titleAsNumber = parseInt(entry.title);
