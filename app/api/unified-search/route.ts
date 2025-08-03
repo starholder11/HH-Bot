@@ -51,14 +51,20 @@ export async function POST(request: NextRequest) {
     // Embed the query text using OpenAI to get a 1536-dim embedding
     const openaiApiKey = process.env.OPENAI_API_KEY;
     console.log('🔑 OpenAI API Key present:', !!openaiApiKey, openaiApiKey ? `${openaiApiKey.slice(0, 10)}...` : 'null');
+    console.log('🔑 Full key length:', openaiApiKey?.length);
+    console.log('🔑 Key starts with sk-:', openaiApiKey?.startsWith('sk-'));
+    console.log('🔑 Key includes whitespace:', openaiApiKey?.includes(' ') || openaiApiKey?.includes('\n') || openaiApiKey?.includes('\t'));
     if (!openaiApiKey) {
       return NextResponse.json({ error: 'OPENAI_API_KEY env var missing' }, { status: 500 });
     }
+    const authHeader = `Bearer ${openaiApiKey}`;
+    console.log('🔑 Auth header length:', authHeader.length);
+    console.log('🔑 Auth header starts with Bearer sk-:', authHeader.startsWith('Bearer sk-'));
     const embedResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
+        'Authorization': authHeader
       },
       body: JSON.stringify({
         model: 'text-embedding-3-small',
