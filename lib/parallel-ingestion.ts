@@ -265,11 +265,30 @@ export class ParallelIngestionService {
    * Convert MediaAsset to ContentItem format
    */
   static mediaAssetToContentItem(asset: MediaAsset): ContentItem {
+    // Extract all available text content from the asset
+    const allAiLabels = [
+      ...(asset.ai_labels?.scenes || []),
+      ...(asset.ai_labels?.objects || []),
+      ...(asset.ai_labels?.style || []),
+      ...(asset.ai_labels?.mood || []),
+      ...(asset.ai_labels?.themes || [])
+    ].join(' ');
+
+    const allManualLabels = [
+      ...(asset.manual_labels?.scenes || []),
+      ...(asset.manual_labels?.objects || []),
+      ...(asset.manual_labels?.style || []),
+      ...(asset.manual_labels?.mood || []),
+      ...(asset.manual_labels?.themes || []),
+      ...(asset.manual_labels?.custom_tags || [])
+    ].join(' ');
+
     const combinedText = [
       asset.title,
-      asset.description || '',
-      asset.tags?.join(' ') || '',
-      asset.ai_labels || ''
+      asset.lyrics || '',
+      asset.prompt || '',
+      allAiLabels,
+      allManualLabels
     ].filter(Boolean).join('\n');
 
     return {
