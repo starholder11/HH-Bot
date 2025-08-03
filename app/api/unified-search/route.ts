@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       }).sort((a, b) => b.score - a.score);
 
       // Apply final limit per category
-      // Flexible filter: require at least 80% of query tokens OR exact title match
+            // Flexible filter: prioritize title matches and handle corrupted data
       const tokenMatch = (r: SearchResult) => {
         const hay = (r.searchable_text || r.preview || r.title).toLowerCase();
         const titleLower = r.title.toLowerCase();
@@ -199,6 +199,12 @@ export async function POST(request: NextRequest) {
         
         // Exact title match always passes
         if (titleLower.includes(queryLower)) return true;
+        
+        // Handle corrupted searchable text with [object Object]
+        if (hay.includes('[object object]')) {
+          // For corrupted data, just check if title contains any query tokens
+          return queryTokens.some(t => titleLower.includes(t));
+        }
         
         // For multi-word queries, require at least 80% of tokens to match
         if (queryTokens.length > 1) {

@@ -272,7 +272,7 @@ export class ParallelIngestionService {
       ...(asset.ai_labels?.style || []),
       ...(asset.ai_labels?.mood || []),
       ...(asset.ai_labels?.themes || [])
-    ].join(' ');
+    ].map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(' ');
 
     const allManualLabels = [
       ...(asset.manual_labels?.scenes || []),
@@ -281,7 +281,7 @@ export class ParallelIngestionService {
       ...(asset.manual_labels?.mood || []),
       ...(asset.manual_labels?.themes || []),
       ...(asset.manual_labels?.custom_tags || [])
-    ].join(' ');
+    ].map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(' ');
 
     const combinedText = [
       asset.title,
