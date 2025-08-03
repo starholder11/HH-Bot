@@ -25,6 +25,7 @@ interface SearchFilters {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 NEW DEPLOYMENT ACTIVE - OpenAI key fix deployed');
   try {
     const {
       query,
