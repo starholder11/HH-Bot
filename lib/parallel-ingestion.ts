@@ -285,8 +285,8 @@ export class ParallelIngestionService {
 
     const combinedText = [
       asset.title,
-      asset.lyrics || '',
-      asset.prompt || '',
+      ('lyrics' in asset) ? asset.lyrics || '' : '',
+      ('prompt' in asset) ? asset.prompt || '' : '',
       allAiLabels,
       allManualLabels
     ].filter(Boolean).join('\n');
