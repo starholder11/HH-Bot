@@ -265,31 +265,83 @@ export class ParallelIngestionService {
    * Convert MediaAsset to ContentItem format
    */
   static mediaAssetToContentItem(asset: MediaAsset): ContentItem {
-    // Extract all available text content from the asset
-    const allAiLabels = [
-      ...(asset.ai_labels?.scenes || []),
-      ...(asset.ai_labels?.objects || []),
-      ...(asset.ai_labels?.style || []),
-      ...(asset.ai_labels?.mood || []),
-      ...(asset.ai_labels?.themes || [])
-    ].map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(' ');
-
-    const allManualLabels = [
-      ...(asset.manual_labels?.scenes || []),
-      ...(asset.manual_labels?.objects || []),
-      ...(asset.manual_labels?.style || []),
-      ...(asset.manual_labels?.mood || []),
-      ...(asset.manual_labels?.themes || []),
-      ...(asset.manual_labels?.custom_tags || [])
-    ].map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(' ');
-
-    const combinedText = [
-      asset.title,
-      ('lyrics' in asset) ? asset.lyrics || '' : '',
-      ('prompt' in asset) ? asset.prompt || '' : '',
-      allAiLabels,
-      allManualLabels
-    ].filter(Boolean).join('\n');
+    const textParts: string[] = [];
+    
+    // Always start with title
+    textParts.push(asset.title);
+    
+    // Extract media-type specific content
+    if (asset.media_type === 'audio' && 'lyrics' in asset && asset.lyrics) {
+      textParts.push(asset.lyrics);
+    }
+    
+    if (asset.media_type === 'audio' && 'prompt' in asset && asset.prompt) {
+      textParts.push(asset.prompt);
+    }
+    
+    // Extract video overall analysis (the rich scene descriptions)
+    if (asset.media_type === 'video' && asset.ai_labels?.overall_analysis) {
+      if (typeof asset.ai_labels.overall_analysis === 'string') {
+        textParts.push(asset.ai_labels.overall_analysis);
+      } else if (typeof asset.ai_labels.overall_analysis === 'object') {
+        // Extract text from overall analysis object
+        Object.values(asset.ai_labels.overall_analysis).forEach(value => {
+          if (typeof value === 'string' && value.trim()) {
+            textParts.push(value);
+          }
+        });
+      }
+    }
+    
+    // Extract AI labels - ensure we get strings only
+    const allAiLabels: string[] = [];
+    if (asset.ai_labels?.scenes) {
+      allAiLabels.push(...asset.ai_labels.scenes.filter(s => typeof s === 'string'));
+    }
+    if (asset.ai_labels?.objects) {
+      allAiLabels.push(...asset.ai_labels.objects.filter(s => typeof s === 'string'));
+    }
+    if (asset.ai_labels?.style) {
+      allAiLabels.push(...asset.ai_labels.style.filter(s => typeof s === 'string'));
+    }
+    if (asset.ai_labels?.mood) {
+      allAiLabels.push(...asset.ai_labels.mood.filter(s => typeof s === 'string'));
+    }
+    if (asset.ai_labels?.themes) {
+      allAiLabels.push(...asset.ai_labels.themes.filter(s => typeof s === 'string'));
+    }
+    
+    if (allAiLabels.length > 0) {
+      textParts.push(allAiLabels.join(' '));
+    }
+    
+    // Extract manual labels - ensure we get strings only
+    const allManualLabels: string[] = [];
+    if (asset.manual_labels?.scenes) {
+      allManualLabels.push(...asset.manual_labels.scenes.filter(s => typeof s === 'string'));
+    }
+    if (asset.manual_labels?.objects) {
+      allManualLabels.push(...asset.manual_labels.objects.filter(s => typeof s === 'string'));
+    }
+    if (asset.manual_labels?.style) {
+      allManualLabels.push(...asset.manual_labels.style.filter(s => typeof s === 'string'));
+    }
+    if (asset.manual_labels?.mood) {
+      allManualLabels.push(...asset.manual_labels.mood.filter(s => typeof s === 'string'));
+    }
+    if (asset.manual_labels?.themes) {
+      allManualLabels.push(...asset.manual_labels.themes.filter(s => typeof s === 'string'));
+    }
+    if (asset.manual_labels?.custom_tags) {
+      allManualLabels.push(...asset.manual_labels.custom_tags.filter(s => typeof s === 'string'));
+    }
+    
+    if (allManualLabels.length > 0) {
+      textParts.push(allManualLabels.join(' '));
+    }
+    
+    // Join all text parts with newlines, filter out empty strings
+    const combinedText = textParts.filter(part => part && part.trim()).join('\n');
 
     return {
       id: asset.id,
@@ -305,7 +357,10 @@ export class ParallelIngestionService {
         ai_labels: asset.ai_labels,
         manual_labels: asset.manual_labels,
         filename: asset.filename,
-        created_at: asset.created_at
+        created_at: asset.created_at,
+        // Conditionally add lyrics and prompt if they exist on the asset
+        ...('lyrics' in asset && { lyrics: asset.lyrics }),
+        ...('prompt' in asset && { prompt: asset.prompt }),
       }
     };
   }

@@ -8,7 +8,8 @@
     "dev": "next dev -p 3000",
     "build:web": "next build",
     "start:web": "next start -p 3000",
-    "ingest:text-chunks": "tsx scripts/ingest-text-chunks.ts"
+    "ingest:text-chunks": "tsx scripts/ingest-text-chunks.ts",
+    "test-single-media": "tsx scripts/test-single-media-ingestion.ts"
   },
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.859.0",
