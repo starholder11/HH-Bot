@@ -191,9 +191,22 @@ export async function POST(request: NextRequest) {
       }).sort((a, b) => b.score - a.score);
 
       // Apply final limit per category
-      // Hard filter: keep only docs that include every query token (if any)
+      // Flexible filter: require at least 80% of query tokens OR exact title match
       const tokenMatch = (r: SearchResult) => {
         const hay = (r.searchable_text || r.preview || r.title).toLowerCase();
+        const titleLower = r.title.toLowerCase();
+        const queryLower = query.toLowerCase();
+        
+        // Exact title match always passes
+        if (titleLower.includes(queryLower)) return true;
+        
+        // For multi-word queries, require at least 80% of tokens to match
+        if (queryTokens.length > 1) {
+          const matchingTokens = queryTokens.filter(t => hay.includes(t)).length;
+          return matchingTokens >= Math.ceil(queryTokens.length * 0.8);
+        }
+        
+        // Single word queries use original logic
         return queryTokens.every(t => hay.includes(t));
       };
 
