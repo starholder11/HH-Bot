@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Update existing LanceDB task definition to use EFS persistent storage'
+
+Parameters:
+  ContainerImage:
+    Type: String
+    Description: Container image URI
+    Default: 781939061434.dkr.ecr.us-east-1.amazonaws.com/lancedb-service:latest
+
+  OpenAIApiKeySecret:
+    Type: String
+    Description: ARN of OpenAI API Key secret
+
+  EFSFileSystemId:
+    Type: String
+    Description: EFS File System ID
+    Default: fs-07ef18b3d3f96d1e3
+
+  EFSAccessPointId:
+    Type: String
+    Description: EFS Access Point ID
+    Default: fsap-09dea2901a54dc34e
+
+Resources:
+  # IAM Task Role for EFS access
+  TaskRoleWithEFS:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-task-role-efs'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EFSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                  - elasticfilesystem:ClientRootAccess
+                Resource: !Sub 'arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/${EFSFileSystemId}'
+
+  # IAM Execution Role
+  ExecutionRoleWithEFS:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-execution-role-efs'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref OpenAIApiKeySecret
+
+  # ECS Task Definition with EFS volume
+  TaskDefinitionWithEFS:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'lancedb-task-with-efs'
+      Cpu: '512'
+      Memory: '1024'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ExecutionRoleWithEFS.Arn
+      TaskRoleArn: !GetAtt TaskRoleWithEFS.Arn
+      Volumes:
+        - Name: lancedb-storage
+          EFSVolumeConfiguration:
+            FileSystemId: !Ref EFSFileSystemId
+            AccessPointId: !Ref EFSAccessPointId
+            TransitEncryption: ENABLED
+      ContainerDefinitions:
+        - Name: lancedb-service
+          Image: !Ref ContainerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: LANCEDB_PATH
+              Value: /mnt/efs/lancedb-data
+          Secrets:
+            - Name: OPENAI_API_KEY
+              ValueFrom: !Ref OpenAIApiKeySecret
+          MountPoints:
+            - SourceVolume: lancedb-storage
+              ContainerPath: /mnt/efs
+              ReadOnly: false
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: '/ecs/lancedb-service'
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+
+Outputs:
+  TaskDefinitionArn:
+    Description: 'EFS-enabled Task Definition ARN'
+    Value: !Ref TaskDefinitionWithEFS
+    Export:
+      Name: !Sub '${AWS::StackName}-TaskDefinition-EFS'

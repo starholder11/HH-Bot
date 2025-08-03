@@ -1,0 +1,71 @@
+{
+    "family": "lancedb-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "512",
+    "memory": "1024",
+    "executionRoleArn": "arn:aws:iam::781939061434:role/lancedb-simple-ExecutionRole-TJl7lXpqGjmE",
+    "taskRoleArn": "arn:aws:iam::781939061434:role/lancedb-simple-ExecutionRole-TJl7lXpqGjmE",
+    "volumes": [
+        {
+            "name": "lancedb-storage",
+            "efsVolumeConfiguration": {
+                "fileSystemId": "fs-07ef18b3d3f96d1e3",
+                "transitEncryption": "ENABLED",
+                "authorizationConfig": {
+                    "accessPointId": "fsap-09dea2901a54dc34e"
+                }
+            }
+        }
+    ],
+    "containerDefinitions": [
+        {
+            "name": "lancedb-service",
+            "image": "781939061434.dkr.ecr.us-east-1.amazonaws.com/lancedb-service:latest",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 3000,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "PORT",
+                    "value": "3000"
+                },
+                {
+                    "name": "NODE_ENV",
+                    "value": "production"
+                },
+                {
+                    "name": "LANCEDB_PATH",
+                    "value": "/mnt/efs/lancedb-data"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "OPENAI_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:781939061434:secret:openai-api-key-plain-ObIbHG"
+                }
+            ],
+            "mountPoints": [
+                {
+                    "sourceVolume": "lancedb-storage",
+                    "containerPath": "/mnt/efs",
+                    "readOnly": false
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/lancedb-service",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ]
+}

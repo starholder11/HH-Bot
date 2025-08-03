@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Add EFS persistent storage to existing LanceDB deployment'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID for EFS
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet IDs for EFS mount targets
+
+  ExistingECSSecurityGroupId:
+    Type: String
+    Description: ID of existing ECS security group
+    Default: sg-0774a9dfc09a9b424
+
+Resources:
+  # EFS File System for persistent LanceDB storage
+  LanceDBFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-lancedb-data'
+        - Key: Application
+          Value: LanceDB-Persistent
+
+  # EFS Security Group
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AWS::StackName}-efs-sg'
+      GroupDescription: 'Security group for EFS access'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref ExistingECSSecurityGroupId
+
+  # EFS Mount Targets (one per subnet for high availability)
+  EFSMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref LanceDBFileSystem
+      SubnetId: !Select [0, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref LanceDBFileSystem
+      SubnetId: !Select [1, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  # Access Point for controlled access to EFS
+  LanceDBAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref LanceDBFileSystem
+      PosixUser:
+        Uid: 1000
+        Gid: 1000
+      RootDirectory:
+        Path: '/lancedb'
+        CreationInfo:
+          OwnerUid: 1000
+          OwnerGid: 1000
+          Permissions: '755'
+      AccessPointTags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-lancedb-access'
+
+Outputs:
+  EFSFileSystemId:
+    Description: 'EFS File System ID for LanceDB'
+    Value: !Ref LanceDBFileSystem
+    Export:
+      Name: !Sub '${AWS::StackName}-EFS-FileSystemId'
+
+  EFSAccessPointId:
+    Description: 'EFS Access Point ID for LanceDB'
+    Value: !Ref LanceDBAccessPoint
+    Export:
+      Name: !Sub '${AWS::StackName}-EFS-AccessPointId'
+
+  EFSSecurityGroupId:
+    Description: 'EFS Security Group ID'
+    Value: !Ref EFSSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-EFS-SecurityGroupId'

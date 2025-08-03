@@ -25,6 +25,9 @@ export PRIVATE_SUBNET_IDS=""  # Update with your private subnet IDs
 # Container Configuration - Will be set after building
 export CONTAINER_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/lancedb-service:latest"
 
+# Production LanceDB API URL
+export LANCEDB_API_URL="http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com"
+
 # Secrets Configuration - OpenAI API key for embeddings
 # Create with: aws secretsmanager create-secret --name "hh-bot-openai-api-key" --secret-string '{"OPENAI_API_KEY":"your-key-here"}'
 export OPENAI_API_KEY_SECRET_ARN="arn:aws:secretsmanager:us-east-1:781939061434:secret:openai-api-key-plain-ObIbHG"

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Simple LanceDB deployment in default VPC'
+Description: 'Simple LanceDB deployment with EFS persistent storage - NO BULLSHIT VERSION'
 
 Parameters:
   VpcId:
@@ -19,20 +19,59 @@ Parameters:
     Description: ARN of OpenAI API Key secret
 
 Resources:
+  # EFS File System - SIMPLE AND BULLETPROOF
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-lancedb-data'
+        - Key: Application
+          Value: LanceDB-Persistent
+
+  # EFS Security Group
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AWS::StackName}-efs-sg'
+      GroupDescription: 'Security group for EFS'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+
+  # EFS Mount Targets
+  EFSMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [0, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [1, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
   # ECS Cluster
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: 'lancedb-cluster'
-      ClusterSettings:
-        - Name: containerInsights
-          Value: enabled
+      ClusterName: !Sub '${AWS::StackName}-cluster'
 
   # Security Groups
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: 'lancedb-alb-sg'
+      GroupName: !Sub '${AWS::StackName}-alb-sg'
       GroupDescription: 'Security group for ALB'
       VpcId: !Ref VpcId
       SecurityGroupIngress:
@@ -44,7 +83,7 @@ Resources:
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: 'lancedb-ecs-sg'
+      GroupName: !Sub '${AWS::StackName}-ecs-sg'
       GroupDescription: 'Security group for ECS tasks'
       VpcId: !Ref VpcId
       SecurityGroupIngress:
@@ -57,31 +96,30 @@ Resources:
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: 'lancedb-alb'
+      Name: !Sub '${AWS::StackName}-alb'
       Scheme: internet-facing
       Type: application
+      Subnets: !Ref SubnetIds
       SecurityGroups:
         - !Ref ALBSecurityGroup
-      Subnets: !Ref SubnetIds
 
   # Target Group
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: 'lancedb-tg'
-      Protocol: HTTP
+      Name: !Sub '${AWS::StackName}-tg'
       Port: 3000
+      Protocol: HTTP
       VpcId: !Ref VpcId
       TargetType: ip
-      HealthCheckPath: /health
-      HealthCheckProtocol: HTTP
+      HealthCheckPath: '/health'
       HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 3
 
-  # Listener
-  Listener:
+  # ALB Listener
+  ALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
@@ -91,11 +129,10 @@ Resources:
       Port: 80
       Protocol: HTTP
 
-  # ECS Task Execution Role
-  TaskExecutionRole:
+  # IAM Execution Role
+  ExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: 'lancedb-task-execution-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -115,11 +152,10 @@ Resources:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref OpenAIApiKeySecret
 
-  # ECS Task Role
+  # IAM Task Role (for EFS access)
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: 'lancedb-task-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -128,18 +164,30 @@ Resources:
               Service: ecs-tasks.amazonaws.com
             Action: sts:AssumeRole
 
-  # ECS Task Definition
+  # CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/${AWS::StackName}-service'
+      RetentionInDays: 7
+
+  # ECS Task Definition - BULLETPROOF WITH PERSISTENT STORAGE
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'lancedb-task'
+      Family: !Sub '${AWS::StackName}-task'
+      Cpu: '1024'
+      Memory: '2048'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      Cpu: '1024'
-      Memory: '2048'
-      ExecutionRoleArn: !Ref TaskExecutionRole
-      TaskRoleArn: !Ref TaskRole
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      Volumes:
+        - Name: lancedb-persistent-storage
+          EFSVolumeConfiguration:
+            FileSystemId: !Ref EFSFileSystem
+            TransitEncryption: ENABLED
       ContainerDefinitions:
         - Name: lancedb-service
           Image: !Ref ContainerImage
@@ -150,13 +198,15 @@ Resources:
           Environment:
             - Name: NODE_ENV
               Value: production
-            - Name: PORT
-              Value: '3000'
             - Name: LANCEDB_PATH
-              Value: '/tmp/lancedb-data'
+              Value: /data/lancedb
           Secrets:
             - Name: OPENAI_API_KEY
               ValueFrom: !Ref OpenAIApiKeySecret
+          MountPoints:
+            - SourceVolume: lancedb-persistent-storage
+              ContainerPath: /data
+              ReadOnly: false
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -164,29 +214,22 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
 
-  # CloudWatch Log Group
-  LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: '/ecs/lancedb-service'
-      RetentionInDays: 30
-
   # ECS Service
   ECSService:
     Type: AWS::ECS::Service
-    DependsOn: Listener
+    DependsOn: ALBListener
     Properties:
-      ServiceName: 'lancedb-service'
+      ServiceName: !Sub '${AWS::StackName}-service'
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: 1
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref SubnetIds
           SecurityGroups:
             - !Ref ECSSecurityGroup
-          Subnets: !Ref SubnetIds
-          AssignPublicIp: ENABLED
       LoadBalancers:
         - ContainerName: lancedb-service
           ContainerPort: 3000
@@ -194,13 +237,19 @@ Resources:
 
 Outputs:
   LoadBalancerDNS:
-    Description: DNS name of the load balancer
+    Description: 'DNS name of the load balancer'
     Value: !GetAtt ApplicationLoadBalancer.DNSName
     Export:
       Name: !Sub '${AWS::StackName}-LoadBalancerDNS'
 
+  EFSFileSystemId:
+    Description: 'EFS File System ID (PERMANENT STORAGE)'
+    Value: !Ref EFSFileSystem
+    Export:
+      Name: !Sub '${AWS::StackName}-EFS-ID'
+
   ServiceEndpoint:
-    Description: Service endpoint URL
+    Description: 'LanceDB Service URL'
     Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
     Export:
-      Name: !Sub '${AWS::StackName}-ServiceEndpoint'
+      Name: !Sub '${AWS::StackName}-ServiceURL'

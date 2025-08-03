@@ -3,8 +3,8 @@
 // If you later switch to a tokeniser (e.g. @dqbd/tiktoken) you can
 // replace `splitToWords` with a token-based splitter but keep the same API.
 
-const CHUNK_WORDS = 200; // Roughly ≈200 tokens
-const STRIDE_WORDS = 100; // 50% overlap
+const CHUNK_WORDS = 50; // Ultra-small chunks for OpenAI safety (~150 chars = ~50 tokens)
+const STRIDE_WORDS = 25; // 50% overlap
 
 function splitToWords(text: string): string[] {
   // Collapse whitespace and split. Keeps punctuation inside words.

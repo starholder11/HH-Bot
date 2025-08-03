@@ -13,6 +13,18 @@ This document captures the complete implementation process for deploying a Lance
 - OpenAI embeddings integration
 - Next.js frontend with unified search
 
+### 2025-08-03 Update – Bullet-Proof Storage & Ingestion Improvements
+
+- **Persistent path**: `LANCEDB_PATH` is now **/data/lancedb** (EFS mount) and must never change.
+- **Immutable CloudFormation**: use `infrastructure/lancedb-persistent.yml`, which fixes the EFS volume mapping in the task definition.
+- **Docker images**: always build for `linux/amd64` and tag immutably (e.g., `v2.3`) before registering a new task-def revision.
+- **Optimised ingestion**:
+  - Aggressive text chunking (≤50 words) + `EMBEDDING_BATCH_SIZE = 1` prevents token-limit errors.
+  - Insert `BATCH_SIZE = 20` with automatic retry/back-off eliminates ALB `EPIPE` failures.
+  - Oversized chunks are skipped with a clear log (no crash). Final 2025-08 run ingested **746 / 748** items successfully.
+  - Search index build and verification steps now run at the end of the script.
+- **Recommended practice**: run the ingestion script as a one-off Fargate task inside the same VPC to keep traffic internal and avoid internet timeouts.
+
 ## Prerequisites
 
 ### AWS Setup
@@ -129,7 +141,7 @@ lancedb-service/
   "environment": [
     {"name": "NODE_ENV", "value": "production"},
     {"name": "PORT", "value": "3000"},
-    {"name": "LANCEDB_PATH", "value": "/tmp/lancedb-data"}
+    {"name": "LANCEDB_PATH", "value": "/data/lancedb"}
   ],
   "secrets": [
     {
@@ -797,3 +809,84 @@ npm run dev
 - Health checks and monitoring endpoints
 
 This guide captures all the lessons learned from our implementation. Following these steps should result in a successful deployment without the trial-and-error we experienced initially.
+
+---
+
+## Appendix A – 2025-08 Deployment & Ingestion Best Practices
+
+### A.1 Docker Build & Release Workflow (Multi-Architecture)
+
+1. **Always use Buildx with an explicit builder** – create it once and reuse:
+   ```bash
+   docker buildx create --name multi --use  # one-time
+   ```
+2. **Install QEMU/binfmt emulators** on Apple-silicon hosts **before** the first build:
+   ```bash
+   docker run --privileged --rm tonistiigi/binfmt --install all
+   ```
+3. **Build a manifest list** that contains *both* `linux/amd64` and `linux/arm64` layers so the same tag works locally and in Fargate:
+   ```bash
+   REGION=us-east-1
+   ACC=$(aws sts get-caller-identity --query Account --output text)
+   REPO=$ACC.dkr.ecr.$REGION.amazonaws.com/lancedb-service
+
+   docker buildx build --platform linux/amd64,linux/arm64 \
+     -t $REPO:vX.Y.Z \
+     -f lancedb-service/Dockerfile lancedb-service --push
+   ```
+4. **Tag immutably** – use semantic versions (`v2.2`, `v2.3`) instead of `latest` so rollbacks are trivial.
+5. **Verify the manifest** before updating ECS:
+   ```bash
+   aws ecr batch-get-image --repository-name lancedb-service \
+     --image-ids imageTag=v2.2 --query 'images[0].imageManifest' | \
+     jq '.manifests | length'   # should return 2
+   ```
+6. **Register a new task-def revision** that points at the new tag and *then* `aws ecs update-service --force-new-deployment` – never edit running tasks in place.
+7. **Roll back quickly** by re-pointing the service at the previous tag.
+
+### A.2 Secrets Management (OPENAI_API_KEY / ARN Gotchas)
+
+* Store the key in **AWS Secrets Manager**, not SSM.
+* Use a **plain-text secret**, name `openai-api-key`.
+* AWS often appends a random suffix on recreation (`openai-api-key-Np2G0N`).
+  * **Best practice:** Reference the secret by **full ARN** in the task definition to avoid name-mismatch:
+    ```json
+    "secrets": [
+      {
+        "name": "OPENAI_API_KEY",
+        "valueFrom": "arn:aws:secretsmanager:us-east-1:<ACCOUNT>:secret:openai-api-key-Np2G0N"
+      }
+    ]
+    ```
+* The **ECS Task Execution Role** must have `SecretsManagerReadWrite` *and* `ssm:GetParameters` if you ever reference SSM parameters.
+* After changing the secret or its ARN *always* register a new task-def revision – old revisions cache the old ARN.
+
+### A.3 Unified Parallel Ingestion & Resumable Mode (2025-08)
+
+Path: `scripts/unified-parallel-production.ts`
+
+Key features:
+1. **Single pipeline** ingests *both* timeline text from GitHub and media metadata from S3.
+2. **Chunking** – 150-word windows with 75-word stride (guarantees ≤8 192 tokens).
+3. **Batch embeddings** – `EMBEDDING_BATCH_SIZE=50` (auto-splits if token estimate exceeds 300 K / request).
+4. **Concurrency controls** – `CONCURRENCY_LIMIT=15` by default (tuned for one t3.small Fargate task).
+5. **Retry w/ exponential back-off** on `/add` failures (5 attempts, jitter).
+6. **Resumable ingestion** – Before ingesting the script queries `/count`; if the delta < expected it identifies **only failed records** by comparing S3/GitHub inventories to LanceDB IDs and ingests those.
+7. **Health gate** – Aborts immediately if the LanceDB `/health` check fails (avoids blind re-ingestion when the service is down).
+
+To run in production:
+```bash
+# Set ALB URL & keys
+export LANCEDB_API_URL="http://<ALB-DNS>"
+export GITHUB_TOKEN="ghp_..."
+export OPENAI_API_KEY="$(aws secretsmanager get-secret-value --secret-id openai-api-key-Np2G0N --query SecretString --output text)"
+
+npx tsx scripts/unified-parallel-production.ts
+```
+
+Typical elapsed time (4 k records): **≈6 minutes** on t3.small after optimisation.
+
+> **Tip:** Keep an ingestion CloudWatch alarm (<5 records/min over 15 min) – if it fires, check the Fargate logs for `Retrying failed insert` messages.
+
+---
+

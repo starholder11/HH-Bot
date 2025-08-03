@@ -293,3 +293,10 @@
 🔍 Unified search query: "code" with limit: 10
 📊 Got 500 results from LanceDB
 ✅ Returning 258 filtered results
+- [36mwait[39m compiling /_error (client and server)...
+- [35mevent[39m compiled client and server successfully in 584 ms (557 modules)
+- [36mwait[39m compiling /api/unified-search/route (client and server)...
+- [35mevent[39m compiled successfully in 61 ms (250 modules)
+🔍 Unified search query: "test" with limit: 20
+📊 Got 3 results from LanceDB
+✅ Returning 3 filtered results

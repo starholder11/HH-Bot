@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Update existing LanceDB deployment to add EFS persistent storage'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID for the cluster
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet IDs for ALB and ECS tasks
+
+  ContainerImage:
+    Type: String
+    Description: Container image URI
+
+  OpenAIApiKeySecret:
+    Type: String
+    Description: ARN of OpenAI API Key secret
+
+Resources:
+  # EFS File System for persistent LanceDB storage
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      CreationToken: !Sub '${AWS::StackName}-lancedb-efs'
+      PerformanceMode: generalPurpose
+      ThroughputMode: provisioned
+      ProvisionedThroughputInMibps: 100
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-lancedb-data'
+        - Key: Application
+          Value: LanceDB
+
+  # EFS Mount Targets (one per subnet for high availability)
+  EFSMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [0, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [1, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  # Access Point for controlled access to EFS
+  EFSAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      PosixUser:
+        Uid: 1000
+        Gid: 1000
+      RootDirectory:
+        Path: '/lancedb'
+        CreationInfo:
+          OwnerUid: 1000
+          OwnerGid: 1000
+          Permissions: '755'
+      AccessPointTags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-lancedb-access'
+
+  # EFS Security Group
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AWS::StackName}-efs-sg'
+      GroupDescription: 'Security group for EFS'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupName: 'lancedb-ecs-sg'  # Reference existing ECS security group
+
+  # IAM Task Role (for EFS access)
+  TaskRoleEFS:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-task-role-efs'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EFSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                  - elasticfilesystem:ClientRootAccess
+                Resource: !GetAtt EFSFileSystem.Arn
+
+  # Updated ECS Task Definition with EFS volume
+  TaskDefinitionEFS:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'lancedb-task-efs'
+      Cpu: '512'
+      Memory: '1024'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/lancedb-simple-ExecutionRole-*'  # Reference existing execution role
+      TaskRoleArn: !GetAtt TaskRoleEFS.Arn
+      Volumes:
+        - Name: lancedb-storage
+          EFSVolumeConfiguration:
+            FileSystemId: !Ref EFSFileSystem
+            AccessPointId: !Ref EFSAccessPoint
+            TransitEncryption: ENABLED
+      ContainerDefinitions:
+        - Name: lancedb-service
+          Image: !Ref ContainerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: LANCEDB_PATH
+              Value: /mnt/efs/lancedb-data
+          Secrets:
+            - Name: OPENAI_API_KEY
+              ValueFrom: !Ref OpenAIApiKeySecret
+          MountPoints:
+            - SourceVolume: lancedb-storage
+              ContainerPath: /mnt/efs
+              ReadOnly: false
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: '/ecs/lancedb-service'
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+
+Outputs:
+  EFSFileSystemId:
+    Description: 'EFS File System ID'
+    Value: !Ref EFSFileSystem
+    Export:
+      Name: !Sub '${AWS::StackName}-EFS-ID'
+
+  EFSAccessPointId:
+    Description: 'EFS Access Point ID'
+    Value: !Ref EFSAccessPoint
+    Export:
+      Name: !Sub '${AWS::StackName}-EFS-AccessPoint'
+
+  TaskDefinitionEFS:
+    Description: 'EFS-enabled Task Definition ARN'
+    Value: !Ref TaskDefinitionEFS
+    Export:
+      Name: !Sub '${AWS::StackName}-TaskDef-EFS'
