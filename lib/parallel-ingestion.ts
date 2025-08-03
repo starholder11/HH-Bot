@@ -302,8 +302,10 @@ export class ParallelIngestionService {
         s3_url: asset.s3_url,
         cloudflare_url: asset.cloudflare_url,
         media_type: asset.media_type,
-        tags: asset.tags,
-        ai_labels: asset.ai_labels
+        ai_labels: asset.ai_labels,
+        manual_labels: asset.manual_labels,
+        filename: asset.filename,
+        created_at: asset.created_at
       }
     };
   }
