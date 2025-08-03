@@ -3,11 +3,12 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { TimelineEntry } from '@/lib/content-reader';
-import { getTimelineEntriesByYear, getAllTimelineSlugs } from '@/lib/content-reader';
 import { Footer } from '../layout/Footer';
 
 interface YearReviewTemplateProps {
   entry: TimelineEntry;
+  allSlugs?: string[];
+  relatedArticles?: TimelineEntry[];
 }
 
 // Helper function to extract first sentence from content
@@ -101,11 +102,10 @@ function parseContentSections(content: string) {
   return sections;
 }
 
-export default async function YearReviewTemplate({ entry }: YearReviewTemplateProps) {
+export default function YearReviewTemplate({ entry, allSlugs = [], relatedArticles = [] }: YearReviewTemplateProps) {
   const year = parseInt(entry.title);
 
   // Get all available years to determine navigation bounds
-  const allSlugs = await getAllTimelineSlugs();
   const availableYears = allSlugs
     .filter(slug => slug.startsWith('year'))
     .map(slug => parseInt(slug.replace('year', '')))
@@ -135,12 +135,11 @@ export default async function YearReviewTemplate({ entry }: YearReviewTemplatePr
   // Parse remaining content into sections
   const contentSections = parseContentSections(remainingContent);
 
-  // Get related articles for this year (but don't create separate section since it's in content)
-  const relatedArticles = await getTimelineEntriesByYear(year);
+  // Use related articles passed as props
 
   // Populate Articles and Topics section with related articles if it exists
   const populatedSections = contentSections.map(section => {
-    if (section.header.toLowerCase().includes('articles and topics')) {
+    if (section.header.toLowerCase().includes('articles and topics') && relatedArticles.length > 0) {
       const articlesContent = relatedArticles.map((article) => {
         const firstSentence = getFirstSentence(article.content);
         return `**[${article.title}](/timeline/${article.slug})**\n\n${firstSentence}`;
