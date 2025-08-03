@@ -54,6 +54,9 @@ export async function POST(request: NextRequest) {
     console.log('🔑 Full key length:', openaiApiKey?.length);
     console.log('🔑 Key starts with sk-:', openaiApiKey?.startsWith('sk-'));
     console.log('🔑 Key includes whitespace:', openaiApiKey?.includes(' ') || openaiApiKey?.includes('\n') || openaiApiKey?.includes('\t'));
+    console.log('🔑 First 50 chars:', openaiApiKey?.slice(0, 50));
+    console.log('🔑 Last 10 chars:', openaiApiKey?.slice(-10));
+    console.log('🔑 Actual key value for debugging:', JSON.stringify(openaiApiKey));
     if (!openaiApiKey) {
       return NextResponse.json({ error: 'OPENAI_API_KEY env var missing' }, { status: 500 });
     }
