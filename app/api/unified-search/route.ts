@@ -48,21 +48,24 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔍 Unified search query: "${query}" with limit: ${limit}`);
 
-    // Embed the query text using OpenAI to get a 1536-dim embedding
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    console.log('🔑 OpenAI API Key present:', !!openaiApiKey, openaiApiKey ? `${openaiApiKey.slice(0, 10)}...` : 'null');
-    console.log('🔑 Full key length:', openaiApiKey?.length);
-    console.log('🔑 Key starts with sk-:', openaiApiKey?.startsWith('sk-'));
-    console.log('🔑 Key includes whitespace:', openaiApiKey?.includes(' ') || openaiApiKey?.includes('\n') || openaiApiKey?.includes('\t'));
-    console.log('🔑 First 50 chars:', openaiApiKey?.slice(0, 50));
-    console.log('🔑 Last 10 chars:', openaiApiKey?.slice(-10));
-    console.log('🔑 Actual key value for debugging:', JSON.stringify(openaiApiKey));
+    // Get OpenAI API key with proper validation and cleaning
+    let openaiApiKey = process.env.OPENAI_API_KEY;
+    
     if (!openaiApiKey) {
-      return NextResponse.json({ error: 'OPENAI_API_KEY env var missing' }, { status: 500 });
+      return NextResponse.json({ error: 'OPENAI_API_KEY environment variable is not set' }, { status: 500 });
     }
+    
+    // Clean the key - remove any whitespace, newlines, or other garbage
+    openaiApiKey = openaiApiKey.trim();
+    
+    // Validate key format
+    if (!openaiApiKey.startsWith('sk-')) {
+      return NextResponse.json({ error: 'Invalid OpenAI API key format' }, { status: 500 });
+    }
+    
+    console.log('🔑 Using OpenAI key:', `${openaiApiKey.slice(0, 10)}...${openaiApiKey.slice(-4)}`);
+    
     const authHeader = `Bearer ${openaiApiKey}`;
-    console.log('🔑 Auth header length:', authHeader.length);
-    console.log('🔑 Auth header starts with Bearer sk-:', authHeader.startsWith('Bearer sk-'));
     const embedResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
@@ -80,7 +83,6 @@ export async function POST(request: NextRequest) {
       console.log('❌ OpenAI API Error:', embedResponse.status, errText);
       return NextResponse.json({ error: 'OpenAI embedding failed', details: errText }, { status: 502 });
     }
-    console.log('✅ OpenAI API Success:', embedResponse.status);
     const { data: embedData } = await embedResponse.json();
     const queryEmbedding = embedData[0].embedding;
 
