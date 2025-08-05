@@ -1,6 +1,6 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import sharp from 'sharp';
+// NOTE: sharp is loaded dynamically inside processImage to avoid optional dependency errors
 import { fileTypeFromBuffer } from 'file-type';
 
 // AWS S3 Client Configuration
@@ -48,7 +48,23 @@ async function processImage(
 
   console.log('⚙️ Processing options:', { quality, maxWidth, maxHeight, format });
 
-  let sharpInstance = sharp(buffer);
+  // Dynamically import sharp so the lambda still works when the
+  // optional native module isn\'t present (e.g. Vercel x64 targets)
+  let sharpLib: typeof import('sharp');
+  try {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+    sharpLib = (await import('sharp')).default;
+  } catch (err) {
+    console.warn('⚠️  sharp module not available – skipping optimisation');
+    // Return original buffer unchanged; guess mime from extension
+    return {
+      buffer,
+      contentType: 'image/jpeg',
+      extension: 'jpg'
+    };
+  }
+
+  let sharpInstance = sharpLib(buffer);
 
   // Resize if needed
   console.log('📏 Getting image metadata...');
