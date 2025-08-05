@@ -21,8 +21,8 @@ export async function GET(request: NextRequest, context: any) {
     return await handlers.GET(request, context);
   } catch (error) {
     console.error('Keystatic GET error:', error);
-    return NextResponse.json({ 
-      error: 'Keystatic GET failed', 
+    return NextResponse.json({
+      error: 'Keystatic GET failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest, context: any) {
     return await handlers.POST(request, context);
   } catch (error) {
     console.error('Keystatic POST error:', error);
-    return NextResponse.json({ 
-      error: 'Keystatic POST failed', 
+    return NextResponse.json({
+      error: 'Keystatic POST failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }

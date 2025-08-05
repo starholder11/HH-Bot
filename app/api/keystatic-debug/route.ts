@@ -7,7 +7,7 @@ export async function GET() {
   try {
     // Test if we can import the config
     const config = await import('../../../keystatic.config');
-    
+
     // Check environment variables
     const env = {
       NODE_ENV: process.env.NODE_ENV,

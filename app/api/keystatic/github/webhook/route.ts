@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   console.log('🔔 GitHub webhook received at /api/keystatic/github/webhook - forwarding to sync-content');
-  
+
   // Forward directly to the sync-content handler
   return await syncContentHandler(request);
 }
