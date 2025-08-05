@@ -5,6 +5,7 @@ import { uploadImage, uploadFile } from '@/lib/s3-upload';
 import { updateFileInGitHub, replaceImageReferences, getFileContentAsString } from '@/lib/github-file-updater';
 // import { updateSearchIndexFile } from '@/lib/search/search-index';
 import path from 'path';
+import { enqueueAnalysisJob } from '@/lib/queue';
 
 // Ensure this route runs in the Node.js runtime (Edge runtime disallows `path` module)
 export const runtime = 'nodejs';
@@ -195,6 +196,20 @@ export async function POST(request: NextRequest) {
         console.log(`   🏷️ Base name: ${baseName}`);
         console.log(`   📄 File name: ${fileName}`);
         console.log(`   📝 Content length: ${fileContent.length} chars`);
+
+        // Enqueue job for parallel ingestion pipeline (text)
+        try {
+          await enqueueAnalysisJob({
+            assetId: baseName,
+            mediaType: 'text',
+            sourcePath: filePath,
+            title: baseName,
+            requestedAt: Date.now(),
+          });
+          console.log(`📤 Enqueued analysis job for ${baseName}`);
+        } catch (queueErr) {
+          console.error('⚠️ Failed to enqueue analysis job', queueErr);
+        }
 
         // Sync to vector store with file content
         console.log(`🚀 CALLING syncTimelineEntry(${baseName}, [content])`);
