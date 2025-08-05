@@ -27,6 +27,7 @@ export default config({
     timeline: collection({
       label: 'Timeline',
       path: 'content/timeline/*/',
+      slugField: 'slug',
       schema: {
         slug: fields.slug({ name: { label: 'Slug' } }),
         title: fields.text({ label: 'Title' }),
