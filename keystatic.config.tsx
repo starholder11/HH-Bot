@@ -32,6 +32,7 @@ export default config({
         slug: fields.text({
         label: 'Slug',
         description: 'lower-case letters, numbers, dashes',
+        defaultValue: 'untitled-entry',
         validation: {
           isRequired: true,
           pattern: {
