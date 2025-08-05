@@ -27,9 +27,9 @@ export default config({
     timeline: collection({
       label: 'Timeline',
       path: 'content/timeline/*/',
-      slugField: 'title',
+      slugField: 'slug',
       schema: {
-        title: fields.slug({ name: { label: 'Title' } }),
+        title: fields.text({ label: 'Title' }),
         date: fields.date({ label: 'Date' }),
         content: fields.mdx({ label: 'Content' }),
         categories: fields.array(fields.text({ label: 'Category' }), { label: 'Categories' }),
