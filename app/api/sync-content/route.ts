@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
 
       } catch (error) {
         console.error(`❌ FAILED TO SYNC ${filePath}:`, error);
-        console.error(`❌ ERROR DETAILS:`, error instanceof Error ? error.stack : error);
+        console.error(`❌ ERROR DETAILS:`, error instanceof Error ? error.stack : String(error));
         syncResults.push({
           file: filePath,
           status: 'error',
