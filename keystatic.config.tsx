@@ -29,7 +29,19 @@ export default config({
       path: 'content/timeline/*/',
       slugField: 'slug',
       schema: {
-        slug: fields.slug({ name: { label: 'Name' } }),
+        slug: fields.slug({
+        name: { label: 'Slug' },
+        generate: ({ title }) =>
+          (title || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-'),
+        validation: {
+          isRequired: true,
+          message: 'Slug is required (lowercase letters, numbers, dash)'
+        }
+      }),
         title: fields.text({ label: 'Title' }),
         date: fields.date({ label: 'Date' }),
         content: fields.mdx({ label: 'Content' }),
