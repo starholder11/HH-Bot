@@ -284,8 +284,8 @@ export async function POST(request: NextRequest) {
         syncResults.push({
           file: filePath,
           status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          errorStack: error instanceof Error ? error.stack : undefined
+          error: (error as any)?.message ?? 'Unknown error',
+          errorStack: (error as any)?.stack
         });
       }
     }
