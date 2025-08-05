@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
           // Use path.extname to avoid false negatives (e.g. hidden unicode / whitespace)
           const ext = path.extname(file).toLowerCase();
           console.log('🔍 DEBUG: File extension detected:', ext);
-          
+
           if (ext === '.mdx' || ext === '.mdoc') {
             timelineFiles.add(file);
             console.log('✅ ADDED TO TIMELINE FILES FOR PROCESSING:', file);
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 DEBUG: Content files detected:', Array.from(timelineFiles));
 
     // -----
-    // Enqueue LanceDB / OpenAI processing via SQS (text pipeline)
+    // Enqueue LanceDB processing via SQS; optional direct fallback
     // -----
     for (const filePath of Array.from(timelineFiles)) {
       try {
@@ -139,11 +139,6 @@ export async function POST(request: NextRequest) {
         console.error('⚠️ Failed to enqueue text analysis job', enqueueErr);
       }
     }
-
-    return NextResponse.json({
-      message: 'Jobs enqueued',
-      queued: timelineFiles.size,
-    });
 
     // Process image files first (upload to S3)
     if (imageFiles.size > 0) {
