@@ -258,7 +258,51 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
     console.error('⚠️ Failed initial list:', e);
   }
 
-  // 2. Upload if needed
+
+  // ➤ 2. Optionally add / update LanceDB index (if service available)
+  try {
+    const lancedbUrl = process.env.LANCEDB_URL;
+    if (lancedbUrl && lancedbUrl.startsWith('http')) {
+      // generate embedding using same model we use in unified-search
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+      if (openaiApiKey) {
+        const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiApiKey}`
+          },
+          body: JSON.stringify({
+            model: 'text-embedding-3-small',
+            input: fileContent
+          })
+        });
+        if (embedRes.ok) {
+          const { data } = await embedRes.json();
+          const embedding = data[0].embedding;
+          await fetch(`${lancedbUrl.replace(/\/$/, '')}/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: vectorName,
+              content_type: 'text',
+              title: baseName,
+              embedding,
+              searchable_text: fileContent,
+              references: JSON.stringify({ slug: baseName })
+            })
+          });
+          console.log('📥 LanceDB upsert done');
+        } else {
+          console.warn('⚠️  Failed to get embedding for LanceDB:', await embedRes.text());
+        }
+      }
+    }
+  } catch (ldErr) {
+    console.warn('⚠️  Skipped LanceDB add due to error:', ldErr);
+  }
+
+  // 3. Upload if needed
   if (!upToDateId) {
     console.log(`🚀 UPLOADING NEW VERSION: ${vectorName}`);
     const uploaded = await uploadFileToVectorStore(fileContent, vectorName);
@@ -268,7 +312,7 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
     console.log(`✔️ LATEST VERSION ALREADY PRESENT: ${vectorName} → ID: ${upToDateId}`);
   }
 
-  // 3. Delete stale
+  // 4. Delete stale
   const results = await Promise.allSettled(staleIds.map(id => deleteFileFromVectorStore(id)));
   console.log('🧹 Final cleanup results:', results);
 
