@@ -8,6 +8,7 @@ import path from 'path';
 
 // Ensure this route runs in the Node.js runtime (Edge runtime disallows `path` module)
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // GitHub webhook event types
 interface GitHubWebhookPayload {
