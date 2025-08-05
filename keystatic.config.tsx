@@ -29,7 +29,7 @@ export default config({
       path: 'content/timeline/*/',
       slugField: 'slug',
       schema: {
-        slug: fields.slug({ name: { label: 'Slug' } }),
+        slug: fields.slug({ name: { label: 'Name' } }),
         title: fields.text({ label: 'Title' }),
         date: fields.date({ label: 'Date' }),
         content: fields.mdx({ label: 'Content' }),
