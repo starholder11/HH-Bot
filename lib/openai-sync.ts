@@ -236,7 +236,9 @@ export async function syncTimelineFile(fileContent: string, fileName: string) {
 export async function syncTimelineEntry(baseName: string, fileContent: string) {
   const hash = sha256(fileContent);
   const vectorName = `${baseName}-body-${hash}.md`;
-  console.log(`📝 Syncing ${baseName} → ${vectorName}`);
+  console.log(`📝 SYNCING TIMELINE ENTRY: ${baseName} → ${vectorName}`);
+  console.log(`📝 Content hash: ${hash}`);
+  console.log(`📝 Content preview: ${fileContent.substring(0, 100)}...`);
 
   // 1. First list – gather ids
   const staleIds: string[] = [];
@@ -258,10 +260,12 @@ export async function syncTimelineEntry(baseName: string, fileContent: string) {
 
   // 2. Upload if needed
   if (!upToDateId) {
+    console.log(`🚀 UPLOADING NEW VERSION: ${vectorName}`);
     const uploaded = await uploadFileToVectorStore(fileContent, vectorName);
     upToDateId = uploaded.id;
+    console.log(`✅ UPLOAD SUCCESSFUL: ${vectorName} → ID: ${upToDateId}`);
   } else {
-    console.log('✔️ Latest version already present');
+    console.log(`✔️ LATEST VERSION ALREADY PRESENT: ${vectorName} → ID: ${upToDateId}`);
   }
 
   // 3. Delete stale

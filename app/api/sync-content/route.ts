@@ -28,7 +28,7 @@ interface GitHubWebhookPayload {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔔 WEBHOOK-LIVE (Node runtime) v2');
+    console.log('🔔 WEBHOOK-LIVE (Node runtime) v3 - COMPREHENSIVE LOGGING');
 
     // Get raw body for signature validation
     const rawBody = await request.text();
@@ -94,13 +94,19 @@ export async function POST(request: NextRequest) {
 
           // Use path.extname to avoid false negatives (e.g. hidden unicode / whitespace)
           const ext = path.extname(file).toLowerCase();
+          console.log('🔍 DEBUG: File extension detected:', ext);
+          
           if (ext === '.mdx' || ext === '.mdoc') {
             timelineFiles.add(file);
-            console.log('✅ Added to timeline files:', file);
+            console.log('✅ ADDED TO TIMELINE FILES FOR PROCESSING:', file);
           } else if (/\.(png|jpg|jpeg|gif|webp)$/i.test(file)) {
             imageFiles.add(file);
             console.log('🖼️ Added to image files:', file);
+          } else {
+            console.log('⚠️ TIMELINE FILE IGNORED (wrong extension):', file, 'extension:', ext);
           }
+        } else {
+          console.log('⚠️ FILE IGNORED (not in timeline):', file);
         }
       });
     }
@@ -149,14 +155,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (timelineFiles.size === 0) {
-      console.log('ℹ️ No timeline files changed, skipping sync');
+      console.log('❌ NO TIMELINE FILES FOUND FOR PROCESSING');
+      console.log('📋 Files that were checked:', allChangedFiles);
+      console.log('📋 Total commits processed:', payload.commits.length);
       return NextResponse.json({
         message: 'No timeline files to sync',
-        imageUploads: Object.keys(urlMappings).length
+        imageUploads: Object.keys(urlMappings).length,
+        debug: {
+          allChangedFiles,
+          commitsProcessed: payload.commits.length,
+          timelineFilesFound: 0
+        }
       });
     }
 
-    console.log(`📝 Processing ${timelineFiles.size} timeline file(s)`);
+    console.log(`📝 PROCESSING ${timelineFiles.size} TIMELINE FILE(S):`, Array.from(timelineFiles));
 
     // Sync each changed timeline file and update with S3 URLs if needed
     const syncResults = [];
@@ -176,8 +189,16 @@ export async function POST(request: NextRequest) {
         const baseName = entrySlugRaw.replace(/\s+/g, '-').toLowerCase();
         const fileName = fileNameWithExt; // keep for later log / commit messages
 
+        console.log(`🔄 PROCESSING ENTRY: ${filePath}`);
+        console.log(`   📁 Folder name: ${entrySlugRaw}`);
+        console.log(`   🏷️ Base name: ${baseName}`);
+        console.log(`   📄 File name: ${fileName}`);
+        console.log(`   📝 Content length: ${fileContent.length} chars`);
+
         // Sync to vector store with file content
+        console.log(`🚀 CALLING syncTimelineEntry(${baseName}, [content])`);
         await syncTimelineEntry(baseName, fileContent);
+        console.log(`✅ SUCCESSFULLY SYNCED: ${baseName}`);
 
         // If we have S3 URL mappings, update the content file
         if (Object.keys(urlMappings).length > 0) {
@@ -213,11 +234,13 @@ export async function POST(request: NextRequest) {
         console.log(`✅ Synced ${fileName}`);
 
       } catch (error) {
-        console.error(`❌ Failed to sync ${filePath}:`, error);
+        console.error(`❌ FAILED TO SYNC ${filePath}:`, error);
+        console.error(`❌ ERROR DETAILS:`, error instanceof Error ? error.stack : error);
         syncResults.push({
           file: filePath,
           status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
+          errorStack: error instanceof Error ? error.stack : undefined
         });
       }
     }
