@@ -116,6 +116,35 @@ export async function POST(request: NextRequest) {
     console.log('🔍 DEBUG: Image files detected:', Array.from(imageFiles));
     console.log('🔍 DEBUG: Content files detected:', Array.from(timelineFiles));
 
+    // -----
+    // Enqueue LanceDB / OpenAI processing via SQS (text pipeline)
+    // -----
+    for (const filePath of Array.from(timelineFiles)) {
+      try {
+        const segments = filePath.split('/');
+        const fileNameWithExt = segments.pop() || 'content.mdx';
+        const entrySlugRaw = segments.pop() || 'unknown-entry';
+        const baseName = entrySlugRaw.replace(/\s+/g, '-').toLowerCase();
+
+        await enqueueAnalysisJob({
+          assetId: baseName,
+          mediaType: 'text',
+          sourcePath: filePath,
+          gitRef: branch,
+          title: baseName,
+          requestedAt: Date.now(),
+        });
+        console.log(`📤 Enqueued analysis job for ${baseName}`);
+      } catch (enqueueErr) {
+        console.error('⚠️ Failed to enqueue text analysis job', enqueueErr);
+      }
+    }
+
+    return NextResponse.json({
+      message: 'Jobs enqueued',
+      queued: timelineFiles.size,
+    });
+
     // Process image files first (upload to S3)
     if (imageFiles.size > 0) {
       console.log(`🖼️ Processing ${imageFiles.size} image file(s) for S3 upload`);
