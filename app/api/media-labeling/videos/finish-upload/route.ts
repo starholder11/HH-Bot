@@ -10,6 +10,10 @@ import { saveMediaAsset } from '@/lib/media-storage';
 import { addAssetToProject } from '@/lib/project-storage';
 import { enqueueAnalysisJob } from '@/lib/queue';
 
+// Force this route to deploy as a Node.js function to support POST requests and file processing
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // Helper function to verify S3 object exists and is readable
 async function verifyS3ObjectExists(s3Client: any, bucketName: string, key: string, maxRetries: number = 3): Promise<boolean> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {

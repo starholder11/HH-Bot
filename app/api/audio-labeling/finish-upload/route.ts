@@ -5,6 +5,10 @@ import { extractMP3Metadata } from '@/lib/mp3-metadata';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 
+// Force this route to deploy as a Node.js function to support POST requests and file processing
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // Helper function to verify S3 object exists and is readable
 async function verifyS3ObjectExists(s3Client: any, bucketName: string, key: string, maxRetries: number = 3): Promise<boolean> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
