@@ -34,10 +34,33 @@ export function clearS3KeysCache(): void {
   keyframesCache = null; // Also clear keyframes cache
 }
 
+/**
+ * Get cache status for debugging
+ */
+export function getCacheStatus() {
+  const now = Date.now();
+  return {
+    s3KeysCache: s3KeysCache ? {
+      age: Math.round((now - s3KeysCache.fetchedAt) / 1000),
+      keyCount: s3KeysCache.keys.length,
+      fresh: (now - s3KeysCache.fetchedAt) < S3_LIST_CACHE_TTL
+    } : null,
+    parsedAssetsCache: parsedAssetsCache ? {
+      age: Math.round((now - parsedAssetsCache.fetchedAt) / 1000),
+      assetCount: parsedAssetsCache.assets.length
+    } : null,
+    keyframesCache: keyframesCache ? {
+      age: Math.round((now - keyframesCache.fetchedAt) / 1000),
+      keyframeCount: keyframesCache.keyframes.length
+    } : null
+  };
+}
+
 // How long to keep the cache alive (ms). Override via env if needed.
+// Use shorter cache in development for better testing experience
 const S3_LIST_CACHE_TTL = process.env.S3_LIST_CACHE_TTL_MS
   ? parseInt(process.env.S3_LIST_CACHE_TTL_MS, 10)
-  : 60_000; // 1 minute by default
+  : (process.env.NODE_ENV === 'development' ? 10_000 : 60_000); // 10s in dev, 1 min in prod
 
 // Prefix for media asset JSON files in S3
 const PREFIX = process.env.MEDIA_DATA_PREFIX || 'media-labeling/assets/';
@@ -549,6 +572,11 @@ export async function listMediaAssets(
 
             // Apply media type filter
             if (mediaType && !isMediaTypeMatch(asset, mediaType)) {
+              continue;
+            }
+
+            // Apply keyframe exclusion filter
+            if (excludeKeyframes && asset.media_type === 'keyframe_still') {
               continue;
             }
 
