@@ -322,19 +322,32 @@ export async function listMediaAssets(
         allKeys = s3KeysCache.keys;
         console.log(`[media-storage] Using cached S3 key list (age ${(now - s3KeysCache.fetchedAt) / 1000}s, ${allKeys.length} keys)`);
       } else {
-        console.log('[media-storage] Listing objects from S3…');
-        const response = await s3.send(
-          new ListObjectsV2Command({
-            Bucket: bucket,
-            Prefix: PREFIX,
-            MaxKeys: DEFAULT_S3_LIMIT, // Only fetch the most recent assets
-          })
-        );
+        console.log('[media-storage] Listing objects from S3 with pagination…');
 
-        allKeys = (response.Contents || [])
-          .filter(obj => obj.Key?.endsWith('.json'))
-          .map(obj => obj.Key!)
-          .sort((a, b) => b.localeCompare(a)); // newest first
+        // Fetch ALL keys under the prefix, paginating beyond the 1 000-key S3 limit.
+        const fetchedKeys: string[] = [];
+        let continuationToken: string | undefined = undefined;
+
+        do {
+          const resp = await s3.send(
+            new ListObjectsV2Command({
+              Bucket: bucket,
+              Prefix: PREFIX,
+              MaxKeys: 1000, // hard S3 page limit
+              ContinuationToken: continuationToken,
+            })
+          );
+
+          fetchedKeys.push(
+            ...(resp.Contents || [])
+              .filter(obj => obj.Key?.endsWith('.json'))
+              .map(obj => obj.Key!)
+          );
+
+          continuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
+        } while (continuationToken);
+
+        allKeys = fetchedKeys.sort((a, b) => b.localeCompare(a)); // newest first
 
         // Update cache
         s3KeysCache = { keys: allKeys, fetchedAt: now };
