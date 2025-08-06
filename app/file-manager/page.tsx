@@ -1099,17 +1099,20 @@ export default function FileManagerPage() {
                         <span className="text-xl">IMG</span>
                         {isEditingFilename ? (
                           <div className="flex items-center space-x-2 flex-1">
-                            <input
-                              type="text"
-                              value={newFilename}
-                              onChange={(e) => setNewFilename(e.target.value)}
-                              className="text-lg font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 flex-1"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveFilename();
-                                if (e.key === 'Escape') cancelFilenameEdit();
-                              }}
-                            />
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                value={newFilename}
+                                onChange={(e) => setNewFilename(e.target.value)}
+                                className="text-lg font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 w-full"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveFilename();
+                                  if (e.key === 'Escape') cancelFilenameEdit();
+                                }}
+                              />
+                              <div className="text-xs text-gray-500 mt-1">ID: {selectedAsset.id}</div>
+                            </div>
                             <Button
                               onClick={() => {
                                 if (!isRenamingFile && newFilename.trim()) {
@@ -1133,7 +1136,10 @@ export default function FileManagerPage() {
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2 flex-1">
-                            <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
+                            <div className="flex-1">
+                              <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
+                              <div className="text-xs text-gray-500">ID: {selectedAsset.id}</div>
+                            </div>
                             {selectedAsset._keyframe_metadata && (
                               <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
                                 Keyframe

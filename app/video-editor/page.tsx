@@ -358,17 +358,20 @@ export default function VideoEditorPage() {
                 <span className="text-xl">🎬</span>
                 {isEditingFilename ? (
                   <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={newFilename}
-                      onChange={(e) => setNewFilename(e.target.value)}
-                      className="text-lg font-semibold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 min-w-[200px]"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveFilename();
-                        if (e.key === 'Escape') cancelFilenameEdit();
-                      }}
-                    />
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={newFilename}
+                        onChange={(e) => setNewFilename(e.target.value)}
+                        className="text-lg font-semibold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 min-w-[200px]"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveFilename();
+                          if (e.key === 'Escape') cancelFilenameEdit();
+                        }}
+                      />
+                      <div className="text-xs text-gray-500 mt-1">ID: {selectedVideo.id}</div>
+                    </div>
                     <Button
                       onClick={() => {
                         if (!isRenamingFile && newFilename.trim()) {
@@ -392,7 +395,10 @@ export default function VideoEditorPage() {
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <h2 className="text-lg font-semibold text-gray-900">{selectedVideo.title}</h2>
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold text-gray-900">{selectedVideo.title}</h2>
+                      <div className="text-xs text-gray-500">ID: {selectedVideo.id}</div>
+                    </div>
                     <Button
                       onClick={startFilenameEdit}
                       className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
