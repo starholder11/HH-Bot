@@ -548,24 +548,24 @@ export default function FileManagerPage() {
         const searchLower = searchTerm.toLowerCase();
         const matchesSearch =
           // Basic asset info
-          asset.title.toLowerCase().includes(searchLower) ||
-          asset.filename.toLowerCase().includes(searchLower) ||
+          (asset.title && asset.title.toLowerCase().includes(searchLower)) ||
+          (asset.filename && asset.filename.toLowerCase().includes(searchLower)) ||
 
           // Manual labels
-          (asset.manual_labels?.custom_tags || []).some(tag => tag.toLowerCase().includes(searchLower)) ||
-          (asset.manual_labels?.style || []).some(style => style.toLowerCase().includes(searchLower)) ||
-          (asset.manual_labels?.mood || []).some(mood => mood.toLowerCase().includes(searchLower)) ||
-          (asset.manual_labels?.themes || []).some(theme => theme.toLowerCase().includes(searchLower)) ||
-          (asset.manual_labels?.scenes || []).some(scene => scene.toLowerCase().includes(searchLower)) ||
-          (asset.manual_labels?.objects || []).some(object => object.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.custom_tags || []).some(tag => tag && tag.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.style || []).some(style => style && style.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.mood || []).some(mood => mood && mood.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.themes || []).some(theme => theme && theme.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.scenes || []).some(scene => scene && scene.toLowerCase().includes(searchLower)) ||
+          (asset.manual_labels?.objects || []).some(object => object && object.toLowerCase().includes(searchLower)) ||
 
           // AI-generated labels
           (asset.ai_labels && (
-            asset.ai_labels.scenes.some(scene => scene.toLowerCase().includes(searchLower)) ||
-            asset.ai_labels.objects.some(object => object.toLowerCase().includes(searchLower)) ||
-            asset.ai_labels.style.some(style => style.toLowerCase().includes(searchLower)) ||
-            asset.ai_labels.mood.some(mood => mood.toLowerCase().includes(searchLower)) ||
-            asset.ai_labels.themes.some(theme => theme.toLowerCase().includes(searchLower))
+            (asset.ai_labels.scenes || []).some(scene => scene && scene.toLowerCase().includes(searchLower)) ||
+            (asset.ai_labels.objects || []).some(object => object && object.toLowerCase().includes(searchLower)) ||
+            (asset.ai_labels.style || []).some(style => style && style.toLowerCase().includes(searchLower)) ||
+            (asset.ai_labels.mood || []).some(mood => mood && mood.toLowerCase().includes(searchLower)) ||
+            (asset.ai_labels.themes || []).some(theme => theme && theme.toLowerCase().includes(searchLower))
           )) ||
 
           // Audio-specific fields
@@ -573,10 +573,10 @@ export default function FileManagerPage() {
           (asset.media_type === 'audio' && asset.prompt && asset.prompt.toLowerCase().includes(searchLower)) ||
 
           // Audio manual labels (for custom styles like "Madchester")
-          (asset.media_type === 'audio' && asset.manual_labels?.custom_styles?.some((style: string) => style.toLowerCase().includes(searchLower))) ||
-          (asset.media_type === 'audio' && asset.manual_labels?.custom_moods?.some((mood: string) => mood.toLowerCase().includes(searchLower))) ||
-          (asset.media_type === 'audio' && asset.manual_labels?.custom_themes?.some((theme: string) => theme.toLowerCase().includes(searchLower))) ||
-          (asset.media_type === 'audio' && asset.manual_labels?.primary_genre?.toLowerCase().includes(searchLower)) ||
+          (asset.media_type === 'audio' && asset.manual_labels?.custom_styles?.some((style: string) => style && style.toLowerCase().includes(searchLower))) ||
+          (asset.media_type === 'audio' && asset.manual_labels?.custom_moods?.some((mood: string) => mood && mood.toLowerCase().includes(searchLower))) ||
+          (asset.media_type === 'audio' && asset.manual_labels?.custom_themes?.some((theme: string) => theme && theme.toLowerCase().includes(searchLower))) ||
+          (asset.media_type === 'audio' && asset.manual_labels?.primary_genre && asset.manual_labels.primary_genre.toLowerCase().includes(searchLower)) ||
 
           // Metadata search
           (asset.metadata && asset.metadata.artist && asset.metadata.artist.toLowerCase().includes(searchLower)) ||
