@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { v4 as uuidv4 } from 'uuid';
-import sharp from 'sharp';
 import { Readable } from 'stream';
 
 // Storage utilities (we'll create these next)
@@ -52,6 +51,8 @@ function calculateAspectRatio(width: number, height: number): string {
 
 async function extractImageMetadata(imageBuffer: Buffer): Promise<ImageMetadata> {
   try {
+    // Use dynamic import for sharp to avoid module loading issues in serverless environment
+    const sharp = (await import('sharp')).default;
     const metadata = await sharp(imageBuffer).metadata();
 
     return {
