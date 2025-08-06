@@ -349,6 +349,25 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
     }
 
     console.log(`AI labeling completed for image: ${asset.title}`);
+
+    // Auto-enqueue for Lance DB ingestion now that AI labels are complete
+    try {
+      const { enqueueAnalysisJob } = await import('./queue');
+      await enqueueAnalysisJob({
+        assetId: asset.id,
+        mediaType: asset.media_type,
+        title: asset.title,
+        s3Url: asset.s3_url,
+        cloudflareUrl: asset.cloudflare_url,
+        requestedAt: Date.now(),
+        stage: 'post_labeling_ingestion'
+      });
+      console.log('📤 Enqueued Lance ingestion job after AI labeling for:', asset.id);
+    } catch (enqueueErr) {
+      console.error('Failed to enqueue Lance ingestion job:', enqueueErr);
+      // Don't fail the labeling if ingestion enqueue fails
+    }
+
     return { success: true, labels: cleanedLabels };
 
   } catch (error) {
