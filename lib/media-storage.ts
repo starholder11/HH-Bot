@@ -363,7 +363,8 @@ export async function listMediaAssets(
         console.log('[media-storage] Listing objects from S3 with pagination…');
 
         // Fetch ALL keys under the prefix, paginating beyond the 1 000-key S3 limit.
-        const fetchedKeys: string[] = [];
+        type KeyInfo = { key: string; lastModified: Date };
+        const fetched: KeyInfo[] = [];
         let continuationToken: string | undefined = undefined;
 
         do {
@@ -376,16 +377,21 @@ export async function listMediaAssets(
             })
           );
 
-          fetchedKeys.push(
-            ...(resp.Contents || [])
-              .filter(obj => obj.Key?.endsWith('.json'))
-              .map(obj => obj.Key!)
-          );
+          (resp.Contents || [])
+            .filter(obj => obj.Key?.endsWith('.json'))
+            .forEach(obj => {
+              fetched.push({
+                key: obj.Key!,
+                lastModified: obj.LastModified || new Date(0),
+              });
+            });
 
           continuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
         } while (continuationToken);
 
-        allKeys = fetchedKeys.sort((a, b) => b.localeCompare(a)); // newest first
+        // Sort by LastModified descending so newest uploads appear first
+        fetched.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
+        allKeys = fetched.map(f => f.key);
 
         // Update cache
         s3KeysCache = { keys: allKeys, fetchedAt: now };
@@ -528,7 +534,8 @@ export async function listMediaAssets(
       }
 
       // At this point allAssets *may* contain more than one page worth when mediaType filter is used.
-      const filteredTotalCount = allAssets.length;
+      // Compute total count based on the full key list after any prefix / keyframe filtering
+      const filteredTotalCount = allKeys.length;
 
       let resultAssets: MediaAsset[];
       if (loadAll) {
