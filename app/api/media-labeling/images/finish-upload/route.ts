@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Readable } from 'stream';
 
 // Storage utilities (we'll create these next)
-import { saveMediaAsset } from '@/lib/media-storage';
+import { saveMediaAsset, clearS3KeysCache } from '@/lib/media-storage';
 import { addAssetToProject } from '@/lib/project-storage';
 
 interface ImageMetadata {
@@ -160,6 +160,9 @@ export async function POST(request: NextRequest) {
     // Save image data
     console.log('Saving image data for:', title);
     await saveMediaAsset(imageId, imageData);
+    
+    // Clear cache so new upload appears immediately in file manager
+    clearS3KeysCache();
 
     // Add to project if specified
     if (projectId) {

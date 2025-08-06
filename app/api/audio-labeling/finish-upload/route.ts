@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { saveSong } from '@/lib/song-storage';
 import { extractMP3Metadata } from '@/lib/mp3-metadata';
+import { clearS3KeysCache } from '@/lib/media-storage';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 
@@ -157,6 +158,9 @@ export async function POST(request: NextRequest) {
     // Save song JSON
     await saveSong(songId, songData);
     console.log('Saved song data for:', songData.title);
+    
+    // Clear cache so new upload appears immediately in file manager
+    clearS3KeysCache();
 
     return NextResponse.json({
       success: true,

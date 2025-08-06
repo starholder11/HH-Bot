@@ -23,6 +23,17 @@ interface S3KeysCache {
 // Module-level variable – unique per process
 let s3KeysCache: S3KeysCache | null = null;
 
+/**
+ * Clear the S3 keys cache to force fresh data on next request
+ * Call this after uploads/modifications to ensure immediate visibility
+ */
+export function clearS3KeysCache(): void {
+  console.log('[media-storage] Clearing S3 keys cache and parsed assets cache');
+  s3KeysCache = null;
+  parsedAssetsCache = null; // Also clear parsed assets cache
+  keyframesCache = null; // Also clear keyframes cache
+}
+
 // How long to keep the cache alive (ms). Override via env if needed.
 const S3_LIST_CACHE_TTL = process.env.S3_LIST_CACHE_TTL_MS
   ? parseInt(process.env.S3_LIST_CACHE_TTL_MS, 10)
