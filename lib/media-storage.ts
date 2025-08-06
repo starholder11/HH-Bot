@@ -349,16 +349,13 @@ export async function listMediaAssets(
 
       let allKeys: string[];
 
-      const now = Date.now();
+            const now = Date.now();
 
-            // In production serverless, disable S3 cache for asset listing to ensure fresh uploads appear
-      // Each function invocation can't share cache with upload functions anyway
-      const shouldUseCache = !isProd && s3KeysCache && now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL;
-
-      // Return cached keys if still fresh (dev only)
-      if (shouldUseCache) {
-        allKeys = s3KeysCache.keys;
-        console.log(`[media-storage] Using cached S3 key list (age ${(now - s3KeysCache.fetchedAt) / 1000}s, ${allKeys.length} keys)`);
+      // Return cached keys if still fresh (dev only – production never uses the cache)
+      if (!isProd && s3KeysCache && (now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL)) {
+        const cache = s3KeysCache; // Narrowing for TypeScript
+        allKeys = cache.keys;
+        console.log(`[media-storage] Using cached S3 key list (age ${(now - cache.fetchedAt) / 1000}s, ${allKeys.length} keys)`);
       } else {
         console.log('[media-storage] Listing objects from S3 with pagination…');
 
