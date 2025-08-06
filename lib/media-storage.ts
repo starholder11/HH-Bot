@@ -1,4 +1,4 @@
-import { ListObjectsV2Command, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { ListObjectsV2Command, ListObjectsV2CommandOutput, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -329,7 +329,7 @@ export async function listMediaAssets(
         let continuationToken: string | undefined = undefined;
 
         do {
-          const resp = await s3.send(
+          const resp: ListObjectsV2CommandOutput = await s3.send(
             new ListObjectsV2Command({
               Bucket: bucket,
               Prefix: PREFIX,
