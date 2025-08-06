@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to get cache status', details: error.message },
+      { error: 'Failed to get cache status', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to clear cache', details: error.message },
+      { error: 'Failed to clear cache', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
