@@ -8,10 +8,6 @@ import { Readable } from 'stream';
 import { saveMediaAsset } from '@/lib/media-storage';
 import { addAssetToProject } from '@/lib/project-storage';
 
-// Force this route to deploy as a Node.js function to support POST requests and file processing
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 interface ImageMetadata {
   width: number;
   height: number;
@@ -70,6 +66,10 @@ async function extractImageMetadata(imageBuffer: Buffer): Promise<ImageMetadata>
     throw new Error('Failed to extract image metadata');
   }
 }
+
+// Force this route to deploy as a Node.js function to support POST requests and file processing
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
