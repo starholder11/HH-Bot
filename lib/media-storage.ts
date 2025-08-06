@@ -351,8 +351,12 @@ export async function listMediaAssets(
 
       const now = Date.now();
 
-      // Return cached keys if still fresh
-      if (s3KeysCache && now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL) {
+            // In production serverless, disable S3 cache for asset listing to ensure fresh uploads appear
+      // Each function invocation can't share cache with upload functions anyway
+      const shouldUseCache = !isProd && s3KeysCache && now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL;
+
+      // Return cached keys if still fresh (dev only)
+      if (shouldUseCache) {
         allKeys = s3KeysCache.keys;
         console.log(`[media-storage] Using cached S3 key list (age ${(now - s3KeysCache.fetchedAt) / 1000}s, ${allKeys.length} keys)`);
       } else {
