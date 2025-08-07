@@ -44,6 +44,12 @@ exports.handler = async (event) => {
       const msg = JSON.parse(record.body);
       console.log('[generic-worker] Processing message', msg);
 
+      // Only process LanceDB ingestion messages, not video processing or other jobs
+      if (msg.stage !== 'post_labeling_ingestion' && msg.mediaType !== 'text') {
+        console.log('[generic-worker] Skipping non-ingestion message (missing stage: post_labeling_ingestion)');
+        continue;
+      }
+
       switch (msg.mediaType) {
         case 'text':
           await handleText(msg);

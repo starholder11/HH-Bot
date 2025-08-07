@@ -1,6 +1,6 @@
-import { OpenAI } from 'openai';
 import { MediaAsset } from '../media-storage';
 import { chunkText } from '../chunk-utils';
+import { generateEmbeddings } from './OpenAIEmbedder';
 
 export interface ContentItem {
   id: string;
@@ -43,13 +43,7 @@ export class ParallelIngestionService {
     this.LANCEDB_API_URL = process.env.LANCEDB_API_URL || 'http://localhost:8000';
   }
 
-  private getOpenAIClient(): OpenAI {
-    const apiKey = (process.env.OPENAI_API_KEY || '').replace(/\s+/g, '');
-    if (!apiKey || apiKey.includes('your_ope')) {
-      throw new Error('OPENAI_API_KEY environment variable is not set correctly at runtime');
-    }
-    return new OpenAI({ apiKey });
-  }
+
 
   /* ---------------- Rate-limit helper ---------------- */
   private async waitForRateLimit(): Promise<void> {
@@ -85,47 +79,12 @@ export class ParallelIngestionService {
     return out;
   }
 
-    async generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
+  async generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
     const valid = this.chunkAndValidateTexts(texts);
     console.log(`🧠 Generating embeddings for ${valid.length} text chunks (from ${texts.length} originals)…`);
 
-    const result: number[][] = [];
-    const batches = Math.ceil(valid.length / this.EMBEDDING_BATCH_SIZE);
-
-    for (let i = 0; i < valid.length; i += this.EMBEDDING_BATCH_SIZE) {
-      const slice = valid.slice(i, i + this.EMBEDDING_BATCH_SIZE);
-      const batchNum = Math.floor(i / this.EMBEDDING_BATCH_SIZE) + 1;
-      console.log(`🔄 Embedding batch ${batchNum}/${batches}`);
-
-      await this.waitForRateLimit();
-      try {
-        const openai = this.getOpenAIClient();
-        console.log(`[OpenAI] Calling embeddings.create with model: text-embedding-3-small`);
-        const resp = await openai.embeddings.create({
-          model: 'text-embedding-3-small',
-          input: slice,
-          encoding_format: 'float',
-        });
-        console.log(`[OpenAI] Response received: ${resp.data.length} embeddings`);
-        result.push(...resp.data.map(d => d.embedding));
-        this.requestsThisMinute++;
-      } catch (err: any) {
-        console.error(`[OpenAI] Error details:`, {
-          message: err.message,
-          status: err.status,
-          code: err.code,
-          type: err.type
-        });
-        if (err?.message?.includes('maximum context length')) {
-          console.log('⏭️  chunk too large – skipping');
-          result.push(...new Array(slice.length).fill(null));
-          this.requestsThisMinute++;
-        } else {
-          throw err;
-        }
-      }
-    }
-    return result;
+    // Use the exact same pattern as working ai-labeling
+    return await generateEmbeddings(valid);
   }
 
   /* -------------- LanceDB bulk insert --------------- */
@@ -172,7 +131,7 @@ export class ParallelIngestionService {
   }
 
   /* --------- MediaAsset → ContentItem helper -------- */
-  static mediaAssetToContentItem(asset: MediaAsset): ContentItem {
+    static mediaAssetToContentItem(asset: MediaAsset): ContentItem {
     const parts: string[] = [asset.title];
 
     if (asset.media_type === 'audio') {
