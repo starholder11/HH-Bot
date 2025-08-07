@@ -1081,6 +1081,7 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
         const fetched: { key: string; lastModified: Date }[] = [];
         let continuationToken: string | undefined = undefined;
 
+        let pagesFetched = 0;
         do {
           const resp: ListObjectsV2CommandOutput = await s3.send(
             new ListObjectsV2Command({
@@ -1100,14 +1101,18 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
           }
 
           continuationToken = resp.NextContinuationToken;
+          pagesFetched += 1;
+          // Safety limit: do not fetch more than 5 pages on initial load
+          if (pagesFetched >= 5 && !loadAll) {
+            console.log('[media-storage] Early stop after 5 pages to reduce cold-start latency');
+            continuationToken = undefined;
+          }
         } while (continuationToken);
 
         allKeys = fetched.map(f => f.key);
         
-        // Cache the keys
-        if (!isProd) {
-          s3KeysCache = { keys: allKeys, fetchedAt: now };
-        }
+        // Cache the keys (also in prod to reduce cold starts for subsequent requests)
+        s3KeysCache = { keys: allKeys, fetchedAt: now };
       }
     } else {
       // Fallback to local filesystem

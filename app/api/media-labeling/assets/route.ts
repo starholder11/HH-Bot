@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '100');
     const excludeKeyframes = searchParams.get('exclude_keyframes') === 'true';
+    const includeKeyframes = searchParams.get('include_keyframes') === 'true';
 
     console.log(`[assets-api] Request params: mediaType=${mediaType}, excludeKeyframes=${excludeKeyframes}, searchQuery=${searchQuery}`);
 
@@ -73,10 +74,8 @@ export async function GET(request: NextRequest) {
       totalCount = nonKeyframes.length;
     }
 
-    // 🔑 KEYFRAME INCLUSION: Add keyframes for "all media" and "image" types
-    // This ensures keyframes are selectable on initial load
-    // Only include keyframes if NOT explicitly excluded
-    if (!excludeKeyframes && !searchQuery && (!mediaType || mediaType === 'image')) {
+    // 🔑 KEYFRAME INCLUSION (opt-in): Only include if explicitly requested via include_keyframes=true
+    if (includeKeyframes && !excludeKeyframes && !searchQuery && (!mediaType || mediaType === 'image')) {
       console.log(`[assets-api] Including keyframes for ${mediaType || 'all media'}`);
 
       try {
