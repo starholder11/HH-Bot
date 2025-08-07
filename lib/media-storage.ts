@@ -1039,7 +1039,7 @@ export async function getVideoKeyframes(videoId: string): Promise<KeyframeStill[
           keyframes.push(keyframeData);
         }
       } catch (error) {
-        console.warn(`Failed to load keyframe ${item.Key}:`, error);
+        console.warn(`Failed to load keyframe ${item}:`, error);
       }
     }
 
@@ -1134,7 +1134,7 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
           keyframes.push(keyframeData);
         }
       } catch (error) {
-        console.warn(`Failed to load keyframe ${item.Key}:`, error);
+        console.warn(`Failed to load keyframe ${item}:`, error);
       }
     }
 
