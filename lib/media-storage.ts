@@ -1103,4 +1103,72 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
   }
 }
 
+export async function searchReusableKeyframes(
+  query?: string,
+  excludeProjectId?: string,
+  filters?: { minQuality?: number; hasAiLabels?: boolean; resolution?: { minWidth: number; minHeight: number } }
+): Promise<KeyframeStill[]> {
+  // Reuse getAllKeyframes and filter
+  const all = await getAllKeyframes();
+  let result = all;
+  if (excludeProjectId) {
+    result = result.filter(k => k.project_id !== excludeProjectId);
+  }
+  if (filters) {
+    if (filters.minQuality) result = result.filter(k => k.metadata.quality >= filters.minQuality!);
+    if (filters.hasAiLabels) result = result.filter(k => (k.ai_labels?.scenes?.length || 0) > 0);
+    if (filters.resolution) {
+      result = result.filter(k => k.metadata.resolution.width >= filters.resolution!.minWidth && k.metadata.resolution.height >= filters.resolution!.minHeight);
+    }
+  }
+  if (query) {
+    const q = query.toLowerCase();
+    result = result.filter(k =>
+      k.title.toLowerCase().includes(q) ||
+      k.source_info.video_filename.toLowerCase().includes(q) ||
+      (k.ai_labels?.scenes || []).some(s => s.toLowerCase().includes(q)) ||
+      (k.ai_labels?.objects || []).some(o => o.toLowerCase().includes(q)) ||
+      (k.ai_labels?.themes || []).some(t => t.toLowerCase().includes(q))
+    );
+  }
+  // Simple ordering: quality desc
+  return result.sort((a, b) => b.metadata.quality - a.metadata.quality);
+}
+
+export async function convertKeyframeToImageAsset(
+  keyframeId: string,
+  targetProjectId: string,
+  newTitle?: string
+): Promise<ImageAsset> {
+  const kf = await getKeyframeAsset(keyframeId);
+  if (!kf) throw new Error(`Keyframe not found: ${keyframeId}`);
+  const imageAsset: ImageAsset = {
+    id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+    filename: `keyframe_${kf.filename}`,
+    s3_url: kf.s3_url,
+    cloudflare_url: kf.cloudflare_url,
+    title: newTitle || `${kf.title} (Keyframe)`,
+    media_type: 'image',
+    metadata: {
+      width: kf.metadata.resolution.width,
+      height: kf.metadata.resolution.height,
+      format: kf.metadata.format,
+      file_size: kf.metadata.file_size,
+      aspect_ratio: kf.metadata.aspect_ratio,
+      color_space: kf.metadata.color_profile,
+    },
+    ai_labels: kf.ai_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+    manual_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [`keyframe-from-${kf.source_info.video_filename}`] },
+    processing_status: { upload: 'completed', metadata_extraction: 'completed', ai_labeling: kf.ai_labels ? 'completed' : 'pending', manual_review: 'pending' },
+    timestamps: { uploaded: new Date().toISOString(), metadata_extracted: new Date().toISOString(), labeled_ai: kf.ai_labels ? new Date().toISOString() : null, labeled_reviewed: null },
+    labeling_complete: false,
+    project_id: targetProjectId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } as ImageAsset;
+  await saveMediaAsset(imageAsset.id, imageAsset);
+  return imageAsset;
+}
+
+// keep re-export for clarity
 export { convertKeyframeToImageAsset, searchReusableKeyframes };
