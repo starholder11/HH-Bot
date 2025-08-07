@@ -1138,8 +1138,8 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
       }
     }
 
-    // Sort by creation date (newest first)
-    keyframes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    // Sort by extraction timestamp (newest first)
+    keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
 
     // Update cache
     keyframesCache = { keyframes: keyframes, fetchedAt: Date.now() };
