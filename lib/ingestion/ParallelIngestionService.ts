@@ -157,33 +157,18 @@ export class ParallelIngestionService {
     static mediaAssetToContentItem(asset: MediaAsset): ContentItem {
     const parts: string[] = [asset.title];
 
+    // Handle audio-specific content (lyrics and prompt)
     if (asset.media_type === 'audio') {
-      // Cast to AudioAsset to access lyrics and prompt properties
       const audioAsset = asset as any;
-      console.log('🔍 Audio asset debug:', {
-        id: asset.id,
-        title: asset.title,
-        lyricsValue: audioAsset.lyrics,
-        lyricsLength: audioAsset.lyrics?.length || 0,
-        promptValue: audioAsset.prompt,
-        promptLength: audioAsset.prompt?.length || 0,
-        allKeys: Object.keys(audioAsset)
-      });
       
-      // Add lyrics if present and non-empty
-      if (audioAsset.lyrics && audioAsset.lyrics.trim()) {
+      // Always add lyrics if they exist
+      if (audioAsset.lyrics) {
         parts.push(audioAsset.lyrics);
-        console.log('✅ Added lyrics to searchable content');
-      } else {
-        console.log('⚠️ No lyrics or empty lyrics');
       }
       
-      // Add prompt if present and non-empty  
-      if (audioAsset.prompt && audioAsset.prompt.trim()) {
+      // Always add prompt if it exists
+      if (audioAsset.prompt) {
         parts.push(audioAsset.prompt);
-        console.log('✅ Added prompt to searchable content');
-      } else {
-        console.log('⚠️ No prompt or empty prompt');
       }
     }
 
@@ -208,17 +193,6 @@ export class ParallelIngestionService {
     addLabels(asset.manual_labels?.custom_tags);
 
     const combinedText = parts.filter(p => p && p.trim()).join('\n');
-
-    if (asset.media_type === 'audio') {
-      console.log('🔍 Final audio content item:', {
-        id: asset.id,
-        title: asset.title,
-        partsCount: parts.length,
-        parts: parts.map(p => p.substring(0, 50) + '...'),
-        combinedTextLength: combinedText.length,
-        combinedTextPreview: combinedText.substring(0, 200) + '...'
-      });
-    }
 
     return {
       id: asset.id,
