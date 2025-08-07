@@ -91,9 +91,16 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // TEMPORARILY DISABLED: PATCH ingestion to prevent more duplicates until LanceDB upsert is fixed
-    console.log('⚠️  PATCH ingestion temporarily disabled to prevent duplicates');
-    // TODO: Re-enable once LanceDB service has proper delete/upsert logic deployed
+    // IMMEDIATE upsert to LanceDB - now with working delete endpoint
+    try {
+      const { convertSongToAudioAsset } = await import('@/lib/media-storage');
+      const { ingestAsset } = await import('@/lib/ingestion');
+      const mediaAsset = convertSongToAudioAsset(songData);
+      await ingestAsset(mediaAsset, true); // true = upsert (delete existing + insert)
+      console.log('✅ Audio PATCH immediately upserted into LanceDB', id);
+    } catch (ingErr) {
+      console.error('❌ Audio PATCH immediate upsert failed', (ingErr as any)?.message || ingErr);
+    }
 
     return NextResponse.json(songData);
   } catch (error) {
