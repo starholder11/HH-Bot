@@ -94,49 +94,13 @@ export class ParallelIngestionService {
   /* -------------- LanceDB bulk insert --------------- */
   async bulkInsertToLanceDB(records: LanceDBRecord[], isUpsert: boolean = false): Promise<void> {
     console.log(`📤 Bulk ${isUpsert ? 'upserting' : 'inserting'} ${records.length} records to LanceDB...`);
-
-    // If upsert, delete existing records first
-    if (isUpsert) {
-      console.log(`🗑️  Deleting existing records for upsert...`);
-      for (const record of records) {
-        try {
-          const deleteRes = await this.processWithRetry(() => fetch(`${this.LANCEDB_API_URL}/delete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: record.id }),
-          }));
-
-          if (!deleteRes.ok) {
-            console.warn(`⚠️  Failed to delete existing record ${record.id}: ${deleteRes.status}`);
-          } else {
-            const deleteResult = await deleteRes.json();
-            if (deleteResult.deleted > 0) {
-              console.log(`🗑️  Deleted ${deleteResult.deleted} existing record(s) for ${record.id}`);
-            }
-          }
-        } catch (deleteErr) {
-          console.warn(`⚠️  Delete failed for ${record.id}:`, deleteErr);
-          // Continue with insert even if delete fails
-        }
-      }
-    }
+    // Server-side handles delete-before-add for upserts automatically
 
     // Optimize for single-record operations and ensure robust upsert behavior
     if (records.length === 1) {
       const rec = records[0];
       console.log(`📤 Using /add for single record id=${rec.id}`);
-      // Ensure delete-first semantics client-side as well
-      if (isUpsert) {
-        try {
-          await this.processWithRetry(() => fetch(`${this.LANCEDB_API_URL}/delete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: rec.id }),
-          }));
-        } catch (e) {
-          console.warn(`⚠️  Pre-delete failed for id=${rec.id}`, e);
-        }
-      }
+      // Server-side /add endpoint handles delete-before-add for upserts
       const res = await this.processWithRetry(() => fetch(`${this.LANCEDB_API_URL}/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -136,21 +136,18 @@ function normalizeEmbedding(inp) {
 
       console.log(`📦 Bulk adding ${records.length} records...`);
 
-      // Upsert behavior: delete any existing rows for incoming ids first
+      // Upsert behavior: delete any existing rows for incoming ids first (bulk delete)
       try {
         const uniqueIds = Array.from(new Set(records.map(r => r.id).filter(Boolean)));
-        for (const id of uniqueIds) {
-          try {
-            const deletedCount = await table.delete(`id = '${id}'`);
-            if (deletedCount > 0) {
-              console.log(`🗑️  /bulk-add: removed ${deletedCount} existing row(s) for id=${id}`);
-            }
-          } catch (delErr) {
-            console.warn('⚠️  /bulk-add: pre-delete failed for id', id, delErr?.message || delErr);
+        if (uniqueIds.length > 0) {
+          const deleteFilter = uniqueIds.map(id => `id = '${id}'`).join(' OR ');
+          const totalDeletedCount = await table.delete(deleteFilter);
+          if (totalDeletedCount > 0) {
+            console.log(`🗑️  /bulk-add: bulk-deleted ${totalDeletedCount} existing row(s) for ${uniqueIds.length} IDs`);
           }
         }
       } catch (preErr) {
-        console.warn('⚠️  /bulk-add: pre-delete phase encountered an error', preErr?.message || preErr);
+        console.warn('⚠️  /bulk-add: bulk pre-delete failed', preErr?.message || preErr);
       }
 
       // Validate and clean all records
