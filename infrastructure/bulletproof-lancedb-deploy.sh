@@ -17,7 +17,7 @@ echo -e "${BLUE}🚀 BULLETPROOF LANCEDB DEPLOYMENT${NC}"
 echo -e "${BLUE}====================================${NC}"
 
 # Load configuration
-source infrastructure/config.sh
+source config.sh
 
 # Validate required variables
 if [[ -z "$AWS_ACCOUNT_ID" || -z "$VPC_ID" || -z "$PUBLIC_SUBNET_IDS" || -z "$OPENAI_API_KEY_SECRET_ARN" ]]; then
