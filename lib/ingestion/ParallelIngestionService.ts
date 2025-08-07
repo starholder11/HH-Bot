@@ -40,7 +40,11 @@ export class ParallelIngestionService {
   private minuteStartTime = Date.now();
 
   constructor() {
-    this.LANCEDB_API_URL = process.env.LANCEDB_API_URL || 'http://localhost:8000';
+    // Prefer public URL if provided (used on Vercel); fall back to internal API URL; finally localhost
+    this.LANCEDB_API_URL =
+      process.env.LANCEDB_API_URL ||
+      (process.env.LANCEDB_URL as string) ||
+      'http://localhost:8000';
   }
 
 
