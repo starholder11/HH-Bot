@@ -1086,7 +1086,8 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
           const resp: ListObjectsV2CommandOutput = await s3.send(
             new ListObjectsV2Command({
               Bucket: bucket,
-              Prefix: PREFIX,
+              // BUGFIX: Only list keyframes, not the entire PREFIX tree
+              Prefix: `${PREFIX}keyframes/`,
               MaxKeys: 1000,
               ContinuationToken: continuationToken,
             })
