@@ -192,28 +192,21 @@ export async function POST(request: NextRequest) {
     // Clear cache so new upload appears immediately in file manager
     clearS3KeysCache();
 
-      // IMMEDIATE ingestion - same pattern as images/videos get AI labels and immediately go to LanceDB
+      // Use SQS worker for ingestion (has latest deduplication logic)
       try {
-        const mediaAsset = convertSongToAudioAsset(songData);
-        await ingestAsset(mediaAsset, false); // false = insert (not upsert since it's new)
-        console.log('✅ Audio immediately ingested into LanceDB', songId);
-      } catch (ingErr) {
-        console.error('❌ Audio immediate ingestion failed', (ingErr as any)?.message || ingErr);
-        // Fallback to queue
-        try {
-          await enqueueAnalysisJob({
-            assetId: songId,
-            mediaType: 'audio',
-            title: songData.title,
-            s3Url: songData.s3_url,
-            cloudflareUrl: songData.cloudflare_url,
-            requestedAt: Date.now(),
-            stage: 'post_labeling_ingestion'
-          });
-          console.log('📤 Fallback: Enqueued audio ingestion job for', songId);
-        } catch (queueErr) {
-          console.error('❌ Both immediate and queue ingestion failed', queueErr);
-        }
+        await enqueueAnalysisJob({
+          assetId: songId,
+          mediaType: 'audio',
+          title: songData.title,
+          s3Url: songData.s3_url,
+          cloudflareUrl: songData.cloudflare_url,
+          requestedAt: Date.now(),
+          stage: 'post_labeling_ingestion'
+        });
+        console.log('📤 Enqueued audio ingestion job for', songId);
+      } catch (err) {
+        console.error('Failed to enqueue audio ingestion job', err);
+        // Do not block the upload completion on enqueue failure
       }
 
     return NextResponse.json({

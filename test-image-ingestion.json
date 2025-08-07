@@ -1,0 +1,7 @@
+{
+  "Records": [
+    {
+      "body": "{\"assetId\":\"634e1f75-786b-47e7-aae4-9902da28a0af\",\"mediaType\":\"image\",\"title\":\"black_female_fro\",\"s3Url\":\"https://hh-bot-images-2025-prod.s3.amazonaws.com/images/1754590495095-abcdef-black_female_fro.png\",\"cloudflareUrl\":\"https://drbs5yklwtho3.cloudfront.net/images/1754590495095-abcdef-black_female_fro.png\",\"requestedAt\":1754590500000,\"stage\":\"post_labeling_ingestion\"}"
+    }
+  ]
+}

@@ -91,28 +91,18 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // IMMEDIATE upsert to LanceDB - same as upload but with upsert=true to replace existing row
+    // Use SQS worker for upsert (has latest deduplication logic) 
     try {
-      const { convertSongToAudioAsset } = await import('@/lib/media-storage');
-      const { ingestAsset } = await import('@/lib/ingestion');
-      const mediaAsset = convertSongToAudioAsset(songData);
-      await ingestAsset(mediaAsset, true); // true = upsert (delete existing + insert)
-      console.log('✅ Audio PATCH immediately upserted into LanceDB', id);
-    } catch (ingErr) {
-      console.error('❌ Audio PATCH immediate upsert failed', (ingErr as any)?.message || ingErr);
-      // Fallback to queue
-      try {
-        const { enqueueAnalysisJob } = await import('@/lib/queue');
-        await enqueueAnalysisJob({
-          assetId: id,
-          mediaType: 'audio',
-          requestedAt: Date.now(),
-          stage: 'post_labeling_ingestion'
-        });
-        console.log('📤 Fallback: Enqueued audio PATCH job for', id);
-      } catch (queueErr) {
-        console.error('❌ Both immediate and queue PATCH failed', queueErr);
-      }
+      const { enqueueAnalysisJob } = await import('@/lib/queue');
+      await enqueueAnalysisJob({
+        assetId: id,
+        mediaType: 'audio',
+        requestedAt: Date.now(),
+        stage: 'refresh'
+      });
+      console.log('📤 Enqueued audio PATCH refresh job for', id);
+    } catch (err) {
+      console.error('Failed to enqueue audio refresh job', err);
     }
 
     return NextResponse.json(songData);
