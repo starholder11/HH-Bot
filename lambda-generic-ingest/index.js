@@ -58,6 +58,7 @@ exports.handler = async (event) => {
         case 'audio':
         case 'video':
         case 'keyframe':
+        case 'keyframe_still':
           await handleAsset(msg);
           break;
         default:
