@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMediaAsset, updateMediaAsset, deleteMediaAsset } from '@/lib/media-storage';
+import { getMediaAsset, updateMediaAsset, deleteMediaAsset, MediaAsset, KeyframeStill } from '@/lib/media-storage';
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function GET(
     }
 
     // First try to get as regular media asset
-    let asset = await getMediaAsset(id);
+    let asset: MediaAsset | KeyframeStill | null = await getMediaAsset(id);
 
     // If not found, try to get as keyframe asset
     if (!asset) {
