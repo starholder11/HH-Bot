@@ -107,7 +107,8 @@ async function handleAsset(job) {
     asset = await res.json();
   }
 
-  const isRefresh = job.stage === 'refresh';
+  // Treat initial and post_labeling_ingestion as upsert to avoid duplicates
+  const isRefresh = job.stage === 'refresh' || job.stage === 'initial' || job.stage === 'post_labeling_ingestion';
   await ingestAsset(asset, isRefresh);
   console.log(`[generic-worker] ${isRefresh ? 'Upserted' : 'Ingested'} asset ${job.assetId}`);
 }

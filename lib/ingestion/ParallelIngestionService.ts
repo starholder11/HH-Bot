@@ -121,6 +121,22 @@ export class ParallelIngestionService {
       }
     }
 
+    // Optimize for single-record operations and ensure robust upsert behavior
+    if (records.length === 1) {
+      const rec = records[0];
+      console.log(`📤 Using /add for single record id=${rec.id}`);
+      const res = await this.processWithRetry(() => fetch(`${this.LANCEDB_API_URL}/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rec),
+      }));
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`LanceDB add failed: ${res.status} ${txt}`);
+      }
+      return;
+    }
+
     const batches = Math.ceil(records.length / this.BATCH_SIZE);
     for (let i = 0; i < records.length; i += this.BATCH_SIZE) {
       const batch = records.slice(i, i + this.BATCH_SIZE);
