@@ -167,7 +167,8 @@ export class ParallelIngestionService {
 
   /* --------- MediaAsset → ContentItem helper -------- */
     static mediaAssetToContentItem(asset: MediaAsset): ContentItem {
-    const parts: string[] = [asset.title];
+    const parts: string[] = [];
+    // Title belongs in title field; do not mix into searchable_text redundantly
 
     // Handle audio-specific content (lyrics and prompt)
     if (asset.media_type === 'audio') {
@@ -179,7 +180,7 @@ export class ParallelIngestionService {
       }
       
       // Always add prompt if it exists
-      if (audioAsset.prompt) {
+      if (audioAsset.prompt && audioAsset.prompt.trim().length > 0) {
         parts.push(audioAsset.prompt);
       }
     }
@@ -215,6 +216,12 @@ export class ParallelIngestionService {
         s3_url: asset.s3_url,
         cloudflare_url: asset.cloudflare_url,
         media_type: asset.media_type,
+        // Include audio metadata that helps dedupe and search
+        ...(asset.media_type === 'audio' ? {
+          title: asset.title,
+          lyrics_present: !!(asset as any).lyrics,
+          prompt_present: !!(asset as any).prompt,
+        } : {}),
       },
     };
   }

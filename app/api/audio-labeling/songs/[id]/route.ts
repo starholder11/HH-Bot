@@ -57,11 +57,24 @@ export async function PATCH(
     if (updates.title !== undefined) {
       songData.title = updates.title;
     }
-    if (updates.prompt !== undefined) {
-      songData.prompt = updates.prompt;
+    // Prompt: ignore accidental empty-string wipes; allow explicit null to clear
+    if (Object.prototype.hasOwnProperty.call(updates, 'prompt')) {
+      const incoming = updates.prompt;
+      if (incoming === null) {
+        songData.prompt = '';
+      } else if (typeof incoming === 'string') {
+        const trimmed = incoming.trim();
+        if (trimmed.length > 0) {
+          songData.prompt = incoming;
+        }
+        // else ignore to preserve existing prompt
+      }
     }
-    if (updates.lyrics !== undefined) {
-      songData.lyrics = updates.lyrics;
+    // Lyrics: accept updates, but avoid setting undefined
+    if (Object.prototype.hasOwnProperty.call(updates, 'lyrics')) {
+      if (typeof updates.lyrics === 'string') {
+        songData.lyrics = updates.lyrics;
+      }
     }
     if (updates.project_id !== undefined) {
       songData.project_id = updates.project_id;
