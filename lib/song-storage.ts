@@ -81,12 +81,17 @@ export async function getSong(id: string): Promise<any | null> {
       const body = await streamToString(obj.Body as Readable);
       return JSON.parse(body);
     } catch (err: any) {
-      // Log and fall back to local filesystem for ANY failure (including 404)
-      console.warn('getSong: S3 fetch failed, falling back to local', err?.name || err);
+      // CRITICAL FIX: Do NOT fall back to local filesystem in production
+      // Local files are stale and will corrupt the data when patches are applied
+      if (isProd) {
+        console.error('getSong: S3 fetch failed in production - returning null', err?.name || err);
+        return null;
+      }
+      console.warn('getSong: S3 fetch failed in dev, falling back to local', err?.name || err);
     }
   }
 
-  // Local fallback
+  // Local fallback (dev only)
   const filePath = path.join(process.cwd(), 'audio-sources', 'data', `${id}.json`);
   try {
     const content = await fs.readFile(filePath, 'utf-8');
