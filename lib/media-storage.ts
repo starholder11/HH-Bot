@@ -1065,8 +1065,57 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
   const startTime = Date.now();
 
   try {
-    // First, ensure we have the S3 key list cached
-    const allKeys = await getCachedS3Keys();
+    // Get all S3 keys (reuse logic from listMediaAssets)
+    let allKeys: string[];
+    
+    if (hasBucket) {
+      const s3 = getS3Client();
+      const bucket = getBucketName();
+      const now = Date.now();
+
+      // Use cached keys if available and fresh
+      if (!isProd && s3KeysCache && (now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL)) {
+        allKeys = s3KeysCache.keys;
+      } else {
+        // Fetch fresh keys from S3
+        const fetched: { key: string; lastModified: Date }[] = [];
+        let continuationToken: string | undefined = undefined;
+
+        do {
+          const resp = await s3.send(
+            new ListObjectsV2Command({
+              Bucket: bucket,
+              Prefix: PREFIX,
+              MaxKeys: 1000,
+              ContinuationToken: continuationToken,
+            })
+          );
+
+          if (resp.Contents) {
+            for (const obj of resp.Contents) {
+              if (obj.Key && obj.LastModified) {
+                fetched.push({ key: obj.Key, lastModified: obj.LastModified });
+              }
+            }
+          }
+
+          continuationToken = resp.NextContinuationToken;
+        } while (continuationToken);
+
+        allKeys = fetched.map(f => f.key);
+        
+        // Cache the keys
+        if (!isProd) {
+          s3KeysCache = { keys: allKeys, fetchedAt: now };
+        }
+      }
+    } else {
+      // Fallback to local filesystem
+      const mediaAssetsResult = await listMediaAssets(undefined, { loadAll: true });
+      allKeys = mediaAssetsResult.assets
+        .filter(asset => asset.media_type === 'keyframe_still')
+        .map(asset => `${PREFIX}keyframes/${asset.id}.json`);
+    }
 
     // Filter for keyframe JSON files
     const keyframeKeys = allKeys.filter(key =>
