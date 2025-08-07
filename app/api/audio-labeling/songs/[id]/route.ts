@@ -91,19 +91,9 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // Use SQS worker for upsert (has latest deduplication logic) 
-    try {
-      const { enqueueAnalysisJob } = await import('@/lib/queue');
-      await enqueueAnalysisJob({
-        assetId: id,
-        mediaType: 'audio',
-        requestedAt: Date.now(),
-        stage: 'refresh'
-      });
-      console.log('📤 Enqueued audio PATCH refresh job for', id);
-    } catch (err) {
-      console.error('Failed to enqueue audio refresh job', err);
-    }
+    // TEMPORARILY DISABLED: PATCH ingestion to prevent more duplicates until LanceDB upsert is fixed
+    console.log('⚠️  PATCH ingestion temporarily disabled to prevent duplicates');
+    // TODO: Re-enable once LanceDB service has proper delete/upsert logic deployed
 
     return NextResponse.json(songData);
   } catch (error) {
