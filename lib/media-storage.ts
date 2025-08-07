@@ -1065,86 +1065,59 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
   const startTime = Date.now();
 
   try {
-    // Get all S3 keys (reuse logic from listMediaAssets)
-    let allKeys: string[];
+    // PERFORMANCE FIX: Use listMediaAssets to leverage existing S3 caching instead of doing separate S3 scan
+    const mediaAssetsResult = await listMediaAssets(undefined, { loadAll: true });
+    const keyframeAssets = mediaAssetsResult.assets.filter(asset => asset.media_type === 'keyframe_still');
     
-    if (hasBucket) {
-      const s3 = getS3Client();
-      const bucket = getBucketName();
-      const now = Date.now();
-
-      // Use cached keys if available and fresh
-      if (!isProd && s3KeysCache && (now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL)) {
-        allKeys = s3KeysCache.keys;
-      } else {
-        // Fetch fresh keys from S3
-        const fetched: { key: string; lastModified: Date }[] = [];
-        let continuationToken: string | undefined = undefined;
-
-        let pagesFetched = 0;
-        do {
-          const resp: ListObjectsV2CommandOutput = await s3.send(
-            new ListObjectsV2Command({
-              Bucket: bucket,
-              // BUGFIX: Only list keyframes, not the entire PREFIX tree
-              Prefix: `${PREFIX}keyframes/`,
-              MaxKeys: 1000,
-              ContinuationToken: continuationToken,
-            })
-          );
-
-          if (resp.Contents) {
-            for (const obj of resp.Contents) {
-              if (obj.Key && obj.LastModified) {
-                fetched.push({ key: obj.Key, lastModified: obj.LastModified });
-              }
-            }
-          }
-
-          continuationToken = resp.NextContinuationToken;
-          pagesFetched += 1;
-          // Revert hard cap; fetch all pages to restore previous behavior
-        } while (continuationToken);
-
-        allKeys = fetched.map(f => f.key);
-        
-        // Cache the keys (also in prod to reduce cold starts for subsequent requests)
-        s3KeysCache = { keys: allKeys, fetchedAt: now };
-      }
-    } else {
-      // Fallback to local filesystem
-      const mediaAssetsResult = await listMediaAssets(undefined, { loadAll: true });
-      allKeys = mediaAssetsResult.assets
-        .filter(asset => asset.media_type === 'keyframe_still')
-        .map(asset => `${PREFIX}keyframes/${asset.id}.json`);
-    }
-
-    // Filter for keyframe JSON files
-    const keyframeKeys = allKeys.filter(key =>
-      key.startsWith(`${PREFIX}keyframes/`) && key.endsWith('.json')
-    );
-
-    const keyframes: KeyframeStill[] = [];
-
-    for (const item of keyframeKeys) {
-      try {
-        const keyframeData = await getKeyframeAsset(
-          path.basename(item, '.json')
-        );
-
-        if (keyframeData) {
-          keyframes.push(keyframeData);
-        }
-      } catch (error) {
-        console.warn(`Failed to load keyframe ${item}:`, error);
-      }
-    }
+    // Convert MediaAssets to KeyframeStill format
+    const keyframes: KeyframeStill[] = keyframeAssets.map(asset => ({
+      id: asset.id,
+      parent_video_id: asset._keyframe_metadata?.parent_video_id || '',
+      project_id: asset.project_id,
+      media_type: 'keyframe_still' as const,
+      timestamp: asset._keyframe_metadata?.timestamp || '',
+      frame_number: asset._keyframe_metadata?.frame_number || 0,
+      filename: asset.filename,
+      title: asset.title,
+      s3_url: asset.s3_url,
+      cloudflare_url: asset.cloudflare_url,
+      reusable_as_image: true,
+      source_info: {
+        video_filename: asset._keyframe_metadata?.source_video || '',
+        timestamp: asset._keyframe_metadata?.timestamp || '',
+        frame_number: asset._keyframe_metadata?.frame_number || 0,
+        extraction_method: 'auto'
+      },
+      metadata: {
+        file_size: asset.metadata.file_size || 0,
+        format: asset.metadata.format || 'jpg',
+        resolution: {
+          width: asset.metadata.width || 1920,
+          height: asset.metadata.height || 1080
+        },
+        aspect_ratio: asset.metadata.aspect_ratio || '16:9',
+        color_profile: asset.metadata.color_space || 'sRGB',
+        quality: 0.8
+      },
+      ai_labels: asset.ai_labels,
+      manual_labels: asset.manual_labels,
+      processing_status: asset.processing_status,
+      timestamps: {
+        extracted: asset.created_at,
+        labeled_ai: asset.timestamps.labeled_ai,
+        labeled_reviewed: asset.timestamps.labeled_reviewed
+      },
+      labeling_complete: asset.labeling_complete
+    }));
 
     // Sort by extraction timestamp (newest first)
     keyframes.sort((a, b) => new Date(b.timestamps.extracted).getTime() - new Date(a.timestamps.extracted).getTime());
 
     // Update cache
-    keyframesCache = { keyframes: keyframes, fetchedAt: Date.now() };
+    keyframesCache = { keyframes, fetchedAt: Date.now() };
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[media-storage] Loaded ${keyframes.length} keyframes in ${elapsed}ms`);
 
     return keyframes;
 
