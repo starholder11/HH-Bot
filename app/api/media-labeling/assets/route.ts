@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 🔑 KEYFRAME INCLUSION (opt-in): Only include if explicitly requested via include_keyframes=true
-    if (includeKeyframes && !excludeKeyframes && !searchQuery && (!mediaType || mediaType === 'image')) {
+    if (!excludeKeyframes && !searchQuery && (!mediaType || mediaType === 'image')) {
       console.log(`[assets-api] Including keyframes for ${mediaType || 'all media'}`);
 
       try {

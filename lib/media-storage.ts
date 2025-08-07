@@ -1102,11 +1102,7 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
 
           continuationToken = resp.NextContinuationToken;
           pagesFetched += 1;
-          // Safety limit: do not fetch more than 5 pages on initial load
-          if (pagesFetched >= 5 && !loadAll) {
-            console.log('[media-storage] Early stop after 5 pages to reduce cold-start latency');
-            continuationToken = undefined;
-          }
+          // Revert hard cap; fetch all pages to restore previous behavior
         } while (continuationToken);
 
         allKeys = fetched.map(f => f.key);
