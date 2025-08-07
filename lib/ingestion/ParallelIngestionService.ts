@@ -90,7 +90,7 @@ export class ParallelIngestionService {
   /* -------------- LanceDB bulk insert --------------- */
   async bulkInsertToLanceDB(records: LanceDBRecord[], isUpsert: boolean = false): Promise<void> {
     console.log(`📤 Bulk ${isUpsert ? 'upserting' : 'inserting'} ${records.length} records to LanceDB...`);
-    
+
     // If upsert, delete existing records first
     if (isUpsert) {
       console.log(`🗑️  Deleting existing records for upsert...`);
@@ -101,7 +101,7 @@ export class ParallelIngestionService {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: record.id }),
           }));
-          
+
           if (!deleteRes.ok) {
             console.warn(`⚠️  Failed to delete existing record ${record.id}: ${deleteRes.status}`);
           } else {
@@ -116,7 +116,7 @@ export class ParallelIngestionService {
         }
       }
     }
-    
+
     const batches = Math.ceil(records.length / this.BATCH_SIZE);
     for (let i = 0; i < records.length; i += this.BATCH_SIZE) {
       const batch = records.slice(i, i + this.BATCH_SIZE);
