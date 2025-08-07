@@ -1101,6 +1101,11 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
       },
       ai_labels: asset.ai_labels,
       manual_labels: asset.manual_labels,
+      usage_tracking: {
+        times_reused: 0,
+        projects_used_in: [],
+        last_used: null
+      },
       processing_status: asset.processing_status,
       timestamps: {
         extracted: asset.created_at,
