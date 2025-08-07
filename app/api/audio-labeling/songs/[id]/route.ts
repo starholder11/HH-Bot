@@ -96,6 +96,12 @@ export async function PATCH(
       const { convertSongToAudioAsset } = await import('@/lib/media-storage');
       const { ingestAsset } = await import('@/lib/ingestion');
       const mediaAsset = convertSongToAudioAsset(songData);
+      
+      // TEMPORARY TEST: Add prompt to title to verify ingestion works
+      if (mediaAsset.prompt) {
+        mediaAsset.title = `${mediaAsset.title} - ${mediaAsset.prompt}`;
+      }
+      
       console.log('🔍 Audio asset for ingestion:', { id: mediaAsset.id, title: mediaAsset.title, hasLyrics: !!mediaAsset.lyrics, hasPrompt: !!mediaAsset.prompt });
       await ingestAsset(mediaAsset, true); // true = upsert (delete existing + insert)
       console.log('✅ Audio PATCH immediately upserted into LanceDB', id);
