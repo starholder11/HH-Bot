@@ -41,17 +41,45 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { s3Url, cloudflareUrl, key, originalFilename } = await request.json();
+    const raw = await request.json();
+    let { s3Url, cloudflareUrl, key, originalFilename } = raw as {
+      s3Url?: string;
+      cloudflareUrl?: string;
+      key?: string;
+      originalFilename?: string;
+    };
 
-    if (!s3Url || !cloudflareUrl || !key || !originalFilename) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    // Log the raw payload for debugging bad requests (safe fields only)
+    console.log('[audio-finish-upload] Incoming payload:', {
+      hasS3Url: !!s3Url,
+      hasCloudflareUrl: !!cloudflareUrl,
+      key,
+      originalFilename,
+    });
+
+    // We can reconstruct URLs from key, so only key and originalFilename are strictly required
+    if (!key || !originalFilename) {
+      return NextResponse.json({ error: 'Missing required parameters: key and originalFilename are required' }, { status: 400 });
+    }
+
+    // If s3Url is missing or obviously invalid, derive it from bucket + key
+    const bucketName = getBucketName();
+    if (!s3Url || /undefined/.test(s3Url)) {
+      s3Url = `https://${bucketName}.s3.amazonaws.com/${encodeURIComponent(key)}`;
+    }
+
+    // If cloudflareUrl is missing or obviously invalid, derive it from configured CDN; fallback to s3Url
+    const cdnDomain = process.env.CLOUDFLARE_DOMAIN || process.env.AWS_CLOUDFRONT_DOMAIN;
+    if (!cloudflareUrl || /undefined/.test(cloudflareUrl)) {
+      cloudflareUrl = cdnDomain
+        ? `https://${cdnDomain}/${encodeURIComponent(key)}`
+        : s3Url;
     }
 
     console.log('Completing upload for:', originalFilename, 'with key:', key);
 
     // Download the file from S3 to extract metadata
     const s3Client = getS3Client();
-    const bucketName = getBucketName();
 
     // Verify the S3 object exists and is readable before attempting download
     const isS3ObjectReady = await verifyS3ObjectExists(s3Client, bucketName, key);

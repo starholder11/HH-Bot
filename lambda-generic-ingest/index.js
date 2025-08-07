@@ -73,7 +73,7 @@ exports.handler = async (event) => {
 
 async function handleAsset(job) {
   let asset;
-  
+
   // For keyframes, fetch directly from S3 to avoid cache issues
   if (job.mediaType === 'keyframe_still' || job.mediaType === 'keyframe') {
     try {
@@ -106,7 +106,7 @@ async function handleAsset(job) {
     if (!res.ok) throw new Error(`Asset GET failed ${res.status}`);
     asset = await res.json();
   }
-  
+
   const isRefresh = job.stage === 'refresh';
   await ingestAsset(asset, isRefresh);
   console.log(`[generic-worker] ${isRefresh ? 'Upserted' : 'Ingested'} asset ${job.assetId}`);
