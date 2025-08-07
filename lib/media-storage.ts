@@ -1170,5 +1170,4 @@ export async function convertKeyframeToImageAsset(
   return imageAsset;
 }
 
-// keep re-export for clarity
-export { convertKeyframeToImageAsset, searchReusableKeyframes };
+// Functions are already exported above, no need to re-export
