@@ -91,13 +91,28 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // IMMEDIATE upsert to LanceDB - prompt and lyrics are now properly indexed
+    // IMMEDIATE upsert to LanceDB - get FULL song data after save to ensure all fields are included
     try {
+      const { getSong } = await import('@/lib/audio-storage');
       const { convertSongToAudioAsset } = await import('@/lib/media-storage');
       const { ingestAsset } = await import('@/lib/ingestion');
-      const mediaAsset = convertSongToAudioAsset(songData);
       
-      console.log('🔍 Audio asset for ingestion:', { id: mediaAsset.id, title: mediaAsset.title, hasLyrics: !!mediaAsset.lyrics, hasPrompt: !!mediaAsset.prompt });
+      // Get the complete song data after save to ensure we have ALL fields
+      const fullSongData = await getSong(id);
+      if (!fullSongData) {
+        throw new Error('Failed to reload song after save');
+      }
+      
+      const mediaAsset = convertSongToAudioAsset(fullSongData);
+      
+      console.log('🔍 Audio asset for ingestion (FULL DATA):', { 
+        id: mediaAsset.id, 
+        title: mediaAsset.title, 
+        hasLyrics: !!mediaAsset.lyrics, 
+        hasPrompt: !!mediaAsset.prompt,
+        lyricsLength: mediaAsset.lyrics?.length || 0,
+        promptLength: mediaAsset.prompt?.length || 0
+      });
       await ingestAsset(mediaAsset, true); // true = upsert (delete existing + insert)
       console.log('✅ Audio PATCH immediately upserted into LanceDB', id);
     } catch (ingErr) {
