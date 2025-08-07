@@ -66,6 +66,19 @@ export async function PATCH(
 
     console.log(`Successfully renamed ${asset.filename} to ${newFilename}`);
 
+          // Enqueue refresh ingestion job for renamed asset
+      try {
+        const { enqueueAnalysisJob } = await import('@/lib/queue');
+        await enqueueAnalysisJob({
+          assetId: updatedAsset.id,
+          mediaType: updatedAsset.media_type,
+          requestedAt: Date.now(),
+          stage: 'refresh'
+        });
+      } catch (err) {
+        console.error('Failed to enqueue refresh job', err);
+      }
+
     return NextResponse.json({
       success: true,
       asset: updatedAsset,

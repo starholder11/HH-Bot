@@ -87,6 +87,19 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
+    // Enqueue refresh ingestion job so LanceDB row updates
+    try {
+      const { enqueueAnalysisJob } = await import('@/lib/queue');
+      await enqueueAnalysisJob({
+        assetId: id,
+        mediaType: 'audio',
+        requestedAt: Date.now(),
+        stage: 'refresh'
+      });
+    } catch (err) {
+      console.error('Failed to enqueue audio refresh job', err);
+    }
+
     return NextResponse.json(songData);
   } catch (error) {
     console.error('Error updating song:', error);

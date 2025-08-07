@@ -49,6 +49,19 @@ export async function PATCH(
       );
     }
 
+          // Enqueue refresh ingestion job so LanceDB stays in sync
+      try {
+        const { enqueueAnalysisJob } = await import('@/lib/queue');
+        await enqueueAnalysisJob({
+          assetId: updatedAsset.id,
+          mediaType: updatedAsset.media_type,
+          requestedAt: Date.now(),
+          stage: 'refresh'
+        });
+      } catch (err) {
+        console.error('Failed to enqueue refresh job', err);
+      }
+
     return NextResponse.json(updatedAsset);
   } catch (error) {
     console.error('Error updating asset:', error);
