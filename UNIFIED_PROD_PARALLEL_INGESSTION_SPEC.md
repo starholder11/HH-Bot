@@ -25,7 +25,7 @@ flowchart TD
         Q --> W2(Video-Processor Lambda)
     end
 
-    W2 -- key-frames + video JSON --> Q           
+    W2 -- key-frames + video JSON --> Q
     W1 --> PIS[ParallelIngestionService]
     PIS --> Lance[(LanceDB /bulk-add)]
 ```

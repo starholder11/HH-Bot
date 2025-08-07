@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
 
     // Save the video asset
     await saveMediaAsset(videoId, videoAsset);
-    
+
     // Clear cache so new upload appears immediately in file manager
     clearS3KeysCache();
 

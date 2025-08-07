@@ -47,7 +47,7 @@ function calculateAspectRatio(width: number, height: number): string {
 
 async function extractImageMetadata(imageBuffer: Buffer): Promise<ImageMetadata> {
   console.log('Extracting metadata from image buffer of size:', imageBuffer.length);
-  
+
   // For now, use basic fallback metadata to avoid Sharp issues
   // TODO: Re-enable Sharp when serverless environment is properly configured
   const metadata: ImageMetadata = {
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     // Save image data
     console.log('Saving image data for:', title);
     await saveMediaAsset(imageId, imageData);
-    
+
     // Clear cache so new upload appears immediately in file manager
     clearS3KeysCache();
 

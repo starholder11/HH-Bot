@@ -30,7 +30,6 @@ export interface LanceDBRecord {
  *  existing CLI scripts continue to work without changes.
  */
 export class ParallelIngestionService {
-  private openai: OpenAI;
   private readonly LANCEDB_API_URL: string;
   private readonly CONCURRENCY_LIMIT = 50;  // Based on OpenAI rate limits
   private readonly BATCH_SIZE = 20;         // LanceDB insert size (smaller to avoid ALB/EPIPE errors)
@@ -41,8 +40,15 @@ export class ParallelIngestionService {
   private minuteStartTime = Date.now();
 
   constructor() {
-    this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.LANCEDB_API_URL = process.env.LANCEDB_API_URL || 'http://localhost:8000';
+  }
+
+  private getOpenAIClient(): OpenAI {
+    const apiKey = (process.env.OPENAI_API_KEY || '').replace(/\s+/g, '');
+    if (!apiKey || apiKey.includes('your_ope')) {
+      throw new Error('OPENAI_API_KEY environment variable is not set correctly at runtime');
+    }
+    return new OpenAI({ apiKey });
   }
 
   /* ---------------- Rate-limit helper ---------------- */
@@ -79,7 +85,7 @@ export class ParallelIngestionService {
     return out;
   }
 
-  async generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
+    async generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
     const valid = this.chunkAndValidateTexts(texts);
     console.log(`🧠 Generating embeddings for ${valid.length} text chunks (from ${texts.length} originals)…`);
 
@@ -93,14 +99,23 @@ export class ParallelIngestionService {
 
       await this.waitForRateLimit();
       try {
-        const resp = await this.openai.embeddings.create({
+        const openai = this.getOpenAIClient();
+        console.log(`[OpenAI] Calling embeddings.create with model: text-embedding-3-small`);
+        const resp = await openai.embeddings.create({
           model: 'text-embedding-3-small',
           input: slice,
           encoding_format: 'float',
         });
+        console.log(`[OpenAI] Response received: ${resp.data.length} embeddings`);
         result.push(...resp.data.map(d => d.embedding));
         this.requestsThisMinute++;
       } catch (err: any) {
+        console.error(`[OpenAI] Error details:`, {
+          message: err.message,
+          status: err.status,
+          code: err.code,
+          type: err.type
+        });
         if (err?.message?.includes('maximum context length')) {
           console.log('⏭️  chunk too large – skipping');
           result.push(...new Array(slice.length).fill(null));

@@ -13,7 +13,7 @@ function isImageAsset(asset: MediaAsset | KeyframeStill): asset is MediaAsset & 
 // ignored, resulting in 401 "your_ope************here" errors.
 
 export function getOpenAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = (process.env.OPENAI_API_KEY || '').replace(/\s+/g, '');
   if (!apiKey || apiKey.includes('your_ope')) {
     throw new Error('OPENAI_API_KEY environment variable is not set correctly at runtime');
   }

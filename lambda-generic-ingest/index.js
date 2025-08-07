@@ -4,13 +4,10 @@
 
 const https = require('https');
 const { URL } = require('url');
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 // bundle-friendly import – compiled ParallelIngestionService is included in the layer or zip
 const { ingestAsset } = require('../lib/ingestion');
 const { ParallelIngestionService } = require('../lib/ingestion');
-
-const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
 
 /** Basic fetch helper that works inside the Lambda runtime without node-fetch */
 function fetch(url, opts = {}) {
