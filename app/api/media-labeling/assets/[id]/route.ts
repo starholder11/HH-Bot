@@ -12,7 +12,14 @@ export async function GET(
       return NextResponse.json({ error: 'Asset ID is required' }, { status: 400 });
     }
 
-    const asset = await getMediaAsset(id);
+    // First try to get as regular media asset
+    let asset = await getMediaAsset(id);
+
+    // If not found, try to get as keyframe asset
+    if (!asset) {
+      const { getKeyframeAsset } = await import('@/lib/media-storage');
+      asset = await getKeyframeAsset(id);
+    }
 
     if (!asset) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
