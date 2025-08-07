@@ -158,24 +158,32 @@ export class ParallelIngestionService {
     const parts: string[] = [asset.title];
 
     if (asset.media_type === 'audio') {
+      // Cast to AudioAsset to access lyrics and prompt properties
+      const audioAsset = asset as any;
       console.log('🔍 Audio asset debug:', {
         id: asset.id,
         title: asset.title,
-        hasLyricsProperty: 'lyrics' in asset,
-        lyricsValue: (asset as any).lyrics,
-        lyricsType: typeof (asset as any).lyrics,
-        hasPromptProperty: 'prompt' in asset,
-        promptValue: (asset as any).prompt,
-        promptType: typeof (asset as any).prompt
+        lyricsValue: audioAsset.lyrics,
+        lyricsLength: audioAsset.lyrics?.length || 0,
+        promptValue: audioAsset.prompt,
+        promptLength: audioAsset.prompt?.length || 0,
+        allKeys: Object.keys(audioAsset)
       });
       
-      if ('lyrics' in asset && (asset as any).lyrics) {
-        parts.push((asset as any).lyrics);
+      // Add lyrics if present and non-empty
+      if (audioAsset.lyrics && audioAsset.lyrics.trim()) {
+        parts.push(audioAsset.lyrics);
         console.log('✅ Added lyrics to searchable content');
+      } else {
+        console.log('⚠️ No lyrics or empty lyrics');
       }
-      if ('prompt' in asset && (asset as any).prompt) {
-        parts.push((asset as any).prompt);
+      
+      // Add prompt if present and non-empty  
+      if (audioAsset.prompt && audioAsset.prompt.trim()) {
+        parts.push(audioAsset.prompt);
         console.log('✅ Added prompt to searchable content');
+      } else {
+        console.log('⚠️ No prompt or empty prompt');
       }
     }
 
@@ -200,6 +208,17 @@ export class ParallelIngestionService {
     addLabels(asset.manual_labels?.custom_tags);
 
     const combinedText = parts.filter(p => p && p.trim()).join('\n');
+
+    if (asset.media_type === 'audio') {
+      console.log('🔍 Final audio content item:', {
+        id: asset.id,
+        title: asset.title,
+        partsCount: parts.length,
+        parts: parts.map(p => p.substring(0, 50) + '...'),
+        combinedTextLength: combinedText.length,
+        combinedTextPreview: combinedText.substring(0, 200) + '...'
+      });
+    }
 
     return {
       id: asset.id,
