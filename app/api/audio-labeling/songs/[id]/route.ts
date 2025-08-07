@@ -91,32 +91,34 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // IMMEDIATE upsert to LanceDB - get FULL song data after save to ensure all fields are included
+    // IMMEDIATE upsert to LanceDB - ensure we get complete current song data before ingesting
     try {
       const { getSong } = await import('@/lib/song-storage');
       const { convertSongToAudioAsset } = await import('@/lib/media-storage');
       const { ingestAsset } = await import('@/lib/ingestion');
       
-      // Get the complete song data after save to ensure we have ALL fields
-      const fullSongData = await getSong(id);
-      if (!fullSongData) {
-        throw new Error('Failed to reload song after save');
+      // Load the fresh song data from disk to ensure we have ALL current fields
+      const currentSongData = await getSong(id);
+      if (!currentSongData) {
+        console.error('❌ Could not reload song data after save for ingestion');
+        return NextResponse.json(songData);
       }
       
-      const mediaAsset = convertSongToAudioAsset(fullSongData);
+      const mediaAsset = convertSongToAudioAsset(currentSongData);
       
-      console.log('🔍 Audio asset for ingestion (FULL DATA):', { 
+      console.log('🔍 Audio PATCH ingestion with current data:', { 
         id: mediaAsset.id, 
         title: mediaAsset.title, 
+        lyrics: mediaAsset.lyrics?.substring(0, 50) + '...', 
+        prompt: mediaAsset.prompt?.substring(0, 50) + '...',
         hasLyrics: !!mediaAsset.lyrics, 
-        hasPrompt: !!mediaAsset.prompt,
-        lyricsLength: mediaAsset.lyrics?.length || 0,
-        promptLength: mediaAsset.prompt?.length || 0
+        hasPrompt: !!mediaAsset.prompt
       });
+      
       await ingestAsset(mediaAsset, true); // true = upsert (delete existing + insert)
-      console.log('✅ Audio PATCH immediately upserted into LanceDB', id);
+      console.log('✅ Audio PATCH upserted to LanceDB successfully');
     } catch (ingErr) {
-      console.error('❌ Audio PATCH immediate upsert failed', (ingErr as any)?.message || ingErr);
+      console.error('❌ Audio PATCH ingestion failed:', (ingErr as any)?.message || ingErr);
     }
 
     return NextResponse.json(songData);
