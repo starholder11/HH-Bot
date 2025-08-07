@@ -1070,4 +1070,35 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
 
     // Filter for keyframe JSON files
     const keyframeKeys = allKeys.filter(key =>
-      key.startsWith(`
+      key.startsWith(`${PREFIX}keyframes/`) && key.endsWith('.json')
+    );
+
+    const keyframes: KeyframeStill[] = [];
+
+    for (const item of keyframeKeys) {
+      try {
+        const keyframeData = await getKeyframeAsset(
+          path.basename(item.Key, '.json')
+        );
+
+        if (keyframeData) {
+          keyframes.push(keyframeData);
+        }
+      } catch (error) {
+        console.warn(`Failed to load keyframe ${item.Key}:`, error);
+      }
+    }
+
+    // Sort by creation date (newest first)
+    keyframes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Update cache
+    keyframesCache = { keyframes: keyframes, fetchedAt: Date.now() };
+
+    return keyframes;
+
+  } catch (error) {
+    console.error('Error loading all keyframes:', error);
+    return [];
+  }
+}
