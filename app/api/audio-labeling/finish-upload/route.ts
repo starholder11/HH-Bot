@@ -5,6 +5,7 @@ import { extractMP3Metadata } from '@/lib/mp3-metadata';
 import { clearS3KeysCache } from '@/lib/media-storage';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { enqueueAnalysisJob } from '@/lib/queue';
 
 // Helper function to verify S3 object exists and is readable
 async function verifyS3ObjectExists(s3Client: any, bucketName: string, key: string, maxRetries: number = 3): Promise<boolean> {
@@ -158,9 +159,26 @@ export async function POST(request: NextRequest) {
     // Save song JSON
     await saveSong(songId, songData);
     console.log('Saved song data for:', songData.title);
-    
+
     // Clear cache so new upload appears immediately in file manager
     clearS3KeysCache();
+
+      // Enqueue ingestion job for LanceDB (handled by generic worker)
+      try {
+        await enqueueAnalysisJob({
+          assetId: songId,
+          mediaType: 'audio',
+          title: songData.title,
+          s3Url: songData.s3_url,
+          cloudflareUrl: songData.cloudflare_url,
+          requestedAt: Date.now(),
+          stage: 'initial'
+        });
+        console.log('📤 Enqueued audio ingestion job for', songId);
+      } catch (err) {
+        console.error('Failed to enqueue audio ingestion job', err);
+        // Do not block the upload completion on enqueue failure
+      }
 
     return NextResponse.json({
       success: true,
