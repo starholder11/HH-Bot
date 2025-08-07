@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
           s3Url: songData.s3_url,
           cloudflareUrl: songData.cloudflare_url,
           requestedAt: Date.now(),
-          stage: 'initial'
+          stage: 'post_labeling_ingestion'
         });
         console.log('📤 Enqueued audio ingestion job for', songId);
       } catch (err) {

@@ -247,7 +247,7 @@ export type MediaAsset = ImageAsset | VideoAsset | AudioAsset | KeyframeAsset;
 /**
  * Convert existing audio song to new AudioAsset format
  */
-function convertSongToAudioAsset(song: any): AudioAsset {
+export function convertSongToAudioAsset(song: any): AudioAsset {
   return {
     id: song.id,
     filename: song.filename,

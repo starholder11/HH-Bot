@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMediaAsset, updateMediaAsset, deleteMediaAsset, MediaAsset, KeyframeStill } from '@/lib/media-storage';
+import { getSong } from '@/lib/song-storage';
+import { convertSongToAudioAsset } from '@/lib/media-storage';
 
 export async function GET(
   request: NextRequest,
@@ -19,6 +21,14 @@ export async function GET(
     if (!asset) {
       const { getKeyframeAsset } = await import('@/lib/media-storage');
       asset = await getKeyframeAsset(id);
+    }
+
+    // If still not found, try audio songs store (convert to MediaAsset)
+    if (!asset) {
+      const song = await getSong(id);
+      if (song) {
+        asset = convertSongToAudioAsset(song);
+      }
     }
 
     if (!asset) {
