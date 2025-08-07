@@ -255,6 +255,8 @@ export function convertSongToAudioAsset(song: any): AudioAsset {
     cloudflare_url: song.cloudflare_url,
     title: song.title,
     media_type: 'audio' as const,
+    lyrics: song.lyrics || '',
+    prompt: song.prompt || '',
     metadata: {
       duration: song.metadata?.duration || 0,
       bitrate: song.metadata?.bitrate || 0,
