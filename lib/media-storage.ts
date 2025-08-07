@@ -1072,7 +1072,7 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
     // Convert MediaAssets to KeyframeStill format
     const keyframes: KeyframeStill[] = keyframeAssets.map(asset => ({
       id: asset.id,
-      parent_video_id: asset._keyframe_metadata?.parent_video_id || '',
+      parent_video_id: asset._keyframe_metadata?.source_video || '',
       project_id: asset.project_id,
       media_type: 'keyframe_still' as const,
       timestamp: asset._keyframe_metadata?.timestamp || '',
