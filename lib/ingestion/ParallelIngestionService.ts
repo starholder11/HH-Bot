@@ -88,7 +88,35 @@ export class ParallelIngestionService {
   }
 
   /* -------------- LanceDB bulk insert --------------- */
-  async bulkInsertToLanceDB(records: LanceDBRecord[]): Promise<void> {
+  async bulkInsertToLanceDB(records: LanceDBRecord[], isUpsert: boolean = false): Promise<void> {
+    console.log(`📤 Bulk ${isUpsert ? 'upserting' : 'inserting'} ${records.length} records to LanceDB...`);
+    
+    // If upsert, delete existing records first
+    if (isUpsert) {
+      console.log(`🗑️  Deleting existing records for upsert...`);
+      for (const record of records) {
+        try {
+          const deleteRes = await this.processWithRetry(() => fetch(`${this.LANCEDB_API_URL}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: record.id }),
+          }));
+          
+          if (!deleteRes.ok) {
+            console.warn(`⚠️  Failed to delete existing record ${record.id}: ${deleteRes.status}`);
+          } else {
+            const deleteResult = await deleteRes.json();
+            if (deleteResult.deleted > 0) {
+              console.log(`🗑️  Deleted ${deleteResult.deleted} existing record(s) for ${record.id}`);
+            }
+          }
+        } catch (deleteErr) {
+          console.warn(`⚠️  Delete failed for ${record.id}:`, deleteErr);
+          // Continue with insert even if delete fails
+        }
+      }
+    }
+    
     const batches = Math.ceil(records.length / this.BATCH_SIZE);
     for (let i = 0; i < records.length; i += this.BATCH_SIZE) {
       const batch = records.slice(i, i + this.BATCH_SIZE);
@@ -108,7 +136,7 @@ export class ParallelIngestionService {
   }
 
   /* ---------------- Main ingestion ------------------ */
-  async ingestWithOptimizations(items: ContentItem[]): Promise<void> {
+  async ingestWithOptimizations(items: ContentItem[], isUpsert: boolean = false): Promise<void> {
     const start = Date.now();
     const embeddings = await this.generateEmbeddingsBatch(items.map(i => i.combinedText));
 
@@ -126,8 +154,8 @@ export class ParallelIngestionService {
       } as LanceDBRecord;
     }).filter(Boolean) as LanceDBRecord[];
 
-    await this.bulkInsertToLanceDB(records);
-    console.log(`✅ Ingested ${records.length} records in ${((Date.now()-start)/1000).toFixed(1)}s`);
+    await this.bulkInsertToLanceDB(records, isUpsert);
+    console.log(`✅ ${isUpsert ? 'Upserted' : 'Ingested'} ${records.length} records in ${((Date.now()-start)/1000).toFixed(1)}s`);
   }
 
   /* --------- MediaAsset → ContentItem helper -------- */

@@ -45,8 +45,8 @@ exports.handler = async (event) => {
       console.log('[generic-worker] Processing message', msg);
 
       // Only process LanceDB ingestion messages, not video processing or other jobs
-      if (msg.stage !== 'post_labeling_ingestion' && msg.mediaType !== 'text') {
-        console.log('[generic-worker] Skipping non-ingestion message (missing stage: post_labeling_ingestion)');
+      if (!['post_labeling_ingestion', 'refresh'].includes(msg.stage) && msg.mediaType !== 'text') {
+        console.log('[generic-worker] Skipping non-ingestion message (missing valid stage)');
         continue;
       }
 
@@ -76,8 +76,9 @@ async function handleAsset(job) {
   const res = await fetch(`${baseUrl}/api/media-labeling/assets/${job.assetId}`);
   if (!res.ok) throw new Error(`Asset GET failed ${res.status}`);
   const asset = await res.json();
-  await ingestAsset(asset);
-  console.log(`[generic-worker] Ingested asset ${job.assetId}`);
+  const isRefresh = job.stage === 'refresh';
+  await ingestAsset(asset, isRefresh);
+  console.log(`[generic-worker] ${isRefresh ? 'Upserted' : 'Ingested'} asset ${job.assetId}`);
 }
 
 async function handleText(job) {

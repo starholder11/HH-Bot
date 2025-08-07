@@ -221,6 +221,22 @@ function normalizeEmbedding(inp) {
     }
   });
 
+  // Delete records by ID for upsert operations
+  app.post('/delete', async (req, res) => {
+    try {
+      const { id } = req.body;
+      if (!id) {
+        return res.status(400).json({ error: 'id is required' });
+      }
+      const deletedCount = await table.delete(`id = '${id}'`);
+      console.log(`🗑️  Deleted ${deletedCount} records with id: ${id}`);
+      res.json({ status: 'deleted', deleted: deletedCount, id });
+    } catch (error) {
+      console.error('❌ /delete failed', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Export ALL records for bulk transfer (no search, just dump everything)
   app.get('/export-all', async (_, res) => {
     try {

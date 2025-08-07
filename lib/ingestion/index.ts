@@ -4,10 +4,10 @@ import { ParallelIngestionService } from './ParallelIngestionService';
 const sharedSvc = new ParallelIngestionService();
 
 /** Ingest or upsert one MediaAsset JSON into LanceDB */
-export async function ingestAsset(asset: MediaAsset) {
+export async function ingestAsset(asset: MediaAsset, isRefresh: boolean = false) {
   await sharedSvc.ingestWithOptimizations([
     ParallelIngestionService.mediaAssetToContentItem(asset),
-  ]);
+  ], isRefresh);
 }
 
 /** Ingest plain text (e.g., MDX document) */
