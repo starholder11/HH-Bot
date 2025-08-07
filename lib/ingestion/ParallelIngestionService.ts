@@ -125,6 +125,18 @@ export class ParallelIngestionService {
     if (records.length === 1) {
       const rec = records[0];
       console.log(`📤 Using /add for single record id=${rec.id}`);
+      // Ensure delete-first semantics client-side as well
+      if (isUpsert) {
+        try {
+          await this.processWithRetry(() => fetch(`${this.LANCEDB_API_URL}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: rec.id }),
+          }));
+        } catch (e) {
+          console.warn(`⚠️  Pre-delete failed for id=${rec.id}`, e);
+        }
+      }
       const res = await this.processWithRetry(() => fetch(`${this.LANCEDB_API_URL}/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

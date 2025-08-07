@@ -91,7 +91,7 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // Upsert directly to LanceDB and enqueue refresh for durability
+    // Upsert directly to LanceDB (delete-first) and enqueue for durability
     try {
       const { convertSongToAudioAsset } = await import('@/lib/media-storage');
       const { ingestAsset } = await import('@/lib/ingestion');
@@ -106,7 +106,7 @@ export async function PATCH(
         assetId: id,
         mediaType: 'audio',
         requestedAt: Date.now(),
-        stage: 'refresh'
+        stage: 'post_labeling_ingestion'
       });
     } catch (err) {
       console.error('Failed to enqueue audio refresh job', err);

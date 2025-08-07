@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { saveSong } from '@/lib/song-storage';
 import { extractMP3Metadata } from '@/lib/mp3-metadata';
-import { clearS3KeysCache, convertSongToAudioAsset } from '@/lib/media-storage';
+import { clearS3KeysCache } from '@/lib/media-storage';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { enqueueAnalysisJob } from '@/lib/queue';
-import { ingestAsset } from '@/lib/ingestion';
 
 // Helper function to verify S3 object exists and is readable
 async function verifyS3ObjectExists(s3Client: any, bucketName: string, key: string, maxRetries: number = 3): Promise<boolean> {
@@ -201,21 +200,12 @@ export async function POST(request: NextRequest) {
           s3Url: songData.s3_url,
           cloudflareUrl: songData.cloudflare_url,
           requestedAt: Date.now(),
-          stage: 'refresh'
+          stage: 'post_labeling_ingestion'
         });
         console.log('📤 Enqueued audio ingestion job for', songId);
       } catch (err) {
         console.error('Failed to enqueue audio ingestion job', err);
         // Do not block the upload completion on enqueue failure
-      }
-
-      // Best-effort direct ingestion so uploads appear immediately in search (idempotent with refresh jobs)
-      try {
-        const mediaAsset = convertSongToAudioAsset(songData);
-        await ingestAsset(mediaAsset, true); // true => pre-delete any existing row and insert
-        console.log('✅ Directly ingested audio asset into LanceDB', songId);
-      } catch (ingErr) {
-        console.warn('⚠️  Direct audio ingestion failed (will rely on worker):', (ingErr as any)?.message || ingErr);
       }
 
     return NextResponse.json({
