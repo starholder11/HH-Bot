@@ -158,8 +158,25 @@ export class ParallelIngestionService {
     const parts: string[] = [asset.title];
 
     if (asset.media_type === 'audio') {
-      if ('lyrics' in asset && asset.lyrics) parts.push(asset.lyrics);
-      if ('prompt' in asset && asset.prompt) parts.push(asset.prompt);
+      console.log('🔍 Audio asset debug:', {
+        id: asset.id,
+        title: asset.title,
+        hasLyricsProperty: 'lyrics' in asset,
+        lyricsValue: (asset as any).lyrics,
+        lyricsType: typeof (asset as any).lyrics,
+        hasPromptProperty: 'prompt' in asset,
+        promptValue: (asset as any).prompt,
+        promptType: typeof (asset as any).prompt
+      });
+      
+      if ('lyrics' in asset && (asset as any).lyrics) {
+        parts.push((asset as any).lyrics);
+        console.log('✅ Added lyrics to searchable content');
+      }
+      if ('prompt' in asset && (asset as any).prompt) {
+        parts.push((asset as any).prompt);
+        console.log('✅ Added prompt to searchable content');
+      }
     }
 
     if (asset.media_type === 'video' && asset.ai_labels?.overall_analysis) {
