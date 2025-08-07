@@ -72,11 +72,41 @@ exports.handler = async (event) => {
 };
 
 async function handleAsset(job) {
-  const baseUrl = process.env.PUBLIC_API_BASE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://hh-bot-lyart.vercel.app');
-  const res = await fetch(`${baseUrl}/api/media-labeling/assets/${job.assetId}`);
-  if (!res.ok) throw new Error(`Asset GET failed ${res.status}`);
-  const asset = await res.json();
+  let asset;
+  
+  // For keyframes, fetch directly from S3 to avoid cache issues
+  if (job.mediaType === 'keyframe_still' || job.mediaType === 'keyframe') {
+    try {
+      console.log(`[generic-worker] Fetching keyframe ${job.assetId} directly from S3...`);
+      const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+      const s3Client = new S3Client({ region: 'us-east-1' });
+      const s3Key = `media-labeling/assets/keyframes/${job.assetId}.json`;
+      const command = new GetObjectCommand({
+        Bucket: 'hh-bot-images-2025-prod',
+        Key: s3Key
+      });
+      const s3Response = await s3Client.send(command);
+      const bodyText = await s3Response.Body.transformToString();
+      asset = JSON.parse(bodyText);
+      console.log(`[generic-worker] ✅ Fetched keyframe from S3: ${asset.title}`);
+    } catch (s3Error) {
+      console.warn(`[generic-worker] S3 fetch failed for keyframe ${job.assetId}:`, s3Error.message);
+      // Fallback to API
+      const baseUrl = process.env.PUBLIC_API_BASE_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://hh-bot-lyart.vercel.app');
+      const res = await fetch(`${baseUrl}/api/media-labeling/assets/${job.assetId}`);
+      if (!res.ok) throw new Error(`Asset GET failed ${res.status}`);
+      asset = await res.json();
+    }
+  } else {
+    // For regular media assets, use API
+    const baseUrl = process.env.PUBLIC_API_BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://hh-bot-lyart.vercel.app');
+    const res = await fetch(`${baseUrl}/api/media-labeling/assets/${job.assetId}`);
+    if (!res.ok) throw new Error(`Asset GET failed ${res.status}`);
+    asset = await res.json();
+  }
+  
   const isRefresh = job.stage === 'refresh';
   await ingestAsset(asset, isRefresh);
   console.log(`[generic-worker] ${isRefresh ? 'Upserted' : 'Ingested'} asset ${job.assetId}`);
