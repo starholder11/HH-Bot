@@ -96,6 +96,17 @@ function normalizeEmbedding(inp) {
       if (!emb || emb.length !== DIM) {
         return res.status(400).json({ error: `embedding must be number[${DIM}]` });
       }
+      // Ensure idempotency: remove any existing rows for this id before insert
+      if (record.id) {
+        try {
+          const deletedCount = await table.delete(`id = '${record.id}'`);
+          if (deletedCount > 0) {
+            console.log(`🗑️  /add: removed ${deletedCount} existing row(s) for id=${record.id}`);
+          }
+        } catch (delErr) {
+          console.warn('⚠️  /add: pre-delete failed for id', record.id, delErr?.message || delErr);
+        }
+      }
       // Build a clean object that matches the table schema exactly
       const clean = {
         id: record.id,
@@ -123,6 +134,23 @@ function normalizeEmbedding(inp) {
       }
 
       console.log(`📦 Bulk adding ${records.length} records...`);
+
+      // Upsert behavior: delete any existing rows for incoming ids first
+      try {
+        const uniqueIds = Array.from(new Set(records.map(r => r.id).filter(Boolean)));
+        for (const id of uniqueIds) {
+          try {
+            const deletedCount = await table.delete(`id = '${id}'`);
+            if (deletedCount > 0) {
+              console.log(`🗑️  /bulk-add: removed ${deletedCount} existing row(s) for id=${id}`);
+            }
+          } catch (delErr) {
+            console.warn('⚠️  /bulk-add: pre-delete failed for id', id, delErr?.message || delErr);
+          }
+        }
+      } catch (preErr) {
+        console.warn('⚠️  /bulk-add: pre-delete phase encountered an error', preErr?.message || preErr);
+      }
 
       // Validate and clean all records
       const cleanRecords = [];
