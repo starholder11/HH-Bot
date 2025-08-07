@@ -91,15 +91,6 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // Upsert directly to LanceDB (delete-first) and enqueue for durability
-    try {
-      const { convertSongToAudioAsset } = await import('@/lib/media-storage');
-      const { ingestAsset } = await import('@/lib/ingestion');
-      await ingestAsset(convertSongToAudioAsset(songData), true);
-    } catch (ingErr) {
-      console.warn('Audio direct upsert failed (will rely on queue):', (ingErr as any)?.message || ingErr);
-    }
-
     try {
       const { enqueueAnalysisJob } = await import('@/lib/queue');
       await enqueueAnalysisJob({

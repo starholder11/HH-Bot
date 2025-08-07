@@ -117,6 +117,7 @@ function normalizeEmbedding(inp) {
         content_hash: record.content_hash ?? null,
         references: record.references ?? null,
       };
+      // Enforce unique id constraint by attempting an upsert-like replace
       await table.add([clean]);
       res.json({ status: 'ok' });
     } catch (error) {

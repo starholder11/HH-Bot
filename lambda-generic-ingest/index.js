@@ -39,6 +39,7 @@ function fetch(url, opts = {}) {
 }
 
 exports.handler = async (event) => {
+  const seenIds = new Set();
   for (const record of event.Records) {
     try {
       const msg = JSON.parse(record.body);
@@ -49,6 +50,13 @@ exports.handler = async (event) => {
         console.log('[generic-worker] Skipping non-ingestion message (missing valid stage)');
         continue;
       }
+
+      // De-dup within a single batch by assetId
+      if (msg.assetId && seenIds.has(msg.assetId)) {
+        console.log('[generic-worker] Skipping duplicate in batch for', msg.assetId);
+        continue;
+      }
+      if (msg.assetId) seenIds.add(msg.assetId);
 
       switch (msg.mediaType) {
         case 'text':
