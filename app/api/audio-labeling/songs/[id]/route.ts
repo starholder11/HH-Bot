@@ -91,18 +91,16 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // Use SQS worker for upsert to test if that indexes prompt correctly
+    // IMMEDIATE upsert to LanceDB - now with working delete endpoint and fixed lyrics/prompt inclusion
     try {
-      const { enqueueAnalysisJob } = await import('@/lib/queue');
-      await enqueueAnalysisJob({
-        assetId: id,
-        mediaType: 'audio',
-        requestedAt: Date.now(),
-        stage: 'refresh'
-      });
-      console.log('📤 Enqueued audio PATCH refresh job for', id);
-    } catch (err) {
-      console.error('Failed to enqueue audio refresh job', err);
+      const { convertSongToAudioAsset } = await import('@/lib/media-storage');
+      const { ingestAsset } = await import('@/lib/ingestion');
+      const mediaAsset = convertSongToAudioAsset(songData);
+      console.log('🔍 Audio asset for ingestion:', { id: mediaAsset.id, title: mediaAsset.title, hasLyrics: !!mediaAsset.lyrics, hasPrompt: !!mediaAsset.prompt });
+      await ingestAsset(mediaAsset, true); // true = upsert (delete existing + insert)
+      console.log('✅ Audio PATCH immediately upserted into LanceDB', id);
+    } catch (ingErr) {
+      console.error('❌ Audio PATCH immediate upsert failed', (ingErr as any)?.message || ingErr);
     }
 
     return NextResponse.json(songData);
