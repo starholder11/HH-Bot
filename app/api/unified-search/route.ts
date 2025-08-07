@@ -88,7 +88,8 @@ export async function POST(request: NextRequest) {
     const queryEmbedding = embedData[0].embedding;
 
     // Call the LanceDB service specified by env
-    const lancedbUrl = process.env.LANCEDB_API_URL || process.env.LANCEDB_URL || 'http://localhost:8000';
+    // Prefer LANCEDB_URL (public-facing) for Vercel; fall back to internal API URL for Lambdas/local
+const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'http://localhost:8000';
 
     try {
       const searchResponse = await fetch(`${lancedbUrl}/search`, {
