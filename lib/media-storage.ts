@@ -1127,7 +1127,7 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
     for (const item of keyframeKeys) {
       try {
         const keyframeData = await getKeyframeAsset(
-          path.basename(item.Key, '.json')
+          path.basename(item, '.json')
         );
 
         if (keyframeData) {
