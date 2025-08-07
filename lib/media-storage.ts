@@ -1082,7 +1082,7 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
         let continuationToken: string | undefined = undefined;
 
         do {
-          const resp = await s3.send(
+          const resp: ListObjectsV2CommandOutput = await s3.send(
             new ListObjectsV2Command({
               Bucket: bucket,
               Prefix: PREFIX,
