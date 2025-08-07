@@ -91,20 +91,13 @@ export async function PATCH(
 
     await saveSong(id, songData);
 
-    // IMMEDIATE upsert to LanceDB - ensure we get complete current song data before ingesting
+    // IMMEDIATE upsert to LanceDB - use songData which already has ALL current fields
     try {
-      const { getSong } = await import('@/lib/song-storage');
       const { convertSongToAudioAsset } = await import('@/lib/media-storage');
       const { ingestAsset } = await import('@/lib/ingestion');
       
-      // Load the fresh song data from disk to ensure we have ALL current fields
-      const currentSongData = await getSong(id);
-      if (!currentSongData) {
-        console.error('❌ Could not reload song data after save for ingestion');
-        return NextResponse.json(songData);
-      }
-      
-      const mediaAsset = convertSongToAudioAsset(currentSongData);
+      // songData is the complete, updated song object - use it directly
+      const mediaAsset = convertSongToAudioAsset(songData);
       
       console.log('🔍 Audio PATCH ingestion with current data:', { 
         id: mediaAsset.id, 
