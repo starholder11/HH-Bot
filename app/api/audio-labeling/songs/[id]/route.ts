@@ -93,7 +93,7 @@ export async function PATCH(
 
     // IMMEDIATE upsert to LanceDB - get FULL song data after save to ensure all fields are included
     try {
-      const { getSong } = await import('@/lib/audio-storage');
+      const { getSong } = await import('@/lib/song-storage');
       const { convertSongToAudioAsset } = await import('@/lib/media-storage');
       const { ingestAsset } = await import('@/lib/ingestion');
       
