@@ -207,6 +207,20 @@ const MODELS: FalModel[] = [
 ]
 
 export async function GET() {
+  // Optional: remote JSON catalog via env while FAL lacks a public listing
+  const remote = process.env.FAL_MODELS_JSON_URL;
+  if (remote) {
+    try {
+      const res = await fetch(remote, { cache: 'no-store' as any });
+      if (res.ok) {
+        const json = await res.json();
+        const models = Array.isArray(json) ? json : json.models;
+        if (Array.isArray(models) && models.length > 0) {
+          return NextResponse.json({ models });
+        }
+      }
+    } catch {}
+  }
   return NextResponse.json({ models: MODELS })
 }
 

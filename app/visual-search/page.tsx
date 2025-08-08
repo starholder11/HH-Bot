@@ -294,6 +294,7 @@ function GenerationPanel({
   const [genPreviewUrl, setGenPreviewUrl] = useState<string | null>(null);
   const [genText, setGenText] = useState<string | null>(null);
   const [category, setCategory] = useState<null | FalModel['category']>('image');
+  const [advancedModelId, setAdvancedModelId] = useState<string>('');
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase();
@@ -319,6 +320,7 @@ function GenerationPanel({
         if (init[k] == null && def.default != null) init[k] = def.default;
       });
       setValues(init);
+      setAdvancedModelId(selected.id);
     }
   }, [selected]);
 
@@ -341,7 +343,7 @@ function GenerationPanel({
       const mode = categoryToMode(selected.category);
       const body = {
         mode,
-        model: selected.id,
+        model: advancedModelId || selected.id,
         prompt,
         refs,
         options: Object.fromEntries(Object.entries(values).filter(([k]) => k !== 'prompt')),
@@ -354,12 +356,25 @@ function GenerationPanel({
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || 'Generation failed');
 
-      const url: string | undefined = json.url || json.result?.images?.[0]?.url || json.result?.image?.url || json.result?.audio?.url;
-      if (mode === 'text') {
+      // Try multiple common locations for media URL
+      const candidates = [
+        json.url,
+        json.result?.url,
+        json.result?.images?.[0]?.url,
+        json.result?.image?.url,
+        json.result?.audio?.url,
+        json.result?.output?.url,
+        json.result?.output?.[0]?.url,
+        json.result?.output?.[0]?.content?.[0]?.url,
+        json.result?.outputs?.[0]?.url,
+        json.result?.data?.[0]?.url,
+      ].filter(Boolean) as string[];
+      const url = candidates[0];
+
+      if (mode === 'text' || !url) {
         setGenText(JSON.stringify(json.result, null, 2));
-      } else if (url) {
-        setGenPreviewUrl(url);
       }
+      if (url) setGenPreviewUrl(url);
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -466,6 +481,15 @@ function GenerationPanel({
       {/* Input fields appear only after model selection */}
       {selected && (
         <div className="mt-4 space-y-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-neutral-400">Model ID (advanced)</label>
+            <input
+              value={advancedModelId}
+              onChange={(e) => setAdvancedModelId(e.target.value)}
+              className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+              placeholder="fal-ai/fast-sdxl"
+            />
+          </div>
           <FieldRenderer schema={selected.inputSchema} values={values} setValues={setValues} />
           <div className="flex gap-2">
             <button
@@ -509,6 +533,12 @@ function GenerationPanel({
           )}
           {genText && selected.category === 'text' && (
             <pre className="mt-2 max-h-48 overflow-auto text-xs border border-neutral-800 rounded-md p-2 bg-neutral-950 text-neutral-200">{genText}</pre>
+          )}
+          {genText && selected.category !== 'text' && !genPreviewUrl && (
+            <details className="mt-2">
+              <summary className="text-xs text-neutral-400 cursor-pointer">Show raw result</summary>
+              <pre className="mt-2 max-h-48 overflow-auto text-xs border border-neutral-800 rounded-md p-2 bg-neutral-950 text-neutral-200">{genText}</pre>
+            </details>
           )}
         </div>
       )}
