@@ -233,10 +233,25 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         if (bumpIfContains(r)) r.score += 0.15;
       }
 
+      // Apply content type filtering to final results
+      const filterByContentTypes = (results: SearchResult[]) => {
+        if (content_types.length === 0) return results;
+        
+        return results.filter(r => {
+          const mediaTypes = ['video', 'image', 'audio'];
+          const matches = content_types.includes(r.content_type) ||
+            (content_types.includes('media') && mediaTypes.includes(r.content_type));
+          return matches;
+        });
+      };
+
+      const filteredMedia = filterByContentTypes(finalMedia);
+      const filteredText = filterByContentTypes(finalText);
+
       const groupedResults = {
-        media: finalMedia,
-        text: finalText,
-        all: [...finalMedia, ...finalText].sort((a, b) => b.score - a.score).slice(0, limit),
+        media: filteredMedia,
+        text: filteredText,
+        all: [...filteredMedia, ...filteredText].sort((a, b) => b.score - a.score).slice(0, limit),
       };
 
       const responseData = {
