@@ -1088,7 +1088,7 @@ export default function VisualSearchPage() {
             <GenerationPanel
               pinned={pinned}
               onPinResult={onPin}
-              onGenStart={() => setTab('output') || undefined}
+              onGenStart={() => setTab('output')}
               onGenResult={(m, url, raw) => {
                 setTab('output');
                 setGenMode(m);
