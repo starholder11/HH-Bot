@@ -20,13 +20,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'model is required' }, { status: 400 })
     }
 
-    if (subscribe) {
-      const result = await fal.subscribe(model, {
-        input,
-        logs: true,
-        onQueueUpdate: () => {},
-      } as any)
-      return NextResponse.json({ success: true, result })
+    // Prefer subscribe to handle long-running jobs; fall back to run
+    try {
+      if (subscribe !== false) {
+        const result = await fal.subscribe(model, {
+          input,
+          logs: true,
+          onQueueUpdate: () => {},
+        } as any)
+        return NextResponse.json({ success: true, result })
+      }
+    } catch (subErr: any) {
+      console.warn('[api/fal] subscribe failed, falling back to run:', subErr?.message || subErr)
     }
 
     const result = await fal.run(model, { input } as any)

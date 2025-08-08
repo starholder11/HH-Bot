@@ -36,8 +36,13 @@ export async function POST(req: NextRequest) {
     // Basic input shaping; pass prompt and refs; allow options passthrough
     const input: any = { prompt, refs, ...options }
 
-    const result = await fal.run(selectedModel, { input } as any)
-    const anyResult: any = result as any
+    // Prefer subscribe to accommodate queueing/long jobs
+    let anyResult: any
+    try {
+      anyResult = await fal.subscribe(selectedModel, { input, logs: true, onQueueUpdate: () => {} } as any)
+    } catch {
+      anyResult = await fal.run(selectedModel, { input } as any)
+    }
 
     // Persist outputs to S3 when applicable
     if (mode === 'image') {

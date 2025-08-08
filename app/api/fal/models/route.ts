@@ -19,6 +19,8 @@ type FalModel = {
   defaults?: Record<string, any>
 }
 
+// Extended curated list. If FAL exposes an official listing endpoint later,
+// this route can be switched to fetch and map that response.
 const MODELS: FalModel[] = [
   {
     id: 'fal-ai/fast-sdxl',
@@ -40,6 +42,25 @@ const MODELS: FalModel[] = [
       },
     },
     defaults: { width: 1024, height: 1024, guidance_scale: 7, steps: 25 },
+  },
+  {
+    id: 'fal-ai/sdxl-turbo',
+    name: 'SDXL Turbo (Image, Fast)',
+    provider: 'fal',
+    category: 'image',
+    description: 'Turbo-tuned SDXL for very fast drafts',
+    inputSchema: {
+      type: 'object',
+      required: ['prompt'],
+      properties: {
+        prompt: { type: 'string', title: 'Prompt' },
+        width: { type: 'number', title: 'Width', default: 1024 },
+        height: { type: 'number', title: 'Height', default: 1024 },
+        steps: { type: 'number', title: 'Steps', default: 8 },
+        seed: { type: 'number', title: 'Seed' },
+      },
+    },
+    defaults: { width: 1024, height: 1024, steps: 8 },
   },
   {
     id: 'fal-ai/flux/dev',
@@ -80,6 +101,44 @@ const MODELS: FalModel[] = [
     defaults: { width: 1024, height: 1024, steps: 8 },
   },
   {
+    id: 'fal-ai/realvisxl',
+    name: 'RealVis XL (Photorealistic)',
+    provider: 'fal',
+    category: 'image',
+    description: 'Photorealistic SDXL derivative tuned for realism',
+    inputSchema: {
+      type: 'object',
+      required: ['prompt'],
+      properties: {
+        prompt: { type: 'string', title: 'Prompt' },
+        width: { type: 'number', title: 'Width', default: 1024 },
+        height: { type: 'number', title: 'Height', default: 1024 },
+        steps: { type: 'number', title: 'Steps', default: 24 },
+        seed: { type: 'number', title: 'Seed' },
+      },
+    },
+    defaults: { width: 1024, height: 1024, steps: 24 },
+  },
+  {
+    id: 'fal-ai/playground-v2',
+    name: 'Playground v2 (Image)',
+    provider: 'fal',
+    category: 'image',
+    description: 'Versatile image generation model',
+    inputSchema: {
+      type: 'object',
+      required: ['prompt'],
+      properties: {
+        prompt: { type: 'string', title: 'Prompt' },
+        width: { type: 'number', title: 'Width', default: 1024 },
+        height: { type: 'number', title: 'Height', default: 1024 },
+        steps: { type: 'number', title: 'Steps', default: 28 },
+        seed: { type: 'number', title: 'Seed' },
+      },
+    },
+    defaults: { width: 1024, height: 1024, steps: 28 },
+  },
+  {
     id: 'fal-ai/image-to-video',
     name: 'Image to Video',
     provider: 'fal',
@@ -94,6 +153,22 @@ const MODELS: FalModel[] = [
       },
     },
     defaults: { duration: 4 },
+  },
+  {
+    id: 'fal-ai/text-to-video',
+    name: 'Text to Video',
+    provider: 'fal',
+    category: 'video',
+    description: 'Generate short video clips from a text prompt',
+    inputSchema: {
+      type: 'object',
+      required: ['prompt'],
+      properties: {
+        prompt: { type: 'string', title: 'Prompt' },
+        duration: { type: 'number', title: 'Duration (s)', default: 5 },
+      },
+    },
+    defaults: { duration: 5 },
   },
   {
     id: 'fal-ai/tts',
