@@ -330,6 +330,11 @@ function GenerationPanel({
     if (!selected) return;
     const prompt = values.prompt || values.text || '';
     if (!prompt || busy) return;
+    // Notify parent to show Output tab with spinner
+    if (typeof window !== 'undefined') {
+      try { (window as any).__onGenStart?.(); } catch {}
+    }
+    handleGenStart();
     setBusy(true);
     setGenPreviewUrl(null);
     setGenText(null);
@@ -375,6 +380,8 @@ function GenerationPanel({
         setGenText(JSON.stringify(json.result, null, 2));
       }
       if (url) setGenPreviewUrl(url);
+      // propagate to parent right-pane state
+      handleGenResult(mode, url, json.result ?? json);
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -758,6 +765,12 @@ export default function VisualSearchPage() {
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
   const [zCounter, setZCounter] = useState(10);
   const canvasRef = useRef<HTMLDivElement | null>(null);
+  // Right pane tab and generation output state
+  const [rightTab, setRightTab] = useState<'results' | 'canvas' | 'output'>('results');
+  const [genLoading, setGenLoading] = useState(false);
+  const [genUrl, setGenUrl] = useState<string | null>(null);
+  const [genMode, setGenMode] = useState<'image' | 'video' | 'audio' | 'text' | null>(null);
+  const [genRaw, setGenRaw] = useState<any>(null);
 
   useEffect(() => {
     setResults(data?.results?.all || []);
@@ -820,6 +833,21 @@ export default function VisualSearchPage() {
 
   const clearCanvas = () => setPinned([]);
 
+  function handleGenStart() {
+    setGenLoading(true);
+    setGenUrl(null);
+    setGenRaw(null);
+    setRightTab('output');
+  }
+
+  function handleGenResult(mode: 'image' | 'video' | 'audio' | 'text', url: string | undefined, raw: any) {
+    setGenMode(mode);
+    setGenUrl(url || null);
+    setGenRaw(raw);
+    setGenLoading(false);
+    setRightTab('output');
+  }
+
   function RightPane({
     results,
     loading,
@@ -830,6 +858,14 @@ export default function VisualSearchPage() {
     pinned,
     movePinned,
     removePinned,
+    tab,
+    setTab,
+    genLoading,
+    genUrl,
+    genMode,
+    genRaw,
+    onPinGenerated,
+    onSaveGenerated,
   }: {
     results: UnifiedSearchResult[];
     loading: boolean;
@@ -840,9 +876,15 @@ export default function VisualSearchPage() {
     pinned: PinnedItem[];
     movePinned: (id: string, x: number, y: number) => void;
     removePinned: (id: string) => void;
+    tab: 'results' | 'canvas' | 'output';
+    setTab: (t: 'results' | 'canvas' | 'output') => void;
+    genLoading: boolean;
+    genUrl: string | null;
+    genMode: 'image' | 'video' | 'audio' | 'text' | null;
+    genRaw: any;
+    onPinGenerated: () => void;
+    onSaveGenerated: () => void;
   }) {
-    const [tab, setTab] = useState<'results' | 'canvas'>('results');
-
     return (
       <div className="lg:col-span-8">
         <div className="flex items-center justify-between">
@@ -866,6 +908,15 @@ export default function VisualSearchPage() {
             >
               Canvas
             </button>
+            <button
+              onClick={() => setTab('output')}
+              className={classNames(
+                'px-3 py-1.5 text-sm rounded-md border',
+                tab === 'output' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+              )}
+            >
+              Output
+            </button>
           </div>
         </div>
 
@@ -878,7 +929,7 @@ export default function VisualSearchPage() {
               <div className="col-span-full text-neutral-400 text-sm">Try a search to see results.</div>
             )}
           </div>
-        ) : (
+        ) : tab === 'canvas' ? (
           <div className="mt-3">
             <div className="text-sm text-neutral-400 mb-2">Canvas</div>
             <div
@@ -894,6 +945,56 @@ export default function VisualSearchPage() {
                 </div>
               )}
             </div>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {genLoading ? (
+              <div className="h-[640px] w-full flex items-center justify-center rounded-xl border border-neutral-800 bg-neutral-950">
+                <div className="flex items-center gap-3 text-neutral-300">
+                  <div className="w-5 h-5 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
+                  Generating…
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-neutral-800 p-3 bg-neutral-900/40">
+                {genUrl && genMode === 'image' && (
+                  <img src={genUrl} className="w-full max-h-[640px] object-contain rounded-md border border-neutral-800 bg-black" alt="output" />
+                )}
+                {genUrl && genMode === 'video' && (
+                  <video src={genUrl} controls className="w-full max-h-[640px] rounded-md border border-neutral-800 bg-black" />
+                )}
+                {genUrl && genMode === 'audio' && (
+                  <div className="p-4">
+                    <audio src={genUrl} controls className="w-full" />
+                  </div>
+                )}
+                {!genUrl && (
+                  <div className="text-sm text-neutral-400">No output URL found. See raw result below.</div>
+                )}
+
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={onPinGenerated}
+                    disabled={!genUrl || !genMode}
+                    className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+                  >
+                    Pin result
+                  </button>
+                  <button
+                    onClick={onSaveGenerated}
+                    disabled={!genUrl || !genMode}
+                    className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+                  >
+                    Save to library
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <details className="rounded-xl border border-neutral-800 bg-neutral-900/40">
+              <summary className="px-3 py-2 text-sm text-neutral-300 cursor-pointer">Show raw result</summary>
+              <pre className="p-3 text-xs text-neutral-200 whitespace-pre-wrap overflow-auto max-h-80">{JSON.stringify(genRaw, null, 2)}</pre>
+            </details>
           </div>
         )}
       </div>
@@ -979,6 +1080,43 @@ export default function VisualSearchPage() {
             pinned={pinned}
             movePinned={movePinned}
             removePinned={removePinned}
+            tab={rightTab}
+            setTab={setRightTab}
+            genLoading={genLoading}
+            genUrl={genUrl}
+            genMode={genMode}
+            genRaw={genRaw}
+            onPinGenerated={() => {
+              if (!genUrl || !genMode) return;
+              const r: UnifiedSearchResult = {
+                id: `generated-${Date.now()}`,
+                content_type: genMode,
+                title: 'Generated',
+                score: 1,
+                metadata: { source_url: genUrl },
+                url: genUrl,
+              } as any;
+              pinResult(r);
+            }}
+            onSaveGenerated={async () => {
+              if (!genUrl || !genMode) return;
+              const filename = `${genMode}-generated-${Date.now()}`;
+              try {
+                const resp = await fetch('/api/import/url', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url: genUrl, mediaType: genMode, originalFilename: filename }),
+                });
+                if (!resp.ok) {
+                  const j = await resp.json();
+                  alert(j?.error || 'Save failed');
+                } else {
+                  alert('Saved to library');
+                }
+              } catch (e) {
+                alert((e as Error).message);
+              }
+            }}
           />
         </div>
       </div>
