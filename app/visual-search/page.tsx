@@ -840,6 +840,15 @@ export default function VisualSearchPage() {
         pinResult(fake);
         setRightTab('canvas');
       },
+      showResults: (resp: any) => {
+        try {
+          const all: UnifiedSearchResult[] = resp?.results?.all || resp?.results || [];
+          if (Array.isArray(all) && all.length > 0) {
+            setResults(all);
+            setRightTab('results');
+          }
+        } catch {}
+      },
     };
   }, []);
 

@@ -18,7 +18,8 @@ const tools = {
       const res = await fetch(url || `/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}${typeParam}`, { method: 'GET' });
       if (!res.ok) throw new Error(`Unified search failed: ${res.status}`);
       const json = await res.json();
-      return json;
+      // Return a directive for the client to show results in the UI
+      return { action: 'showResults', payload: json };
     }
   }),
   generateMedia: tool({
