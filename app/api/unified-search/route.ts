@@ -99,7 +99,7 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         },
         body: JSON.stringify({
           query_embedding: queryEmbedding,
-          limit: Math.max(limit * 50, 500), // Fetch enough chunks to aggregate top-3 per doc
+          limit: Math.max(limit * 100, 1000), // Fetch more results to ensure we don't miss relevant items
         }),
       });
 
@@ -207,25 +207,19 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
           return queryTokens.some(t => titleLower.includes(t));
         }
 
-        // SEMANTIC SEARCH FIX: Be much more lenient since LanceDB already ranked by similarity
-        // For longer queries (like lyrics), just require ANY tokens to match
-        if (queryTokens.length > 5) {
+        // For multi-word queries, require at least 80% of tokens to match
+        if (queryTokens.length > 1) {
           const matchingTokens = queryTokens.filter(t => hay.includes(t)).length;
-          return matchingTokens >= Math.max(1, Math.ceil(queryTokens.length * 0.2)); // Only 20% need to match
+          return matchingTokens >= Math.ceil(queryTokens.length * 0.8);
         }
 
-        // For medium queries, require 50% of tokens to match
-        if (queryTokens.length > 2) {
-          const matchingTokens = queryTokens.filter(t => hay.includes(t)).length;
-          return matchingTokens >= Math.ceil(queryTokens.length * 0.5);
-        }
-
-        // Single/short queries use stricter logic
+        // Single word queries use original logic
         return queryTokens.every(t => hay.includes(t));
       };
 
-      const finalText = textResults.filter(tokenMatch).slice(0, limit);
-      const finalMedia = mediaResults.filter(tokenMatch).slice(0, limit);
+      // For semantic search, trust LanceDB's ranking and skip token filtering
+      const finalText = textResults.slice(0, limit);
+      const finalMedia = mediaResults.slice(0, limit);
 
       // Cheap keyword bump: if all query tokens appear in the preview (or title) give +0.15
       const bumpIfContains = (r: SearchResult) => {
