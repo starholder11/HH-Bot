@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       audio: 'fal-ai/tts',
       text: 'fal-ai/llama-3.1',
       // Use a known image→video model by default; require refs for video
-      video: 'fal-ai/image-to-video',
+      video: 'fal-ai/kling-video/v1.6/pro/image-to-video',
     }
 
     const selectedModel = model || defaults[mode]
