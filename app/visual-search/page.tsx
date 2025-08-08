@@ -3,6 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from 'next/dynamic';
 
+// Dynamically import AgentChat to avoid SSR issues
+const AgentChat = dynamic(() => import('../../components/AgentChat'), { ssr: false });
+
 type ContentType = "video" | "image" | "audio" | "text";
 
 type UnifiedSearchResult = {
@@ -1181,8 +1184,7 @@ export default function VisualSearchPage() {
             />
             <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-3">
               <div className="text-sm text-neutral-400 mb-2">Agent</div>
-              {/* Load client-only chat component dynamically to avoid SSR issues */}
-              {dynamic(() => import('../../components/AgentChat'), { ssr: false })({})}
+              <AgentChat />
             </div>
           </div>
 
