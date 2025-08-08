@@ -348,15 +348,23 @@ function GenerationPanel({
           // Try to select a model by id if present in loaded list
           const match = (models || []).find((m) => m.id === payload?.model);
           if (match) setSelected(match);
+          // Auto-run only after a model is selected and prompt exists
           if (payload?.autoRun) {
-            // slight delay to allow state to settle
-            setTimeout(() => { void handleGenerate(); }, 50);
+            const waitAndRun = () => {
+              const hasPrompt = !!(values.prompt || values.text || payload?.prompt);
+              if (hasPrompt && (match || selected)) {
+                setTimeout(() => { void handleGenerate(); }, 50);
+              } else {
+                setTimeout(waitAndRun, 50);
+              }
+            };
+            waitAndRun();
           }
         } catch {}
       },
     };
     return () => { try { delete (window as any).__genPanel; } catch {} };
-  }, [models, handleGenerate]);
+  }, [models, selected, values.prompt, values.text]);
 
   async function handleGenerate() {
     if (!selected) return;
@@ -876,7 +884,18 @@ export default function VisualSearchPage() {
       prepareGenerate: (payload: any) => {
         try {
           setRightTab('generate');
-          (window as any).__genPanel?.prepare?.(payload);
+          // Wait for the Generate tab to mount and expose __genPanel
+          let attempts = 0;
+          const tryPrepare = () => {
+            const gp = (window as any).__genPanel;
+            if (gp && typeof gp.prepare === 'function') {
+              gp.prepare(payload);
+            } else if (attempts < 15) {
+              attempts += 1;
+              setTimeout(tryPrepare, 100);
+            }
+          };
+          setTimeout(tryPrepare, 50);
         } catch {}
       },
       showOutput: (payload: any) => {
