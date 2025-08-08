@@ -46,12 +46,34 @@ export async function POST(req: NextRequest) {
       input.reference_images = input.reference_images || refs
     }
 
-    // Prefer subscribe to accommodate queueing/long jobs
+    async function runFal(modelId: string): Promise<any> {
+      try {
+        return await fal.subscribe(modelId, { input, logs: true, onQueueUpdate: () => {} } as any)
+      } catch (e) {
+        // Fallback to non-subscribe run
+        return await fal.run(modelId, { input } as any)
+      }
+    }
+
+    // Try requested model; if it fails, fall back to default for the mode
     let anyResult: any
     try {
-      anyResult = await fal.subscribe(selectedModel, { input, logs: true, onQueueUpdate: () => {} } as any)
-    } catch {
-      anyResult = await fal.run(selectedModel, { input } as any)
+      anyResult = await runFal(selectedModel)
+    } catch (err: any) {
+      const msg = (err?.message || '').toString().toLowerCase()
+      const defaultModel = defaults[mode]
+      if (selectedModel !== defaultModel) {
+        try {
+          const fallback = await runFal(defaultModel)
+          // Return result but annotate we used fallback
+          return NextResponse.json({ success: true, url: fallback?.video?.url || fallback?.images?.[0]?.url || fallback?.image?.url || fallback?.audio?.url || fallback?.data?.images?.[0]?.url || fallback?.data?.video?.url, result: fallback, note: `Requested model '${selectedModel}' failed (${msg || 'error'}). Fell back to default '${defaultModel}'.` })
+        } catch (err2: any) {
+          // If fallback also fails, return explicit error
+          return NextResponse.json({ error: `Generation failed for requested model '${selectedModel}' and default '${defaultModel}': ${(err2?.message || msg || 'Unknown error')}` }, { status: 500 })
+        }
+      }
+      // No alternative to try
+      return NextResponse.json({ error: `Generation failed: ${msg || 'Unknown error'}` }, { status: 500 })
     }
 
     // Persist outputs to S3 when applicable
@@ -99,10 +121,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, url: videoUrl, result: anyResult })
       }
     }
-    return NextResponse.json({ success: true, result: anyResult })
+    // If nothing matched, include a diagnostic hint so the UI can show more detail quickly
+    return NextResponse.json({ success: true, url: anyResult?.url || anyResult?.images?.[0]?.url || anyResult?.image?.url || anyResult?.audio?.url || anyResult?.data?.images?.[0]?.url, result: anyResult })
   } catch (err: any) {
     console.error('[api/generate] error:', err)
-    return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
+    return NextResponse.json({ error: err?.message || 'Unknown error', stack: process.env.NODE_ENV !== 'production' ? err?.stack : undefined }, { status: 500 })
   }
 }
 
