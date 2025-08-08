@@ -1,0 +1,83 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { fal } from '@fal-ai/client'
+import { uploadImage, uploadFile } from '@/lib/s3-upload'
+
+// High-level generation endpoint backed by FAL
+// Body: { mode: 'image'|'audio'|'text'|'video', model?: string, prompt: string, refs?: string[], options?: any }
+// For now, supports image and audio, returns persisted S3 URL and raw FAL result
+
+export async function POST(req: NextRequest) {
+  try {
+    const { mode, model, prompt, refs = [], options = {} } = await req.json()
+
+    if (!mode || !prompt) {
+      return NextResponse.json({ error: 'mode and prompt are required' }, { status: 400 })
+    }
+
+    const apiKey = (process.env.FAL_KEY || '').trim()
+    if (!apiKey) {
+      return NextResponse.json({ error: 'FAL_KEY not set' }, { status: 500 })
+    }
+    fal.config({ credentials: apiKey })
+
+    // Default models can be swapped later; these are popular text->image/audio entries on FAL
+    const defaults: Record<string, string> = {
+      image: 'fal-ai/fast-sdxl',
+      audio: 'fal-ai/tts',
+      text: 'fal-ai/llama-3.1',
+      video: 'fal-ai/image-to-video',
+    }
+
+    const selectedModel = model || defaults[mode]
+    if (!selectedModel) {
+      return NextResponse.json({ error: `No default model for mode ${mode}` }, { status: 400 })
+    }
+
+    // Basic input shaping; pass prompt and refs; allow options passthrough
+    const input: any = { prompt, refs, ...options }
+
+    const result = await fal.run(selectedModel, { input } as any)
+
+    // Persist outputs to S3 when applicable
+    if (mode === 'image') {
+      // Expecting image bytes/URL in result; try common fields
+      const imageBytes: string | undefined = (result?.images?.[0]?.b64_json) || result?.image?.b64_json
+      const imageUrl: string | undefined = result?.images?.[0]?.url || result?.image?.url
+
+      if (imageBytes) {
+        const buffer = Buffer.from(imageBytes, 'base64')
+        const uploaded = await uploadImage(buffer, { format: 'jpeg', quality: 90 })
+        return NextResponse.json({ success: true, url: uploaded.url, storage: uploaded, result })
+      }
+      if (imageUrl) {
+        // Optional: fetch and rehost; for now, return the URL directly
+        return NextResponse.json({ success: true, url: imageUrl, result })
+      }
+      return NextResponse.json({ success: true, result })
+    }
+
+    if (mode === 'audio') {
+      // Try common fields for audio
+      const audioB64: string | undefined = result?.audio?.b64_json || result?.b64_json
+      const audioUrl: string | undefined = result?.audio?.url || result?.url
+
+      if (audioB64) {
+        const buffer = Buffer.from(audioB64, 'base64')
+        const uploaded = await uploadFile(buffer, 'audio')
+        return NextResponse.json({ success: true, url: uploaded.url, storage: uploaded, result })
+      }
+      if (audioUrl) {
+        return NextResponse.json({ success: true, url: audioUrl, result })
+      }
+      return NextResponse.json({ success: true, result })
+    }
+
+    // For text/video, return raw for now (can persist later)
+    return NextResponse.json({ success: true, result })
+  } catch (err: any) {
+    console.error('[api/generate] error:', err)
+    return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
+  }
+}
+
+

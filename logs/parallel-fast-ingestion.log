@@ -1,0 +1,628 @@
+💾 Initial memory usage: 16.0MB
+🚀 PARALLEL COMPREHENSIVE INGESTION - OPTIMIZED FOR SPEED
+NaN
+
+📁 Step 1: Loading all content...
+📁 Loading media assets from S3...
+📄 Loading text content from GitHub repository...
+[media-storage] Loading assets with mediaType filter: all, page: 1, limit: 100, loadAll: true, excludeKeyframes: true
+[media-storage] Listing objects from S3 with pagination…
+📁 Found 352 timeline directories
+[media-storage] Found 1575 asset files (keyframes excluded), fetching 1000 JSON records for page 1
+[media-storage] Fetching and parsing 1000 JSON files from S3
+[media-storage] S3 loading completed in 6135ms: returned 670 assets (page 1) out of 1575 matching (mediaType=all)
+✅ Loaded 670 media assets from S3 (0 keyframes excluded)
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/00300c49-336f-4efb-8606-0ac95a5eceb1.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/01a5efe7-e6eb-4f96-8f5e-26802674792b.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/0238bdd8-0216-4650-815b-7b07546fe378.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/034e309a-0312-4e33-8f3f-00c93eaf7ed7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/062835c3-2dec-496b-9b57-796837e7c1d5.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/065715b1-8d37-463b-8de5-43a9b727d04f.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/085d48a5-4100-4d71-985b-4341691f06a4.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/0a5f56cf-396a-45e3-8d1a-08d4d98f08b1.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/0dbf8a51-8c05-4ae6-9596-98f56ea8ac18.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/0e83a64d-84c8-4cef-b2c5-59568b6dbc8c.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/10ed069f-3115-4265-910b-21c766ba855e.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/11ef79a6-d674-4e5b-8cab-b3068ca42eac.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/12fb9705-16ff-4cfa-a1d9-0ae3e47e8a51.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1322b973-5b8a-491c-ab9d-7ab5233eae0c.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1367e169-56ad-40e9-a307-bc5398d80063.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/15fb0aa9-9fec-44f8-b1bb-d64f2ed835b4.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1676a899-0781-4924-a8ca-79af6765b3e6.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/16b2e474-7560-4deb-af6a-60c2dcf75a12.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/180256f8-fa25-45cb-87ce-92cde1a942fc.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1b4209cb-ef28-4dfe-ac25-dcf7a993eb63.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1c405970-9a70-40c4-9367-59c00838d264.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1d9fcc1d-7b61-48f4-adf9-3c16c31f669c.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1eb7feac-b945-45cd-b62c-440f72e26d37.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1ed94e0c-0846-486d-b6ec-70dd816a7f1a.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/1f0d3980-3234-4998-ad2f-1919187de7f8.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/21f948ee-3165-444c-9685-948be650e9d6.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/22fde2fe-0835-4fba-b7c7-aaa72d472a34.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/240bf88e-0d99-4904-9635-46f69d8f78e5.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/24cf03cd-6f22-4d63-af4e-e7eae6cce43a.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/25ec0166-c355-4c5b-aab5-8a50e08b9a6a.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/27213994-b810-4564-9aef-fc4091802cb7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/28703251-4144-4732-8093-677f28c9b456.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/2ab10af5-1695-437b-8f24-b48f2ec121fa.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/30e498f1-a67a-4b54-ae37-885a4e0432eb.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/323d6853-36ee-4248-a7e0-0a107d79221d.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/34b06822-b7e6-4a0e-a4b5-31de9aec62a9.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/36b8f51c-d4b8-453e-9fa3-e693104eb6fc.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/3e380c56-6600-49e6-b0b8-2ed51cb34f17.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/3f8de297-7770-43e3-92b6-ae4b2a1b6c03.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/4080c50f-4332-44bd-8b93-0d053ab0e5b1.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/411d3a61-b063-49a3-a25c-08adacf42243.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/42220d63-466e-4914-b591-bfe0a80155ca.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/4291ef02-51dd-4761-a335-0ea4c91ff147.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/42c02173-a9f0-402b-bdd8-e91a5984d1be.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/45077507-e5d1-4c98-83cf-cfe7ba1cab61.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/4978214f-0dab-426d-b06b-4e3404dfbdfd.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/4d972998-8ec4-4caf-8074-244f4b1cc6fb.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/4db0289f-f79b-4de8-9b39-c59ebae873d8.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/51e9c308-7823-49f7-8c25-11a3bbb244cd.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/5210347d-db8c-48ba-8467-f6e266d9c635.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/56010576-5ce5-4da1-b5c1-0e13481861cd.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/566232a6-943b-4633-bff1-8ef353510b55.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/58bfee70-59c0-4e8c-ae4a-5fc3e48747b7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/5917ec4d-f7ff-459f-ad96-1801ce8b0bde.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/59dcfeb6-a2f1-4bfe-9cae-cb224539ce5e.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/5d154245-b840-4548-8ff6-6a667be2fff8.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/60c9d32e-087e-48ca-b7f2-3c1b85ebdaf2.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/60df9c45-0e73-47c0-9edc-d2c360dae340.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/61a39076-b061-41c6-b2ae-abfe3daedf50.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/635e4a4a-1810-4c80-96b1-23db22c5b7b5.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/6370a021-d418-4548-812a-f2a537f551e7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/67738976-698d-47f3-9115-42a27b81c1e1.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/6800c3bb-8dbe-4f0e-a3c0-febcadc0a09d.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/683a07ec-f09b-4a89-aa56-ed10c14e60c6.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/68bee25f-9013-47bd-a516-8bd6c8d1c588.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/6aeaf27a-4380-461e-8a9e-e17e8e19da79.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/6e6d18cc-fcce-49c5-8871-ae81fa48a7ec.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/700fd2d5-ed99-4a8b-9ffe-23c1e300886d.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/744016cb-13ec-4052-9a58-4e4a00d466c1.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/76b43633-82b0-448c-9094-17fe8f4d7fcf.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/7b09e797-22ac-4f62-9a81-4596ff305c4c.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/7c8314cb-5c86-4d45-8a23-6d5f5386cda2.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/7ff98d1e-ca55-4630-96ff-edee9d439932.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/83a65884-c985-4123-9f24-b4730d17b548.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/841b9673-f091-4292-ba99-188f04e33362.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/844e007f-0851-4c5d-a1f5-9ef60c3a1217.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/88449a50-74a9-4253-a37c-6814efc4cafc.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/8a39ecfc-082c-4005-98ef-e5fdc70d42bd.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/8af604c0-0cd6-4d94-ba88-c63cf94a714b.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/8c48078f-7942-4da6-9156-b2f3116a6b44.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/8c658a08-5869-471f-86b6-0343504b7052.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/906b0c90-1247-4db1-8c1d-a7ab76de5918.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/922453e0-fca8-4703-a6e3-7151c986d60f.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/933cc993-bc95-482f-8057-c026273278bf.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/93f84d77-3a7e-4755-9884-24cb70899cf6.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/945092ad-4cae-423d-812e-c1cacf373f43.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/9501c4bf-2f79-4736-9e02-85ee6a5f9074.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/952cf944-6894-4d1e-9441-27540dbf05c8.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/95b9ee8f-7189-48a1-89aa-f179b50ff512.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/96fb3070-81f9-488e-8449-c4734ad5c7d6.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/9700ca30-96ad-42c4-b4b8-bbf208751324.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/976d9e54-accf-40f5-86ee-544cc00bb192.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/97b8cc18-56b2-4e3f-9e89-5e2183b20e84.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/980083d4-a5b2-432b-bf3e-5a254ce38c63.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/9ad25ac5-85ec-42d4-8270-e91d15b3d413.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/9d38dec4-5a0d-4be8-a217-b75d0761f024.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/9fb2d6c3-04e6-404a-8017-2300a69b16b3.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/a1420347-8f53-4d86-bbfa-7961c9356f11.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/a1b7ed39-5e64-479b-bceb-4a171959164b.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/a36f0cb2-4af7-45e4-ad30-05f888aae85a.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/a3eceeba-95a7-4250-813a-8b6a77a25655.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/a65c7ac1-dd7e-4a28-8b9e-7923a1cc5852.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/a75c69be-5363-482e-b0ea-9efde7533439.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/a9f74829-afac-4f7a-9934-9daf89b2d39b.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/ace387d7-33f9-4c6f-9008-3031f1febd7b.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/adcc001d-2e86-4ab3-9f1b-bd8c1e236dab.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/ae16f411-44cf-41d7-991b-d1c9ad95c7e7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/b1428d2a-cda9-4256-aa46-80b0fe42639f.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/b3d7dd8e-a1de-4f58-b269-3cbac0dc1a04.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/b409e630-5fff-4019-90b0-1754fb3cae15.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/b5002a7f-c228-4919-abb9-15574e803a2c.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/b6e9a855-f5c8-49c0-b702-7dbf5b8e14a7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/bc93a296-c7b3-44d8-82eb-eeeec83eda24.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/bcf11f48-8525-4e60-8020-f1eec895cfde.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/bdd02e97-1e6d-4692-bff8-e7ed74cd6521.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/beb58062-0b11-4c08-8715-60c38e4ea5b0.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/bef0f415-1f0d-418f-a9c9-0f720f7839a9.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/bf9d5c07-3d33-455b-8e75-4ba76deeb5d5.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/c08c235c-fe8f-4495-82a8-7e90952fb278.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/c096b9f2-2ede-46d5-9270-9f4efb6de451.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/c700ee60-5b1d-4d35-b001-f8ddfcbacd96.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/c8f0d026-2540-4e2e-9db4-512cc55b8c30.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/c97f46d2-af84-496e-adbb-e099c6de9f72.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/c9a339fa-3c78-40c8-86c8-4a4c38eac181.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/ca1eff2f-0bde-4572-831e-32243ef2c511.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/cac7b20c-25e7-4332-a047-3e8a9cd187c1.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/cd055f55-6c16-4242-a1ff-da0623f3fbeb.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/d0081408-7383-4478-9359-f61baf35f1b7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/d610da59-a739-4155-bafe-7a26772face7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/d8b549f1-e42b-4141-bd8f-c27c1a2fd71a.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/d9f58761-1b47-4f46-adff-06cd2a8dbf76.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/dcd42c0d-d56d-4b0b-a67c-1bbdaecf5693.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/dd3f14e5-013f-409c-bf03-116fc65befb6.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/deaee48e-39e9-4688-93dd-4e94359e072f.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/e2025ea6-1304-4b4a-bf39-80043ad2e96a.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/e4ebc9f8-8c5a-4957-8592-28d9fdc3c10f.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/e67b81b4-2e01-48de-ba0b-b4e40644d763.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/e872f91d-2afb-4a9c-9f1a-db23154ad965.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/e91bd026-5c7d-46bc-92b7-c61809781c8a.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/e99032ae-3b01-4b83-a6b5-ab2045a4f82d.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/ea0b1c20-815e-48e3-ad6e-871075f4cfd0.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/ed06b324-21c7-4963-9a45-427884b20789.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/f3bd6308-19bf-4007-81d2-209a90ef0b42.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/f429fd2a-024a-44f3-9b92-ba0384fb1e43.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/f50927ce-e764-44af-b990-60832b3e2419.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/f81966b8-a956-4d6f-b59d-2e8db3936470.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/f90fe88d-0c6d-4f1b-b9fe-209fd6088cf1.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/fa702d7a-b4b0-4965-b80b-385158990fb8.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/faccfa05-98b8-4892-b0ff-3f85d8cfa8ef.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/fad7d8a2-50cb-45ef-83fd-be5d1071fa48.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/fb7c1da5-926f-43b3-98c1-644f3574d1a7.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/ff58ac66-41c5-4466-ab1e-bfed69985741.json'
+}
+getSong: fetching from S3 {
+  bucket: 'hh-bot-images-2025-prod',
+  key: 'audio-labeling/data/ffb1f603-e5cb-42b0-a4fc-76d927c6a958.json'
+}
+✅ Loaded 153 songs from S3
+🎵 Total assets loaded from S3: 823

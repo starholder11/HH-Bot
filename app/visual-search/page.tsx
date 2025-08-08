@@ -40,6 +40,23 @@ type PinnedItem = {
 
 const DEFAULT_LIMIT = 18;
 
+// ---------------- FAL Models Types ----------------
+type JsonSchema = {
+  type: 'object';
+  required?: string[];
+  properties: Record<string, any>;
+};
+
+type FalModel = {
+  id: string;
+  name: string;
+  provider: 'fal';
+  category: 'image' | 'audio' | 'video' | 'text';
+  description: string;
+  inputSchema: JsonSchema;
+  defaults?: Record<string, any>;
+};
+
 function classNames(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
@@ -127,6 +144,345 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
       <div className="mt-2 text-sm line-clamp-5 text-neutral-200">
         {r.preview || r.description || "No preview available"}
       </div>
+    </div>
+  );
+}
+
+function getResultMediaUrl(r: UnifiedSearchResult): string | undefined {
+  return (
+    (r.metadata?.cloudflare_url as string | undefined) ||
+    (r.metadata?.s3_url as string | undefined) ||
+    (r.url as string | undefined) ||
+    (r.s3_url as string | undefined) ||
+    (r.cloudflare_url as string | undefined)
+  );
+}
+
+function useFalModels() {
+  const [models, setModels] = useState<FalModel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/fal/models');
+        if (!res.ok) throw new Error(`Failed to load models: ${res.status}`);
+        const json = await res.json();
+        if (!cancelled) setModels(json.models || []);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Unknown error');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { models, loading, error } as const;
+}
+
+function FieldRenderer({
+  schema,
+  values,
+  setValues,
+}: {
+  schema: JsonSchema;
+  values: Record<string, any>;
+  setValues: (fn: (prev: Record<string, any>) => Record<string, any>) => void;
+}) {
+  const entries = Object.entries(schema.properties || {});
+  return (
+    <div className="space-y-3">
+      {entries.map(([key, def]) => {
+        const title: string = def.title || key;
+        const isRequired = schema.required?.includes(key);
+        const common = {
+          id: `fld-${key}`,
+          value: values[key] ?? '',
+          onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+            setValues((prev) => ({ ...prev, [key]: e.target.value })),
+        };
+
+        if (def.enum && Array.isArray(def.enum)) {
+          return (
+            <div key={key} className="flex flex-col gap-1">
+              <label htmlFor={common.id} className="text-xs text-neutral-400">
+                {title}{isRequired ? ' *' : ''}
+              </label>
+              <select
+                {...(common as any)}
+                className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+              >
+                <option value="">Select…</option>
+                {def.enum.map((opt: string) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          );
+        }
+
+        if (def.type === 'number' || typeof def.default === 'number') {
+          return (
+            <div key={key} className="flex flex-col gap-1">
+              <label htmlFor={common.id} className="text-xs text-neutral-400">
+                {title}{isRequired ? ' *' : ''}
+              </label>
+              <input
+                {...(common as any)}
+                type="number"
+                className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+              />
+            </div>
+          );
+        }
+
+        if (key.toLowerCase().includes('prompt') || def.type === 'string') {
+          const isTextArea = key.toLowerCase().includes('prompt') || (def.multiline as boolean);
+          if (isTextArea) {
+            return (
+              <div key={key} className="flex flex-col gap-1">
+                <label htmlFor={common.id} className="text-xs text-neutral-400">
+                  {title}{isRequired ? ' *' : ''}
+                </label>
+                <textarea
+                  {...(common as any)}
+                  rows={3}
+                  className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 resize-y"
+                />
+              </div>
+            );
+          }
+          return (
+            <div key={key} className="flex flex-col gap-1">
+              <label htmlFor={common.id} className="text-xs text-neutral-400">
+                {title}{isRequired ? ' *' : ''}
+              </label>
+              <input
+                {...(common as any)}
+                type="text"
+                className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+              />
+            </div>
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+}
+
+function GenerationPanel({
+  pinned,
+  onPinResult,
+}: {
+  pinned: PinnedItem[];
+  onPinResult: (r: UnifiedSearchResult) => void;
+}) {
+  const { models, loading } = useFalModels();
+  const [filter, setFilter] = useState('');
+  const [selected, setSelected] = useState<FalModel | null>(null);
+  const [values, setValues] = useState<Record<string, any>>({});
+  const [useRefs, setUseRefs] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [genPreviewUrl, setGenPreviewUrl] = useState<string | null>(null);
+  const [genText, setGenText] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = filter.toLowerCase();
+    return models.filter((m) =>
+      m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.category.toLowerCase().includes(q)
+    );
+  }, [models, filter]);
+
+  useEffect(() => {
+    if (!selected && models.length > 0) setSelected(models[0]);
+  }, [models, selected]);
+
+  useEffect(() => {
+    if (selected) {
+      const init: Record<string, any> = { ...(selected.defaults || {}) };
+      Object.entries(selected.inputSchema.properties || {}).forEach(([k, def]) => {
+        if (init[k] == null && def.default != null) init[k] = def.default;
+      });
+      setValues(init);
+    }
+  }, [selected]);
+
+  const categoryToMode = (c: FalModel['category']): 'image' | 'audio' | 'video' | 'text' => c;
+
+  async function handleGenerate() {
+    if (!selected) return;
+    const prompt = values.prompt || values.text || '';
+    if (!prompt || busy) return;
+    setBusy(true);
+    setGenPreviewUrl(null);
+    setGenText(null);
+    try {
+      const refs = useRefs
+        ? pinned
+            .map((p) => getResultMediaUrl(p.result))
+            .filter(Boolean)
+        : [];
+
+      const mode = categoryToMode(selected.category);
+      const body = {
+        mode,
+        model: selected.id,
+        prompt,
+        refs,
+        options: Object.fromEntries(Object.entries(values).filter(([k]) => k !== 'prompt')),
+      };
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Generation failed');
+
+      const url: string | undefined = json.url || json.result?.images?.[0]?.url || json.result?.image?.url || json.result?.audio?.url;
+      if (mode === 'text') {
+        setGenText(JSON.stringify(json.result, null, 2));
+      } else if (url) {
+        setGenPreviewUrl(url);
+      }
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSaveToLibrary() {
+    if (!selected) return;
+    const mode = categoryToMode(selected.category);
+    const url = genPreviewUrl;
+    if (!url) return;
+    const filename = `${selected.category}-generated-${Date.now()}`;
+    const resp = await fetch('/api/import/url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, mediaType: mode, originalFilename: filename }),
+    });
+    const json = await resp.json();
+    if (!resp.ok) {
+      alert(json?.error || 'Save failed');
+    } else {
+      alert('Saved to library');
+    }
+  }
+
+  function handlePinGenerated() {
+    if (!selected) return;
+    if (!genPreviewUrl) return;
+    const mode = categoryToMode(selected.category);
+    const r: UnifiedSearchResult = {
+      id: `generated-${Date.now()}`,
+      content_type: mode as any,
+      title: values.prompt || 'Generated',
+      score: 1,
+      metadata: { source_url: genPreviewUrl },
+      url: genPreviewUrl,
+    } as any;
+    onPinResult(r);
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-semibold">Generate</div>
+        <label className="text-xs text-neutral-400 flex items-center gap-2">
+          <input type="checkbox" className="accent-neutral-400" checked={useRefs} onChange={(e) => setUseRefs(e.target.checked)} />
+          Use pinned as refs
+        </label>
+      </div>
+      <div className="mt-3">
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filter models…"
+          className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500"
+        />
+        <div className="mt-2 max-h-40 overflow-auto rounded-md border border-neutral-800">
+          {loading ? (
+            <div className="p-2 text-sm text-neutral-400">Loading models…</div>
+          ) : (
+            filtered.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setSelected(m)}
+                className={classNames(
+                  'w-full text-left px-3 py-2 text-sm border-b border-neutral-800 hover:bg-neutral-800',
+                  selected?.id === m.id && 'bg-neutral-800'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-neutral-100">{m.name}</div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full border border-neutral-700 bg-neutral-800/60 text-neutral-300">{m.category}</span>
+                </div>
+                <div className="text-xs text-neutral-400 mt-0.5 line-clamp-1">{m.description}</div>
+                <div className="text-[10px] text-neutral-500 mt-0.5">{m.id}</div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {selected && (
+        <div className="mt-4 space-y-3">
+          <FieldRenderer schema={selected.inputSchema} values={values} setValues={setValues} />
+          <div className="flex gap-2">
+            <button
+              onClick={handleGenerate}
+              disabled={busy}
+              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+            >
+              {busy ? 'Generating…' : 'Generate'}
+            </button>
+            <button
+              onClick={handlePinGenerated}
+              disabled={!genPreviewUrl}
+              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+            >
+              Pin result
+            </button>
+            <button
+              onClick={handleSaveToLibrary}
+              disabled={!genPreviewUrl}
+              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+            >
+              Save to library
+            </button>
+          </div>
+
+          {/* Preview */}
+          {genPreviewUrl && selected.category === 'image' && (
+            <div className="mt-2">
+              <img src={genPreviewUrl} className="w-full h-48 object-cover rounded-md border border-neutral-800" alt="generated" />
+            </div>
+          )}
+          {genPreviewUrl && selected.category === 'audio' && (
+            <div className="mt-2 border border-neutral-800 rounded-md p-2 bg-neutral-950">
+              <audio src={genPreviewUrl} controls className="w-full" />
+            </div>
+          )}
+          {genPreviewUrl && selected.category === 'video' && (
+            <div className="mt-2 border border-neutral-800 rounded-md p-2 bg-black">
+              <video src={genPreviewUrl} controls className="w-full" />
+            </div>
+          )}
+          {genText && selected.category === 'text' && (
+            <pre className="mt-2 max-h-48 overflow-auto text-xs border border-neutral-800 rounded-md p-2 bg-neutral-950 text-neutral-200">{genText}</pre>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -467,9 +823,14 @@ export default function VisualSearchPage() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Results panel */}
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Generation panel (left) */}
           <div>
+            <GenerationPanel pinned={pinned} onPinResult={pinResult} />
+          </div>
+
+          {/* Results panel (right top) */}
+          <div className="lg:col-span-2">
             <div className="flex items-center justify-between">
               <div className="text-sm text-neutral-400">
                 {data?.total_results ? `${data.total_results} raw hits` : ""}
@@ -487,8 +848,8 @@ export default function VisualSearchPage() {
             </div>
           </div>
 
-          {/* Canvas panel */}
-          <div>
+          {/* Canvas panel (right bottom) */}
+          <div className="lg:col-span-2">
             <div className="text-sm text-neutral-400 mb-2">Canvas</div>
             <div
               ref={canvasRef}
