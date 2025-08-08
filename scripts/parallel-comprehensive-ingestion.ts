@@ -115,23 +115,29 @@ async function parallelComprehensiveIngestion() {
     const allItems = [...textItems, ...mediaItems];
     console.log(`📦 Total items to process: ${allItems.length}`);
 
-    // Step 3: Clear old text data (if any)
-    console.log('\n🧹 Step 3: Clearing old text data...');
+    // Step 3: Clear old text data (guarded)
+    console.log('\n🧹 Step 3: Clearing old text data (guarded)...');
 
-    try {
-      const LANCEDB_API_URL = process.env.LANCEDB_API_URL || 'http://localhost:8000';
-      const deleteResponse = await fetch(`${LANCEDB_API_URL}/delete-text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
+    const argv = process.argv.slice(2);
+    const noDelete = argv.includes('--no-delete') || process.env.SKIP_DELETE_TEXT === '1';
+    if (!noDelete && process.env.CONFIRM_TEXT_WIPE === 'YES') {
+      try {
+        const LANCEDB_API_URL = process.env.LANCEDB_API_URL || 'http://localhost:8000';
+        const deleteResponse = await fetch(`${LANCEDB_API_URL}/delete-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
 
-      if (deleteResponse.ok) {
-        console.log('✅ Old text data cleared');
-      } else {
-        console.log('ℹ️  No old text data to clear');
+        if (deleteResponse.ok) {
+          console.log('✅ Old text data cleared');
+        } else {
+          console.log('ℹ️  No old text data to clear');
+        }
+      } catch (error) {
+        console.log('ℹ️  Could not clear old data, proceeding...');
       }
-    } catch (error) {
-      console.log('ℹ️  Could not clear old data, proceeding...');
+    } else {
+      console.log('⏭️  Skipping delete-text (use CONFIRM_TEXT_WIPE=YES or remove --no-delete/SKIP_DELETE_TEXT to enable)');
     }
 
     // Step 4: PARALLEL OPTIMIZED INGESTION

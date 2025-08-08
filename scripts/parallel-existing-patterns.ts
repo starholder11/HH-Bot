@@ -124,6 +124,16 @@ class ParallelExistingIngestion {
    * Clear old text data using existing patterns
    */
   async clearOldTextData(): Promise<void> {
+    const argv = process.argv.slice(2);
+    const noDelete = argv.includes('--no-delete') || process.env.SKIP_DELETE_TEXT === '1';
+    if (noDelete) {
+      console.log('⏭️  Skipping delete-text (guard active via --no-delete or SKIP_DELETE_TEXT=1)');
+      return;
+    }
+    if (process.env.CONFIRM_TEXT_WIPE !== 'YES') {
+      console.log('⛔ Refusing to delete text rows: set CONFIRM_TEXT_WIPE=YES to proceed or use --no-delete');
+      return;
+    }
     console.log('🧹 Clearing old text data...');
 
     try {
