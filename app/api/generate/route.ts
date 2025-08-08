@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
       image: 'fal-ai/fast-sdxl',
       audio: 'fal-ai/tts',
       text: 'fal-ai/llama-3.1',
-      video: 'fal-ai/image-to-video',
+      // For video, pick based on whether we have image refs
+      video: (Array.isArray(refs) && refs.length > 0) ? 'fal-ai/image-to-video' : 'fal-ai/text-to-video',
     }
 
     const selectedModel = model || defaults[mode]
@@ -53,6 +54,11 @@ export async function POST(req: NextRequest) {
         // Fallback to non-subscribe run
         return await fal.run(modelId, { input } as any)
       }
+    }
+
+    // If an image-to-video model is requested but no refs were provided, fail fast with guidance
+    if (mode === 'video' && (!Array.isArray(refs) || refs.length === 0) && typeof selectedModel === 'string' && selectedModel.includes('image-to-video')) {
+      return NextResponse.json({ error: `Model '${selectedModel}' requires an image reference. Provide refs[] (image URLs) or omit model to use text-to-video.` }, { status: 400 })
     }
 
     // Try requested model; if it fails, fall back to default for the mode
