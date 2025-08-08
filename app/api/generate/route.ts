@@ -37,12 +37,13 @@ export async function POST(req: NextRequest) {
     const input: any = { prompt, refs, ...options }
 
     const result = await fal.run(selectedModel, { input } as any)
+    const anyResult: any = result as any
 
     // Persist outputs to S3 when applicable
     if (mode === 'image') {
       // Expecting image bytes/URL in result; try common fields
-      const imageBytes: string | undefined = (result?.images?.[0]?.b64_json) || result?.image?.b64_json
-      const imageUrl: string | undefined = result?.images?.[0]?.url || result?.image?.url
+      const imageBytes: string | undefined = (anyResult?.images?.[0]?.b64_json) || anyResult?.image?.b64_json
+      const imageUrl: string | undefined = anyResult?.images?.[0]?.url || anyResult?.image?.url
 
       if (imageBytes) {
         const buffer = Buffer.from(imageBytes, 'base64')
@@ -58,8 +59,8 @@ export async function POST(req: NextRequest) {
 
     if (mode === 'audio') {
       // Try common fields for audio
-      const audioB64: string | undefined = result?.audio?.b64_json || result?.b64_json
-      const audioUrl: string | undefined = result?.audio?.url || result?.url
+      const audioB64: string | undefined = anyResult?.audio?.b64_json || anyResult?.b64_json
+      const audioUrl: string | undefined = anyResult?.audio?.url || anyResult?.url
 
       if (audioB64) {
         const buffer = Buffer.from(audioB64, 'base64')
