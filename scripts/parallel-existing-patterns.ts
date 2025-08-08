@@ -80,6 +80,17 @@ class ParallelExistingIngestion {
    * Process text content using existing chunking patterns
    */
   async processTextContentWithChunks(doc: any): Promise<void> {
+    // Targeted delete: remove prior chunks for this document only
+    try {
+      const LANCEDB_API_URL = process.env.LANCEDB_API_URL;
+      const prefix = `text_${doc.slug}`;
+      await fetch(`${LANCEDB_API_URL}/delete-by-prefix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefix })
+      });
+    } catch {}
+
     const chunks = chunkText(doc.content);
 
     for (const chunk of chunks) {

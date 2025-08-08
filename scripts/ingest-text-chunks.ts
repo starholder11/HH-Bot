@@ -119,6 +119,16 @@ async function ingest() {
 
   for (const doc of texts) {
     try {
+      // Targeted delete: remove existing chunks for this document only
+      try {
+        const prefix = `text_${doc.slug}`;
+        await fetch(`${LANCEDB_API_URL}/delete-by-prefix`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prefix })
+        });
+      } catch {}
+
       const chunks = chunkText(doc.content);
       for (const c of chunks) {
         const chunkId = `text_${doc.slug}#${c.ix}`;

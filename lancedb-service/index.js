@@ -250,15 +250,41 @@ function normalizeEmbedding(inp) {
   // Delete records by ID for upsert operations
   app.post('/delete', async (req, res) => {
     try {
-      const { id } = req.body;
-      if (!id) {
-        return res.status(400).json({ error: 'id is required' });
+      const { id, filter } = req.body || {};
+      // Backward-compat: accept either exact id or an explicit filter
+      let where = null;
+      if (typeof filter === 'string' && filter.trim().length > 0) {
+        where = filter.trim();
+      } else if (id) {
+        where = `id = '${id}'`;
       }
-      const deletedCount = await table.delete(`id = '${id}'`);
-      console.log(`🗑️  Deleted ${deletedCount} records with id: ${id}`);
-      res.json({ status: 'deleted', deleted: deletedCount, id });
+      if (!where) {
+        return res.status(400).json({ error: 'id or filter is required' });
+      }
+      const deletedCount = await table.delete(where);
+      console.log(`🗑️  /delete: removed ${deletedCount} row(s) where ${where}`);
+      res.json({ status: 'deleted', deleted: deletedCount, where });
     } catch (error) {
       console.error('❌ /delete failed', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Targeted prefix delete to support safe re-ingestion of text chunks for a single document
+  app.post('/delete-by-prefix', async (req, res) => {
+    try {
+      const { prefix } = req.body || {};
+      if (!prefix || typeof prefix !== 'string') {
+        return res.status(400).json({ error: 'prefix is required' });
+      }
+      // Use SQL LIKE for prefix match. Escape single quotes
+      const safe = prefix.replace(/'/g, "''");
+      const where = `id LIKE '${safe}%'`;
+      const deletedCount = await table.delete(where);
+      console.log(`🗑️  /delete-by-prefix: removed ${deletedCount} row(s) with id LIKE '${prefix}%'`);
+      res.json({ status: 'deleted_by_prefix', deleted: deletedCount, prefix });
+    } catch (error) {
+      console.error('❌ /delete-by-prefix failed', error);
       res.status(500).json({ error: error.message });
     }
   });

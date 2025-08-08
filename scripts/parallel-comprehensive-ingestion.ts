@@ -122,22 +122,22 @@ async function parallelComprehensiveIngestion() {
     const noDelete = argv.includes('--no-delete') || process.env.SKIP_DELETE_TEXT === '1';
     if (!noDelete && process.env.CONFIRM_TEXT_WIPE === 'YES') {
       try {
+        // Targeted per-document cleanup using prefix
         const LANCEDB_API_URL = process.env.LANCEDB_API_URL || 'http://localhost:8000';
-        const deleteResponse = await fetch(`${LANCEDB_API_URL}/delete-text`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (deleteResponse.ok) {
-          console.log('✅ Old text data cleared');
-        } else {
-          console.log('ℹ️  No old text data to clear');
+        for (const t of textContents) {
+          const prefix = `text_${t.slug}`;
+          await fetch(`${LANCEDB_API_URL}/delete-by-prefix`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prefix })
+          });
         }
+        console.log('✅ Cleared old text chunks per-document');
       } catch (error) {
-        console.log('ℹ️  Could not clear old data, proceeding...');
+        console.log('ℹ️  Could not clear old text chunks, proceeding...');
       }
     } else {
-      console.log('⏭️  Skipping delete-text (use CONFIRM_TEXT_WIPE=YES or remove --no-delete/SKIP_DELETE_TEXT to enable)');
+      console.log('⏭️  Skipping targeted text cleanup');
     }
 
     // Step 4: PARALLEL OPTIMIZED INGESTION

@@ -110,7 +110,8 @@ export class ParallelIngestionService {
         await fetch(`${this.LANCEDB_API_URL}/delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filter: `id = '${rec.id}'` }),
+          // Use exact id field for safety; service accepts id or filter
+          body: JSON.stringify({ id: rec.id }),
         });
       } catch (preDelErr) {
         console.warn('⚠️  Pre-delete before add failed (continuing):', (preDelErr as any)?.message || preDelErr);
