@@ -168,7 +168,7 @@ export class ParallelIngestionService {
   /* --------- MediaAsset → ContentItem helper -------- */
     static mediaAssetToContentItem(asset: MediaAsset): ContentItem {
     const parts: string[] = [];
-    // Title belongs in title field; do not mix into searchable_text redundantly
+    // Title belongs in title field; avoid duplication unless we have no other text
 
     // Handle audio-specific content (lyrics and prompt)
     if (asset.media_type === 'audio') {
@@ -205,7 +205,11 @@ export class ParallelIngestionService {
     addLabels(asset.manual_labels?.themes);
     addLabels(asset.manual_labels?.custom_tags);
 
-    const combinedText = parts.filter(p => p && p.trim()).join('\n');
+    let combinedText = parts.filter(p => p && p.trim()).join('\n');
+    // Fallback: if audio has no lyrics/prompt yet (e.g., right after upload), use title so ingestion doesn't fail
+    if (!combinedText || combinedText.trim().length === 0) {
+      combinedText = asset.title || '';
+    }
 
     return {
       id: asset.id,
