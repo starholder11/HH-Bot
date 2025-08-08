@@ -157,6 +157,16 @@ export class ParallelIngestionService {
     const records = items.map((it, idx) => {
       const emb = embeddings[idx];
       if (!emb) return null;
+      const sample = it.combinedText.slice(0, 120).replace(/\s+/g, ' ');
+      const hasPrompt = it.metadata?.prompt_present ?? undefined;
+      const hasLyrics = it.metadata?.lyrics_present ?? undefined;
+      console.log('[ingest] Prepared record', {
+        id: it.id,
+        title: it.title,
+        hasPrompt,
+        hasLyrics,
+        sample
+      });
       return {
         id: it.id,
         content_type: it.content_type,
