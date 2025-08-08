@@ -141,17 +141,29 @@ export class LanceDBIngestionService {
         }),
       };
 
-      const response = await fetch(`${LANCEDB_API_URL}/add`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(apiRecord),
-      });
-
-      if (!response.ok) {
-        throw new Error(`LanceDB API error: ${response.statusText}`);
+      // Retry with exponential backoff to ride out ALB/network hiccups
+      const maxAttempts = 5;
+      let lastErr: any = null;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const response = await fetch(`${LANCEDB_API_URL}/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(apiRecord),
+          });
+          if (response.ok) return;
+          const text = await response.text().catch(() => response.statusText);
+          throw new Error(`HTTP ${response.status}: ${text}`);
+        } catch (err: any) {
+          lastErr = err;
+          const isLast = attempt === maxAttempts;
+          const delayMs = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+          if (isLast) break;
+          // Backoff then retry
+          await new Promise(r => setTimeout(r, delayMs));
+        }
       }
+      throw lastErr || new Error('Unknown error adding to LanceDB');
     } catch (error) {
       console.error('Error adding to LanceDB:', error);
       throw error;
