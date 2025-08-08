@@ -107,6 +107,10 @@ export default function AgentChat() {
               (window as any).__agentApi?.showOutput?.(result.payload);
               continue;
             }
+            if (result?.action === 'prepareGenerate' && typeof window !== 'undefined') {
+              (window as any).__agentApi?.prepareGenerate?.(result.payload);
+              continue;
+            }
           } catch {}
         }
       }

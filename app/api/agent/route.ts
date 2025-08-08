@@ -5,6 +5,21 @@ import { createOpenAI } from '@ai-sdk/openai';
 
 // Tools
 const tools = {
+  // Prepare the Generate tab with structured params; client will populate the form and optionally auto-run
+  prepareGenerate: tool({
+    description: 'Populate the Generate tab with parameters and optionally start generation',
+    parameters: z.object({
+      type: z.enum(['image', 'audio', 'text', 'video']).optional(),
+      model: z.string().optional(),
+      prompt: z.string().optional(),
+      references: z.array(z.string()).optional(),
+      options: z.record(z.any()).optional(),
+      autoRun: z.boolean().optional(),
+    }),
+    execute: async ({ type, model, prompt, references, options, autoRun }) => {
+      return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options, autoRun: autoRun ?? true } };
+    }
+  }),
   searchUnified: tool({
     description: 'Search across media and text content',
     parameters: z.object({
@@ -34,10 +49,8 @@ const tools = {
     execute: async ({ prompt, type, model, references, options }) => {
       // If no references were provided, ask the client to supply pinned refs
       if (!references || references.length === 0) {
-        return {
-          action: 'requestPinnedThenGenerate',
-          payload: { prompt, type, model, options: options || {} },
-        };
+        // Also tell the client to show the Generate tab populated
+        return { action: 'prepareGenerate', payload: { type, model, prompt, refs: [], options: options || {}, autoRun: true } };
       }
 
       const res = await fetch(`/api/generate`, {

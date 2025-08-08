@@ -335,6 +335,29 @@ function GenerationPanel({
 
   const categoryToMode = (c: FalModel['category']): 'image' | 'audio' | 'video' | 'text' => c;
 
+  // Imperative bridge for agent → GenerationPanel
+  useEffect(() => {
+    (window as any).__genPanel = {
+      prepare: async (payload: { type?: 'image'|'video'|'audio'|'text'; model?: string; prompt?: string; refs?: string[]; options?: any; autoRun?: boolean }) => {
+        try {
+          if (payload?.type) setCategory(payload.type);
+          if (payload?.model) setAdvancedModelId(payload.model);
+          if (payload?.prompt) setValues((prev) => ({ ...prev, prompt: payload.prompt }));
+          if (Array.isArray(payload?.refs) && payload.refs.length > 0) setUploadedRefs(payload.refs);
+          if (payload?.options && typeof payload.options === 'object') setValues((prev) => ({ ...prev, ...payload.options }));
+          // Try to select a model by id if present in loaded list
+          const match = (models || []).find((m) => m.id === payload?.model);
+          if (match) setSelected(match);
+          if (payload?.autoRun) {
+            // slight delay to allow state to settle
+            setTimeout(() => { void handleGenerate(); }, 50);
+          }
+        } catch {}
+      },
+    };
+    return () => { try { delete (window as any).__genPanel; } catch {} };
+  }, [models, handleGenerate]);
+
   async function handleGenerate() {
     if (!selected) return;
     const prompt = values.prompt || values.text || '';
@@ -847,6 +870,13 @@ export default function VisualSearchPage() {
             setResults(all);
             setRightTab('results');
           }
+        } catch {}
+      },
+      // Populate Generate tab UI and optionally auto-run
+      prepareGenerate: (payload: any) => {
+        try {
+          setRightTab('generate');
+          (window as any).__genPanel?.prepare?.(payload);
         } catch {}
       },
       showOutput: (payload: any) => {
