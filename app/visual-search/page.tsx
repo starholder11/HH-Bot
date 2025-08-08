@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from 'next/dynamic';
 
 type ContentType = "video" | "image" | "audio" | "text";
 
@@ -817,6 +818,27 @@ export default function VisualSearchPage() {
   const [genUrl, setGenUrl] = useState<string | null>(null);
   const [genMode, setGenMode] = useState<'image' | 'video' | 'audio' | 'text' | null>(null);
   const [genRaw, setGenRaw] = useState<any>(null);
+  // Bridge for agent → UI actions
+  useEffect(() => {
+    (window as any).__agentApi = {
+      // Called by client after tool pinToCanvas returns
+      pin: (payload: { id?: string; title?: string; url?: string }) => {
+        if (!payload?.url && !payload?.id) return;
+        // Minimal pin by URL
+        const fake: UnifiedSearchResult = {
+          id: payload.id || `agent-${Date.now()}`,
+          content_type: 'image',
+          title: payload.title || 'Pinned by Agent',
+          description: '',
+          score: 0,
+          metadata: { cloudflare_url: payload.url, media_type: 'image' } as any,
+          preview: payload.title || payload.url || '',
+        } as any;
+        pinResult(fake);
+        setRightTab('canvas');
+      },
+    };
+  }, []);
 
   useEffect(() => {
     setResults(data?.results?.all || []);
@@ -1157,6 +1179,11 @@ export default function VisualSearchPage() {
               onGenStart={handleGenStart}
               onGenResult={handleGenResult}
             />
+            <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-3">
+              <div className="text-sm text-neutral-400 mb-2">Agent</div>
+              {/* Load client-only chat component dynamically to avoid SSR issues */}
+              {dynamic(() => import('../../components/AgentChat'), { ssr: false })({})}
+            </div>
           </div>
 
           {/* Right main area with tabs */}
