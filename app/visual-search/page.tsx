@@ -816,7 +816,7 @@ export default function VisualSearchPage() {
   const [zCounter, setZCounter] = useState(10);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   // Right pane tab and generation output state
-  const [rightTab, setRightTab] = useState<'results' | 'canvas' | 'output'>('results');
+  const [rightTab, setRightTab] = useState<'results' | 'canvas' | 'output' | 'generate'>('results');
   const [genLoading, setGenLoading] = useState(false);
   const [genUrl, setGenUrl] = useState<string | null>(null);
   const [genMode, setGenMode] = useState<'image' | 'video' | 'audio' | 'text' | null>(null);
@@ -948,7 +948,7 @@ export default function VisualSearchPage() {
     movePinned: (id: string, x: number, y: number) => void;
     removePinned: (id: string) => void;
     tab: 'results' | 'canvas' | 'output' | 'generate';
-    setTab: (t: 'results' | 'canvas' | 'output') => void;
+    setTab: (t: 'results' | 'canvas' | 'output' | 'generate') => void;
     genLoading: boolean;
     genUrl: string | null;
     genMode: 'image' | 'video' | 'audio' | 'text' | null;
