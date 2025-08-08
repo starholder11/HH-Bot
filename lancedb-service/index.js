@@ -267,7 +267,9 @@ function normalizeEmbedding(inp) {
   app.get('/export-all', async (_, res) => {
     try {
       console.log('📦 Exporting ALL records...');
-      const allRecords = await table.search([0]).limit(50000).toArray(); // Use dummy search with huge limit
+      // Use a zero vector of correct dimension to avoid dimension mismatch errors
+      const zero = Array(DIM).fill(0);
+      const allRecords = await table.search(zero, { metricType: 'cosine' }).limit(50000).toArray();
       console.log(`✅ Exported ${allRecords.length} records`);
       res.json(allRecords);
     } catch (error) {
