@@ -82,42 +82,40 @@ export async function POST(request: NextRequest) {
     // Download the file from S3 to extract metadata
     const s3Client = getS3Client();
 
-    // Verify the S3 object exists and is readable before attempting download
+    // Verify the S3 object exists and is readable before attempting download.
+    // If not ready, DO NOT block upload ingestion. Proceed with minimal metadata and ingest immediately.
     const isS3ObjectReady = await verifyS3ObjectExists(s3Client, bucketName, key);
-
-    if (!isS3ObjectReady) {
-      console.error('S3 object not ready after retries. File may not be fully uploaded yet.');
-      return NextResponse.json({
-        error: 'File not ready for processing yet. Please try again in a few seconds.'
-      }, { status: 503 }); // Service Temporarily Unavailable
-    }
 
     const getObjectCommand = new GetObjectCommand({
       Bucket: bucketName,
       Key: key,
     });
 
-    // Get the file from S3
-    const response = await s3Client.send(getObjectCommand);
-    if (!response.Body) {
-      throw new Error('Failed to download file from S3 for metadata extraction');
+    let metadata: any = { title: null, artist: null, album: null, year: null, duration: 0, bitrate: 0, format: 'mp3' };
+    if (isS3ObjectReady) {
+      try {
+        // Get the file from S3
+        const response = await s3Client.send(getObjectCommand);
+        if (response.Body) {
+          // Convert stream to buffer for metadata extraction
+          const chunks: Uint8Array[] = [];
+          const reader = response.Body.transformToWebStream().getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+          const buffer = Buffer.concat(chunks);
+          // Extract metadata from MP3 (best-effort)
+          metadata = await extractMP3Metadata(buffer, originalFilename);
+          console.log('Extracted metadata:', metadata);
+        }
+      } catch (e) {
+        console.warn('MP3 metadata extraction skipped (continuing with minimal data):', (e as any)?.message || e);
+      }
+    } else {
+      console.warn('S3 object not yet HEAD-readable; proceeding with minimal metadata to avoid blocking ingestion');
     }
-
-    // Convert stream to buffer for metadata extraction
-    const chunks: Uint8Array[] = [];
-    const reader = response.Body.transformToWebStream().getReader();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
-
-    const buffer = Buffer.concat(chunks);
-
-    // Extract metadata from MP3
-    const metadata = await extractMP3Metadata(buffer, originalFilename);
-    console.log('Extracted metadata:', metadata);
 
     // Create new song JSON entry
     const songId = uuidv4();
@@ -128,7 +126,7 @@ export async function POST(request: NextRequest) {
       filename: originalFilename,
       s3_url: s3Url,
       cloudflare_url: cloudflareUrl,
-      title: metadata.title || 'Untitled',
+      title: metadata.title || originalFilename || 'Untitled',
       prompt: '',
       lyrics: '',
 

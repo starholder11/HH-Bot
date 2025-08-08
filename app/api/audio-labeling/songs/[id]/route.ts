@@ -45,6 +45,24 @@ export async function PATCH(
       );
     }
 
+    // DIAGNOSTICS: log current state and incoming updates (redacted to lengths)
+    console.log('[audio-patch] BEFORE', {
+      id,
+      hasPrompt: !!songData.prompt,
+      promptLen: typeof songData.prompt === 'string' ? songData.prompt.length : 0,
+      hasLyrics: !!songData.lyrics,
+      lyricsLen: typeof songData.lyrics === 'string' ? songData.lyrics.length : 0,
+      title: songData.title,
+    });
+    console.log('[audio-patch] UPDATES', {
+      keys: Object.keys(updates || {}),
+      title: updates?.title,
+      hasPrompt: typeof updates?.prompt === 'string' ? updates.prompt.length : updates?.prompt,
+      hasLyrics: typeof updates?.lyrics === 'string' ? updates.lyrics.length : updates?.lyrics,
+      project_id: updates?.project_id,
+      manual_labels_present: !!updates?.manual_labels,
+    });
+
     // Update manual labels
     if (updates.manual_labels) {
       songData.manual_labels = {
@@ -103,6 +121,15 @@ export async function PATCH(
     songData.labeling_complete = hasBasicLabels && hasStyles && hasMoods && hasThemes;
 
     await saveSong(id, songData);
+    console.log('[audio-patch] AFTER SAVE', {
+      id,
+      title: songData.title,
+      hasPrompt: !!songData.prompt,
+      promptLen: typeof songData.prompt === 'string' ? songData.prompt.length : 0,
+      hasLyrics: !!songData.lyrics,
+      lyricsLen: typeof songData.lyrics === 'string' ? songData.lyrics.length : 0,
+      labeling_complete: songData.labeling_complete,
+    });
 
     // IMMEDIATE upsert to LanceDB - use songData which already has ALL current fields
     try {
