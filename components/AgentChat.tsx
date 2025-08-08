@@ -89,6 +89,22 @@ export default function AgentChat() {
           } catch {}
           continue;
         }
+        // Generic channel: e.g., "1:{...}", "2:{...}" etc. Try to parse JSON after first colon
+        const idx = line.indexOf(':');
+        if (idx > 0) {
+          try {
+            const obj = JSON.parse(line.slice(idx + 1));
+            const result = obj?.result ?? obj;
+            if (result?.action === 'showResults' && typeof window !== 'undefined') {
+              (window as any).__agentApi?.showResults?.(result.payload);
+              continue;
+            }
+            if (result?.action === 'pinToCanvas' && typeof window !== 'undefined') {
+              (window as any).__agentApi?.pin?.(result);
+              continue;
+            }
+          } catch {}
+        }
       }
     }
     setBusy(false);
