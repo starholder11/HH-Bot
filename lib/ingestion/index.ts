@@ -11,7 +11,7 @@ export async function ingestAsset(asset: MediaAsset, isRefresh: boolean = false)
 }
 
 /** Ingest plain text (e.g., MDX document) */
-export async function ingestText(id: string, title: string, body: string) {
+export async function ingestText(id: string, title: string, body: string, isRefresh: boolean = true) {
   await sharedSvc.ingestWithOptimizations([
     {
       id,
@@ -19,7 +19,7 @@ export async function ingestText(id: string, title: string, body: string) {
       content_type: 'text',
       combinedText: `${title}\n${body}`,
     },
-  ]);
+  ], isRefresh); // Pass isRefresh to enable upsert behavior
 }
 
 export { ParallelIngestionService };
