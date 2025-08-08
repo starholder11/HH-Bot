@@ -110,7 +110,17 @@ export default function AgentChat() {
               continue;
             }
             if (normalized?.action === 'prepareGenerate' && typeof window !== 'undefined') {
-              (window as any).__agentApi?.prepareGenerate?.(normalized.payload);
+              // Always attach currently pinned refs from the page if not present
+              try {
+                const gp = (window as any).__agentApi;
+                const payload = { ...(normalized.payload || {}) };
+                if (!Array.isArray(payload.refs) || payload.refs.length === 0) {
+                  payload.refs = (gp?.getPinnedRefs?.() || []) as string[];
+                }
+                (window as any).__agentApi?.prepareGenerate?.(payload);
+              } catch {
+                (window as any).__agentApi?.prepareGenerate?.(normalized.payload);
+              }
               continue;
             }
             if (normalized?.action === 'agentStatus' && typeof window !== 'undefined') {

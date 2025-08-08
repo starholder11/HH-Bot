@@ -871,6 +871,14 @@ export default function VisualSearchPage() {
         pinResult(fake);
         setRightTab('canvas');
       },
+      // Helper to expose current pinned image URLs to the agent/chat
+      getPinnedRefs: () => {
+        try {
+          return (pinned || [])
+            .map((p) => getResultMediaUrl(p.result))
+            .filter(Boolean);
+        } catch { return []; }
+      },
       showResults: (resp: any) => {
         try {
           const all: UnifiedSearchResult[] = resp?.results?.all || resp?.results || resp?.all || [];
@@ -1004,7 +1012,7 @@ export default function VisualSearchPage() {
         }
       },
     };
-  }, []);
+  }, [pinned]);
 
   useEffect(() => {
     setResults(data?.results?.all || []);
