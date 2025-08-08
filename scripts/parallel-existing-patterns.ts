@@ -93,29 +93,29 @@ class ParallelExistingIngestion {
 
     const chunks = chunkText(doc.content);
 
-    for (const chunk of chunks) {
-      const chunkId = `text_${doc.slug}#${chunk.ix}`;
+    // Process chunks in parallel with restrained concurrency to speed up embeddings
+    await this.processInParallel(
+      chunks,
+      async (chunk) => {
+        const chunkId = `text_${doc.slug}#${chunk.ix}`;
+        const record = await this.ingestionService.processTextContent({
+          ...doc,
+          slug: `${doc.slug}#${chunk.ix}`,
+          content: chunk.text,
+        });
+        record.id = chunkId;
+        record.metadata = {
+          ...record.metadata,
+          parent_slug: doc.slug,
+          chunk_ix: chunk.ix,
+          start_word: chunk.startWord,
+        };
+        await this.ingestionService.addToLanceDB(record);
+      },
+      12 // chunk-level concurrency
+    );
 
-      // Use existing processTextContent method
-      const record = await this.ingestionService.processTextContent({
-        ...doc,
-        slug: `${doc.slug}#${chunk.ix}`,
-        content: chunk.text,
-      });
-
-      record.id = chunkId;
-      record.metadata = {
-        ...record.metadata,
-        parent_slug: doc.slug,
-        chunk_ix: chunk.ix,
-        start_word: chunk.startWord,
-      };
-
-      // Use existing addToLanceDB method
-      await this.ingestionService.addToLanceDB(record);
-    }
-
-    console.log(`📑 ${doc.slug}: processed ${chunks.length} chunks`);
+    console.log(`📑 ${doc.slug}: processed ${chunks.length} chunks (parallel)`);
   }
 
   /**

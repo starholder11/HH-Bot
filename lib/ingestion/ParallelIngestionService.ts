@@ -33,7 +33,7 @@ export class ParallelIngestionService {
   private readonly LANCEDB_API_URL: string;
   private readonly CONCURRENCY_LIMIT = 50;  // Based on OpenAI rate limits
   private readonly BATCH_SIZE = 20;         // LanceDB insert size (smaller to avoid ALB/EPIPE errors)
-  private readonly EMBEDDING_BATCH_SIZE = 1; // Single items only – chunked content still causes token overflow with batches
+  private readonly EMBEDDING_BATCH_SIZE = 4; // small batch for throughput while avoiding token overflow
   private readonly MAX_REQUESTS_PER_MINUTE = 2900; // Conservative OpenAI limit
 
   private requestsThisMinute = 0;

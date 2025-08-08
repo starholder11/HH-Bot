@@ -10,33 +10,27 @@ export function getOpenAIClient() {
 }
 
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-  // Create client fresh every time, same as ai-labeling
   const openai = getOpenAIClient();
-
   const result: number[][] = [];
 
-  // Process one at a time to match exactly what works
-  for (const text of texts) {
+  // Send in small batches for throughput
+  const BATCH = 8;
+  for (let i = 0; i < texts.length; i += BATCH) {
+    const batch = texts.slice(i, i + BATCH);
     try {
-      console.log('[OpenAIEmbedder] Generating embedding for text chunk...');
-
       const response = await openai.embeddings.create({
         model: 'text-embedding-3-small',
-        input: [text],
+        input: batch,
         encoding_format: 'float',
       });
-
-      console.log('[OpenAIEmbedder] SUCCESS! Received embedding');
-      result.push(response.data[0].embedding);
-
+      for (const d of response.data) result.push(d.embedding as unknown as number[]);
     } catch (error: any) {
-      console.error('[OpenAIEmbedder] ERROR:', {
-        message: error.message,
-        status: error.status,
-        code: error.code,
-        type: error.type
-      });
-      throw error;
+      console.error('[OpenAIEmbedder] Batch ERROR:', error?.message || error);
+      // Fallback to single requests in case of batch failure
+      for (const text of batch) {
+        const resp = await openai.embeddings.create({ model: 'text-embedding-3-small', input: [text], encoding_format: 'float' });
+        result.push(resp.data[0].embedding as unknown as number[]);
+      }
     }
   }
 
