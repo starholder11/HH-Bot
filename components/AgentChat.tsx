@@ -95,20 +95,22 @@ export default function AgentChat() {
           try {
             const obj = JSON.parse(line.slice(idx + 1));
             const result = obj?.result ?? obj;
-            if (result?.action === 'showResults' && typeof window !== 'undefined') {
-              (window as any).__agentApi?.showResults?.(result.payload);
+            // Some providers send arrays of results; normalize to first
+            const normalized = Array.isArray(result) ? result[0] : result;
+            if (normalized?.action === 'showResults' && typeof window !== 'undefined') {
+              (window as any).__agentApi?.showResults?.(normalized.payload);
               continue;
             }
-            if (result?.action === 'pinToCanvas' && typeof window !== 'undefined') {
-              (window as any).__agentApi?.pin?.(result);
+            if (normalized?.action === 'pinToCanvas' && typeof window !== 'undefined') {
+              (window as any).__agentApi?.pin?.(normalized);
               continue;
             }
-            if (result?.action === 'showOutput' && typeof window !== 'undefined') {
-              (window as any).__agentApi?.showOutput?.(result.payload);
+            if (normalized?.action === 'showOutput' && typeof window !== 'undefined') {
+              (window as any).__agentApi?.showOutput?.(normalized.payload);
               continue;
             }
-            if (result?.action === 'prepareGenerate' && typeof window !== 'undefined') {
-              (window as any).__agentApi?.prepareGenerate?.(result.payload);
+            if (normalized?.action === 'prepareGenerate' && typeof window !== 'undefined') {
+              (window as any).__agentApi?.prepareGenerate?.(normalized.payload);
               continue;
             }
           } catch {}

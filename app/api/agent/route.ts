@@ -89,6 +89,12 @@ export async function POST(req: NextRequest) {
   const result = await streamText({
     // Cast to any to avoid versioned type conflicts between subpackages during CI type check
     model: openai('gpt-4o-mini') as any,
+    system:
+      'You are the on-page agent for a creative workspace. ALWAYS prefer calling tools over free-form answers. ' +
+      'For anything involving finding media or text, call searchUnified and return its directive unchanged. ' +
+      'For requests to create/generate media, either call generateMedia (with references if provided) or ' +
+      'return prepareGenerate with parsed {type, model, prompt, options, references} so the UI can populate and run. ' +
+      'Avoid listing raw URLs in chat; instead trigger UI actions via tool results.',
     messages,
     tools,
     maxSteps: 6,

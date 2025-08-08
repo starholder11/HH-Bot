@@ -865,7 +865,7 @@ export default function VisualSearchPage() {
       },
       showResults: (resp: any) => {
         try {
-          const all: UnifiedSearchResult[] = resp?.results?.all || resp?.results || [];
+          const all: UnifiedSearchResult[] = resp?.results?.all || resp?.results || resp?.all || [];
           if (Array.isArray(all) && all.length > 0) {
             setResults(all);
             setRightTab('results');
