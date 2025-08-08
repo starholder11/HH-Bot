@@ -192,7 +192,7 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       }).sort((a, b) => b.score - a.score);
 
       // Apply final limit per category
-            // Flexible filter: prioritize title matches and handle corrupted data
+            // Flexible filter: prioritize title matches and rely on semantic similarity
       const tokenMatch = (r: SearchResult) => {
         const hay = (r.searchable_text || r.preview || r.title).toLowerCase();
         const titleLower = r.title.toLowerCase();
@@ -207,13 +207,20 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
           return queryTokens.some(t => titleLower.includes(t));
         }
 
-        // For multi-word queries, require at least 80% of tokens to match
-        if (queryTokens.length > 1) {
+        // SEMANTIC SEARCH FIX: Be much more lenient since LanceDB already ranked by similarity
+        // For longer queries (like lyrics), just require ANY tokens to match
+        if (queryTokens.length > 5) {
           const matchingTokens = queryTokens.filter(t => hay.includes(t)).length;
-          return matchingTokens >= Math.ceil(queryTokens.length * 0.8);
+          return matchingTokens >= Math.max(1, Math.ceil(queryTokens.length * 0.2)); // Only 20% need to match
         }
 
-        // Single word queries use original logic
+        // For medium queries, require 50% of tokens to match
+        if (queryTokens.length > 2) {
+          const matchingTokens = queryTokens.filter(t => hay.includes(t)).length;
+          return matchingTokens >= Math.ceil(queryTokens.length * 0.5);
+        }
+
+        // Single/short queries use stricter logic
         return queryTokens.every(t => hay.includes(t));
       };
 
