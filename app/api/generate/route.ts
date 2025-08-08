@@ -37,14 +37,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `No default model for mode ${mode}` }, { status: 400 })
     }
 
+    // Filter refs to URL-like strings only to avoid titles leaking into provider params
+    const urlLike = (s: unknown): s is string => typeof s === 'string' && /^https?:\/\//i.test(s)
+    const filteredRefs: string[] = Array.isArray(refs) ? refs.filter(urlLike) : []
     // Basic input shaping; pass prompt and refs; allow options passthrough
-    const input: any = { prompt, refs, ...options }
-    if (Array.isArray(refs) && refs.length > 0) {
+    const input: any = { prompt, refs: filteredRefs, ...options }
+    if (Array.isArray(filteredRefs) && filteredRefs.length > 0) {
       // Common conventions across many models
-      input.image_url = input.image_url || refs[0]
-      input.image_urls = input.image_urls || refs
-      input.ref_images = input.ref_images || refs
-      input.reference_images = input.reference_images || refs
+      input.image_url = input.image_url || filteredRefs[0]
+      input.image_urls = input.image_urls || filteredRefs
+      input.ref_images = input.ref_images || filteredRefs
+      input.reference_images = input.reference_images || filteredRefs
     }
 
     // Sanitize video-specific inputs to avoid 422s from provider
@@ -75,6 +78,10 @@ export async function POST(req: NextRequest) {
       // Remove fields that commonly cause provider 422s
       delete input.style
       delete input.refs
+      // If refs were provided but none are valid URLs, fail fast with guidance
+      if ((!Array.isArray(filteredRefs) || filteredRefs.length === 0)) {
+        return NextResponse.json({ error: 'Video generation requires valid image refs (absolute URLs). Got none or invalid. Ensure refs[] contains full http(s) URLs.' }, { status: 400 })
+      }
     }
 
     const runFal = async (modelId: string): Promise<any> => {
