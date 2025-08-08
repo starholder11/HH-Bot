@@ -55,13 +55,17 @@ const tools = {
   }),
 };
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   const { messages } = await req.json();
 
   const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
   const result = await streamText({
-    model: openai('gpt-4o-mini'),
+    // Cast to any to avoid versioned type conflicts between subpackages during CI type check
+    model: openai('gpt-4o-mini') as any,
     messages,
     tools,
     maxSteps: 6,
