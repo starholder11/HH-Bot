@@ -47,6 +47,36 @@ export async function POST(req: NextRequest) {
       input.reference_images = input.reference_images || refs
     }
 
+    // Sanitize video-specific inputs to avoid 422s from provider
+    if (mode === 'video') {
+      // Coerce duration to seconds number and clamp to reasonable provider limits (e.g., many models cap at 6s)
+      const coerceDurationSeconds = (val: unknown): number | undefined => {
+        if (val == null) return undefined
+        if (typeof val === 'number' && Number.isFinite(val)) return val
+        if (typeof val === 'string') {
+          const trimmed = val.trim().toLowerCase()
+          // Formats: "30s", "00:00:30", "30"
+          if (/^\d+\s*s$/.test(trimmed)) return Number(trimmed.replace('s', ''))
+          if (/^\d+$/.test(trimmed)) return Number(trimmed)
+          const mmss = trimmed.split(':').map((p) => Number(p))
+          if (mmss.every((n) => Number.isFinite(n))) {
+            // support h:mm:ss or mm:ss
+            let secs = 0
+            if (mmss.length === 2) secs = mmss[0] * 60 + mmss[1]
+            if (mmss.length === 3) secs = mmss[0] * 3600 + mmss[1] * 60 + mmss[2]
+            if (secs > 0) return secs
+          }
+        }
+        return undefined
+      }
+      const coerced = coerceDurationSeconds(input.duration)
+      const durationSec = Math.max(1, Math.min(coerced ?? 5, 6))
+      input.duration = durationSec
+      // Remove fields that commonly cause provider 422s
+      delete input.style
+      delete input.refs
+    }
+
     const runFal = async (modelId: string): Promise<any> => {
       console.log(`[api/generate] Attempting ${modelId} with input:`, JSON.stringify(input, null, 2))
       try {
@@ -54,14 +84,14 @@ export async function POST(req: NextRequest) {
         console.log(`[api/generate] fal.subscribe success for ${modelId}:`, JSON.stringify(result, null, 2))
         return result
       } catch (e: any) {
-        console.warn(`[api/generate] fal.subscribe failed for ${modelId}: ${e.message}`)
+        console.warn(`[api/generate] fal.subscribe failed for ${modelId}: ${e?.message || e}`)
         // Fallback to non-subscribe run
         try {
           const result = await fal.run(modelId, { input } as any)
           console.log(`[api/generate] fal.run success for ${modelId}:`, JSON.stringify(result, null, 2))
           return result
         } catch (e2: any) {
-          console.error(`[api/generate] Both fal.subscribe and fal.run failed for ${modelId}:`, e2.message)
+          console.error(`[api/generate] Both fal.subscribe and fal.run failed for ${modelId}:`, e2?.message || e2)
           throw e2
         }
       }
@@ -143,9 +173,10 @@ export async function POST(req: NextRequest) {
     }
     // If nothing matched, include a diagnostic hint so the UI can show more detail quickly
     return NextResponse.json({ success: true, url: anyResult?.url || anyResult?.images?.[0]?.url || anyResult?.image?.url || anyResult?.audio?.url || anyResult?.data?.images?.[0]?.url, result: anyResult })
-  } catch (err: any) {
+    } catch (err: any) {
     console.error('[api/generate] error:', err)
-    return NextResponse.json({ error: err?.message || 'Unknown error', stack: process.env.NODE_ENV !== 'production' ? err?.stack : undefined }, { status: 500 })
+    const details = (err && typeof err === 'object') ? (err.response?.data || err.data || err.details) : undefined
+    return NextResponse.json({ error: err?.message || 'Unknown error', details, stack: process.env.NODE_ENV !== 'production' ? err?.stack : undefined }, { status: 500 })
   }
 }
 
