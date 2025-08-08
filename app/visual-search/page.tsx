@@ -55,23 +55,18 @@ function useUnifiedSearch() {
       opts?: {
         limit?: number;
         types?: ContentType[] | ("media" | "all")[];
-        filters?: Record<string, unknown>;
       }
     ) => {
       if (!query || query.trim().length === 0) return;
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/unified-search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query,
-            limit: opts?.limit ?? DEFAULT_LIMIT,
-            content_types: opts?.types ?? [],
-            filters: opts?.filters ?? {},
-          }),
-        });
+        // Use the unified-search GET interface explicitly
+        const limit = opts?.limit ?? DEFAULT_LIMIT;
+        const selectedTypes = (opts?.types || []).filter((t) => t !== "all");
+        const typeParam = selectedTypes.length === 1 ? `&type=${encodeURIComponent(String(selectedTypes[0]))}` : "";
+        const url = `/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}${typeParam}`;
+        const res = await fetch(url, { method: "GET" });
         if (!res.ok) {
           const text = await res.text();
           throw new Error(`Search failed: ${res.status} ${text}`);
