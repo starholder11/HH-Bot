@@ -32,6 +32,14 @@ const tools = {
       options: z.record(z.any()).optional(),
     }),
     execute: async ({ prompt, type, model, references, options }) => {
+      // If no references were provided, ask the client to supply pinned refs
+      if (!references || references.length === 0) {
+        return {
+          action: 'requestPinnedThenGenerate',
+          payload: { prompt, type, model, options: options || {} },
+        };
+      }
+
       const res = await fetch(`/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

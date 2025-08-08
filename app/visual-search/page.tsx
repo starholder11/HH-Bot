@@ -853,6 +853,9 @@ export default function VisualSearchPage() {
         try {
           const t = payload?.type as 'image' | 'video' | 'audio' | 'text';
           const j = payload?.response;
+          const pinnedRefs: string[] = (pinned || [])
+            .map((p) => getResultMediaUrl(p.result))
+            .filter(Boolean) as string[];
           const candidates = [
             j?.url,
             j?.result?.url,
@@ -864,6 +867,7 @@ export default function VisualSearchPage() {
             j?.result?.output?.[0]?.url,
             j?.result?.data?.images?.[0]?.url,
             j?.result?.data?.video?.url,
+            ...pinnedRefs,
           ].filter(Boolean) as string[];
           setGenMode(t);
           setGenUrl(candidates[0] || null);
@@ -871,6 +875,46 @@ export default function VisualSearchPage() {
           setGenLoading(false);
           setRightTab('output');
         } catch {}
+      },
+      // When server requests pinned refs, call /api/generate on client using current pins
+      requestPinnedThenGenerate: async (payload: any) => {
+        try {
+          const refs: string[] = (pinned || [])
+            .map((p) => getResultMediaUrl(p.result))
+            .filter(Boolean) as string[];
+          const body = {
+            mode: payload?.type,
+            model: payload?.model,
+            prompt: payload?.prompt,
+            refs,
+            options: payload?.options || {},
+          };
+          setGenLoading(true);
+          setRightTab('output');
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const json = await res.json();
+          const candidates = [
+            json?.url,
+            json?.result?.url,
+            json?.result?.images?.[0]?.url,
+            json?.result?.image?.url,
+            json?.result?.audio?.url,
+            json?.result?.video?.url,
+            json?.result?.data?.images?.[0]?.url,
+            json?.result?.data?.video?.url,
+          ].filter(Boolean) as string[];
+          setGenMode(payload?.type);
+          setGenUrl(candidates[0] || null);
+          setGenRaw(json?.result ?? json);
+          setGenLoading(false);
+        } catch (e) {
+          setGenLoading(false);
+          console.error(e);
+        }
       },
     };
   }, []);

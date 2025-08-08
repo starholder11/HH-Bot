@@ -115,7 +115,7 @@ export default function AgentChat() {
   }
 
   return (
-    <div className="flex flex-col h-[720px]">
+    <div className="flex flex-col h-[576px]">
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto space-y-3 p-4 rounded-xl border border-neutral-800 bg-neutral-900/60"
