@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
 
     // Basic input shaping; pass prompt and refs; allow options passthrough
     const input: any = { prompt, refs, ...options }
+    if (Array.isArray(refs) && refs.length > 0) {
+      // Common conventions across many models
+      input.image_url = input.image_url || refs[0]
+      input.image_urls = input.image_urls || refs
+      input.ref_images = input.ref_images || refs
+      input.reference_images = input.reference_images || refs
+    }
 
     // Prefer subscribe to accommodate queueing/long jobs
     let anyResult: any

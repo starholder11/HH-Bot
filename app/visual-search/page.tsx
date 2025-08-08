@@ -294,6 +294,7 @@ function GenerationPanel({
   const [selected, setSelected] = useState<FalModel | null>(null);
   const [values, setValues] = useState<Record<string, any>>({});
   const [useRefs, setUseRefs] = useState(true);
+  const [uploadedRefs, setUploadedRefs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [genPreviewUrl, setGenPreviewUrl] = useState<string | null>(null);
   const [genText, setGenText] = useState<string | null>(null);
@@ -343,11 +344,10 @@ function GenerationPanel({
     setGenPreviewUrl(null);
     setGenText(null);
     try {
-      const refs = useRefs
-        ? pinned
-            .map((p) => getResultMediaUrl(p.result))
-            .filter(Boolean)
+      const pinnedRefs = useRefs
+        ? pinned.map((p) => getResultMediaUrl(p.result)).filter(Boolean)
         : [];
+      const refs = [...uploadedRefs, ...pinnedRefs] as string[];
 
       const mode = categoryToMode(selected.category);
       const body = {
@@ -493,6 +493,45 @@ function GenerationPanel({
       {/* Input fields appear only after model selection */}
       {selected && (
         <div className="mt-4 space-y-3">
+          {/* Reference images */}
+          <div className="space-y-2">
+            <div className="text-xs text-neutral-400">Reference images</div>
+            <div className="flex flex-wrap gap-2">
+              {uploadedRefs.map((u, idx) => (
+                <div key={`${u}-${idx}`} className="relative">
+                  <img src={u} className="w-16 h-16 object-cover rounded border border-neutral-800" />
+                  <button
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-neutral-900 border border-neutral-700 text-neutral-200"
+                    onClick={() => setUploadedRefs((prev) => prev.filter((x) => x !== u))}
+                    title="Remove"
+                  >×</button>
+                </div>
+              ))}
+              <label className="px-2 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 cursor-pointer">
+                + Upload
+                <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  // Upload via existing /api/upload to get a CDN URL
+                  const fd = new FormData();
+                  fd.append('file', file);
+                  fd.append('type', 'image');
+                  fd.append('directory', 'images');
+                  const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+                  const json = await resp.json();
+                  if (resp.ok && json.url) {
+                    setUploadedRefs((prev) => [...prev, json.url as string]);
+                  } else {
+                    alert(json?.error || 'Upload failed');
+                  }
+                }} />
+              </label>
+            </div>
+            {useRefs && pinned.length > 0 && (
+              <div className="text-[11px] text-neutral-500">Pinned items will also be used as references.</div>
+            )}
+          </div>
+
           <div className="flex flex-col gap-1">
             <label className="text-xs text-neutral-400">Model ID (advanced)</label>
             <input
