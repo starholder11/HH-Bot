@@ -293,17 +293,24 @@ function GenerationPanel({
   const [busy, setBusy] = useState(false);
   const [genPreviewUrl, setGenPreviewUrl] = useState<string | null>(null);
   const [genText, setGenText] = useState<string | null>(null);
+  const [category, setCategory] = useState<null | FalModel['category']>('image');
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase();
-    return models.filter((m) =>
-      m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.category.toLowerCase().includes(q)
-    );
-  }, [models, filter]);
+    return models
+      .filter((m) => (category ? m.category === category : true))
+      .filter((m) => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
+  }, [models, filter, category]);
 
   useEffect(() => {
-    if (!selected && models.length > 0) setSelected(models[0]);
-  }, [models, selected]);
+    // Clear selection if it doesn't match current category
+    if (selected && category && selected.category !== category) {
+      setSelected(null);
+      setValues({});
+      setGenPreviewUrl(null);
+      setGenText(null);
+    }
+  }, [category, selected]);
 
   useEffect(() => {
     if (selected) {
@@ -403,16 +410,37 @@ function GenerationPanel({
           Use pinned as refs
         </label>
       </div>
+
+      {/* Category toggles */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(['image','video','audio','text'] as const).map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setCategory(c)}
+            className={classNames(
+              'px-2.5 py-1.5 text-sm rounded-full border',
+              category === c ? 'border-neutral-700 bg-neutral-800 text-neutral-100' : 'border-neutral-800 bg-neutral-950 text-neutral-400 hover:bg-neutral-900'
+            )}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* Model selector, shown after category chosen */}
       <div className="mt-3">
         <input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter models…"
+          placeholder={category ? `Filter ${category} models…` : 'Filter models…'}
           className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500"
         />
         <div className="mt-2 max-h-40 overflow-auto rounded-md border border-neutral-800">
           {loading ? (
             <div className="p-2 text-sm text-neutral-400">Loading models…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-2 text-sm text-neutral-500">No models</div>
           ) : (
             filtered.map((m) => (
               <button
@@ -435,6 +463,7 @@ function GenerationPanel({
         </div>
       </div>
 
+      {/* Input fields appear only after model selection */}
       {selected && (
         <div className="mt-4 space-y-3">
           <FieldRenderer schema={selected.inputSchema} values={values} setValues={setValues} />
@@ -761,6 +790,86 @@ export default function VisualSearchPage() {
 
   const clearCanvas = () => setPinned([]);
 
+  function RightPane({
+    results,
+    loading,
+    totalResults,
+    onPin,
+    onOpen,
+    canvasRef,
+    pinned,
+    movePinned,
+    removePinned,
+  }: {
+    results: UnifiedSearchResult[];
+    loading: boolean;
+    totalResults: number;
+    onPin: (r: UnifiedSearchResult) => void;
+    onOpen: (r: UnifiedSearchResult) => void;
+    canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+    pinned: PinnedItem[];
+    movePinned: (id: string, x: number, y: number) => void;
+    removePinned: (id: string) => void;
+  }) {
+    const [tab, setTab] = useState<'results' | 'canvas'>('results');
+
+    return (
+      <div className="lg:col-span-8">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-neutral-400">{totalResults ? `${totalResults} raw hits` : ''}</div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setTab('results')}
+              className={classNames(
+                'px-3 py-1.5 text-sm rounded-md border',
+                tab === 'results' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+              )}
+            >
+              Results
+            </button>
+            <button
+              onClick={() => setTab('canvas')}
+              className={classNames(
+                'px-3 py-1.5 text-sm rounded-md border',
+                tab === 'canvas' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+              )}
+            >
+              Canvas
+            </button>
+          </div>
+        </div>
+
+        {tab === 'results' ? (
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {results.map((r) => (
+              <ResultCard key={`${r.id}-${r.score}`} r={r} onPin={onPin} onOpen={onOpen} />
+            ))}
+            {!loading && results.length === 0 && (
+              <div className="col-span-full text-neutral-400 text-sm">Try a search to see results.</div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-3">
+            <div className="text-sm text-neutral-400 mb-2">Canvas</div>
+            <div
+              ref={canvasRef}
+              className="relative h-[640px] w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
+            >
+              {pinned.map((p) => (
+                <DraggablePinned key={p.id} item={p} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
+              ))}
+              {pinned.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
+                  Pin results here to build a visual board.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-7xl px-4 py-6">
@@ -823,54 +932,24 @@ export default function VisualSearchPage() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Generation panel (left) */}
-          <div>
+          <div className="lg:col-span-4">
             <GenerationPanel pinned={pinned} onPinResult={pinResult} />
           </div>
 
-          {/* Results panel (right top) */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-neutral-400">
-                {data?.total_results ? `${data.total_results} raw hits` : ""}
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {results.map((r) => (
-                <ResultCard key={`${r.id}-${r.score}`} r={r} onPin={pinResult} onOpen={setSelected} />
-              ))}
-              {!loading && results.length === 0 && (
-                <div className="col-span-full text-neutral-400 text-sm">
-                  Try a search to see results.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Canvas panel (right bottom) */}
-          <div className="lg:col-span-2">
-            <div className="text-sm text-neutral-400 mb-2">Canvas</div>
-            <div
-              ref={canvasRef}
-              className="relative h-[640px] w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
-            >
-              {pinned.map((p) => (
-                <DraggablePinned
-                  key={p.id}
-                  item={p}
-                  onMove={movePinned}
-                  onRemove={removePinned}
-                  onOpen={setSelected}
-                />)
-              )}
-              {pinned.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
-                  Pin results here to build a visual board.
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Right main area with tabs */}
+          <RightPane
+            results={results}
+            loading={loading}
+            totalResults={data?.total_results || 0}
+            onPin={pinResult}
+            onOpen={setSelected}
+            canvasRef={canvasRef}
+            pinned={pinned}
+            movePinned={movePinned}
+            removePinned={removePinned}
+          />
         </div>
       </div>
 
