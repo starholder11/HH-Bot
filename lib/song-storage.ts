@@ -22,6 +22,21 @@ function streamToString(stream: Readable): Promise<string> {
   });
 }
 
+async function bodyToString(body: any): Promise<string> {
+  // AWS SDK v3 in some runtimes returns bodies with transformToString/transformToByteArray
+  try {
+    if (body && typeof body.transformToString === 'function') {
+      return await body.transformToString();
+    }
+    if (body && typeof body.text === 'function') {
+      return await body.text();
+    }
+  } catch (e) {
+    // Fall through to Node stream path
+  }
+  return await streamToString(body as Readable);
+}
+
 export async function listSongs(): Promise<any[]> {
   if (hasBucket) {
     try {
@@ -77,14 +92,20 @@ export async function getSong(id: string): Promise<any | null> {
       const s3 = getS3Client();
       const bucket = getBucketName();
       const key = `${PREFIX}${id}.json`;
+      console.log('getSong: fetching from S3', { bucket, key });
       const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-      const body = await streamToString(obj.Body as Readable);
+      if (!obj || !obj.Body) {
+        throw new Error('Empty S3 response body');
+      }
+      const body = await bodyToString(obj.Body as any);
       return JSON.parse(body);
     } catch (err: any) {
       // CRITICAL FIX: Do NOT fall back to local filesystem in production
       // Local files are stale and will corrupt the data when patches are applied
       if (isProd) {
-        console.error('getSong: S3 fetch failed in production - returning null', err?.name || err);
+        const name = err?.name || 'Error';
+        const status = err?.$metadata?.httpStatusCode;
+        console.error('getSong: S3 fetch failed in production - returning null', { name, status, message: err?.message });
         return null;
       }
       console.warn('getSong: S3 fetch failed in dev, falling back to local', err?.name || err);
