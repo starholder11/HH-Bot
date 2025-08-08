@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       input.reference_images = input.reference_images || refs
     }
 
-    async function runFal(modelId: string): Promise<any> {
+    const runFal = async (modelId: string): Promise<any> => {
       try {
         return await fal.subscribe(modelId, { input, logs: true, onQueueUpdate: () => {} } as any)
       } catch (e) {
