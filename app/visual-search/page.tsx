@@ -377,6 +377,7 @@ function GenerationPanel({
         json.result?.output?.[0]?.content?.[0]?.url,
         json.result?.outputs?.[0]?.url,
         json.result?.data?.[0]?.url,
+        json.result?.data?.images?.[0]?.url,
       ].filter(Boolean) as string[];
       const url = candidates[0];
 

@@ -50,8 +50,8 @@ export async function POST(req: NextRequest) {
     // Persist outputs to S3 when applicable
     if (mode === 'image') {
       // Expecting image bytes/URL in result; try common fields
-      const imageBytes: string | undefined = (anyResult?.images?.[0]?.b64_json) || anyResult?.image?.b64_json
-      const imageUrl: string | undefined = anyResult?.images?.[0]?.url || anyResult?.image?.url
+      const imageBytes: string | undefined = (anyResult?.images?.[0]?.b64_json) || anyResult?.image?.b64_json || anyResult?.data?.images?.[0]?.b64_json
+      const imageUrl: string | undefined = anyResult?.images?.[0]?.url || anyResult?.image?.url || anyResult?.data?.images?.[0]?.url
 
       if (imageBytes) {
         const buffer = Buffer.from(imageBytes, 'base64')
@@ -60,6 +60,10 @@ export async function POST(req: NextRequest) {
       }
       if (imageUrl) {
         // Optional: fetch and rehost; for now, return the URL directly
+        return NextResponse.json({ success: true, url: imageUrl, result: anyResult })
+      }
+      // If we found an image URL in a nested shape, surface it at top-level for convenience
+      if (imageUrl) {
         return NextResponse.json({ success: true, url: imageUrl, result: anyResult })
       }
       return NextResponse.json({ success: true, result: anyResult })
