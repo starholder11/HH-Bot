@@ -117,28 +117,8 @@ export async function POST(request: NextRequest) {
     console.log('🔍 DEBUG: Content files detected:', Array.from(timelineFiles));
 
     // -----
-    // Enqueue LanceDB processing via SQS; optional direct fallback
+    // Use SQS queue for text ingestion (single path, no duplication)
     // -----
-    for (const filePath of Array.from(timelineFiles)) {
-      try {
-        const segments = filePath.split('/');
-        const fileNameWithExt = segments.pop() || 'content.mdx';
-        const entrySlugRaw = segments.pop() || 'unknown-entry';
-        const baseName = entrySlugRaw.replace(/\s+/g, '-').toLowerCase();
-
-        await enqueueAnalysisJob({
-          assetId: baseName,
-          mediaType: 'text',
-          sourcePath: filePath,
-          gitRef: branch,
-          title: baseName,
-          requestedAt: Date.now(),
-        });
-        console.log(`📤 Enqueued analysis job for ${baseName}`);
-      } catch (enqueueErr) {
-        console.error('⚠️ Failed to enqueue text analysis job', enqueueErr);
-      }
-    }
 
     // Process image files first (upload to S3)
     if (imageFiles.size > 0) {
@@ -221,24 +201,20 @@ export async function POST(request: NextRequest) {
         console.log(`   📄 File name: ${fileName}`);
         console.log(`   📝 Content length: ${fileContent.length} chars`);
 
-        // Enqueue job for parallel ingestion pipeline (text)
+        // Use SQS queue for ingestion only (no direct sync to avoid duplicates)
         try {
           await enqueueAnalysisJob({
             assetId: baseName,
             mediaType: 'text',
             sourcePath: filePath,
+            gitRef: branch,
             title: baseName,
             requestedAt: Date.now(),
           });
-          console.log(`📤 Enqueued analysis job for ${baseName}`);
+          console.log(`📤 Enqueued analysis job for ${baseName} (SQS only - no direct sync)`);
         } catch (queueErr) {
           console.error('⚠️ Failed to enqueue analysis job', queueErr);
         }
-
-        // Sync to vector store with file content
-        console.log(`🚀 CALLING syncTimelineEntry(${baseName}, [content])`);
-        await syncTimelineEntry(baseName, fileContent);
-        console.log(`✅ SUCCESSFULLY SYNCED: ${baseName}`);
 
         // If we have S3 URL mappings, update the content file
         if (Object.keys(urlMappings).length > 0) {
