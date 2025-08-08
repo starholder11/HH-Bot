@@ -113,6 +113,11 @@ export default function AgentChat() {
               (window as any).__agentApi?.prepareGenerate?.(normalized.payload);
               continue;
             }
+            if (normalized?.action === 'agentStatus' && typeof window !== 'undefined') {
+              // also show a readable message in the chat
+              setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(normalized.payload, null, 2) }]);
+              continue;
+            }
           } catch {}
         }
       }

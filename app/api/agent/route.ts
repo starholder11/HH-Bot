@@ -37,6 +37,15 @@ const tools = {
       return { action: 'showResults', payload: json };
     }
   }),
+  agentStatus: tool({
+    description: 'Get the in-app agent generation status (what is running, last run URL)',
+    parameters: z.object({}),
+    execute: async () => {
+      const res = await fetch(`${process.env.PUBLIC_API_BASE_URL || ''}/api/agent/status` || '/api/agent/status', { method: 'GET' });
+      if (!res.ok) throw new Error('Status fetch failed');
+      return await res.json();
+    }
+  }),
   generateMedia: tool({
     description: 'Generate media using FAL.ai',
     parameters: z.object({

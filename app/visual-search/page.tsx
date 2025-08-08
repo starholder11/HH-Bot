@@ -890,6 +890,10 @@ export default function VisualSearchPage() {
           const refs: string[] = (planRefs.length > 0 ? planRefs : (pinned || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean)) as string[];
 
           if (!mode || !prompt) return;
+          // Update status API
+          try {
+            await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: true, startedAt: new Date().toISOString(), params: { mode, model, prompt, refs } } }) });
+          } catch {}
           setGenLoading(true);
           setGenUrl(null);
           setGenRaw(null);
@@ -917,12 +921,19 @@ export default function VisualSearchPage() {
           ].filter(Boolean) as string[];
 
           setGenMode(mode);
-          setGenUrl(candidates[0] || null);
+          const out = candidates[0] || null;
+          setGenUrl(out);
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
+          try {
+            await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs } } }) });
+          } catch {}
         } catch (e) {
           setGenLoading(false);
           console.error(e);
+          try {
+            await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), error: (e as any)?.message || 'Unknown error' } }) });
+          } catch {}
         }
       },
       showOutput: (payload: any) => {
