@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import * as fs from 'fs/promises'
+import * as path from 'path'
 
 // Curated FAL models with lightweight input schemas for dynamic UI
 // This can later be fetched from a remote registry if FAL exposes one.
@@ -207,6 +209,17 @@ const MODELS: FalModel[] = [
 ]
 
 export async function GET() {
+  // Try local catalog first (public/fal-models.json)
+  try {
+    const p = path.join(process.cwd(), 'public', 'fal-models.json')
+    const txt = await fs.readFile(p, 'utf-8')
+    const json = JSON.parse(txt)
+    const models = Array.isArray(json) ? json : json.models
+    if (Array.isArray(models) && models.length > 0) {
+      return NextResponse.json({ models })
+    }
+  } catch {}
+
   // Optional: remote JSON catalog via env while FAL lacks a public listing
   const remote = process.env.FAL_MODELS_JSON_URL;
   if (remote) {
