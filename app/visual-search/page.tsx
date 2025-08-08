@@ -281,9 +281,13 @@ function FieldRenderer({
 function GenerationPanel({
   pinned,
   onPinResult,
+  onGenStart,
+  onGenResult,
 }: {
   pinned: PinnedItem[];
   onPinResult: (r: UnifiedSearchResult) => void;
+  onGenStart: () => void;
+  onGenResult: (mode: 'image' | 'video' | 'audio' | 'text', url: string | undefined, raw: any) => void;
 }) {
   const { models, loading } = useFalModels();
   const [filter, setFilter] = useState('');
@@ -334,7 +338,7 @@ function GenerationPanel({
     if (typeof window !== 'undefined') {
       try { (window as any).__onGenStart?.(); } catch {}
     }
-    handleGenStart();
+    onGenStart();
     setBusy(true);
     setGenPreviewUrl(null);
     setGenText(null);
@@ -381,7 +385,7 @@ function GenerationPanel({
       }
       if (url) setGenPreviewUrl(url);
       // propagate to parent right-pane state
-      handleGenResult(mode, url, json.result ?? json);
+      onGenResult(mode, url, json.result ?? json);
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -1066,7 +1070,12 @@ export default function VisualSearchPage() {
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Generation panel (left) */}
           <div className="lg:col-span-4">
-            <GenerationPanel pinned={pinned} onPinResult={pinResult} />
+            <GenerationPanel
+              pinned={pinned}
+              onPinResult={pinResult}
+              onGenStart={handleGenStart}
+              onGenResult={handleGenResult}
+            />
           </div>
 
           {/* Right main area with tabs */}
