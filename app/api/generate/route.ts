@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
       image: 'fal-ai/fast-sdxl',
       audio: 'fal-ai/tts',
       text: 'fal-ai/llama-3.1',
-      // For video, pick based on whether we have image refs
-      video: (Array.isArray(refs) && refs.length > 0) ? 'fal-ai/image-to-video' : 'fal-ai/text-to-video',
+      // Use a known image→video model by default; require refs for video
+      video: 'fal-ai/wan/v2.2-a14b/image-to-video',
     }
 
     const selectedModel = model || defaults[mode]
@@ -57,8 +57,11 @@ export async function POST(req: NextRequest) {
     }
 
     // If an image-to-video model is requested but no refs were provided, fail fast with guidance
-    if (mode === 'video' && (!Array.isArray(refs) || refs.length === 0) && typeof selectedModel === 'string' && selectedModel.includes('image-to-video')) {
-      return NextResponse.json({ error: `Model '${selectedModel}' requires an image reference. Provide refs[] (image URLs) or omit model to use text-to-video.` }, { status: 400 })
+    if (mode === 'video' && (!Array.isArray(refs) || refs.length === 0)) {
+      return NextResponse.json({ error: `Video generation requires a pinned/uploaded image reference. Please provide refs[] (image URLs) on the request.` }, { status: 400 })
+    }
+    if (mode === 'video' && typeof selectedModel === 'string' && selectedModel.includes('text-to-video')) {
+      return NextResponse.json({ error: `Text-to-video is not enabled in this environment. Pin an image and use an image-to-video model.` }, { status: 400 })
     }
 
     // Try requested model; if it fails, fall back to default for the mode
