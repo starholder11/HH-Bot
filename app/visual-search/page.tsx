@@ -947,7 +947,7 @@ export default function VisualSearchPage() {
     pinned: PinnedItem[];
     movePinned: (id: string, x: number, y: number) => void;
     removePinned: (id: string) => void;
-    tab: 'results' | 'canvas' | 'output';
+    tab: 'results' | 'canvas' | 'output' | 'generate';
     setTab: (t: 'results' | 'canvas' | 'output') => void;
     genLoading: boolean;
     genUrl: string | null;
@@ -988,6 +988,15 @@ export default function VisualSearchPage() {
             >
               Output
             </button>
+            <button
+              onClick={() => setTab('generate')}
+              className={classNames(
+                'px-3 py-1.5 text-sm rounded-md border',
+                tab === 'generate' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+              )}
+            >
+              Generate
+            </button>
           </div>
         </div>
 
@@ -1017,7 +1026,7 @@ export default function VisualSearchPage() {
               )}
             </div>
           </div>
-        ) : (
+        ) : tab === 'output' ? (
           <div className="mt-3 space-y-3">
             {genLoading ? (
               <div className="h-[640px] w-full flex items-center justify-center rounded-xl border border-neutral-800 bg-neutral-950">
@@ -1073,6 +1082,20 @@ export default function VisualSearchPage() {
               <summary className="px-3 py-2 text-sm text-neutral-300 cursor-pointer">Show raw result</summary>
               <pre className="p-3 text-xs text-neutral-200 whitespace-pre-wrap overflow-auto max-h-80">{JSON.stringify(genRaw, null, 2)}</pre>
             </details>
+          </div>
+        ) : (
+          <div className="mt-3">
+            <GenerationPanel
+              pinned={pinned}
+              onPinResult={onPin}
+              onGenStart={() => setTab('output') || undefined}
+              onGenResult={(m, url, raw) => {
+                setTab('output');
+                setGenMode(m);
+                setGenUrl(url || null);
+                setGenRaw(raw);
+              }}
+            />
           </div>
         )}
       </div>
@@ -1174,21 +1197,15 @@ export default function VisualSearchPage() {
         )}
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Generation panel (left) */}
+          {/* Left: Agent full-height */}
           <div className="lg:col-span-4">
-            <GenerationPanel
-              pinned={pinned}
-              onPinResult={pinResult}
-              onGenStart={handleGenStart}
-              onGenResult={handleGenResult}
-            />
-            <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-3">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3">
               <div className="text-sm text-neutral-400 mb-2">Agent</div>
               <AgentChat />
             </div>
           </div>
 
-          {/* Right main area with tabs */}
+          {/* Right main area with tabs (now includes Generate) */}
           <RightPane
             results={results}
             loading={loading}
