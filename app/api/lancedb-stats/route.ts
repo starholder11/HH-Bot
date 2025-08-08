@@ -12,6 +12,18 @@ export async function GET(_req: NextRequest) {
   try {
     const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'http://localhost:8000';
 
+    // Try health and schema for context
+    let health: string | null = null;
+    let schemaText: string | null = null;
+    try {
+      const healthRes = await fetch(`${lancedbUrl}/health`, { cache: 'no-store' });
+      if (healthRes.ok) health = await healthRes.text();
+    } catch {}
+    try {
+      const schemaRes = await fetch(`${lancedbUrl}/debug/schema`, { cache: 'no-store' });
+      if (schemaRes.ok) schemaText = await schemaRes.text();
+    } catch {}
+
     // Try count endpoint first (fast), then export-all for grouping
     let totalCount: number | null = null;
     try {
@@ -25,7 +37,7 @@ export async function GET(_req: NextRequest) {
     const expRes = await fetch(`${lancedbUrl}/export-all`, { cache: 'no-store' });
     if (!expRes.ok) {
       const text = await expRes.text();
-      return NextResponse.json({ error: 'export-all failed', status: expRes.status, details: text }, { status: 502 });
+      return NextResponse.json({ error: 'export-all failed', status: expRes.status, details: text, lancedbUrlResolved: lancedbUrl, health, schemaText, totalCount }, { status: 502 });
     }
     const rows = (await expRes.json()) as LanceRow[];
 
@@ -52,6 +64,8 @@ export async function GET(_req: NextRequest) {
 
     return NextResponse.json({
       lancedbUrlResolved: lancedbUrl,
+      health,
+      schemaText,
       totalRows: totalCount ?? rows.length,
       totalRowsFromExport: rows.length,
       countsByType: byType,
