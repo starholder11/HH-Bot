@@ -6,6 +6,9 @@ import { uploadImage, uploadFile } from '@/lib/s3-upload'
 // Body: { mode: 'image'|'audio'|'text'|'video', model?: string, prompt: string, refs?: string[], options?: any }
 // For now, supports image and audio, returns persisted S3 URL and raw FAL result
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const { mode, model, prompt, refs = [], options = {} } = await req.json()
@@ -53,13 +56,13 @@ export async function POST(req: NextRequest) {
       if (imageBytes) {
         const buffer = Buffer.from(imageBytes, 'base64')
         const uploaded = await uploadImage(buffer, { format: 'jpeg', quality: 90 })
-        return NextResponse.json({ success: true, url: uploaded.url, storage: uploaded, result })
+        return NextResponse.json({ success: true, url: uploaded.url, storage: uploaded, result: anyResult })
       }
       if (imageUrl) {
         // Optional: fetch and rehost; for now, return the URL directly
-        return NextResponse.json({ success: true, url: imageUrl, result })
+        return NextResponse.json({ success: true, url: imageUrl, result: anyResult })
       }
-      return NextResponse.json({ success: true, result })
+      return NextResponse.json({ success: true, result: anyResult })
     }
 
     if (mode === 'audio') {
@@ -70,16 +73,16 @@ export async function POST(req: NextRequest) {
       if (audioB64) {
         const buffer = Buffer.from(audioB64, 'base64')
         const uploaded = await uploadFile(buffer, 'audio')
-        return NextResponse.json({ success: true, url: uploaded.url, storage: uploaded, result })
+        return NextResponse.json({ success: true, url: uploaded.url, storage: uploaded, result: anyResult })
       }
       if (audioUrl) {
-        return NextResponse.json({ success: true, url: audioUrl, result })
+        return NextResponse.json({ success: true, url: audioUrl, result: anyResult })
       }
-      return NextResponse.json({ success: true, result })
+      return NextResponse.json({ success: true, result: anyResult })
     }
 
     // For text/video, return raw for now (can persist later)
-    return NextResponse.json({ success: true, result })
+    return NextResponse.json({ success: true, result: anyResult })
   } catch (err: any) {
     console.error('[api/generate] error:', err)
     return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
