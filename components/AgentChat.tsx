@@ -103,6 +103,10 @@ export default function AgentChat() {
               (window as any).__agentApi?.pin?.(result);
               continue;
             }
+            if (result?.action === 'showOutput' && typeof window !== 'undefined') {
+              (window as any).__agentApi?.showOutput?.(result.payload);
+              continue;
+            }
           } catch {}
         }
       }

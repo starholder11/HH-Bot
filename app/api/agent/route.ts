@@ -39,7 +39,8 @@ const tools = {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || 'Generate failed');
-      return json;
+      // Tell client to render in Output pane
+      return { action: 'showOutput', payload: { type, response: json } };
     }
   }),
   pinToCanvas: tool({

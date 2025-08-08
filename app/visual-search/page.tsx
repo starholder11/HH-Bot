@@ -849,6 +849,29 @@ export default function VisualSearchPage() {
           }
         } catch {}
       },
+      showOutput: (payload: any) => {
+        try {
+          const t = payload?.type as 'image' | 'video' | 'audio' | 'text';
+          const j = payload?.response;
+          const candidates = [
+            j?.url,
+            j?.result?.url,
+            j?.result?.images?.[0]?.url,
+            j?.result?.image?.url,
+            j?.result?.audio?.url,
+            j?.result?.video?.url,
+            j?.result?.output?.url,
+            j?.result?.output?.[0]?.url,
+            j?.result?.data?.images?.[0]?.url,
+            j?.result?.data?.video?.url,
+          ].filter(Boolean) as string[];
+          setGenMode(t);
+          setGenUrl(candidates[0] || null);
+          setGenRaw(j?.result ?? j);
+          setGenLoading(false);
+          setRightTab('output');
+        } catch {}
+      },
     };
   }, []);
 
