@@ -192,7 +192,7 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       }).sort((a, b) => b.score - a.score);
 
       // Apply final limit per category
-            // Flexible filter: prioritize title matches and rely on semantic similarity
+      // Flexible filter: prioritize title matches and rely on semantic similarity
       const tokenMatch = (r: SearchResult) => {
         const hay = (r.searchable_text || r.preview || r.title).toLowerCase();
         const titleLower = r.title.toLowerCase();
@@ -217,7 +217,18 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         return queryTokens.every(t => hay.includes(t));
       };
 
-      // For semantic search, trust LanceDB's ranking and skip token filtering
+      // Token-aware boosting before taking top-N
+      for (const r of textResults) {
+        if (tokenMatch(r)) r.score += 0.35; // stronger bump for text
+      }
+      for (const r of mediaResults) {
+        if (tokenMatch(r)) r.score += 0.2;
+      }
+
+      // After boosting, re-sort
+      textResults.sort((a, b) => b.score - a.score);
+      mediaResults.sort((a, b) => b.score - a.score);
+
       const finalText = textResults.slice(0, limit);
       const finalMedia = mediaResults.slice(0, limit);
 
@@ -248,10 +259,33 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       const filteredMedia = filterByContentTypes(finalMedia);
       const filteredText = filterByContentTypes(finalText);
 
+      // Blend media and text for the unified "all" list so text isn't drowned out
+      const textQuota = Math.max(1, Math.ceil(limit * 0.6));
+      const mediaQuota = Math.max(0, limit - textQuota);
+
+      const topText = filteredText.slice(0, textQuota);
+      const topMedia = filteredMedia.slice(0, mediaQuota);
+
+      // Interleave to keep the feed varied
+      const blendedAll: SearchResult[] = [];
+      const maxLen = Math.max(topText.length, topMedia.length);
+      for (let i = 0; i < maxLen && blendedAll.length < limit; i++) {
+        if (i < topText.length) blendedAll.push(topText[i]);
+        if (i < topMedia.length && blendedAll.length < limit) blendedAll.push(topMedia[i]);
+      }
+      // If any remaining due to quota mismatch, append until limit
+      if (blendedAll.length < limit) {
+        const extras = filteredText.slice(topText.length).concat(filteredMedia.slice(topMedia.length));
+        for (const e of extras) {
+          if (blendedAll.length >= limit) break;
+          blendedAll.push(e);
+        }
+      }
+
       const groupedResults = {
         media: filteredMedia,
         text: filteredText,
-        all: [...filteredMedia, ...filteredText].sort((a, b) => b.score - a.score).slice(0, limit),
+        all: blendedAll,
       };
 
       const responseData = {
