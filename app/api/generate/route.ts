@@ -92,7 +92,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, result: anyResult })
     }
 
-    // For text/video, return raw for now (can persist later)
+    // For video/text, try to surface a convenient url if present
+    if (mode === 'video') {
+      const videoUrl: string | undefined = anyResult?.video?.url || anyResult?.data?.video?.url || anyResult?.output?.url || anyResult?.outputs?.[0]?.url
+      if (videoUrl) {
+        return NextResponse.json({ success: true, url: videoUrl, result: anyResult })
+      }
+    }
     return NextResponse.json({ success: true, result: anyResult })
   } catch (err: any) {
     console.error('[api/generate] error:', err)
