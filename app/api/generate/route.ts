@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       audio: 'fal-ai/tts',
       text: 'fal-ai/llama-3.1',
       // Use a known image→video model by default; require refs for video
-      video: 'fal-ai/wan/v2.2-a14b/image-to-video',
+      video: 'fal-ai/image-to-video',
     }
 
     const selectedModel = model || defaults[mode]
@@ -48,11 +48,22 @@ export async function POST(req: NextRequest) {
     }
 
     const runFal = async (modelId: string): Promise<any> => {
+      console.log(`[api/generate] Attempting ${modelId} with input:`, JSON.stringify(input, null, 2))
       try {
-        return await fal.subscribe(modelId, { input, logs: true, onQueueUpdate: () => {} } as any)
-      } catch (e) {
+        const result = await fal.subscribe(modelId, { input, logs: true, onQueueUpdate: () => {} } as any)
+        console.log(`[api/generate] fal.subscribe success for ${modelId}:`, JSON.stringify(result, null, 2))
+        return result
+      } catch (e: any) {
+        console.warn(`[api/generate] fal.subscribe failed for ${modelId}: ${e.message}`)
         // Fallback to non-subscribe run
-        return await fal.run(modelId, { input } as any)
+        try {
+          const result = await fal.run(modelId, { input } as any)
+          console.log(`[api/generate] fal.run success for ${modelId}:`, JSON.stringify(result, null, 2))
+          return result
+        } catch (e2: any) {
+          console.error(`[api/generate] Both fal.subscribe and fal.run failed for ${modelId}:`, e2.message)
+          throw e2
+        }
       }
     }
 
