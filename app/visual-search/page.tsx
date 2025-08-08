@@ -880,23 +880,50 @@ export default function VisualSearchPage() {
           }
         } catch {}
       },
-      // Populate Generate tab UI and optionally auto-run
-      prepareGenerate: (payload: any) => {
+      // Simplified path: run generation directly using the plan; show Output
+      prepareGenerate: async (payload: any) => {
         try {
-          setRightTab('generate');
-          // Wait for the Generate tab to mount and expose __genPanel
-          let attempts = 0;
-          const tryPrepare = () => {
-            const gp = (window as any).__genPanel;
-            if (gp && typeof gp.prepare === 'function') {
-              gp.prepare(payload);
-            } else if (attempts < 15) {
-              attempts += 1;
-              setTimeout(tryPrepare, 100);
-            }
-          };
-          setTimeout(tryPrepare, 50);
-        } catch {}
+          const mode = payload?.type as 'image' | 'video' | 'audio' | 'text' | undefined;
+          const model = payload?.model as string | undefined;
+          const prompt = payload?.prompt as string | undefined;
+          const planRefs: string[] = Array.isArray(payload?.refs) ? payload.refs : [];
+          const refs: string[] = (planRefs.length > 0 ? planRefs : (pinned || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean)) as string[];
+
+          if (!mode || !prompt) return;
+          setGenLoading(true);
+          setGenUrl(null);
+          setGenRaw(null);
+          setRightTab('output');
+
+          const body = { mode, model, prompt, refs, options: payload?.options || {} } as any;
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const json = await res.json();
+
+          const candidates = [
+            json?.url,
+            json?.result?.url,
+            json?.result?.images?.[0]?.url,
+            json?.result?.image?.url,
+            json?.result?.audio?.url,
+            json?.result?.video?.url,
+            json?.result?.output?.url,
+            json?.result?.output?.[0]?.url,
+            json?.result?.data?.images?.[0]?.url,
+            json?.result?.data?.video?.url,
+          ].filter(Boolean) as string[];
+
+          setGenMode(mode);
+          setGenUrl(candidates[0] || null);
+          setGenRaw(json?.result ?? json);
+          setGenLoading(false);
+        } catch (e) {
+          setGenLoading(false);
+          console.error(e);
+        }
       },
       showOutput: (payload: any) => {
         try {
