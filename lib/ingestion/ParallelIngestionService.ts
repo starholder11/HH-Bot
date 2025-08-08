@@ -69,26 +69,30 @@ export class ParallelIngestionService {
   }
 
   /* --------------- Embedding generation -------------- */
-  private chunkAndValidateTexts(texts: string[]): string[] {
-    const out: string[] = [];
-    for (const t of texts) {
-      const estTokens = t.length / 4; // rough
-      if (estTokens > 7000) {
-        console.log(`⚠️  Text too large (${estTokens.toFixed(0)} tokens) – chunking…`);
-        chunkText(t).forEach(c => out.push(c.text));
-      } else {
-        out.push(t);
-      }
+  private chunkSingleText(text: string): string[] {
+    const estTokens = text.length / 4; // rough heuristic
+    if (estTokens > 7000) {
+      console.log(`⚠️  Text too large (${estTokens.toFixed(0)} tokens) – chunking…`);
+      return chunkText(text).map(c => c.text);
     }
+    return [text];
+  }
+
+  private averageEmbeddings(embeddings: number[][]): number[] {
+    if (embeddings.length === 1) return embeddings[0];
+    const dim = embeddings[0].length;
+    const out = new Array(dim).fill(0);
+    for (const e of embeddings) {
+      for (let i = 0; i < dim; i++) out[i] += e[i];
+    }
+    for (let i = 0; i < dim; i++) out[i] /= embeddings.length;
     return out;
   }
 
-  async generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
-    const valid = this.chunkAndValidateTexts(texts);
-    console.log(`🧠 Generating embeddings for ${valid.length} text chunks (from ${texts.length} originals)…`);
-
-    // Use the exact same pattern as working ai-labeling
-    return await generateEmbeddings(valid);
+  private async generateEmbeddingForText(text: string): Promise<number[]> {
+    const chunks = this.chunkSingleText(text);
+    const chunkEmbeddings = await generateEmbeddings(chunks);
+    return this.averageEmbeddings(chunkEmbeddings);
   }
 
   /* -------------- LanceDB bulk insert --------------- */
@@ -145,7 +149,10 @@ export class ParallelIngestionService {
   /* ---------------- Main ingestion ------------------ */
   async ingestWithOptimizations(items: ContentItem[], isUpsert: boolean = false): Promise<void> {
     const start = Date.now();
-    const embeddings = await this.generateEmbeddingsBatch(items.map(i => i.combinedText));
+    // Generate one embedding per item, averaging across chunks when needed
+    const embeddings = await Promise.all(
+      items.map(i => this.generateEmbeddingForText(i.combinedText))
+    );
 
     const records = items.map((it, idx) => {
       const emb = embeddings[idx];
@@ -170,18 +177,15 @@ export class ParallelIngestionService {
     const parts: string[] = [];
     // Title belongs in title field; avoid duplication unless we have no other text
 
-    // Handle audio-specific content (lyrics and prompt)
+    // Handle audio-specific content (prompt and lyrics)
     if (asset.media_type === 'audio') {
       const audioAsset = asset as any;
-      
-      // Always add lyrics if they exist
-      if (audioAsset.lyrics) {
-        parts.push(audioAsset.lyrics);
-      }
-      
-      // Always add prompt if it exists
+      // Place prompt FIRST so it's included even when lyrics are very long and the text is chunked
       if (audioAsset.prompt && audioAsset.prompt.trim().length > 0) {
         parts.push(audioAsset.prompt);
+      }
+      if (audioAsset.lyrics) {
+        parts.push(audioAsset.lyrics);
       }
     }
 
