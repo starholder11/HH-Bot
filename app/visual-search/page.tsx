@@ -977,6 +977,13 @@ export default function VisualSearchPage() {
                   <div className="text-sm text-neutral-400">No output URL found. See raw result below.</div>
                 )}
 
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                  <div className="md:col-span-2">
+                    <label className="text-xs text-neutral-400">Title / Filename</label>
+                    <input id="gen-title-input" className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" placeholder="Untitled" />
+                  </div>
+                  <ProjectPicker />
+                </div>
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={onPinGenerated}
@@ -1004,6 +1011,38 @@ export default function VisualSearchPage() {
         )}
       </div>
     );
+  }
+
+  function ProjectPicker() {
+    const [projects, setProjects] = useState<Array<{ project_id: string; name: string }>>([])
+    const [loading, setLoading] = useState(false)
+    useEffect(() => {
+      let cancelled = false
+      ;(async () => {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/projects')
+          if (res.ok) {
+            const json = await res.json()
+            if (!cancelled) setProjects((json.projects || []).map((p: any) => ({ project_id: p.project_id, name: p.name })))
+          }
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      })()
+      return () => { cancelled = true }
+    }, [])
+    return (
+      <div>
+        <label className="text-xs text-neutral-400">Project</label>
+        <select id="gen-project-select" className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100">
+          <option value="">No project</option>
+          {projects.map((p) => (
+            <option key={p.project_id} value={p.project_id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+    )
   }
 
   return (
@@ -1110,12 +1149,15 @@ export default function VisualSearchPage() {
             }}
             onSaveGenerated={async () => {
               if (!genUrl || !genMode) return;
-              const filename = `${genMode}-generated-${Date.now()}`;
+              const inputEl = document.getElementById('gen-title-input') as HTMLInputElement | null
+              const selectEl = document.getElementById('gen-project-select') as HTMLSelectElement | null
+              const filename = inputEl?.value?.trim() || `${genMode}-generated-${Date.now()}`
+              const projectId = selectEl?.value || undefined
               try {
                 const resp = await fetch('/api/import/url', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ url: genUrl, mediaType: genMode, originalFilename: filename }),
+                  body: JSON.stringify({ url: genUrl, mediaType: genMode, originalFilename: filename, projectId }),
                 });
                 if (!resp.ok) {
                   const j = await resp.json();
