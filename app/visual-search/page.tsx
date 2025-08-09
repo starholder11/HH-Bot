@@ -642,10 +642,16 @@ function ResultCard({
   r,
   onPin,
   onOpen,
+  selectionEnabled,
+  selected,
+  onToggleSelect,
 }: {
   r: UnifiedSearchResult;
   onPin: (r: UnifiedSearchResult) => void;
   onOpen: (r: UnifiedSearchResult) => void;
+  selectionEnabled?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (r: UnifiedSearchResult) => void;
 }) {
   const scorePct = Math.round((Math.max(0, Math.min(1, r.score)) || 0) * 100);
   const labels: string[] = useMemo(() => {
@@ -661,7 +667,16 @@ function ResultCard({
   }, [r.metadata]);
 
   return (
-    <div className="group rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 transition-colors overflow-hidden flex flex-col">
+    <div className={classNames(
+      "group rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 transition-colors overflow-hidden flex flex-col",
+      selected ? "ring-2 ring-neutral-500" : undefined
+    )}
+    onClick={() => {
+      if (selectionEnabled && onToggleSelect) {
+        onToggleSelect(r);
+      }
+    }}
+    >
       <div className="p-3 pb-2">
         <div className="flex items-center justify-between gap-2">
           <div className="text-xs px-2 py-0.5 rounded-full border border-neutral-700 bg-neutral-800/60 text-neutral-300">
@@ -669,6 +684,19 @@ function ResultCard({
           </div>
           <div className="text-[10px] text-neutral-400">{scorePct}%</div>
         </div>
+        {selectionEnabled && (
+          <div className="mt-2">
+            <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
+              <input
+                type="checkbox"
+                checked={!!selected}
+                onChange={(e) => { e.stopPropagation(); onToggleSelect?.(r); }}
+                className="accent-neutral-400"
+              />
+              Select
+            </label>
+          </div>
+        )}
         <div className="mt-2 font-medium text-neutral-100 line-clamp-1" title={r.title}>
           {r.title}
         </div>
@@ -848,6 +876,8 @@ export default function VisualSearchPage() {
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
   const [zCounter, setZCounter] = useState(10);
@@ -1051,6 +1081,22 @@ export default function VisualSearchPage() {
     });
   };
 
+  const toggleSelect = (r: UnifiedSearchResult) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+      return next;
+    });
+  };
+
+  const pinSelected = () => {
+    const toPin = results.filter((r) => selectedIds.has(r.id));
+    toPin.forEach((r) => pinResult(r));
+    setSelectedIds(new Set());
+    setMultiSelect(false);
+    setRightTab('canvas');
+  };
+
   const pinResult = (r: UnifiedSearchResult) => {
     const canvas = canvasRef.current;
     const rect = canvas?.getBoundingClientRect();
@@ -1182,7 +1228,15 @@ export default function VisualSearchPage() {
         {tab === 'results' ? (
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {results.map((r) => (
-              <ResultCard key={`${r.id}-${r.score}`} r={r} onPin={onPin} onOpen={onOpen} />
+              <ResultCard
+                key={`${r.id}-${r.score}`}
+                r={r}
+                onPin={onPin}
+                onOpen={onOpen}
+                selectionEnabled={multiSelect}
+                selected={selectedIds.has(r.id)}
+                onToggleSelect={toggleSelect}
+              />
             ))}
             {!loading && results.length === 0 && (
               <div className="col-span-full text-neutral-400 text-sm">Try a search to see results.</div>
@@ -1279,6 +1333,19 @@ export default function VisualSearchPage() {
         )}
         {tab === 'results' && (
           <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
+                <input type="checkbox" className="accent-neutral-400" checked={multiSelect} onChange={(e) => { setMultiSelect(e.target.checked); if (!e.target.checked) setSelectedIds(new Set()); }} />
+                Multi-select
+              </label>
+              {multiSelect && (
+                <button
+                  onClick={pinSelected}
+                  disabled={selectedIds.size === 0}
+                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+                >Pin selected to canvas</button>
+              )}
+            </div>
             <div className="text-xs text-neutral-500">{total} total</div>
             <div className="flex items-center gap-2">
               <button
