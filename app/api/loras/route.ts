@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
               allLoras.push({
                 canvasId: canvasData.id,
                 canvasName: canvasData.name || canvasData.id,
-                loraId: lora.id,
-                path: lora.path,
-                triggerWord: lora.triggerWord,
+                loraId: lora.id || lora.requestId,
+                path: lora.path || lora.artifactUrl,
+                triggerWord: lora.triggerWord || 'CANVAS_STYLE',
                 scale: 1.0,
                 artifactUrl: lora.artifactUrl,
                 status: lora.status

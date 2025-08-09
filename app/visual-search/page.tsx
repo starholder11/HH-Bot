@@ -1883,7 +1883,11 @@ export default function VisualSearchPage() {
     try {
       const res = await fetch(`/api/canvas/loras?id=${encodeURIComponent(canvasId)}`)
       const j = await res.json()
-      if (res.ok) setCanvasLoras(Array.isArray(j.loras) ? j.loras : [])
+      if (res.ok) {
+        setCanvasLoras(Array.isArray(j.loras) ? j.loras : [])
+        // Also refresh global LoRAs when canvas updates
+        await fetchAllLoras()
+      }
     } catch (e) {
       console.error('Canvas refresh failed:', e)
     }

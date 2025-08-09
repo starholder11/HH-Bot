@@ -26,7 +26,13 @@ export async function GET(req: NextRequest) {
         const res = await fal.queue.result('fal-ai/flux-lora-fast-training', { requestId } as any)
         console.log(`[train-status] FAL result:`, JSON.stringify(res, null, 2))
         
-        const artifactUrl = (res as any)?.diffusers_lora_file?.url || (res as any)?.safetensors_file?.url || (res as any)?.lora_file?.url
+        // Try multiple possible paths for the artifact URL
+        const artifactUrl = (res as any)?.diffusers_lora_file?.url || 
+                           (res as any)?.safetensors_file?.url || 
+                           (res as any)?.lora_file?.url ||
+                           (res as any)?.diffusers_lora_file ||
+                           (res as any)?.safetensors_file ||
+                           (res as any)?.lora_file
         console.log(`[train-status] Extracted artifactUrl: ${artifactUrl}`)
         
         if (artifactUrl) {
@@ -51,6 +57,7 @@ export async function GET(req: NextRequest) {
             if (idx >= 0) {
               loras[idx] = { 
                 ...loras[idx], 
+                id: loras[idx].id || loras[idx].requestId,
                 status: 'completed', 
                 artifactUrl, 
                 path: artifactUrl, 
