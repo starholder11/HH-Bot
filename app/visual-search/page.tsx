@@ -1608,15 +1608,16 @@ export default function VisualSearchPage() {
               </div>
               <label htmlFor="canvas-note-input" className="sr-only">Canvas notes</label>
               <textarea
-                key={isEditingNote ? 'canvas-note-edit' : 'canvas-note-read'}
                 ref={noteRef}
                 name="canvas-note"
                 id="canvas-note-input"
                 rows={6}
+                dir="ltr"
                 value={isEditingNote ? tempNoteValue : canvasNote}
                 onChange={(e) => isEditingNote ? setTempNoteValue(e.target.value) : undefined}
                 readOnly={!isEditingNote}
                 autoFocus={isEditingNote}
+                key={isEditingNote ? 'canvas-note-edit' : 'canvas-note-read'}
                 className={`mt-1 w-full px-2 py-1.5 rounded-md border ${isEditingNote ? 'border-neutral-700' : 'border-transparent'} bg-neutral-900 text-neutral-100`}
                 placeholder="Write notes, ideas, training guidance…"
               />
