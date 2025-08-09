@@ -1660,7 +1660,6 @@ export default function VisualSearchPage() {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), error: (e as any)?.message || 'Unknown error' } }) });
           } catch {}
         } finally { agentRunLockRef.current = false; }
-        }
       },
       showOutput: (payload: any) => {
         try {
