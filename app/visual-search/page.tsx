@@ -291,11 +291,13 @@ function GenerationPanel({
   onPinResult,
   onGenStart,
   onGenResult,
+  canvasLoras = [],
 }: {
   pinned: PinnedItem[];
   onPinResult: (r: UnifiedSearchResult) => void;
   onGenStart: () => void;
   onGenResult: (mode: 'image' | 'video' | 'audio' | 'text', url: string | undefined, raw: any) => void;
+  canvasLoras?: any[];
 }) {
   const { models, loading } = useFalModels();
   const [filter, setFilter] = useState('');
@@ -343,7 +345,7 @@ function GenerationPanel({
         }
       } catch {}
     }
-  }, [selected]);
+  }, [selected, canvasLoras]);
 
   const categoryToMode = (c: FalModel['category']): 'image' | 'audio' | 'video' | 'text' => c;
 
@@ -1018,6 +1020,10 @@ function RightPane({
   pinSelected,
   onParentGenStart,
   onParentGenResult,
+  // LoRA props
+  canvasLoras,
+  loraTraining,
+  trainCanvasLora,
 }: {
   results: UnifiedSearchResult[];
   loading: boolean;
@@ -1064,6 +1070,10 @@ function RightPane({
   pinSelected: () => void;
   onParentGenStart: () => void;
   onParentGenResult: (m: 'image' | 'video' | 'audio' | 'text', url: string | undefined, raw: any) => void;
+  // LoRA props
+  canvasLoras: any[];
+  loraTraining: null | { status: string; requestId?: string };
+  trainCanvasLora: () => Promise<void>;
 }) {
   return (
     <div className="lg:col-span-8">
@@ -1343,6 +1353,7 @@ function RightPane({
             onPinResult={onPin}
             onGenStart={() => { setTab('output'); onParentGenStart(); }}
             onGenResult={(m, url, raw) => { setTab('output'); onParentGenResult(m, url, raw); }}
+            canvasLoras={canvasLoras}
           />
         </div>
       )}
@@ -2037,6 +2048,9 @@ export default function VisualSearchPage() {
             pinSelected={pinSelected}
             onParentGenStart={handleGenStart}
             onParentGenResult={handleGenResult}
+            canvasLoras={canvasLoras}
+            loraTraining={loraTraining}
+            trainCanvasLora={trainCanvasLora}
           />
         </div>
       </div>

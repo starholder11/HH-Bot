@@ -43,13 +43,13 @@ export async function POST(req: NextRequest) {
     const uploaded = await uploadFile(buffer, 'canvas-training')
 
     // Submit training job
-    const input: Record<string, any> = {
+    const input = {
       images_data_url: uploaded.url,
       trigger_word: triggerWord,
       is_style: true,
     }
 
-    const queued = await fal.queue.submit('fal-ai/flux-lora-fast-training', { input })
+    const queued = await fal.queue.submit('fal-ai/flux-lora-fast-training', { input } as any)
 
     // Persist LoRA metadata onto canvas
     const loraEntry = {

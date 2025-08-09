@@ -15,14 +15,14 @@ export async function GET(req: NextRequest) {
     if (!apiKey) return NextResponse.json({ error: 'FAL_KEY not set' }, { status: 500 })
     fal.config({ credentials: apiKey })
 
-    const status = await fal.queue.status('fal-ai/flux-lora-fast-training', { requestId, logs: true } as any)
+    const status = await fal.queue.status('fal-ai/flux-lora-fast-training', { requestId } as any)
 
     // If completed, attempt to fetch result and persist artifact URL onto canvas
     let updated = null as any
     if (status?.status === 'COMPLETED' && canvasId) {
       try {
         const res = await fal.queue.result('fal-ai/flux-lora-fast-training', { requestId } as any)
-        const artifactUrl = res?.diffusers_lora_file?.url || res?.safetensors_file?.url || res?.lora_file?.url
+        const artifactUrl = (res as any)?.diffusers_lora_file?.url || (res as any)?.safetensors_file?.url || (res as any)?.lora_file?.url
         if (artifactUrl) {
           // Merge onto canvas.loras[] matching this requestId
           const canvasRes = await fetch(`/api/canvas?id=${encodeURIComponent(canvasId)}` as any)
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, status: status?.status, logs: status?.logs, lora: updated })
+    return NextResponse.json({ success: true, status: status?.status, logs: (status as any)?.logs, lora: updated })
   } catch (e: any) {
     console.error('[train-status] error:', e)
     return NextResponse.json({ error: e?.message || 'Status check failed' }, { status: 500 })
