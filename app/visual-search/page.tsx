@@ -292,12 +292,25 @@ function GenerationPanel({
   onGenStart,
   onGenResult,
   canvasLoras = [],
+  allLoras = [],
+  onUpdateAllLoras,
 }: {
   pinned: PinnedItem[];
   onPinResult: (r: UnifiedSearchResult) => void;
   onGenStart: () => void;
   onGenResult: (mode: 'image' | 'video' | 'audio' | 'text', url: string | undefined, raw: any) => void;
   canvasLoras?: any[];
+  allLoras?: Array<{
+    canvasId: string;
+    canvasName: string;
+    loraId: string;
+    path: string;
+    triggerWord: string;
+    scale: number;
+    artifactUrl: string;
+    status: string;
+  }>;
+  onUpdateAllLoras?: (updater: (prev: any[]) => any[]) => void;
 }) {
   const { models, loading } = useFalModels();
   const [filter, setFilter] = useState('');
@@ -606,47 +619,119 @@ function GenerationPanel({
 
       {/* LoRA selector (image only) */}
       {category === 'image' && (
-        <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
-          <div className="text-sm font-medium text-neutral-200">Canvas LoRAs</div>
-          {selectedLoras.length === 0 ? (
-            <div className="mt-1 text-xs text-neutral-500">No completed LoRAs found for this canvas.</div>
-          ) : (
-            <div className="mt-2 space-y-2">
-              {selectedLoras.map((l) => (
-                <div key={l.id} className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={l.selected}
-                      onChange={(e) => {
-                        const checked = e.target.checked
-                        setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, selected: checked } : p))
-                        if (checked) setAdvancedModelId('fal-ai/flux-lora')
-                      }}
-                      className="accent-neutral-400"
-                    />
-                    <span className="text-neutral-300">{l.label}</span>
-                  </label>
-                  <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
-                    <span>Scale</span>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="2"
-                      value={l.scale}
-                      onChange={(e) => {
-                        const v = Math.max(0, Math.min(2, Number(e.target.value) || 0))
-                        setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, scale: v } : p))
-                      }}
-                      className="w-16 px-2 py-1 rounded border border-neutral-800 bg-neutral-900 text-neutral-100"
-                    />
+        <>
+          {/* Canvas LoRAs */}
+          <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
+            <div className="text-sm font-medium text-neutral-200">Canvas LoRAs</div>
+            {selectedLoras.length === 0 ? (
+              <div className="mt-1 text-xs text-neutral-500">No completed LoRAs found for this canvas.</div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {selectedLoras.map((l) => (
+                  <div key={l.id} className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={l.selected}
+                        onChange={(e) => {
+                          const checked = e.target.checked
+                          setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, selected: checked } : p))
+                          if (checked) setAdvancedModelId('fal-ai/flux-lora')
+                        }}
+                        className="accent-neutral-400"
+                      />
+                      <span className="text-neutral-300">{l.label}</span>
+                    </label>
+                    <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
+                      <span>Scale</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="2"
+                        value={l.scale}
+                        onChange={(e) => {
+                          const v = Math.max(0, Math.min(2, Number(e.target.value) || 0))
+                          setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, scale: v } : p))
+                        }}
+                        className="w-16 px-2 py-1 rounded border border-neutral-800 bg-neutral-900 text-neutral-100"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* All LoRAs */}
+          <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
+            <div className="text-sm font-medium text-neutral-200">All LoRAs</div>
+            {allLoras.length === 0 ? (
+              <div className="mt-1 text-xs text-neutral-500">No LoRAs found in system.</div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {allLoras.map((lora) => (
+                  <div key={`${lora.canvasId}-${lora.loraId}`} className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            // Force to flux-lora model
+                            setAdvancedModelId('fal-ai/flux-lora');
+                            // Set the LoRA in values
+                            setValues(prev => ({
+                              ...prev,
+                              loras: [{
+                                path: lora.path,
+                                scale: lora.scale
+                              }]
+                            }));
+                          } else {
+                            // Remove LoRA
+                            setValues(prev => ({
+                              ...prev,
+                              loras: []
+                            }));
+                          }
+                        }}
+                        className="accent-neutral-400"
+                      />
+                      <span className="text-neutral-300">{lora.canvasName} ({lora.triggerWord})</span>
+                    </label>
+                    <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
+                      <span>Scale</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="2"
+                        value={lora.scale}
+                        onChange={(e) => {
+                          const newScale = Math.max(0, Math.min(2, Number(e.target.value) || 0));
+                          // Update the LoRA scale in allLoras state
+                          onUpdateAllLoras?.((prev: any[]) => prev.map((l: any) => 
+                            l.canvasId === lora.canvasId && l.loraId === lora.loraId 
+                              ? { ...l, scale: newScale }
+                              : l
+                          ));
+                          // Update values if this LoRA is selected
+                          setValues(prev => ({
+                            ...prev,
+                            loras: prev.loras?.map((l: any) => 
+                              l.path === lora.path ? { ...l, scale: newScale } : l
+                            ) || []
+                          }));
+                        }}
+                        className="w-16 px-2 py-1 rounded border border-neutral-800 bg-neutral-900 text-neutral-100"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Input fields appear only after model selection */}
@@ -1123,6 +1208,8 @@ function RightPane({
   canvasLoras,
   loraTraining,
   trainCanvasLora,
+  allLoras,
+  setAllLoras,
 }: {
   results: UnifiedSearchResult[];
   loading: boolean;
@@ -1173,6 +1260,17 @@ function RightPane({
   canvasLoras: any[];
   loraTraining: null | { status: string; requestId?: string };
   trainCanvasLora: () => Promise<void>;
+  allLoras: Array<{
+    canvasId: string;
+    canvasName: string;
+    loraId: string;
+    path: string;
+    triggerWord: string;
+    scale: number;
+    artifactUrl: string;
+    status: string;
+  }>;
+  setAllLoras: (updater: (prev: any[]) => any[]) => void;
 }) {
   return (
     <div className="lg:col-span-8">
@@ -1453,6 +1551,8 @@ function RightPane({
             onGenStart={() => { setTab('output'); onParentGenStart(); }}
             onGenResult={(m, url, raw) => { setTab('output'); onParentGenResult(m, url, raw); }}
             canvasLoras={canvasLoras}
+            allLoras={allLoras}
+            onUpdateAllLoras={setAllLoras}
           />
         </div>
       )}
@@ -1495,6 +1595,16 @@ export default function VisualSearchPage() {
   const [canvasProjectId, setCanvasProjectId] = useState<string>('')
   const [canvasLoras, setCanvasLoras] = useState<any[]>([])
   const [loraTraining, setLoraTraining] = useState<null | { status: string; requestId?: string }>(null)
+  const [allLoras, setAllLoras] = useState<Array<{
+    canvasId: string;
+    canvasName: string;
+    loraId: string;
+    path: string;
+    triggerWord: string;
+    scale: number;
+    artifactUrl: string;
+    status: string;
+  }>>([]);
   const [canvasNote, setCanvasNote] = useState<string>('')
   const [isEditingName, setIsEditingName] = useState<boolean>(false)
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
@@ -1846,7 +1956,23 @@ export default function VisualSearchPage() {
     } catch {}
   }
 
-  useEffect(() => { void refreshCanvases() }, [])
+  useEffect(() => { 
+    void refreshCanvases()
+    void fetchAllLoras() 
+  }, [])
+
+  // Fetch all LoRAs from the global catalog
+  const fetchAllLoras = async () => {
+    try {
+      const response = await fetch('/api/loras')
+      if (response.ok) {
+        const loras = await response.json()
+        setAllLoras(loras)
+      }
+    } catch (error) {
+      console.error('Failed to fetch all LoRAs:', error)
+    }
+  }
 
   // Refresh current canvas LoRAs when canvasId changes
   useEffect(() => {
@@ -2231,6 +2357,8 @@ export default function VisualSearchPage() {
             canvasLoras={canvasLoras}
             loraTraining={loraTraining}
             trainCanvasLora={trainCanvasLora}
+            allLoras={allLoras}
+            setAllLoras={setAllLoras}
           />
         </div>
       </div>

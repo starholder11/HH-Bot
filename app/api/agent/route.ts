@@ -93,57 +93,35 @@ const tools = {
       scale: z.number().min(0.1).max(2).optional().default(1.0),
     }),
     execute: async ({ canvas, prompt, scale }) => {
-      // Fetch canvas list to resolve id → load canvas details
+      // Get all LoRAs from the global catalog first
       const base = process.env.PUBLIC_API_BASE_URL || ''
-      const listRes = await fetch(`${base}/api/canvas` || '/api/canvas', { method: 'GET' })
-      if (!listRes.ok) throw new Error('Failed to list canvases')
-      const list = await listRes.json()
-      const items: any[] = list.items || []
-      const match = items.find((it) => it.id === canvas) || items.find((it) => (it.name || '').toLowerCase() === canvas.toLowerCase())
-      if (!match?.id) {
-        // Populate the UI to let user pick
-        return { action: 'showMessage', payload: { level: 'warn', text: `Canvas '${canvas}' not found.` } }
+      const lorasRes = await fetch(`${base}/api/loras` || '/api/loras', { method: 'GET' })
+      if (!lorasRes.ok) throw new Error('Failed to fetch LoRAs')
+      const allLoras = await lorasRes.json()
+      
+      // Find LoRA by canvas name or ID
+      const matchingLora = allLoras.find((lora: any) => 
+        lora.canvasId === canvas || 
+        lora.canvasName.toLowerCase() === canvas.toLowerCase()
+      )
+      
+      if (!matchingLora) {
+        return { action: 'showMessage', payload: { level: 'warn', text: `No completed LoRA found for canvas '${canvas}'.` } }
       }
-      // Get loras via dedicated endpoint to avoid over-fetching
-      const loraRes = await fetch(`${base}/api/canvas/loras?id=${encodeURIComponent(match.id)}` || `/api/canvas/loras?id=${encodeURIComponent(match.id)}`, { method: 'GET' })
-      if (!loraRes.ok) throw new Error('Failed to load canvas loras')
-      const loraJson = await loraRes.json()
-      const c = { id: loraJson.id, name: loraJson.name }
-      let loras: any[] = Array.isArray(loraJson.loras) ? loraJson.loras : []
-      let completed = loras.filter((l) => l.status === 'completed' && (l.artifactUrl || l.path))
-      if (completed.length === 0) {
-        // If training is in progress and we have a requestId, try to refresh status once or twice
-        const training = loras.find((l) => l.status === 'training' && l.requestId)
-        if (training?.requestId) {
-          const statusUrl = `${base || ''}/api/canvas/train-status?requestId=${encodeURIComponent(training.requestId)}&canvasId=${encodeURIComponent(c.id)}` || `/api/canvas/train-status?requestId=${encodeURIComponent(training.requestId)}&canvasId=${encodeURIComponent(c.id)}`
-          try {
-            for (let i = 0; i < 2; i++) {
-              await fetch(statusUrl, { method: 'GET' })
-            }
-            const refreshRes = await fetch(`${base}/api/canvas/loras?id=${encodeURIComponent(c.id)}` || `/api/canvas/loras?id=${encodeURIComponent(c.id)}`, { method: 'GET' })
-            if (refreshRes.ok) {
-              const refreshed = await refreshRes.json()
-              loras = Array.isArray(refreshed?.loras) ? refreshed.loras : loras
-              completed = loras.filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
-            }
-          } catch {}
-        }
-      }
-      if (completed.length === 0) {
-        return { action: 'showMessage', payload: { level: 'warn', text: `Canvas '${c.name || c.id}' has no completed LoRA yet. Try again in a moment.` } }
-      }
-      const chosen = completed[completed.length - 1]
-      // Prepare Generate with FLUX LoRA model and loras param
-      return {
-        action: 'prepareGenerate',
-        payload: {
-          type: 'image',
-          model: 'fal-ai/flux-lora',
-          prompt,
-          refs: [],
-          options: { loras: [{ path: chosen.artifactUrl || chosen.path, scale: scale ?? 1.0 }] },
-          autoRun: true,
-        }
+      
+      // Prepare generation with the LoRA
+      return { 
+        action: 'prepareGenerate', 
+        type: 'image',
+        model: 'fal-ai/flux-lora',
+        prompt: prompt,
+        options: {
+          loras: [{
+            path: matchingLora.path,
+            scale: scale
+          }]
+        },
+        autoRun: true
       }
     }
   }),
