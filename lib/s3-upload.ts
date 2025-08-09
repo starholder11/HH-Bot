@@ -1,10 +1,10 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 // NOTE: sharp is loaded dynamically inside processImage to avoid optional dependency errors
 import { fileTypeFromBuffer } from 'file-type';
 
 // AWS S3 Client Configuration
-const s3Client = new S3Client({
+export const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-1',
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
@@ -13,7 +13,7 @@ const s3Client = new S3Client({
 });
 
 // Configuration
-const BUCKET_NAME = process.env.AWS_S3_BUCKET!;
+export const BUCKET_NAME = process.env.AWS_S3_BUCKET!;
 const CLOUDFRONT_DOMAIN = process.env.AWS_CLOUDFRONT_DOMAIN!;
 
 export interface UploadResult {
@@ -38,7 +38,7 @@ async function processImage(
   options: ImageUploadOptions = {}
 ): Promise<{ buffer: Buffer; contentType: string; extension: string }> {
   console.log('🖼️ Starting Sharp image processing...');
-  
+
   const {
     quality = 85,
     maxWidth = 1920,
@@ -70,7 +70,7 @@ async function processImage(
   console.log('📏 Getting image metadata...');
   const metadata = await sharpInstance.metadata();
   console.log('📊 Image metadata:', metadata);
-  
+
   if (metadata.width && metadata.height) {
     if (metadata.width > maxWidth || metadata.height > maxHeight) {
       console.log('📏 Resizing image from', metadata.width, 'x', metadata.height, 'to max', maxWidth, 'x', maxHeight);
@@ -123,7 +123,7 @@ function generateS3Key(
   const sanitizedName = originalName
     .replace(/[^a-zA-Z0-9.-]/g, '_')
     .toLowerCase();
-  
+
   return `${prefix}/${timestamp}-${randomId}-${sanitizedName}.${extension}`;
 }
 
@@ -168,7 +168,7 @@ export async function uploadImage(
   try {
     console.log('🖼️ Starting S3 image upload process...');
     console.log('📊 Input file type:', file instanceof File ? 'File' : 'Buffer');
-    
+
     // Convert File to Buffer if needed
     let buffer: Buffer;
     let originalName: string;
@@ -190,12 +190,12 @@ export async function uploadImage(
     console.log('🔍 Detecting file type...');
     const fileType = await fileTypeFromBuffer(buffer);
     console.log('📋 Detected file type:', fileType);
-    
+
     if (!fileType || !fileType.mime.startsWith('image/')) {
       console.error('❌ Invalid file type detected:', fileType);
       throw new Error('Invalid image file');
     }
-    
+
     console.log('✅ Valid image file detected:', fileType.mime);
 
     // Process image
@@ -293,6 +293,30 @@ export async function uploadJson(
   return { url, key, size: json.length, contentType: 'application/json' }
 }
 
+export async function writeJsonAtKey(key: string, data: any): Promise<UploadResult> {
+  const json = Buffer.from(JSON.stringify(data, null, 2))
+  await uploadToS3(json, key, 'application/json', { uploadedAt: new Date().toISOString() })
+  const url = generateCloudFrontUrl(key)
+  return { url, key, size: json.length, contentType: 'application/json' }
+}
+
+export async function readJsonFromS3(key: string): Promise<any> {
+  const res = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key }))
+  // @ts-ignore
+  const body = await res.Body?.transformToByteArray?.() || new Uint8Array()
+  const text = Buffer.from(body).toString('utf-8')
+  return JSON.parse(text)
+}
+
+export async function listKeys(prefix: string, limit = 100): Promise<string[]> {
+  const resp = await s3Client.send(new ListObjectsV2Command({ Bucket: BUCKET_NAME, Prefix: prefix, MaxKeys: limit }))
+  const keys = (resp.Contents || [])
+    .map((o) => o.Key)
+    .filter((k): k is string => typeof k === 'string')
+    .sort((a, b) => (a < b ? 1 : -1))
+  return keys
+}
+
 /**
  * Delete file from S3
  */
@@ -302,7 +326,7 @@ export async function deleteFromS3(key: string): Promise<void> {
       Bucket: BUCKET_NAME,
       Key: key,
     });
-    
+
     // Note: This is a placeholder. For actual deletion, you'd use DeleteObjectCommand
     // but we're keeping files for now to avoid breaking references
     console.log(`Would delete file: ${key}`);
@@ -310,4 +334,4 @@ export async function deleteFromS3(key: string): Promise<void> {
     console.error('Error deleting file:', error);
     throw new Error(`Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-} 
+}

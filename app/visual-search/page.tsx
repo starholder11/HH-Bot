@@ -939,6 +939,8 @@ export default function VisualSearchPage() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [canvasLayout, setCanvasLayout] = useState<'grid' | 'freeform'>('grid');
+  const [canvasId, setCanvasId] = useState<string | null>(null);
+  const [canvases, setCanvases] = useState<Array<{ id: string; name: string; key: string; updatedAt?: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
   const [zCounter, setZCounter] = useState(10);
@@ -1216,14 +1218,80 @@ export default function VisualSearchPage() {
 
   const saveCanvas = async () => {
     try {
-      const payload = collectCanvasPayload()
+      const base = collectCanvasPayload()
+      const payload = { ...base, id: canvasId || base.id }
+      const projEl = document.getElementById('canvas-project-select') as HTMLSelectElement | null
+      if (projEl && projEl.value) (payload as any).projectId = projEl.value
       const res = await fetch('/api/canvas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Save failed')
+      setCanvasId(payload.id)
+      void refreshCanvases()
       alert('Canvas saved')
     } catch (e) {
       alert((e as Error).message)
     }
+  }
+
+  const refreshCanvases = async () => {
+    try {
+      const res = await fetch('/api/canvas', { method: 'GET' })
+      const j = await res.json()
+      if (res.ok) setCanvases((j.items || []).map((x: any) => ({ id: x.id, name: x.name, key: x.key, updatedAt: x.updatedAt })))
+    } catch {}
+  }
+
+  useEffect(() => { void refreshCanvases() }, [])
+
+  const loadCanvas = async (id: string) => {
+    try {
+      const res = await fetch(`/api/canvas?id=${encodeURIComponent(id)}`)
+      const j = await res.json()
+      if (!res.ok) throw new Error(j?.error || 'Failed to load canvas')
+      const c = j.canvas
+      setCanvasId(c.id)
+      // Load pinned from items
+      setPinned((c.items || []).map((it: any, idx: number) => ({
+        id: `${it.id}-${idx}-${Math.random().toString(36).slice(2,6)}`,
+        result: {
+          id: it.id,
+          content_type: it.type,
+          title: (it.metadata?.title || it.id),
+          score: 1,
+          metadata: it.metadata || {},
+          url: it.metadata?.cloudflare_url || it.metadata?.s3_url,
+        } as any,
+        x: it.position?.x ?? 0,
+        y: it.position?.y ?? 0,
+        z: it.position?.z ?? (idx + 1),
+        width: it.position?.w ?? 280,
+        height: it.position?.h ?? 220,
+      })))
+      // Name + note
+      const nameEl = document.getElementById('canvas-name-input') as HTMLInputElement | null
+      const noteEl = document.getElementById('canvas-note-input') as HTMLTextAreaElement | null
+      if (nameEl) nameEl.value = c.name || ''
+      if (noteEl) noteEl.value = c.note || ''
+      setRightTab('canvas')
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
+
+  const deleteCanvas = async (id: string) => {
+    if (!confirm('Delete this canvas?')) return
+    const res = await fetch(`/api/canvas?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    const j = await res.json()
+    if (!res.ok) { alert(j?.error || 'Delete failed'); return }
+    if (canvasId === id) setCanvasId(null)
+    void refreshCanvases()
+  }
+
+  const renameCanvas = async (id: string, newName: string) => {
+    const res = await fetch('/api/canvas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name: newName }) })
+    const j = await res.json()
+    if (!res.ok) { alert(j?.error || 'Rename failed'); return }
+    void refreshCanvases()
   }
 
   function handleGenStart() {
@@ -1345,6 +1413,9 @@ export default function VisualSearchPage() {
             <div className="mb-2 grid grid-cols-1 md:grid-cols-3 gap-2">
               <input id="canvas-name-input" placeholder="Canvas name" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" />
               <div className="md:col-span-2 flex items-center justify-end gap-2">
+                <select id="canvas-project-select" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100">
+                  <option value="">No project</option>
+                </select>
                 <button onClick={saveCanvas} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save Canvas</button>
               </div>
             </div>
@@ -1553,13 +1624,39 @@ export default function VisualSearchPage() {
             <div className="text-xs text-neutral-400">Experimental</div>
             <h1 className="text-2xl font-semibold">Visual Unified Search</h1>
           </div>
-          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
             <button
               onClick={clearCanvas}
               className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800"
             >
               Clear canvas
             </button>
+              <details className="relative">
+                <summary className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 cursor-pointer select-none">Canvases</summary>
+                <div className="absolute right-0 mt-2 w-80 max-h-80 overflow-auto rounded-md border border-neutral-800 bg-neutral-950 p-2 space-y-2 z-10">
+                  <div className="flex gap-2">
+                    <input id="new-canvas-name" placeholder="New canvas name" className="flex-1 px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" />
+                    <button onClick={() => { const nameEl = document.getElementById('new-canvas-name') as HTMLInputElement | null; const name = nameEl?.value?.trim() || 'Untitled Canvas'; setCanvasId(null); (document.getElementById('canvas-name-input') as HTMLInputElement | null)!.value = name; setPinned([]); setRightTab('canvas') }} className="px-2 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800">New</button>
+                  </div>
+                  {canvases.length === 0 ? (
+                    <div className="text-xs text-neutral-500">No saved canvases</div>
+                  ) : (
+                    canvases.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between gap-2 p-2 rounded hover:bg-neutral-900">
+                        <div className="min-w-0">
+                          <div className="text-sm text-neutral-100 truncate">{c.name || c.id}</div>
+                          <div className="text-[10px] text-neutral-500 truncate">{c.id}</div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => loadCanvas(c.id)} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Open</button>
+                          <button onClick={() => { const nn = prompt('Rename canvas', c.name || c.id); if (nn) renameCanvas(c.id, nn) }} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Rename</button>
+                          <button onClick={() => deleteCanvas(c.id)} className="px-2 py-1 text-xs rounded-md border border-red-900 bg-red-950 hover:bg-red-900/30 text-red-200">Delete</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </details>
           </div>
         </div>
 

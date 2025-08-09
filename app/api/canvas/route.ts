@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { uploadJson } from '@/lib/s3-upload'
+import { uploadJson, listKeys, readJsonFromS3, writeJsonAtKey, BUCKET_NAME } from '@/lib/s3-upload'
+import { s3Client } from '@/lib/s3-upload'
+import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,12 +22,14 @@ export async function POST(req: NextRequest) {
     const name: string = (body?.name || '').toString().trim() || 'Untitled Canvas'
     const note: string | undefined = typeof body?.note === 'string' ? body.note : undefined
     const items: any[] = Array.isArray(body?.items) ? body.items : []
+    const projectId: string | undefined = typeof body?.projectId === 'string' ? body.projectId : undefined
 
     const payload = {
       id: body?.id || `canvas-${Date.now()}`,
       name,
       note,
       items,
+      projectId,
       createdAt: body?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -34,6 +38,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, canvas: payload, storage: uploaded })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Failed to save canvas' }, { status: 500 })
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url)
+  const id = url.searchParams.get('id')
+  try {
+    if (id) {
+      const key = `canvases/${id}.json`
+      const json = await readJsonFromS3(key)
+      return NextResponse.json({ success: true, canvas: json, key })
+    }
+    const keys = await listKeys('canvases/')
+    const items = await Promise.all(keys.map(async (k) => {
+      try { const c = await readJsonFromS3(k); return { key: k, id: c.id, name: c.name, updatedAt: c.updatedAt || c.createdAt } } catch { return { key: k } }
+    }))
+    return NextResponse.json({ success: true, items })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Failed to list canvases' }, { status: 500 })
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const id: string = body?.id
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    const key = `canvases/${id}.json`
+    const updated = { ...body, updatedAt: new Date().toISOString() }
+    const res = await writeJsonAtKey(key, updated)
+    return NextResponse.json({ success: true, storage: res })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Failed to update canvas' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const url = new URL(req.url)
+  const id = url.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+  try {
+    const key = `canvases/${id}.json`
+    await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: key }))
+    return NextResponse.json({ success: true })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Failed to delete canvas' }, { status: 500 })
   }
 }
 
