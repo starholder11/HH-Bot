@@ -112,16 +112,18 @@ const tools = {
       // Prepare generation with the LoRA
       return { 
         action: 'prepareGenerate', 
-        type: 'image',
-        model: 'fal-ai/flux-lora',
-        prompt: prompt,
-        options: {
-          loras: [{
-            path: matchingLora.path,
-            scale: scale
-          }]
-        },
-        autoRun: true
+        payload: {
+          type: 'image',
+          model: 'fal-ai/flux-lora',
+          prompt: prompt,
+          options: {
+            loras: [{
+              path: matchingLora.path,
+              scale: scale
+            }]
+          },
+          autoRun: true
+        }
       }
     }
   }),
