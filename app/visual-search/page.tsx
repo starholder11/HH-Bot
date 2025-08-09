@@ -945,6 +945,12 @@ export default function VisualSearchPage() {
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
+  const pinnedRef = useRef<PinnedItem[]>([]);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    pinnedRef.current = pinned;
+  }, [pinned]);
   const [zCounter, setZCounter] = useState(10);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   // Right pane tab and generation output state
@@ -975,7 +981,7 @@ export default function VisualSearchPage() {
       // Helper to expose current pinned image URLs to the agent/chat
       getPinnedRefs: () => {
         try {
-          return (pinned || [])
+          return (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean);
         } catch { return []; }
@@ -996,7 +1002,7 @@ export default function VisualSearchPage() {
           const model = payload?.model as string | undefined;
           const prompt = payload?.prompt as string | undefined;
           const planRefs: string[] = Array.isArray(payload?.refs) ? payload.refs : [];
-          const refs: string[] = (planRefs.length > 0 ? planRefs : (pinned || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean)) as string[];
+          const refs: string[] = (planRefs.length > 0 ? planRefs : (pinnedRef.current || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean)) as string[];
 
           if (!mode || !prompt) return;
           // Update status API
@@ -1049,7 +1055,7 @@ export default function VisualSearchPage() {
         try {
           const t = payload?.type as 'image' | 'video' | 'audio' | 'text';
           const j = payload?.response;
-          const pinnedRefs: string[] = (pinned || [])
+          const pinnedRefs: string[] = (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
           const candidates = [
@@ -1075,7 +1081,7 @@ export default function VisualSearchPage() {
       // When server requests pinned refs, call /api/generate on client using current pins
       requestPinnedThenGenerate: async (payload: any) => {
         try {
-          const refs: string[] = (pinned || [])
+          const refs: string[] = (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
           const body = {
@@ -1113,7 +1119,7 @@ export default function VisualSearchPage() {
         }
       },
     };
-  }, [pinned]);
+  }, []);
 
   useEffect(() => {
     setResults(data?.results?.all || []);
