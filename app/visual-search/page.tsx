@@ -939,9 +939,6 @@ export default function VisualSearchPage() {
   const [canvasName, setCanvasName] = useState<string>('')
   const [canvasProjectId, setCanvasProjectId] = useState<string>('')
   const [canvasNote, setCanvasNote] = useState<string>('')
-  const [tempNoteValue, setTempNoteValue] = useState<string>('')
-  const [isEditingNote, setIsEditingNote] = useState<boolean>(false)
-  const noteRef = useRef<HTMLTextAreaElement | null>(null)
   const [isEditingName, setIsEditingName] = useState<boolean>(false)
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
@@ -1578,48 +1575,39 @@ export default function VisualSearchPage() {
               </div>
             )}
             <div className="mt-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-neutral-400" htmlFor="canvas-note-input">Note</label>
-                <div className="flex items-center gap-2">
-                  {!isEditingNote ? (
-                    <button
-                      onClick={() => { setTempNoteValue(canvasNote); setIsEditingNote(true); setTimeout(() => noteRef.current?.focus(), 10); }}
-                      className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={async () => { setCanvasNote(tempNoteValue); setIsEditingNote(false); await saveCanvas({ note: tempNoteValue }); }}
-                        className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => { setIsEditingNote(false); setTempNoteValue(''); }}
-                        className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-              <label htmlFor="canvas-note-input" className="sr-only">Canvas notes</label>
+              <label className="text-xs text-neutral-400 block mb-1">Notes</label>
               <textarea
-                ref={noteRef}
-                name="canvas-note"
-                id="canvas-note-input"
+                value={canvasNote}
+                onChange={(e) => setCanvasNote(e.target.value)}
+                onBlur={async () => {
+                  if (canvasId) {
+                    try {
+                      await fetch('/api/canvas', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          id: canvasId,
+                          name: canvasName || 'Untitled Canvas',
+                          note: canvasNote,
+                          projectId: canvasProjectId,
+                          items: pinned.map((p, idx) => ({
+                            id: p.result.id,
+                            type: p.result.content_type,
+                            position: { x: p.x, y: p.y, w: p.width, h: p.height, z: p.z },
+                            order: idx,
+                            metadata: p.result.metadata,
+                          })),
+                          createdAt: new Date().toISOString(),
+                        })
+                      });
+                    } catch (e) {
+                      console.error('Note save failed:', e);
+                    }
+                  }
+                }}
                 rows={6}
-                dir="ltr"
-                value={isEditingNote ? tempNoteValue : canvasNote}
-                onChange={(e) => isEditingNote ? setTempNoteValue(e.target.value) : undefined}
-                readOnly={!isEditingNote}
-                autoFocus={isEditingNote}
-                key={isEditingNote ? 'canvas-note-edit' : 'canvas-note-read'}
-                className={`mt-1 w-full px-2 py-1.5 rounded-md border ${isEditingNote ? 'border-neutral-700' : 'border-transparent'} bg-neutral-900 text-neutral-100`}
-                placeholder="Write notes, ideas, training guidance…"
+                className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 resize-none"
+                placeholder="Add notes about this canvas..."
               />
             </div>
           </div>
