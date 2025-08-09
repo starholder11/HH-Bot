@@ -382,7 +382,7 @@ function GenerationPanel({
             }
           }
           // Keep any remaining known loras
-          for (const remain of byPath.values()) next.push(remain)
+          for (const remain of Array.from(byPath.values())) next.push(remain)
           // Force model to flux-lora when explicit selection present
           if (next.some((x) => x.selected)) setAdvancedModelId('fal-ai/flux-lora')
           return next
