@@ -85,6 +85,49 @@ const tools = {
       return { action: 'pinToCanvas', id, title, url };
     }
   }),
+  useCanvasLora: tool({
+    description: 'Select a canvas by id or name, pick its completed LoRA, and prepare image generation with that LoRA applied',
+    parameters: z.object({
+      canvas: z.string().describe('Canvas id or name'),
+      prompt: z.string().describe('Prompt to generate'),
+      scale: z.number().min(0.1).max(2).optional().default(1.0),
+    }),
+    execute: async ({ canvas, prompt, scale }) => {
+      // Fetch canvas list to resolve id → load canvas details
+      const base = process.env.PUBLIC_API_BASE_URL || ''
+      const listRes = await fetch(`${base}/api/canvas` || '/api/canvas', { method: 'GET' })
+      if (!listRes.ok) throw new Error('Failed to list canvases')
+      const list = await listRes.json()
+      const items: any[] = list.items || []
+      const match = items.find((it) => it.id === canvas) || items.find((it) => (it.name || '').toLowerCase() === canvas.toLowerCase())
+      if (!match?.id) {
+        // Populate the UI to let user pick
+        return { action: 'showMessage', payload: { level: 'warn', text: `Canvas '${canvas}' not found.` } }
+      }
+      const detailRes = await fetch(`${base}/api/canvas?id=${encodeURIComponent(match.id)}` || `/api/canvas?id=${encodeURIComponent(match.id)}`, { method: 'GET' })
+      if (!detailRes.ok) throw new Error('Failed to load canvas')
+      const detail = await detailRes.json()
+      const c = detail.canvas || {}
+      const loras: any[] = Array.isArray(c.loras) ? c.loras : []
+      const completed = loras.filter((l) => l.status === 'completed' && (l.artifactUrl || l.path))
+      if (completed.length === 0) {
+        return { action: 'showMessage', payload: { level: 'warn', text: `Canvas '${c.name || c.id}' has no completed LoRA.` } }
+      }
+      const chosen = completed[completed.length - 1]
+      // Prepare Generate with FLUX LoRA model and loras param
+      return {
+        action: 'prepareGenerate',
+        payload: {
+          type: 'image',
+          model: 'fal-ai/flux-lora',
+          prompt,
+          refs: [],
+          options: { loras: [{ path: chosen.artifactUrl || chosen.path, scale: scale ?? 1.0 }] },
+          autoRun: true,
+        }
+      }
+    }
+  }),
 };
 
 export const runtime = 'nodejs';
