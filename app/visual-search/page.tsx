@@ -295,6 +295,7 @@ function GenerationPanel({
   allLoras = [],
   onUpdateAllLoras,
   canvasLabel,
+  setRightTab,
 }: {
   pinned: PinnedItem[];
   onPinResult: (r: UnifiedSearchResult) => void;
@@ -313,6 +314,7 @@ function GenerationPanel({
   }>;
   onUpdateAllLoras?: (updater: (prev: any[]) => any[]) => void;
   canvasLabel?: string;
+  setRightTab?: (tab: 'results' | 'canvas' | 'output' | 'generate') => void;
 }) {
   const { models, loading } = useFalModels();
   const [filter, setFilter] = useState('');
@@ -365,20 +367,20 @@ function GenerationPanel({
     }
   }, [selected, canvasLoras]);
 
-  // Sync selectedLoras from canvas when available
+  // Sync selectedLoras from all available LoRAs
   useEffect(() => {
     try {
-      const completed = (canvasLoras || []).filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
+      const completed = (allLoras || []).filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
       const mapped = completed.map((l: any, idx: number) => ({
-        id: l.requestId || String(idx),
+        id: l.loraId || l.requestId || String(idx),
         path: l.artifactUrl || l.path,
-        scale: 1.0,
+        scale: l.scale || 1.0,
         selected: false,
-        label: `${l.triggerWord || 'LoRA'}${l.version ? ` v${l.version}` : ''}`,
+        label: `${l.canvasName || 'Canvas'} • ${l.triggerWord || 'LoRA'}`,
       }))
       setSelectedLoras(mapped)
     } catch {}
-  }, [canvasLoras])
+  }, [allLoras])
 
   // If agent provided loras in options via prepare, reflect in selection UI
   useEffect(() => {
@@ -623,9 +625,9 @@ function GenerationPanel({
       {/* LoRA selector (image only) */}
       {category === 'image' && (
         <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
-          <div className="text-sm font-medium text-neutral-200">{canvasLabel ? `${canvasLabel} LoRAs` : 'Canvas LoRAs'}</div>
+          <div className="text-sm font-medium text-neutral-200">Available LoRAs</div>
           {selectedLoras.length === 0 ? (
-            <div className="mt-1 text-xs text-neutral-500">No completed LoRAs found for this canvas.</div>
+            <div className="mt-1 text-xs text-neutral-500">No completed LoRAs found.</div>
           ) : (
             <div className="mt-2 flex items-center gap-3">
               <select
@@ -640,6 +642,8 @@ function GenerationPanel({
                       setValues((prev) => ({ ...prev, loras: [{ path: chosen.path, scale: chosen.scale }] }))
                       const m = models.find((m) => m.id === 'fal-ai/flux-lora')
                       if (m) setSelected(m)
+                      // Switch to Generate tab when LoRA is selected
+                      setRightTab?.('generate')
                     }
                   } else {
                     setValues((prev) => ({ ...prev, loras: [] }))
@@ -649,7 +653,7 @@ function GenerationPanel({
               >
                 <option value="">Select a LoRA…</option>
                 {selectedLoras.map((l) => (
-                  <option key={l.id} value={l.id}>{canvasLabel ? `${canvasLabel} • ${l.label}` : l.label}</option>
+                  <option key={l.id} value={l.id}>{l.label}</option>
                 ))}
               </select>
               {loraSelect && (
@@ -1496,6 +1500,7 @@ function RightPane({
             allLoras={allLoras}
             onUpdateAllLoras={setAllLoras}
             canvasLabel={canvasName || 'Canvas'}
+            setRightTab={setTab}
           />
         </div>
       )}
