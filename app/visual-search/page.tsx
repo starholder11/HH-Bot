@@ -651,7 +651,36 @@ function GenerationPanel({
                           provider: 'fal' as const,
                           category: 'image' as const,
                           description: 'FLUX with LoRA support',
-                          inputSchema: { type: 'object', properties: {} }
+                          inputSchema: {
+                            type: 'object',
+                            properties: {
+                              prompt: {
+                                type: 'string',
+                                title: 'Prompt',
+                                multiline: true
+                              },
+                              width: {
+                                type: 'number',
+                                title: 'Width',
+                                default: 1024
+                              },
+                              height: {
+                                type: 'number',
+                                title: 'Height',
+                                default: 1024
+                              },
+                              steps: {
+                                type: 'number',
+                                title: 'Steps',
+                                default: 28
+                              },
+                              seed: {
+                                type: 'number',
+                                title: 'Seed'
+                              }
+                            },
+                            required: ['prompt']
+                          }
                         })
                       }
                       // Switch to Generate tab when LoRA is selected
