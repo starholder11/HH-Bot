@@ -327,6 +327,7 @@ function GenerationPanel({
   const [advancedModelId, setAdvancedModelId] = useState<string>('');
   // Manual LoRA selection UI state
   const [selectedLoras, setSelectedLoras] = useState<Array<{ id: string; path: string; scale: number; selected: boolean; label: string }>>([])
+  const [loraSelect, setLoraSelect] = useState<string>('')
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase();
@@ -621,70 +622,58 @@ function GenerationPanel({
 
       {/* LoRA selector (image only) */}
       {category === 'image' && (
-        <>
-          {/* Canvas LoRAs */}
-          <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
-            <div className="text-sm font-medium text-neutral-200">{canvasLabel ? `${canvasLabel} LoRAs` : 'Canvas LoRAs'}</div>
-            {selectedLoras.length === 0 ? (
-              <div className="mt-1 text-xs text-neutral-500">No completed LoRAs found for this canvas.</div>
-            ) : (
-              <div className="mt-2 space-y-2">
+        <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
+          <div className="text-sm font-medium text-neutral-200">{canvasLabel ? `${canvasLabel} LoRAs` : 'Canvas LoRAs'}</div>
+          {selectedLoras.length === 0 ? (
+            <div className="mt-1 text-xs text-neutral-500">No completed LoRAs found for this canvas.</div>
+          ) : (
+            <div className="mt-2 flex items-center gap-3">
+              <select
+                value={loraSelect}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setLoraSelect(val)
+                  if (val) {
+                    const chosen = selectedLoras.find((x) => x.id === val)
+                    if (chosen) {
+                      setAdvancedModelId('fal-ai/flux-lora')
+                      setValues((prev) => ({ ...prev, loras: [{ path: chosen.path, scale: chosen.scale }] }))
+                      const m = models.find((m) => m.id === 'fal-ai/flux-lora')
+                      if (m) setSelected(m)
+                    }
+                  } else {
+                    setValues((prev) => ({ ...prev, loras: [] }))
+                  }
+                }}
+                className="px-2 py-1 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 min-w-[260px]"
+              >
+                <option value="">Select a LoRA…</option>
                 {selectedLoras.map((l) => (
-                  <div key={l.id} className="flex items-center gap-3">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={l.selected}
-                        onChange={(e) => {
-                        const checked = e.target.checked
-                        setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, selected: checked } : p))
-                        if (checked) {
-                          setAdvancedModelId('fal-ai/flux-lora')
-                          // Also mirror into values.loras so generation uses it, and auto-open inputs
-                          setValues(prev => ({
-                            ...prev,
-                            loras: [{ path: l.path, scale: l.scale }]
-                          }))
-                          // Ensure the prompt UI is visible and ready
-                          if (!selected) {
-                            const m = models.find(m => m.id === 'fal-ai/flux-lora')
-                            if (m) setSelected(m)
-                          }
-                        } else {
-                          setValues(prev => ({ ...prev, loras: [] }))
-                        }
-                        }}
-                        className="accent-neutral-400"
-                      />
-                    <span className="text-neutral-300">{canvasLabel ? `${canvasLabel} • ${l.label}` : l.label}</span>
-                    </label>
-                    <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
-                      <span>Scale</span>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="2"
-                        value={l.scale}
-                        onChange={(e) => {
-                          const v = Math.max(0, Math.min(2, Number(e.target.value) || 0))
-                          setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, scale: v } : p))
-                        }}
-                        className="w-16 px-2 py-1 rounded border border-neutral-800 bg-neutral-900 text-neutral-100"
-                      />
-                    </div>
-                  </div>
+                  <option key={l.id} value={l.id}>{canvasLabel ? `${canvasLabel} • ${l.label}` : l.label}</option>
                 ))}
-              </div>
-            )}
-          </div>
-
-          {/* All LoRAs */}
-          <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
-            <div className="text-sm font-medium text-neutral-200">All LoRAs</div>
-            <div className="mt-1 text-xs text-neutral-500">(Removed)</div>
-          </div>
-        </>
+              </select>
+              {loraSelect && (
+                <div className="flex items-center gap-2 text-xs text-neutral-400">
+                  <span>Scale</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    value={selectedLoras.find((x) => x.id === loraSelect)?.scale ?? 1}
+                    onChange={(e) => {
+                      const v = Math.max(0, Math.min(2, Number(e.target.value) || 0))
+                      setSelectedLoras((prev) => prev.map((p) => p.id === loraSelect ? { ...p, scale: v } : p))
+                      const chosen = selectedLoras.find((x) => x.id === loraSelect)
+                      if (chosen) setValues((prev) => ({ ...prev, loras: (prev.loras || []).map((lr: any) => lr.path === chosen.path ? { ...lr, scale: v } : lr) }))
+                    }}
+                    className="w-16 px-2 py-1 rounded border border-neutral-800 bg-neutral-900 text-neutral-100"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Input fields appear only after model selection */}
@@ -1578,6 +1567,7 @@ export default function VisualSearchPage() {
   const [genUrl, setGenUrl] = useState<string | null>(null);
   const [genMode, setGenMode] = useState<'image' | 'video' | 'audio' | 'text' | null>(null);
   const [genRaw, setGenRaw] = useState<any>(null);
+  const agentRunLockRef = useRef(false);
   // Bridge for agent → UI actions
   useEffect(() => {
     (window as any).__agentApi = {
@@ -1617,6 +1607,7 @@ export default function VisualSearchPage() {
       // Simplified path: run generation directly using the plan; show Output
       prepareGenerate: async (payload: any) => {
         try {
+          if (agentRunLockRef.current || genLoading) return; agentRunLockRef.current = true;
           const mode = payload?.type as 'image' | 'video' | 'audio' | 'text' | undefined;
           const model = payload?.model as string | undefined;
           const prompt = payload?.prompt as string | undefined;
@@ -1668,6 +1659,7 @@ export default function VisualSearchPage() {
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), error: (e as any)?.message || 'Unknown error' } }) });
           } catch {}
+        } finally { agentRunLockRef.current = false; }
         }
       },
       showOutput: (payload: any) => {
@@ -1710,7 +1702,7 @@ export default function VisualSearchPage() {
             refs,
             options: payload?.options || {},
           };
-          setGenLoading(true);
+          if (agentRunLockRef.current || genLoading) return; agentRunLockRef.current = true; setGenLoading(true);
           setRightTab('output');
           const res = await fetch('/api/generate', {
             method: 'POST',
@@ -1735,7 +1727,7 @@ export default function VisualSearchPage() {
         } catch (e) {
           setGenLoading(false);
           console.error(e);
-        }
+        } finally { agentRunLockRef.current = false; }
       },
     };
   }, []);
