@@ -1894,37 +1894,29 @@ export default function VisualSearchPage() {
     }
   }
 
-  // On mount: auto-load canvas from ?canvas= query or last used in localStorage
+  // On mount: if a specific canvas is requested via ?canvas=, load it; otherwise do nothing
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
     const param = params.get('canvas')
-    if (param) {
-      // Try exact id first, else resolve by name via index
-      ;(async () => {
+    if (!param) return
+    ;(async () => {
+      try {
+        // Try direct id
+        let ok = false
         try {
-          // Try direct id
-          let ok = false
-          try {
-            const r = await fetch(`/api/canvas?id=${encodeURIComponent(param)}`)
-            if (r.ok) { await loadCanvas(param); ok = true }
-          } catch {}
-          if (ok) return
-          // Resolve by name via index
-          const idxRes = await fetch('/api/canvas')
-          const idx = await idxRes.json()
-          const items: any[] = idx.items || []
-          const match = items.find((it) => (it.name || '').toLowerCase() === param.toLowerCase())
-          if (match?.id) await loadCanvas(match.id)
+          const r = await fetch(`/api/canvas?id=${encodeURIComponent(param)}`)
+          if (r.ok) { await loadCanvas(param); ok = true }
         } catch {}
-      })()
-      return
-    }
-    // Fallback to last used
-    try {
-      const last = localStorage.getItem('lastCanvasId')
-      if (last) void loadCanvas(last)
-    } catch {}
+        if (ok) return
+        // Resolve by name via index
+        const idxRes = await fetch('/api/canvas')
+        const idx = await idxRes.json()
+        const items: any[] = idx.items || []
+        const match = items.find((it) => (it.name || '').toLowerCase() === param.toLowerCase())
+        if (match?.id) await loadCanvas(match.id)
+      } catch {}
+    })()
   }, [])
 
   // If there are training LoRAs on loaded canvas, poll their status until completion

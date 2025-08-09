@@ -104,11 +104,12 @@ const tools = {
         // Populate the UI to let user pick
         return { action: 'showMessage', payload: { level: 'warn', text: `Canvas '${canvas}' not found.` } }
       }
-      const detailRes = await fetch(`${base}/api/canvas?id=${encodeURIComponent(match.id)}` || `/api/canvas?id=${encodeURIComponent(match.id)}`, { method: 'GET' })
-      if (!detailRes.ok) throw new Error('Failed to load canvas')
-      const detail = await detailRes.json()
-      const c = detail.canvas || {}
-      let loras: any[] = Array.isArray(c.loras) ? c.loras : []
+      // Get loras via dedicated endpoint to avoid over-fetching
+      const loraRes = await fetch(`${base}/api/canvas/loras?id=${encodeURIComponent(match.id)}` || `/api/canvas/loras?id=${encodeURIComponent(match.id)}`, { method: 'GET' })
+      if (!loraRes.ok) throw new Error('Failed to load canvas loras')
+      const loraJson = await loraRes.json()
+      const c = { id: loraJson.id, name: loraJson.name }
+      let loras: any[] = Array.isArray(loraJson.loras) ? loraJson.loras : []
       let completed = loras.filter((l) => l.status === 'completed' && (l.artifactUrl || l.path))
       if (completed.length === 0) {
         // If training is in progress and we have a requestId, try to refresh status once or twice
@@ -119,10 +120,10 @@ const tools = {
             for (let i = 0; i < 2; i++) {
               await fetch(statusUrl, { method: 'GET' })
             }
-            const refreshRes = await fetch(`${base}/api/canvas?id=${encodeURIComponent(c.id)}` || `/api/canvas?id=${encodeURIComponent(c.id)}`, { method: 'GET' })
+            const refreshRes = await fetch(`${base}/api/canvas/loras?id=${encodeURIComponent(c.id)}` || `/api/canvas/loras?id=${encodeURIComponent(c.id)}`, { method: 'GET' })
             if (refreshRes.ok) {
               const refreshed = await refreshRes.json()
-              loras = Array.isArray(refreshed?.canvas?.loras) ? refreshed.canvas.loras : loras
+              loras = Array.isArray(refreshed?.loras) ? refreshed.loras : loras
               completed = loras.filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
             }
           } catch {}
