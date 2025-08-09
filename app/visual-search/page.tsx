@@ -25,6 +25,8 @@ type UnifiedSearchResponse = {
   success: boolean;
   query: string;
   total_results: number;
+  page?: number;
+  page_size?: number;
   results: {
     media: UnifiedSearchResult[];
     text: UnifiedSearchResult[];
@@ -75,6 +77,7 @@ function useUnifiedSearch() {
       query: string,
       opts?: {
         limit?: number;
+        page?: number;
         types?: ContentType[] | ("media" | "all")[];
       }
     ) => {
@@ -84,9 +87,10 @@ function useUnifiedSearch() {
       try {
         // Use the unified-search GET interface explicitly
         const limit = opts?.limit ?? DEFAULT_LIMIT;
+        const page = opts?.page ?? 1;
         const selectedTypes = (opts?.types || []).filter((t) => t !== "all");
         const typeParam = selectedTypes.length === 1 ? `&type=${encodeURIComponent(String(selectedTypes[0]))}` : "";
-        const url = `/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}${typeParam}`;
+        const url = `/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}&page=${page}${typeParam}`;
         const res = await fetch(url, { method: "GET" });
         if (!res.ok) {
           const text = await res.text();
@@ -842,6 +846,8 @@ export default function VisualSearchPage() {
   const [query, setQuery] = useState("");
   const [types, setTypes] = useState<Array<ContentType | "media" | "all">>(["all"]);
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
   const [zCounter, setZCounter] = useState(10);
@@ -1016,14 +1022,16 @@ export default function VisualSearchPage() {
 
   useEffect(() => {
     setResults(data?.results?.all || []);
+    setTotal(data?.total_results || 0);
+    if (typeof data?.page === 'number') setPage(data.page);
   }, [data]);
 
   const executeSearch = useCallback(
-    (q: string) => {
+    (q: string, nextPage?: number) => {
       const effectiveTypes = types.includes("all") ? [] : types;
-      search(q, { limit: DEFAULT_LIMIT, types: effectiveTypes as any });
+      search(q, { limit: DEFAULT_LIMIT, page: nextPage ?? page, types: effectiveTypes as any });
     },
-    [search, types]
+    [search, types, page]
   );
 
   const handleSubmit = useCallback(
@@ -1267,6 +1275,24 @@ export default function VisualSearchPage() {
                 setGenRaw(raw);
               }}
             />
+          </div>
+        )}
+        {tab === 'results' && (
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-xs text-neutral-500">{total} total</div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { const p = Math.max(1, page - 1); setPage(p); executeSearch(query, p); }}
+                disabled={page <= 1 || loading}
+                className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+              >Prev</button>
+              <div className="text-sm text-neutral-400">Page {page}</div>
+              <button
+                onClick={() => { const maxPage = Math.max(1, Math.ceil(total / DEFAULT_LIMIT)); const p = Math.min(maxPage, page + 1); setPage(p); executeSearch(query, p); }}
+                disabled={loading || results.length < DEFAULT_LIMIT}
+                className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+              >Next</button>
+            </div>
           </div>
         )}
       </div>

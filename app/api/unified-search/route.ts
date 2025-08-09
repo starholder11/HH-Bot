@@ -30,15 +30,20 @@ export async function POST(request: NextRequest) {
     const {
       query,
       limit = 20,
+      page = 1,
       content_types = [],
       filters = {}
     }: {
       query: string;
       limit?: number;
+      page?: number;
       content_types?: string[];
       filters?: SearchFilters;
     } = await request.json();
 
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
+    const offset = (safePage - 1) * safeLimit;
     const queryTokens = query.toLowerCase().split(/\s+/).filter(tok => tok.length > 2);
 
     if (!query || query.trim().length === 0) {
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔍 FIXED VERSION - Unified search query: "${query}" with limit: ${limit}`);
+    console.log(`🔍 FIXED VERSION - Unified search query: "${query}" limit: ${safeLimit} page: ${safePage}`);
 
     // Get OpenAI API key with proper validation and cleaning
     let openaiApiKey = process.env.OPENAI_API_KEY;
@@ -99,7 +104,8 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         },
         body: JSON.stringify({
           query_embedding: queryEmbedding,
-          limit: Math.max(limit * 100, 1000), // Fetch more results to ensure we don't miss relevant items
+          // Fetch a large enough pool to paginate from server-side without additional LanceDB calls per page
+          limit: Math.max(safeLimit * safePage * 100, 1000),
         }),
       });
 
@@ -191,7 +197,7 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         return { ...rep, score: avg };
       }).sort((a, b) => b.score - a.score);
 
-      // Apply final limit per category
+      // Apply final ordering (no limit yet; paginate after blending)
       // Flexible filter: prioritize title matches and rely on semantic similarity
       const tokenMatch = (r: SearchResult) => {
         const hay = (r.searchable_text || r.preview || r.title).toLowerCase();
@@ -229,8 +235,8 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       textResults.sort((a, b) => b.score - a.score);
       mediaResults.sort((a, b) => b.score - a.score);
 
-      const finalText = textResults.slice(0, limit);
-      const finalMedia = mediaResults.slice(0, limit);
+      const finalText = textResults; // full ordered list
+      const finalMedia = mediaResults; // full ordered list
 
       // Cheap keyword bump: if all query tokens appear in the preview (or title) give +0.15
       const bumpIfContains = (r: SearchResult) => {
@@ -260,8 +266,8 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       const filteredText = filterByContentTypes(finalText);
 
       // Blend media and text for the unified "all" list so text isn't drowned out
-      const textQuota = Math.max(1, Math.ceil(limit * 0.6));
-      const mediaQuota = Math.max(0, limit - textQuota);
+      const textQuota = Math.max(1, Math.ceil(safeLimit * 0.6));
+      const mediaQuota = Math.max(0, safeLimit - textQuota);
 
       const topText = filteredText.slice(0, textQuota);
       const topMedia = filteredMedia.slice(0, mediaQuota);
@@ -269,29 +275,33 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       // Interleave to keep the feed varied
       const blendedAll: SearchResult[] = [];
       const maxLen = Math.max(topText.length, topMedia.length);
-      for (let i = 0; i < maxLen && blendedAll.length < limit; i++) {
+      for (let i = 0; i < maxLen; i++) {
         if (i < topText.length) blendedAll.push(topText[i]);
-        if (i < topMedia.length && blendedAll.length < limit) blendedAll.push(topMedia[i]);
+        if (i < topMedia.length) blendedAll.push(topMedia[i]);
       }
-      // If any remaining due to quota mismatch, append until limit
-      if (blendedAll.length < limit) {
+      // If any remaining due to quota mismatch, append rest
+      if (blendedAll.length < (topText.length + topMedia.length)) {
         const extras = filteredText.slice(topText.length).concat(filteredMedia.slice(topMedia.length));
-        for (const e of extras) {
-          if (blendedAll.length >= limit) break;
-          blendedAll.push(e);
-        }
+        for (const e of extras) blendedAll.push(e);
       }
 
+      // Now paginate
+      const pagedAll = blendedAll.slice(offset, offset + safeLimit);
+      const pagedMedia = filteredMedia.slice(offset, offset + safeLimit);
+      const pagedText = filteredText.slice(offset, offset + safeLimit);
+
       const groupedResults = {
-        media: filteredMedia,
-        text: filteredText,
-        all: blendedAll,
+        media: pagedMedia,
+        text: pagedText,
+        all: pagedAll,
       };
 
       const responseData = {
         success: true,
         query,
         total_results: processedResults.length,
+        page: safePage,
+        page_size: safeLimit,
         results: groupedResults,
         search_time_ms: Date.now(),
       };
