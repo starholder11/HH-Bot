@@ -939,6 +939,8 @@ export default function VisualSearchPage() {
   const [canvasName, setCanvasName] = useState<string>('')
   const [canvasProjectId, setCanvasProjectId] = useState<string>('')
   const [canvasNote, setCanvasNote] = useState<string>('')
+  const [noteEditMode, setNoteEditMode] = useState<boolean>(false)
+  const [noteDraft, setNoteDraft] = useState<string>('')
   const [isEditingName, setIsEditingName] = useState<boolean>(false)
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
@@ -1575,40 +1577,80 @@ export default function VisualSearchPage() {
               </div>
             )}
             <div className="mt-3">
-              <label className="text-xs text-neutral-400 block mb-1">Notes</label>
-              <textarea
-                value={canvasNote}
-                onChange={(e) => setCanvasNote(e.target.value)}
-                onBlur={async () => {
-                  if (canvasId) {
-                    try {
-                      await fetch('/api/canvas', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          id: canvasId,
-                          name: canvasName || 'Untitled Canvas',
-                          note: canvasNote,
-                          projectId: canvasProjectId,
-                          items: pinned.map((p, idx) => ({
-                            id: p.result.id,
-                            type: p.result.content_type,
-                            position: { x: p.x, y: p.y, w: p.width, h: p.height, z: p.z },
-                            order: idx,
-                            metadata: p.result.metadata,
-                          })),
-                          createdAt: new Date().toISOString(),
-                        })
-                      });
-                    } catch (e) {
-                      console.error('Note save failed:', e);
-                    }
-                  }
-                }}
-                rows={6}
-                className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 resize-none"
-                placeholder="Add notes about this canvas..."
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs text-neutral-400">Notes</label>
+                <div className="flex gap-1">
+                  {!noteEditMode ? (
+                    <button
+                      onClick={() => {
+                        setNoteDraft(canvasNote);
+                        setNoteEditMode(true);
+                      }}
+                      className="px-2 py-1 text-xs rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={async () => {
+                          setCanvasNote(noteDraft);
+                          setNoteEditMode(false);
+                          if (canvasId) {
+                            try {
+                              await fetch('/api/canvas', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  id: canvasId,
+                                  name: canvasName || 'Untitled Canvas',
+                                  note: noteDraft,
+                                  projectId: canvasProjectId,
+                                  items: pinned.map((p, idx) => ({
+                                    id: p.result.id,
+                                    type: p.result.content_type,
+                                    position: { x: p.x, y: p.y, w: p.width, h: p.height, z: p.z },
+                                    order: idx,
+                                    metadata: p.result.metadata,
+                                  })),
+                                  createdAt: new Date().toISOString(),
+                                })
+                              });
+                            } catch (e) {
+                              console.error('Note save failed:', e);
+                            }
+                          }
+                        }}
+                        className="px-2 py-1 text-xs rounded border border-neutral-800 bg-green-900 hover:bg-green-800 text-neutral-100"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => {
+                          setNoteEditMode(false);
+                          setNoteDraft('');
+                        }}
+                        className="px-2 py-1 text-xs rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {noteEditMode ? (
+                <textarea
+                  value={noteDraft}
+                  onChange={(e) => setNoteDraft(e.target.value)}
+                  rows={6}
+                  className="w-full px-2 py-1.5 rounded border border-neutral-700 bg-neutral-900 text-neutral-100 resize-none"
+                  placeholder="Add notes about this canvas..."
+                />
+              ) : (
+                <div className="w-full px-2 py-1.5 rounded border border-neutral-800 bg-neutral-950 text-neutral-100 min-h-[144px] whitespace-pre-wrap">
+                  {canvasNote || <span className="text-neutral-500">No notes yet...</span>}
+                </div>
+              )}
             </div>
           </div>
         ) : tab === 'output' ? (
