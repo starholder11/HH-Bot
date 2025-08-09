@@ -42,7 +42,9 @@ export async function POST(req: NextRequest) {
     }
     const effectiveMode = inferModeFromModel(model, mode)
 
-    const selectedModel = model || defaults[effectiveMode]
+    // If caller supplied LoRAs via options, force a FLUX LoRA-capable model for image mode
+    const hasLoras = Array.isArray((options as any)?.loras) && (options as any).loras.length > 0
+    const selectedModel = (hasLoras && effectiveMode === 'image') ? 'fal-ai/flux-lora' : (model || defaults[effectiveMode])
     if (!selectedModel) {
       return NextResponse.json({ error: `No default model for mode ${effectiveMode}` }, { status: 400 })
     }
@@ -58,6 +60,14 @@ export async function POST(req: NextRequest) {
       input.image_urls = input.image_urls || filteredRefs
       input.ref_images = input.ref_images || filteredRefs
       input.reference_images = input.reference_images || filteredRefs
+    }
+
+    // Attach LoRAs if provided in options and using a FLUX model
+    if (hasLoras && typeof selectedModel === 'string' && selectedModel.includes('flux')) {
+      const loras = (options as any).loras as any[]
+      input.loras = loras.map((l) => ({ path: l.artifactUrl || l.path, scale: l.scale ?? 1.0 }))
+      // Ensure any accidental nesting is not forwarded to provider in duplicate
+      // Keep options.loras as-is for response echoing if needed
     }
 
     // Sanitize video-specific inputs to avoid 422s from provider

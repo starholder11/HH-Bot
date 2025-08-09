@@ -334,6 +334,14 @@ function GenerationPanel({
       });
       setValues(init);
       setAdvancedModelId(selected.id);
+
+      // If user has a completed canvas LoRA and selected an image model that includes 'flux', auto-switch model id to 'fal-ai/flux-lora'
+      try {
+        const hasCompleted = (canvasLoras || []).some((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
+        if (hasCompleted && selected.category === 'image' && /flux/i.test(selected.id)) {
+          setAdvancedModelId('fal-ai/flux-lora');
+        }
+      } catch {}
     }
   }, [selected]);
 
@@ -389,13 +397,22 @@ function GenerationPanel({
       const refs = [...uploadedRefs, ...pinnedRefs] as string[];
 
       const mode = categoryToMode(selected.category);
-      const body = {
+      const body: any = {
         mode,
         model: advancedModelId || selected.id,
         prompt,
         refs,
         options: Object.fromEntries(Object.entries(values).filter(([k]) => k !== 'prompt')),
       };
+
+      // If a completed canvas LoRA exists and the selected model is FLUX-compatible, attach it
+      try {
+        const completed = (canvasLoras || []).filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
+        if (completed.length > 0 && mode === 'image') {
+          body.options = body.options || {}
+          body.options.loras = completed.map((l: any) => ({ path: l.artifactUrl || l.path, scale: 1.0 }))
+        }
+      } catch {}
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1166,6 +1183,24 @@ function RightPane({
               ))}
             </select>
 
+            {/* LoRA controls */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void trainCanvasLora()}
+                disabled={!pinned.length || !!(loraTraining && loraTraining.status !== 'failed' && loraTraining.status !== 'COMPLETED')}
+                className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                title={!pinned.length ? 'Pin at least 3 images to train a LoRA' : 'Train a LoRA from pinned images'}
+              >
+                {loraTraining ? `LoRA: ${loraTraining.status}` : 'Train LoRA'}
+              </button>
+              {Array.isArray(canvasLoras) && canvasLoras.length > 0 && (
+                <div className="text-xs text-neutral-400 truncate" title={canvasLoras.map((l) => `${l.status}${l.artifactUrl ? ' ✓' : ''}`).join(', ')}>
+                  {canvasLoras.length} LoRA(s)
+                </div>
+              )}
+            </div>
+
             {/* Save / Load / Clear with compact styles */}
             <button onClick={() => void saveCanvas()} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
             <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
@@ -1348,6 +1383,8 @@ export default function VisualSearchPage() {
   // Canvas editor controlled fields
   const [canvasName, setCanvasName] = useState<string>('')
   const [canvasProjectId, setCanvasProjectId] = useState<string>('')
+  const [canvasLoras, setCanvasLoras] = useState<any[]>([])
+  const [loraTraining, setLoraTraining] = useState<null | { status: string; requestId?: string }>(null)
   const [canvasNote, setCanvasNote] = useState<string>('')
   const [isEditingName, setIsEditingName] = useState<boolean>(false)
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
@@ -1715,9 +1752,51 @@ export default function VisualSearchPage() {
       setCanvasName(c.name || '')
       setCanvasNote(c.note || '')
       setCanvasProjectId(c.projectId || '')
+      setCanvasLoras(Array.isArray(c.loras) ? c.loras : [])
       setRightTab('canvas')
     } catch (e) {
       console.error('Canvas load failed:', (e as Error).message)
+    }
+  }
+
+  async function trainCanvasLora() {
+    try {
+      // Ensure canvas exists
+      if (!canvasId) {
+        await saveCanvas();
+      }
+      const id = canvasId || ''
+      if (!id) throw new Error('Canvas ID missing')
+      setLoraTraining({ status: 'starting' })
+      const res = await fetch('/api/canvas/train-lora', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canvasId: id, triggerWord: 'CANVAS_STYLE' })
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j?.error || 'Training start failed')
+      const reqId = j.requestId as string
+      setLoraTraining({ status: 'queued', requestId: reqId })
+      // Poll status
+      const poll = async () => {
+        try {
+          const s = await fetch(`/api/canvas/train-status?requestId=${encodeURIComponent(reqId)}&canvasId=${encodeURIComponent(id)}`)
+          const sj = await s.json()
+          if (s.ok) {
+            const st = (sj?.status || '').toString()
+            setLoraTraining({ status: st || 'IN_PROGRESS', requestId: reqId })
+            if (st === 'COMPLETED') {
+              await loadCanvas(id)
+              return
+            }
+          }
+        } catch {}
+        setTimeout(poll, 5000)
+      }
+      setTimeout(poll, 3000)
+    } catch (e) {
+      console.error('LoRA training failed:', (e as Error).message)
+      setLoraTraining({ status: 'failed' })
     }
   }
 
