@@ -1583,7 +1583,6 @@ export default function VisualSearchPage() {
                 rows={6}
                 value={canvasNote}
                 onChange={(e) => setCanvasNote(e.target.value)}
-                onBlur={() => { setTimeout(() => { void autoSaveCanvas(); }, 100); }}
                 className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                 placeholder="Write notes, ideas, training guidance…"
               />
