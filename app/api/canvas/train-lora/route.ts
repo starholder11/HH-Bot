@@ -6,8 +6,9 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 async function fetchCanvas(canvasId: string) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || ''
-  const url = base ? `${base}/api/canvas?id=${encodeURIComponent(canvasId)}` : `/api/canvas?id=${encodeURIComponent(canvasId)}`
+  const base = process.env.NEXT_PUBLIC_BASE_URL || 
+               (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+  const url = `${base}/api/canvas?id=${encodeURIComponent(canvasId)}`
   const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, cache: 'no-store' } as any)
   if (!res.ok) throw new Error('Canvas not found')
   const json = await res.json()
@@ -65,7 +66,9 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     }
 
-    const updateRes = await fetch('/api/canvas', {
+    const base = process.env.NEXT_PUBLIC_BASE_URL || 
+                 (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    const updateRes = await fetch(`${base}/api/canvas`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: canvasId, loras: [ ...(canvas?.loras || []), loraEntry ] }),

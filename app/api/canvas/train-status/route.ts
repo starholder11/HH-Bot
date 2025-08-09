@@ -25,7 +25,9 @@ export async function GET(req: NextRequest) {
         const artifactUrl = (res as any)?.diffusers_lora_file?.url || (res as any)?.safetensors_file?.url || (res as any)?.lora_file?.url
         if (artifactUrl) {
           // Merge onto canvas.loras[] matching this requestId
-          const canvasRes = await fetch(`/api/canvas?id=${encodeURIComponent(canvasId)}` as any)
+          const base = process.env.NEXT_PUBLIC_BASE_URL || 
+                       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+          const canvasRes = await fetch(`${base}/api/canvas?id=${encodeURIComponent(canvasId)}`, { headers: { 'Content-Type': 'application/json' } } as any)
           if (canvasRes.ok) {
             const { canvas } = await canvasRes.json()
             const loras = Array.isArray(canvas?.loras) ? canvas.loras : []
@@ -33,7 +35,7 @@ export async function GET(req: NextRequest) {
             if (idx >= 0) {
               loras[idx] = { ...loras[idx], status: 'completed', artifactUrl, updatedAt: new Date().toISOString() }
               updated = loras[idx]
-              await fetch('/api/canvas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: canvasId, loras }) } as any)
+              await fetch(`${base}/api/canvas`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: canvasId, loras }) } as any)
             }
           }
         }
