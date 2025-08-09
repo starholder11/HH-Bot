@@ -294,6 +294,7 @@ function GenerationPanel({
   canvasLoras = [],
   allLoras = [],
   onUpdateAllLoras,
+  canvasLabel,
 }: {
   pinned: PinnedItem[];
   onPinResult: (r: UnifiedSearchResult) => void;
@@ -311,6 +312,7 @@ function GenerationPanel({
     status: string;
   }>;
   onUpdateAllLoras?: (updater: (prev: any[]) => any[]) => void;
+  canvasLabel?: string;
 }) {
   const { models, loading } = useFalModels();
   const [filter, setFilter] = useState('');
@@ -622,7 +624,7 @@ function GenerationPanel({
         <>
           {/* Canvas LoRAs */}
           <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
-            <div className="text-sm font-medium text-neutral-200">Canvas LoRAs</div>
+            <div className="text-sm font-medium text-neutral-200">{canvasLabel ? `${canvasLabel} LoRAs` : 'Canvas LoRAs'}</div>
             {selectedLoras.length === 0 ? (
               <div className="mt-1 text-xs text-neutral-500">No completed LoRAs found for this canvas.</div>
             ) : (
@@ -634,13 +636,27 @@ function GenerationPanel({
                         type="checkbox"
                         checked={l.selected}
                         onChange={(e) => {
-                          const checked = e.target.checked
-                          setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, selected: checked } : p))
-                          if (checked) setAdvancedModelId('fal-ai/flux-lora')
+                        const checked = e.target.checked
+                        setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, selected: checked } : p))
+                        if (checked) {
+                          setAdvancedModelId('fal-ai/flux-lora')
+                          // Also mirror into values.loras so generation uses it, and auto-open inputs
+                          setValues(prev => ({
+                            ...prev,
+                            loras: [{ path: l.path, scale: l.scale }]
+                          }))
+                          // Ensure the prompt UI is visible and ready
+                          if (!selected) {
+                            const m = models.find(m => m.id === 'fal-ai/flux-lora')
+                            if (m) setSelected(m)
+                          }
+                        } else {
+                          setValues(prev => ({ ...prev, loras: [] }))
+                        }
                         }}
                         className="accent-neutral-400"
                       />
-                      <span className="text-neutral-300">{l.label}</span>
+                    <span className="text-neutral-300">{canvasLabel ? `${canvasLabel} • ${l.label}` : l.label}</span>
                     </label>
                     <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
                       <span>Scale</span>
@@ -666,70 +682,7 @@ function GenerationPanel({
           {/* All LoRAs */}
           <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
             <div className="text-sm font-medium text-neutral-200">All LoRAs</div>
-            {allLoras.length === 0 ? (
-              <div className="mt-1 text-xs text-neutral-500">No LoRAs found in system.</div>
-            ) : (
-              <div className="mt-2 space-y-2">
-                {allLoras.map((lora) => (
-                  <div key={`${lora.canvasId}-${lora.loraId}`} className="flex items-center gap-3">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            // Force to flux-lora model
-                            setAdvancedModelId('fal-ai/flux-lora');
-                            // Set the LoRA in values
-                            setValues(prev => ({
-                              ...prev,
-                              loras: [{
-                                path: lora.path,
-                                scale: lora.scale
-                              }]
-                            }));
-                          } else {
-                            // Remove LoRA
-                            setValues(prev => ({
-                              ...prev,
-                              loras: []
-                            }));
-                          }
-                        }}
-                        className="accent-neutral-400"
-                      />
-                      <span className="text-neutral-300">{lora.canvasName} ({lora.triggerWord})</span>
-                    </label>
-                    <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
-                      <span>Scale</span>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="2"
-                        value={lora.scale}
-                        onChange={(e) => {
-                          const newScale = Math.max(0, Math.min(2, Number(e.target.value) || 0));
-                          // Update the LoRA scale in allLoras state
-                          onUpdateAllLoras?.((prev: any[]) => prev.map((l: any) => 
-                            l.canvasId === lora.canvasId && l.loraId === lora.loraId 
-                              ? { ...l, scale: newScale }
-                              : l
-                          ));
-                          // Update values if this LoRA is selected
-                          setValues(prev => ({
-                            ...prev,
-                            loras: prev.loras?.map((l: any) => 
-                              l.path === lora.path ? { ...l, scale: newScale } : l
-                            ) || []
-                          }));
-                        }}
-                        className="w-16 px-2 py-1 rounded border border-neutral-800 bg-neutral-900 text-neutral-100"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="mt-1 text-xs text-neutral-500">(Removed)</div>
           </div>
         </>
       )}
@@ -1553,6 +1506,7 @@ function RightPane({
             canvasLoras={canvasLoras}
             allLoras={allLoras}
             onUpdateAllLoras={setAllLoras}
+            canvasLabel={canvasName || 'Canvas'}
           />
         </div>
       )}
@@ -1960,9 +1914,9 @@ export default function VisualSearchPage() {
     } catch {}
   }
 
-  useEffect(() => { 
+  useEffect(() => {
     void refreshCanvases()
-    void fetchAllLoras() 
+    void fetchAllLoras()
   }, [])
 
   // Fetch all LoRAs from the global catalog
