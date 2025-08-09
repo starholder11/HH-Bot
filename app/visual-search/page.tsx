@@ -920,6 +920,416 @@ function GridPinned({
   )
 }
 
+// Project picker moved to top-level to avoid remount issues
+function ProjectPicker() {
+  const [projects, setProjects] = useState<Array<{ project_id: string; name: string }>>([])
+  const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/projects')
+        if (res.ok) {
+          const json = await res.json()
+          if (!cancelled) setProjects((json.projects || []).map((p: any) => ({ project_id: p.project_id, name: p.name })))
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+  return (
+    <div>
+      <label className="text-xs text-neutral-400">Project</label>
+      <select id="gen-project-select" className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100">
+        <option value="">No project</option>
+        {projects.map((p) => (
+          <option key={p.project_id} value={p.project_id}>{p.name}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+// RightPane moved to top-level to preserve input focus within it
+function RightPane({
+  results,
+  loading,
+  totalResults,
+  onPin,
+  onOpen,
+  canvasRef,
+  pinned,
+  movePinned,
+  removePinned,
+  tab,
+  setTab,
+  genLoading,
+  genUrl,
+  genMode,
+  genRaw,
+  onPinGenerated,
+  onSaveGenerated,
+  selectedIds,
+  multiSelect,
+  toggleSelect,
+  page,
+  setPage,
+  executeSearch,
+  query,
+  // Canvas props
+  isEditingName,
+  setIsEditingName,
+  canvasName,
+  setCanvasName,
+  autoSaveCanvas,
+  canvasProjectId,
+  setCanvasProjectId,
+  projectsList,
+  saveCanvas,
+  setShowCanvasManager,
+  clearCanvas,
+  canvasLayout,
+  setCanvasLayout,
+  reorderPinned,
+  canvasNote,
+  setCanvasNote,
+  canvasId,
+  handleNoteSave,
+  pinSelected,
+  onParentGenStart,
+  onParentGenResult,
+}: {
+  results: UnifiedSearchResult[];
+  loading: boolean;
+  totalResults: number;
+  onPin: (r: UnifiedSearchResult) => void;
+  onOpen: (r: UnifiedSearchResult) => void;
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+  pinned: PinnedItem[];
+  movePinned: (id: string, x: number, y: number) => void;
+  removePinned: (id: string) => void;
+  tab: 'results' | 'canvas' | 'output' | 'generate';
+  setTab: (t: 'results' | 'canvas' | 'output' | 'generate') => void;
+  genLoading: boolean;
+  genUrl: string | null;
+  genMode: 'image' | 'video' | 'audio' | 'text' | null;
+  genRaw: any;
+  onPinGenerated: () => void;
+  onSaveGenerated: () => void;
+  selectedIds: Set<string>;
+  multiSelect: boolean;
+  toggleSelect: (r: UnifiedSearchResult, shiftKey?: boolean) => void;
+  page: number;
+  setPage: (p: number) => void;
+  executeSearch: (q: string, nextPage?: number) => void;
+  query: string;
+  isEditingName: boolean;
+  setIsEditingName: (v: boolean) => void;
+  canvasName: string;
+  setCanvasName: (v: string) => void;
+  autoSaveCanvas: () => Promise<void> | void;
+  canvasProjectId: string;
+  setCanvasProjectId: (v: string) => void;
+  projectsList: Array<{ project_id: string; name: string }>;
+  saveCanvas: () => Promise<void> | void;
+  setShowCanvasManager: (v: boolean) => void;
+  clearCanvas: () => void;
+  canvasLayout: 'grid' | 'freeform';
+  setCanvasLayout: (v: 'grid' | 'freeform') => void;
+  reorderPinned: (fromIndex: number, toIndex: number) => void;
+  canvasNote: string;
+  setCanvasNote: (v: string) => void;
+  canvasId: string | null;
+  handleNoteSave: () => Promise<void> | void;
+  pinSelected: () => void;
+  onParentGenStart: () => void;
+  onParentGenResult: (m: 'image' | 'video' | 'audio' | 'text', url: string | undefined, raw: any) => void;
+}) {
+  return (
+    <div className="lg:col-span-8">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-neutral-400">{totalResults ? `${totalResults} raw hits` : ''}</div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTab('results')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'results' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Results
+          </button>
+          <button
+            onClick={() => setTab('canvas')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'canvas' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Canvas
+          </button>
+          <button
+            onClick={() => setTab('output')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'output' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Output
+          </button>
+          <button
+            onClick={() => setTab('generate')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'generate' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Generate
+          </button>
+        </div>
+      </div>
+
+      {tab === 'results' ? (
+        <div className="mt-3">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-neutral-400">
+                {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Shift+click to select multiple'}
+              </div>
+              {selectedIds.size > 0 && (
+                <button
+                  onClick={pinSelected}
+                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-700 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                >Pin {selectedIds.size} to canvas</button>
+              )}
+            </div>
+            <div className="text-xs text-neutral-500">{totalResults} total</div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {results.map((r) => (
+              <ResultCard
+                key={`${r.id}-${r.score}`}
+                r={r}
+                onPin={onPin}
+                onOpen={onOpen}
+                selectionEnabled={multiSelect}
+                selected={selectedIds.has(r.id)}
+                onToggleSelect={toggleSelect}
+              />
+            ))}
+            {!loading && results.length === 0 && (
+              <div className="col-span-full text-neutral-400 text-sm">Try a search to see results.</div>
+            )}
+          </div>
+        </div>
+      ) : tab === 'canvas' ? (
+        <div className="mt-3">
+          <div className="text-sm text-neutral-400 mb-2">Canvas</div>
+          <div className="mb-2 grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+            {/* Name inline editable */}
+            <div className="min-w-0">
+              {!isEditingName ? (
+                <div
+                  className="cursor-text truncate text-neutral-100 text-base"
+                  title={canvasName || 'Untitled Canvas'}
+                  onDoubleClick={() => setIsEditingName(true)}
+                >
+                  {canvasName || 'Untitled Canvas'}
+                </div>
+              ) : (
+                <input
+                  value={canvasName}
+                  onChange={(e) => setCanvasName(e.target.value)}
+                  onBlur={() => { setIsEditingName(false); setTimeout(() => { void autoSaveCanvas(); }, 150); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingName(false); void autoSaveCanvas(); } if (e.key === 'Escape') { setIsEditingName(false); } }}
+                  autoFocus
+                  className="w-full px-2 py-1.5 rounded-md border border-neutral-700 bg-neutral-900 text-neutral-100"
+                  placeholder="Canvas name"
+                />
+              )}
+            </div>
+
+            {/* Project controlled select */}
+            <label htmlFor="canvas-project-select" className="sr-only">Project</label>
+            <select
+              id="canvas-project-select"
+              value={canvasProjectId}
+              onChange={(e) => { setCanvasProjectId(e.target.value); void autoSaveCanvas(); }}
+              className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+            >
+              <option value="">No project</option>
+              {projectsList.map((p) => (
+                <option key={p.project_id} value={p.project_id}>{p.name}</option>
+              ))}
+            </select>
+
+            {/* Save / Load / Clear with compact styles */}
+            <button onClick={() => void saveCanvas()} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
+            <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
+            <button
+              onClick={clearCanvas}
+              className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
+                <input
+                  type="radio"
+                  name="canvas-layout"
+                  checked={canvasLayout === 'grid'}
+                  onChange={() => setCanvasLayout('grid')}
+                  className="accent-neutral-400"
+                />
+                Grid
+              </label>
+              <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
+                <input
+                  type="radio"
+                  name="canvas-layout"
+                  checked={canvasLayout === 'freeform'}
+                  onChange={() => setCanvasLayout('freeform')}
+                  className="accent-neutral-400"
+                />
+                Freeform
+              </label>
+            </div>
+          </div>
+          {canvasLayout === 'grid' ? (
+            <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 h-[640px]">
+              {pinned.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-neutral-500 text-sm">
+                  Pin results here to build a visual board.
+                </div>
+              ) : (
+                <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
+              )}
+            </div>
+          ) : (
+            <div
+              ref={canvasRef}
+              className="relative h-[640px] w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
+            >
+              {pinned.map((p) => (
+                <DraggablePinned key={p.id} item={p} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
+              ))}
+              {pinned.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
+                  Pin results here to build a visual board.
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-3">
+            <label className="text-xs text-neutral-400 block mb-1">Notes</label>
+            <textarea
+              value={canvasNote}
+              onChange={(e) => setCanvasNote(e.target.value)}
+              rows={6}
+              className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-black text-white"
+              placeholder="Add notes about this canvas..."
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={() => void handleNoteSave()}
+                className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : tab === 'output' ? (
+        <div className="mt-3 space-y-3">
+          {genLoading ? (
+            <div className="h-[640px] w-full flex items-center justify-center rounded-xl border border-neutral-800 bg-neutral-950">
+              <div className="flex items-center gap-3 text-neutral-300">
+                <div className="w-5 h-5 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
+                Generating…
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-neutral-800 p-3 bg-neutral-900/40">
+              {genUrl && genMode === 'image' && (
+                <img src={genUrl} className="w-full max-h-[640px] object-contain rounded-md border border-neutral-800 bg-black" alt="output" />
+              )}
+              {genUrl && genMode === 'video' && (
+                <video src={genUrl} controls className="w-full max-h-[640px] rounded-md border border-neutral-800 bg-black" />
+              )}
+              {genUrl && genMode === 'audio' && (
+                <div className="p-4">
+                  <audio src={genUrl} controls className="w-full" />
+                </div>
+              )}
+              {!genUrl && (
+                <div className="text-sm text-neutral-400">No output URL found. See raw result below.</div>
+              )}
+
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                <div className="md:col-span-2">
+                  <label className="text-xs text-neutral-400">Title / Filename</label>
+                  <input id="gen-title-input" className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" placeholder="Untitled" />
+                </div>
+                <ProjectPicker />
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={onPinGenerated}
+                  disabled={!genUrl || !genMode}
+                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+                >
+                  Pin result
+                </button>
+                <button
+                  onClick={onSaveGenerated}
+                  disabled={!genUrl || !genMode}
+                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+                >
+                  Save to library
+                </button>
+              </div>
+            </div>
+          )}
+
+          <details className="rounded-xl border border-neutral-800 bg-neutral-900/40">
+            <summary className="px-3 py-2 text-sm text-neutral-300 cursor-pointer">Show raw result</summary>
+            <pre className="p-3 text-xs text-neutral-200 whitespace-pre-wrap overflow-auto max-h-80">{JSON.stringify(genRaw, null, 2)}</pre>
+          </details>
+        </div>
+      ) : (
+        <div className="mt-3">
+          <GenerationPanel
+            pinned={pinned}
+            onPinResult={onPin}
+            onGenStart={() => { setTab('output'); onParentGenStart(); }}
+            onGenResult={(m, url, raw) => { setTab('output'); onParentGenResult(m, url, raw); }}
+          />
+        </div>
+      )}
+      {tab === 'results' && (
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <button
+            onClick={() => { const p = Math.max(1, page - 1); setPage(p); executeSearch(query, p); }}
+            disabled={page <= 1 || loading}
+            className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+          >Prev</button>
+          <div className="text-sm text-neutral-400">Page {page}</div>
+          <button
+            onClick={() => { const maxPage = Math.max(1, Math.ceil(totalResults / DEFAULT_LIMIT)); const p = Math.min(maxPage, page + 1); setPage(p); executeSearch(query, p); }}
+            disabled={loading || results.length < DEFAULT_LIMIT}
+            className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+          >Next</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function VisualSearchPage() {
   const { loading, error, data, search } = useUnifiedSearch();
   const [query, setQuery] = useState("");
@@ -1366,386 +1776,6 @@ export default function VisualSearchPage() {
     setRightTab('output');
   }
 
-  function RightPane({
-    results,
-    loading,
-    totalResults,
-    onPin,
-    onOpen,
-    canvasRef,
-    pinned,
-    movePinned,
-    removePinned,
-    tab,
-    setTab,
-    genLoading,
-    genUrl,
-    genMode,
-    genRaw,
-    onPinGenerated,
-    onSaveGenerated,
-  }: {
-    results: UnifiedSearchResult[];
-    loading: boolean;
-    totalResults: number;
-    onPin: (r: UnifiedSearchResult) => void;
-    onOpen: (r: UnifiedSearchResult) => void;
-    canvasRef: React.MutableRefObject<HTMLDivElement | null>;
-    pinned: PinnedItem[];
-    movePinned: (id: string, x: number, y: number) => void;
-    removePinned: (id: string) => void;
-    tab: 'results' | 'canvas' | 'output' | 'generate';
-    setTab: (t: 'results' | 'canvas' | 'output' | 'generate') => void;
-    genLoading: boolean;
-    genUrl: string | null;
-    genMode: 'image' | 'video' | 'audio' | 'text' | null;
-    genRaw: any;
-    onPinGenerated: () => void;
-    onSaveGenerated: () => void;
-  }) {
-    return (
-      <div className="lg:col-span-8">
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-neutral-400">{totalResults ? `${totalResults} raw hits` : ''}</div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setTab('results')}
-              className={classNames(
-                'px-3 py-1.5 text-sm rounded-md border',
-                tab === 'results' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
-              )}
-            >
-              Results
-            </button>
-            <button
-              onClick={() => setTab('canvas')}
-              className={classNames(
-                'px-3 py-1.5 text-sm rounded-md border',
-                tab === 'canvas' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
-              )}
-            >
-              Canvas
-            </button>
-            <button
-              onClick={() => setTab('output')}
-              className={classNames(
-                'px-3 py-1.5 text-sm rounded-md border',
-                tab === 'output' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
-              )}
-            >
-              Output
-            </button>
-            <button
-              onClick={() => setTab('generate')}
-              className={classNames(
-                'px-3 py-1.5 text-sm rounded-md border',
-                tab === 'generate' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
-              )}
-            >
-              Generate
-            </button>
-          </div>
-        </div>
-
-        {tab === 'results' ? (
-          <div className="mt-3">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="text-xs text-neutral-400">
-                  {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Shift+click to select multiple'}
-                </div>
-                {selectedIds.size > 0 && (
-                  <button
-                    onClick={pinSelected}
-                    className="px-3 py-1.5 text-sm rounded-md border border-neutral-700 bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                  >Pin {selectedIds.size} to canvas</button>
-                )}
-              </div>
-              <div className="text-xs text-neutral-500">{total} total</div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {results.map((r) => (
-                <ResultCard
-                  key={`${r.id}-${r.score}`}
-                  r={r}
-                  onPin={onPin}
-                  onOpen={onOpen}
-                  selectionEnabled={multiSelect}
-                  selected={selectedIds.has(r.id)}
-                  onToggleSelect={toggleSelect}
-                />
-              ))}
-              {!loading && results.length === 0 && (
-                <div className="col-span-full text-neutral-400 text-sm">Try a search to see results.</div>
-              )}
-            </div>
-          </div>
-        ) : tab === 'canvas' ? (
-          <div className="mt-3">
-            <div className="text-sm text-neutral-400 mb-2">Canvas</div>
-            <div className="mb-2 grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
-              {/* Name inline editable */}
-              <div className="min-w-0">
-                {!isEditingName ? (
-                  <div
-                    className="cursor-text truncate text-neutral-100 text-base"
-                    title={canvasName || 'Untitled Canvas'}
-                    onDoubleClick={() => setIsEditingName(true)}
-                  >
-                    {canvasName || 'Untitled Canvas'}
-                  </div>
-                ) : (
-                  <input
-                    value={canvasName}
-                    onChange={(e) => setCanvasName(e.target.value)}
-                    onBlur={() => { setIsEditingName(false); setTimeout(() => { void autoSaveCanvas(); }, 150); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingName(false); void autoSaveCanvas(); } if (e.key === 'Escape') { setIsEditingName(false); } }}
-                    autoFocus
-                    className="w-full px-2 py-1.5 rounded-md border border-neutral-700 bg-neutral-900 text-neutral-100"
-                    placeholder="Canvas name"
-                  />
-                )}
-              </div>
-
-              {/* Project controlled select */}
-              <label htmlFor="canvas-project-select" className="sr-only">Project</label>
-              <select
-                id="canvas-project-select"
-                value={canvasProjectId}
-                onChange={(e) => { setCanvasProjectId(e.target.value); void autoSaveCanvas(); }}
-                className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
-              >
-                <option value="">No project</option>
-                {projectsList.map((p) => (
-                  <option key={p.project_id} value={p.project_id}>{p.name}</option>
-                ))}
-              </select>
-
-              {/* Save / Load / Clear with compact styles */}
-              <button onClick={() => void saveCanvas()} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
-              <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
-              <button
-                onClick={clearCanvas}
-                className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-              >
-                Clear
-              </button>
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
-                  <input
-                    type="radio"
-                    name="canvas-layout"
-                    checked={canvasLayout === 'grid'}
-                    onChange={() => setCanvasLayout('grid')}
-                    className="accent-neutral-400"
-                  />
-                  Grid
-                </label>
-                <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
-                  <input
-                    type="radio"
-                    name="canvas-layout"
-                    checked={canvasLayout === 'freeform'}
-                    onChange={() => setCanvasLayout('freeform')}
-                    className="accent-neutral-400"
-                  />
-                  Freeform
-                </label>
-              </div>
-            </div>
-            {canvasLayout === 'grid' ? (
-              <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 h-[640px]">
-                {pinned.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-neutral-500 text-sm">
-                    Pin results here to build a visual board.
-                  </div>
-                ) : (
-                  <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
-                )}
-              </div>
-            ) : (
-              <div
-                ref={canvasRef}
-                className="relative h-[640px] w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
-              >
-                {pinned.map((p) => (
-                  <DraggablePinned key={p.id} item={p} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
-                ))}
-                {pinned.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
-                    Pin results here to build a visual board.
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="mt-3">
-              <label className="text-xs text-neutral-400 block mb-1">Notes</label>
-              <textarea
-                value={canvasNote}
-                onChange={(e) => setCanvasNote(e.target.value)}
-                rows={6}
-                className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-black text-white"
-                placeholder="Add notes about this canvas..."
-              />
-              <div className="mt-2 flex justify-end">
-                <button
-                  onClick={async () => {
-                    if (!canvasId) return;
-                    try {
-                      await fetch('/api/canvas', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          id: canvasId,
-                          name: canvasName || 'Untitled Canvas',
-                          note: canvasNote,
-                          projectId: canvasProjectId,
-                          items: pinnedRef.current.map((p, idx) => ({
-                            id: p.result.id,
-                            type: p.result.content_type,
-                            position: { x: p.x, y: p.y, w: p.width, h: p.height, z: p.z },
-                            order: idx,
-                            metadata: p.result.metadata,
-                          })),
-                          createdAt: new Date().toISOString(),
-                        })
-                      });
-                    } catch (e) {
-                      console.error('Note save failed:', e);
-                    }
-                  }}
-                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : tab === 'output' ? (
-          <div className="mt-3 space-y-3">
-            {genLoading ? (
-              <div className="h-[640px] w-full flex items-center justify-center rounded-xl border border-neutral-800 bg-neutral-950">
-                <div className="flex items-center gap-3 text-neutral-300">
-                  <div className="w-5 h-5 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
-                  Generating…
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-neutral-800 p-3 bg-neutral-900/40">
-                {genUrl && genMode === 'image' && (
-                  <img src={genUrl} className="w-full max-h-[640px] object-contain rounded-md border border-neutral-800 bg-black" alt="output" />
-                )}
-                {genUrl && genMode === 'video' && (
-                  <video src={genUrl} controls className="w-full max-h-[640px] rounded-md border border-neutral-800 bg-black" />
-                )}
-                {genUrl && genMode === 'audio' && (
-                  <div className="p-4">
-                    <audio src={genUrl} controls className="w-full" />
-                  </div>
-                )}
-                {!genUrl && (
-                  <div className="text-sm text-neutral-400">No output URL found. See raw result below.</div>
-                )}
-
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                  <div className="md:col-span-2">
-                    <label className="text-xs text-neutral-400">Title / Filename</label>
-                    <input id="gen-title-input" className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" placeholder="Untitled" />
-                  </div>
-                  <ProjectPicker />
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={onPinGenerated}
-                    disabled={!genUrl || !genMode}
-                    className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
-                  >
-                    Pin result
-                  </button>
-                  <button
-                    onClick={onSaveGenerated}
-                    disabled={!genUrl || !genMode}
-                    className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
-                  >
-                    Save to library
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <details className="rounded-xl border border-neutral-800 bg-neutral-900/40">
-              <summary className="px-3 py-2 text-sm text-neutral-300 cursor-pointer">Show raw result</summary>
-              <pre className="p-3 text-xs text-neutral-200 whitespace-pre-wrap overflow-auto max-h-80">{JSON.stringify(genRaw, null, 2)}</pre>
-            </details>
-          </div>
-        ) : (
-          <div className="mt-3">
-            <GenerationPanel
-              pinned={pinned}
-              onPinResult={onPin}
-              onGenStart={() => setTab('output')}
-              onGenResult={(m, url, raw) => {
-                setTab('output');
-                setGenMode(m);
-                setGenUrl(url || null);
-                setGenRaw(raw);
-              }}
-            />
-          </div>
-        )}
-        {tab === 'results' && (
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <button
-              onClick={() => { const p = Math.max(1, page - 1); setPage(p); executeSearch(query, p); }}
-              disabled={page <= 1 || loading}
-              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
-            >Prev</button>
-            <div className="text-sm text-neutral-400">Page {page}</div>
-            <button
-              onClick={() => { const maxPage = Math.max(1, Math.ceil(total / DEFAULT_LIMIT)); const p = Math.min(maxPage, page + 1); setPage(p); executeSearch(query, p); }}
-              disabled={loading || results.length < DEFAULT_LIMIT}
-              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
-            >Next</button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function ProjectPicker() {
-    const [projects, setProjects] = useState<Array<{ project_id: string; name: string }>>([])
-    const [loading, setLoading] = useState(false)
-    useEffect(() => {
-      let cancelled = false
-      ;(async () => {
-        try {
-          setLoading(true)
-          const res = await fetch('/api/projects')
-          if (res.ok) {
-            const json = await res.json()
-            if (!cancelled) setProjects((json.projects || []).map((p: any) => ({ project_id: p.project_id, name: p.name })))
-          }
-        } finally {
-          if (!cancelled) setLoading(false)
-        }
-      })()
-      return () => { cancelled = true }
-    }, [])
-    return (
-      <div>
-        <label className="text-xs text-neutral-400">Project</label>
-        <select id="gen-project-select" className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100">
-          <option value="">No project</option>
-          {projects.map((p) => (
-            <option key={p.project_id} value={p.project_id}>{p.name}</option>
-          ))}
-        </select>
-      </div>
-    )
-  }
-
   // Fetch projects once and keep in state for controlled select
   useEffect(() => {
     let cancelled = false
@@ -1876,6 +1906,58 @@ export default function VisualSearchPage() {
                 console.error('Save failed:', (e as Error).message);
               }
             }}
+            selectedIds={selectedIds}
+            multiSelect={multiSelect}
+            toggleSelect={toggleSelect}
+            page={page}
+            setPage={setPage}
+            executeSearch={executeSearch}
+            query={query}
+            isEditingName={isEditingName}
+            setIsEditingName={setIsEditingName}
+            canvasName={canvasName}
+            setCanvasName={setCanvasName}
+            autoSaveCanvas={autoSaveCanvas}
+            canvasProjectId={canvasProjectId}
+            setCanvasProjectId={setCanvasProjectId}
+            projectsList={projectsList}
+            saveCanvas={() => saveCanvas()}
+            setShowCanvasManager={setShowCanvasManager}
+            clearCanvas={clearCanvas}
+            canvasLayout={canvasLayout}
+            setCanvasLayout={setCanvasLayout}
+            reorderPinned={reorderPinned}
+            canvasNote={canvasNote}
+            setCanvasNote={setCanvasNote}
+            canvasId={canvasId}
+            handleNoteSave={async () => {
+              if (!canvasId) return;
+              try {
+                await fetch('/api/canvas', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    id: canvasId,
+                    name: canvasName || 'Untitled Canvas',
+                    note: canvasNote,
+                    projectId: canvasProjectId,
+                    items: pinnedRef.current.map((p, idx) => ({
+                      id: p.result.id,
+                      type: p.result.content_type,
+                      position: { x: p.x, y: p.y, w: p.width, h: p.height, z: p.z },
+                      order: idx,
+                      metadata: p.result.metadata,
+                    })),
+                    createdAt: new Date().toISOString(),
+                  })
+                });
+              } catch (e) {
+                console.error('Note save failed:', e);
+              }
+            }}
+            pinSelected={pinSelected}
+            onParentGenStart={handleGenStart}
+            onParentGenResult={handleGenResult}
           />
         </div>
       </div>
