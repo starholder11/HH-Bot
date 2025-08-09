@@ -38,9 +38,12 @@ export async function GET(req: NextRequest) {
             const loras = Array.isArray(canvas?.loras) ? canvas.loras : []
             const idx = loras.findIndex((l: any) => l.requestId === requestId)
             if (idx >= 0) {
-              loras[idx] = { ...loras[idx], status: 'completed', artifactUrl, updatedAt: new Date().toISOString() }
+              loras[idx] = { ...loras[idx], status: 'completed', artifactUrl, path: artifactUrl, updatedAt: new Date().toISOString() }
               updated = loras[idx]
-              await writeJsonAtKey(key, { ...canvas, loras, updatedAt: new Date().toISOString() })
+              const updatedCanvas = { ...canvas, loras, updatedAt: new Date().toISOString() }
+              await writeJsonAtKey(key, updatedCanvas)
+              // bump index timestamp
+              try { const index = await readJsonFromS3('canvases/index.json'); const idx = (index.items || []).findIndex((it: any) => it.id === canvasId); if (idx>=0){ index.items[idx].updatedAt = updatedCanvas.updatedAt; await writeJsonAtKey('canvases/index.json', index);} } catch {}
             }
           } catch (e) {
             console.warn('Failed to update canvas loras in S3:', e)

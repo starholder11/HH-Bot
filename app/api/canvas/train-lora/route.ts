@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
-import { uploadFile, readJsonFromS3 } from '@/lib/s3-upload'
+import { uploadFile, readJsonFromS3, writeJsonAtKey } from '@/lib/s3-upload'
 import JSZip from 'jszip'
 
 export const runtime = 'nodejs'
@@ -90,17 +90,16 @@ export async function POST(req: NextRequest) {
                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
     // Persist to S3 directly to avoid race with index based PUT
     try {
-      // Resolve key via index if present
+      // Resolve key via index if present and update index entry timestamp
       let key = `canvases/${canvasId}.json`
-      try {
-        const index = await readJsonFromS3('canvases/index.json')
-        const entry = (index?.items || []).find((it: any) => it.id === canvasId)
-        if (entry?.key) key = entry.key
-      } catch {}
-      const next = { ...canvas, loras: [ ...(canvas?.loras || []), loraEntry ], updatedAt: new Date().toISOString() }
-      // Reuse existing writer in s3-upload
-      const { writeJsonAtKey } = await import('@/lib/s3-upload')
-      await writeJsonAtKey(key, next)
+      let index: any = { items: [] }
+      try { index = await readJsonFromS3('canvases/index.json') } catch {}
+      const entryIdx = (index.items || []).findIndex((it: any) => it.id === canvasId)
+      if (entryIdx >= 0 && index.items[entryIdx].key) key = index.items[entryIdx].key
+      const nextCanvas = { ...canvas, loras: [ ...(canvas?.loras || []), loraEntry ], updatedAt: new Date().toISOString() }
+      await writeJsonAtKey(key, nextCanvas)
+      // update index updatedAt
+      if (entryIdx >= 0) { index.items[entryIdx].updatedAt = nextCanvas.updatedAt; await writeJsonAtKey('canvases/index.json', index) }
     } catch (e) {
       console.warn('Failed to persist LoRA entry directly to S3:', e)
     }
