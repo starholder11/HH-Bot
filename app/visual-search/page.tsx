@@ -330,6 +330,7 @@ function GenerationPanel({
   // Manual LoRA selection UI state
   const [selectedLoras, setSelectedLoras] = useState<Array<{ id: string; path: string; scale: number; selected: boolean; label: string }>>([])
   const [loraSelect, setLoraSelect] = useState<string>('')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase();
@@ -531,17 +532,32 @@ function GenerationPanel({
     const mode = categoryToMode(selected.category);
     const url = genPreviewUrl;
     if (!url) return;
-    const filename = `${selected.category}-generated-${Date.now()}`;
-    const resp = await fetch('/api/import/url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, mediaType: mode, originalFilename: filename }),
-    });
-    const json = await resp.json();
-    if (!resp.ok) {
-      console.error('Save failed:', json?.error || 'Save failed');
-    } else {
-      console.log('Saved to library');
+
+    setSaveStatus('saving');
+
+    try {
+      const filename = `${selected.category}-generated-${Date.now()}`;
+      const resp = await fetch('/api/import/url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, mediaType: mode, originalFilename: filename }),
+      });
+      const json = await resp.json();
+
+      if (resp.ok) {
+        setSaveStatus('saved');
+        // Reset to idle after 2 seconds
+        setTimeout(() => setSaveStatus('idle'), 2000);
+        console.log('Saved to library');
+      } else {
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+        console.error('Save failed:', json?.error || 'Save failed');
+      }
+    } catch (error) {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+      console.error('Error saving to library:', error);
     }
   }
 
@@ -790,10 +806,29 @@ function GenerationPanel({
             </button>
             <button
               onClick={handleSaveToLibrary}
-              disabled={!genPreviewUrl}
-              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+              disabled={!genPreviewUrl || saveStatus === 'saving'}
+              className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-300 disabled:opacity-50 ${
+                saveStatus === 'saved'
+                  ? 'border-green-600 bg-green-600 text-white transform scale-105'
+                  : saveStatus === 'error'
+                  ? 'border-red-600 bg-red-600 text-white'
+                  : saveStatus === 'saving'
+                  ? 'border-blue-600 bg-blue-600 text-white animate-pulse'
+                  : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100'
+              }`}
             >
-              Save to library
+              {saveStatus === 'saving' && (
+                <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
+              {saveStatus === 'saved' && '✓ '}
+              {saveStatus === 'error' && '✗ '}
+              {saveStatus === 'saving' ? 'Saving...'
+                : saveStatus === 'saved' ? 'Saved!'
+                : saveStatus === 'error' ? 'Failed'
+                : 'Save to library'}
             </button>
           </div>
 
@@ -1197,6 +1232,8 @@ function RightPane({
   trainCanvasLora,
   allLoras,
   setAllLoras,
+  saveStatus,
+  setSaveStatus,
 }: {
   results: UnifiedSearchResult[];
   loading: boolean;
@@ -1258,6 +1295,8 @@ function RightPane({
     status: string;
   }>;
   setAllLoras: (updater: (prev: any[]) => any[]) => void;
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
 }) {
   return (
     <div className="lg:col-span-8">
@@ -1516,10 +1555,29 @@ function RightPane({
                 </button>
                 <button
                   onClick={onSaveGenerated}
-                  disabled={!genUrl || !genMode}
-                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+                  disabled={!genUrl || !genMode || saveStatus === 'saving'}
+                  className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-300 disabled:opacity-50 ${
+                    saveStatus === 'saved'
+                      ? 'border-green-600 bg-green-600 text-white transform scale-105'
+                      : saveStatus === 'error'
+                      ? 'border-red-600 bg-red-600 text-white'
+                      : saveStatus === 'saving'
+                      ? 'border-blue-600 bg-blue-600 text-white animate-pulse'
+                      : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100'
+                  }`}
                 >
-                  Save to library
+                  {saveStatus === 'saving' && (
+                    <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {saveStatus === 'saved' && '✓ '}
+                  {saveStatus === 'error' && '✗ '}
+                  {saveStatus === 'saving' ? 'Saving...'
+                    : saveStatus === 'saved' ? 'Saved!'
+                    : saveStatus === 'error' ? 'Failed'
+                    : 'Save to library'}
                 </button>
               </div>
             </div>
@@ -2277,23 +2335,34 @@ export default function VisualSearchPage() {
             }}
             onSaveGenerated={async () => {
               if (!genUrl || !genMode) return;
+
+              setSaveStatus('saving');
+
               const inputEl = document.getElementById('gen-title-input') as HTMLInputElement | null
               const selectEl = document.getElementById('gen-project-select') as HTMLSelectElement | null
               const filename = inputEl?.value?.trim() || `${genMode}-generated-${Date.now()}`
               const projectId = selectEl?.value || undefined
+
               try {
                 const resp = await fetch('/api/import/url', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ url: genUrl, mediaType: genMode, originalFilename: filename, projectId }),
                 });
-                if (!resp.ok) {
-                  const j = await resp.json();
-                  console.error('Save failed:', j?.error || 'Save failed');
-                } else {
+
+                if (resp.ok) {
+                  setSaveStatus('saved');
+                  setTimeout(() => setSaveStatus('idle'), 2000);
                   console.log('Saved to library');
+                } else {
+                  const j = await resp.json();
+                  setSaveStatus('error');
+                  setTimeout(() => setSaveStatus('idle'), 2000);
+                  console.error('Save failed:', j?.error || 'Save failed');
                 }
               } catch (e) {
+                setSaveStatus('error');
+                setTimeout(() => setSaveStatus('idle'), 2000);
                 console.error('Save failed:', (e as Error).message);
               }
             }}
@@ -2354,6 +2423,8 @@ export default function VisualSearchPage() {
             trainCanvasLora={trainCanvasLora}
             allLoras={allLoras}
             setAllLoras={setAllLoras}
+            saveStatus={saveStatus}
+            setSaveStatus={setSaveStatus}
           />
         </div>
       </div>
