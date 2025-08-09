@@ -1219,7 +1219,7 @@ export default function VisualSearchPage() {
       id: `canvas-${Date.now()}`,
       name: (override?.name ?? canvasName ?? 'Untitled Canvas').trim(),
       note: override?.note ?? canvasNote ?? '',
-      projectId: override?.projectId ?? canvasProjectId || undefined,
+      projectId: (override?.projectId ?? canvasProjectId) || undefined,
       items: pinned.map((p, idx) => ({
         id: p.result.id,
         type: p.result.content_type,
@@ -1519,7 +1519,7 @@ export default function VisualSearchPage() {
               </select>
 
               {/* Save / Load / Clear with compact styles */}
-              <button onClick={saveCanvas} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
+              <button onClick={() => void saveCanvas()} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
               <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
               <button
                 onClick={clearCanvas}
