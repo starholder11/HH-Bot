@@ -1492,7 +1492,7 @@ export default function VisualSearchPage() {
                   <input
                     value={canvasName}
                     onChange={(e) => setCanvasName(e.target.value)}
-                    onBlur={() => { setIsEditingName(false); void autoSaveCanvas(); }}
+                    onBlur={() => { setIsEditingName(false); setTimeout(() => { void autoSaveCanvas(); }, 150); }}
                     onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingName(false); void autoSaveCanvas(); } if (e.key === 'Escape') { setIsEditingName(false); } }}
                     autoFocus
                     className="w-full px-2 py-1.5 rounded-md border border-neutral-700 bg-neutral-900 text-neutral-100"
@@ -1502,6 +1502,7 @@ export default function VisualSearchPage() {
               </div>
 
               {/* Project controlled select */}
+              <label htmlFor="canvas-project-select" className="sr-only">Project</label>
               <select
                 id="canvas-project-select"
                 value={canvasProjectId}
@@ -1559,12 +1560,14 @@ export default function VisualSearchPage() {
                 )}
                 <div className="mt-3">
                   <label className="text-xs text-neutral-400">Note</label>
+                  <label htmlFor="canvas-note-input" className="sr-only">Canvas notes</label>
                   <textarea
+                    name="canvas-note"
                     id="canvas-note-input"
                     rows={6}
                     value={canvasNote}
                     onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={() => { /* save only when leaving the textarea */ void autoSaveCanvas(); }}
+                    onBlur={(e) => { if (e.relatedTarget && (e.relatedTarget as HTMLElement).id === 'canvas-note-input') return; setTimeout(() => { void autoSaveCanvas(); }, 100); }}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                   />
@@ -1585,12 +1588,14 @@ export default function VisualSearchPage() {
                 )}
                 <div className="absolute left-3 right-3 bottom-3">
                   <label className="text-xs text-neutral-400">Note</label>
+                  <label htmlFor="canvas-note-input" className="sr-only">Canvas notes</label>
                   <textarea
+                    name="canvas-note"
                     id="canvas-note-input"
                     rows={6}
                     value={canvasNote}
                     onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={() => { /* save only when leaving the textarea */ void autoSaveCanvas(); }}
+                    onBlur={(e) => { if (e.relatedTarget && (e.relatedTarget as HTMLElement).id === 'canvas-note-input') return; setTimeout(() => { void autoSaveCanvas(); }, 100); }}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                   />
