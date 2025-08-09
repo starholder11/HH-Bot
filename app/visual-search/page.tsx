@@ -1815,6 +1815,7 @@ export default function VisualSearchPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Save failed')
       setCanvasId(payload.id)
+      try { if (typeof window !== 'undefined') localStorage.setItem('lastCanvasId', payload.id) } catch {}
       void refreshCanvases()
       console.log('Canvas saved')
     } catch (e) {
@@ -1864,6 +1865,7 @@ export default function VisualSearchPage() {
       if (!res.ok) throw new Error(j?.error || 'Failed to load canvas')
       const c = j.canvas
       setCanvasId(c.id)
+      try { if (typeof window !== 'undefined') localStorage.setItem('lastCanvasId', c.id) } catch {}
       // Load pinned from items
       setPinned((c.items || []).map((it: any, idx: number) => ({
         id: `${it.id}-${idx}-${Math.random().toString(36).slice(2,6)}`,
@@ -1891,6 +1893,64 @@ export default function VisualSearchPage() {
       console.error('Canvas load failed:', (e as Error).message)
     }
   }
+
+  // On mount: auto-load canvas from ?canvas= query or last used in localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const param = params.get('canvas')
+    if (param) {
+      // Try exact id first, else resolve by name via index
+      ;(async () => {
+        try {
+          // Try direct id
+          let ok = false
+          try {
+            const r = await fetch(`/api/canvas?id=${encodeURIComponent(param)}`)
+            if (r.ok) { await loadCanvas(param); ok = true }
+          } catch {}
+          if (ok) return
+          // Resolve by name via index
+          const idxRes = await fetch('/api/canvas')
+          const idx = await idxRes.json()
+          const items: any[] = idx.items || []
+          const match = items.find((it) => (it.name || '').toLowerCase() === param.toLowerCase())
+          if (match?.id) await loadCanvas(match.id)
+        } catch {}
+      })()
+      return
+    }
+    // Fallback to last used
+    try {
+      const last = localStorage.getItem('lastCanvasId')
+      if (last) void loadCanvas(last)
+    } catch {}
+  }, [])
+
+  // If there are training LoRAs on loaded canvas, poll their status until completion
+  const polledReqIdsRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!canvasId) return
+    const pending = (canvasLoras || []).filter((l: any) => l?.status === 'training' && l?.requestId)
+    pending.forEach((l: any) => {
+      const rid = l.requestId
+      if (!rid || polledReqIdsRef.current.has(rid)) return
+      polledReqIdsRef.current.add(rid)
+      const tick = async () => {
+        try {
+          const s = await fetch(`/api/canvas/train-status?requestId=${encodeURIComponent(rid)}&canvasId=${encodeURIComponent(canvasId)}`)
+          const sj = await s.json()
+          if (s.ok && (sj?.status === 'COMPLETED' || sj?.lora)) {
+            // Refresh
+            await loadCanvas(canvasId)
+            return
+          }
+        } catch {}
+        setTimeout(tick, 5000)
+      }
+      setTimeout(tick, 1000)
+    })
+  }, [canvasId, canvasLoras])
 
   async function trainCanvasLora() {
     try {
