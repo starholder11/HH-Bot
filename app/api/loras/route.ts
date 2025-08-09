@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readJsonFromS3 } from '@/lib/s3-utils';
+import { readJsonFromS3 } from '@/lib/s3-upload';
 
 export async function GET(request: NextRequest) {
   try {
     // Read the canvas index to get all canvases
-    const indexData = await readJsonFromS3('canvas-index.json');
-    if (!indexData || !indexData.canvases) {
+    const indexData = await readJsonFromS3('canvases/index.json');
+    if (!indexData || !indexData.items) {
       return NextResponse.json([]);
     }
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     // Check each canvas for completed LoRAs
-    for (const canvasEntry of indexData.canvases) {
+    for (const canvasEntry of indexData.items) {
       try {
         const canvasData = await readJsonFromS3(canvasEntry.key);
         if (canvasData?.loras) {
