@@ -1764,7 +1764,23 @@ export default function VisualSearchPage() {
     setCanvasName('')
     setCanvasNote('')
     setCanvasProjectId('')
+    setCanvasLoras([])
+    setLoraTraining(null)
   };
+
+  const refreshCurrentCanvas = async () => {
+    if (!canvasId) return
+    try {
+      const res = await fetch(`/api/canvas?id=${encodeURIComponent(canvasId)}`)
+      const j = await res.json()
+      if (res.ok && j.canvas) {
+        const c = j.canvas
+        setCanvasLoras(Array.isArray(c.loras) ? c.loras : [])
+      }
+    } catch (e) {
+      console.error('Canvas refresh failed:', e)
+    }
+  }
   const reorderPinned = (fromIndex: number, toIndex: number) => {
     setPinned((prev) => {
       const arr = [...prev]
@@ -1834,6 +1850,13 @@ export default function VisualSearchPage() {
 
   useEffect(() => { void refreshCanvases() }, [])
 
+  // Refresh current canvas LoRAs when canvasId changes
+  useEffect(() => {
+    if (canvasId) {
+      void refreshCurrentCanvas()
+    }
+  }, [canvasId])
+
   const loadCanvas = async (id: string) => {
     try {
       const res = await fetch(`/api/canvas?id=${encodeURIComponent(id)}`)
@@ -1887,6 +1910,10 @@ export default function VisualSearchPage() {
       if (!res.ok) throw new Error(j?.error || 'Training start failed')
       const reqId = j.requestId as string
       setLoraTraining({ status: 'queued', requestId: reqId })
+      // Add training LoRA to current state immediately
+      if (j.lora) {
+        setCanvasLoras(prev => [...prev.filter(l => l.requestId !== reqId), j.lora])
+      }
       // Poll status
       const poll = async () => {
         try {
@@ -1895,7 +1922,12 @@ export default function VisualSearchPage() {
           if (s.ok) {
             const st = (sj?.status || '').toString()
             setLoraTraining({ status: st || 'IN_PROGRESS', requestId: reqId })
+            // Update LoRA in state when status changes
+            if (sj.lora) {
+              setCanvasLoras(prev => prev.map(l => l.requestId === reqId ? sj.lora : l))
+            }
             if (st === 'COMPLETED') {
+              // Reload canvas to get latest data
               await loadCanvas(id)
               return
             }
