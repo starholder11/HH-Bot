@@ -429,7 +429,7 @@ function GenerationPanel({
       // propagate to parent right-pane state
       onGenResult(mode, url, json.result ?? json);
     } catch (e) {
-      alert((e as Error).message);
+      console.error('Generation failed:', (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -448,9 +448,9 @@ function GenerationPanel({
     });
     const json = await resp.json();
     if (!resp.ok) {
-      alert(json?.error || 'Save failed');
+      console.error('Save failed:', json?.error || 'Save failed');
     } else {
-      alert('Saved to library');
+      console.log('Saved to library');
     }
   }
 
@@ -563,7 +563,7 @@ function GenerationPanel({
                   if (resp.ok && json.url) {
                     setUploadedRefs((prev) => [...prev, json.url as string]);
                   } else {
-                    alert(json?.error || 'Upload failed');
+                    console.error('Upload failed:', json?.error || 'Upload failed');
                   }
                 }} />
               </label>
@@ -651,7 +651,7 @@ function ResultCard({
   onOpen: (r: UnifiedSearchResult) => void;
   selectionEnabled?: boolean;
   selected?: boolean;
-  onToggleSelect?: (r: UnifiedSearchResult) => void;
+  onToggleSelect?: (r: UnifiedSearchResult, shiftKey?: boolean) => void;
 }) {
   const scorePct = Math.round((Math.max(0, Math.min(1, r.score)) || 0) * 100);
   const labels: string[] = useMemo(() => {
@@ -671,9 +671,13 @@ function ResultCard({
       "group rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 transition-colors overflow-hidden flex flex-col",
       selected ? "ring-2 ring-neutral-500" : undefined
     )}
-    onClick={() => {
-      if (selectionEnabled && onToggleSelect) {
-        onToggleSelect(r);
+    onClick={(e) => {
+      if (e.shiftKey && onToggleSelect) {
+        onToggleSelect(r, true); // Shift-click enables multi-select
+      } else if (selectionEnabled && onToggleSelect) {
+        onToggleSelect(r, false);
+      } else {
+        onOpen(r); // Regular click opens the item
       }
     }}
     >
@@ -684,19 +688,6 @@ function ResultCard({
           </div>
           <div className="text-[10px] text-neutral-400">{scorePct}%</div>
         </div>
-        {selectionEnabled && (
-          <div className="mt-2">
-            <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
-              <input
-                type="checkbox"
-                checked={!!selected}
-                onChange={(e) => { e.stopPropagation(); onToggleSelect?.(r); }}
-                className="accent-neutral-400"
-              />
-              Select
-            </label>
-          </div>
-        )}
         <div className="mt-2 font-medium text-neutral-100 line-clamp-1" title={r.title}>
           {r.title}
         </div>
@@ -1147,10 +1138,16 @@ export default function VisualSearchPage() {
     });
   };
 
-  const toggleSelect = (r: UnifiedSearchResult) => {
+  const toggleSelect = (r: UnifiedSearchResult, shiftKey: boolean = false) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+      if (shiftKey) {
+        // Shift-click: enable multi-select mode and add to selection
+        setMultiSelect(true);
+        next.add(r.id);
+      } else {
+        if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+      }
       return next;
     });
   };
@@ -1230,9 +1227,9 @@ export default function VisualSearchPage() {
       if (!res.ok) throw new Error(json?.error || 'Save failed')
       setCanvasId(payload.id)
       void refreshCanvases()
-      alert('Canvas saved')
+      console.log('Canvas saved')
     } catch (e) {
-      alert((e as Error).message)
+      console.error('Canvas save failed:', (e as Error).message)
     }
   }
 
@@ -1277,7 +1274,7 @@ export default function VisualSearchPage() {
       if (noteEl) noteEl.value = c.note || ''
       setRightTab('canvas')
     } catch (e) {
-      alert((e as Error).message)
+      console.error('Canvas load failed:', (e as Error).message)
     }
   }
 
@@ -1418,21 +1415,37 @@ export default function VisualSearchPage() {
         </div>
 
         {tab === 'results' ? (
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {results.map((r) => (
-              <ResultCard
-                key={`${r.id}-${r.score}`}
-                r={r}
-                onPin={onPin}
-                onOpen={onOpen}
-                selectionEnabled={multiSelect}
-                selected={selectedIds.has(r.id)}
-                onToggleSelect={toggleSelect}
-              />
-            ))}
-            {!loading && results.length === 0 && (
-              <div className="col-span-full text-neutral-400 text-sm">Try a search to see results.</div>
-            )}
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="text-xs text-neutral-400">
+                  {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Shift+click to select multiple'}
+                </div>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={pinSelected}
+                    className="px-3 py-1.5 text-sm rounded-md border border-neutral-700 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  >Pin {selectedIds.size} to canvas</button>
+                )}
+              </div>
+              <div className="text-xs text-neutral-500">{total} total</div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {results.map((r) => (
+                <ResultCard
+                  key={`${r.id}-${r.score}`}
+                  r={r}
+                  onPin={onPin}
+                  onOpen={onOpen}
+                  selectionEnabled={multiSelect}
+                  selected={selectedIds.has(r.id)}
+                  onToggleSelect={toggleSelect}
+                />
+              ))}
+              {!loading && results.length === 0 && (
+                <div className="col-span-full text-neutral-400 text-sm">Try a search to see results.</div>
+              )}
+            </div>
           </div>
         ) : tab === 'canvas' ? (
           <div className="mt-3">
@@ -1584,34 +1597,18 @@ export default function VisualSearchPage() {
           </div>
         )}
         {tab === 'results' && (
-          <div className="mt-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
-                <input type="checkbox" className="accent-neutral-400" checked={multiSelect} onChange={(e) => { setMultiSelect(e.target.checked); if (!e.target.checked) setSelectedIds(new Set()); }} />
-                Multi-select
-              </label>
-              {multiSelect && (
-                <button
-                  onClick={pinSelected}
-                  disabled={selectedIds.size === 0}
-                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
-                >Pin selected to canvas</button>
-              )}
-            </div>
-            <div className="text-xs text-neutral-500">{total} total</div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { const p = Math.max(1, page - 1); setPage(p); executeSearch(query, p); }}
-                disabled={page <= 1 || loading}
-                className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
-              >Prev</button>
-              <div className="text-sm text-neutral-400">Page {page}</div>
-              <button
-                onClick={() => { const maxPage = Math.max(1, Math.ceil(total / DEFAULT_LIMIT)); const p = Math.min(maxPage, page + 1); setPage(p); executeSearch(query, p); }}
-                disabled={loading || results.length < DEFAULT_LIMIT}
-                className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
-              >Next</button>
-            </div>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <button
+              onClick={() => { const p = Math.max(1, page - 1); setPage(p); executeSearch(query, p); }}
+              disabled={page <= 1 || loading}
+              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+            >Prev</button>
+            <div className="text-sm text-neutral-400">Page {page}</div>
+            <button
+              onClick={() => { const maxPage = Math.max(1, Math.ceil(total / DEFAULT_LIMIT)); const p = Math.min(maxPage, page + 1); setPage(p); executeSearch(query, p); }}
+              disabled={loading || results.length < DEFAULT_LIMIT}
+              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+            >Next</button>
           </div>
         )}
       </div>
@@ -1779,12 +1776,12 @@ export default function VisualSearchPage() {
                 });
                 if (!resp.ok) {
                   const j = await resp.json();
-                  alert(j?.error || 'Save failed');
+                  console.error('Save failed:', j?.error || 'Save failed');
                 } else {
-                  alert('Saved to library');
+                  console.log('Saved to library');
                 }
               } catch (e) {
-                alert((e as Error).message);
+                console.error('Save failed:', (e as Error).message);
               }
             }}
           />
@@ -1802,7 +1799,7 @@ export default function VisualSearchPage() {
                 <div className="text-lg font-semibold text-neutral-100">Canvas Manager</div>
                 <button onClick={() => { setShowCanvasManager(false); cancelEdit() }} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">×</button>
               </div>
-              
+
               <div className="p-4 border-b border-neutral-800">
                 <div className="flex gap-2">
                   <input id="new-canvas-name" placeholder="New canvas name" className="flex-1 px-3 py-2 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500" />
@@ -1823,7 +1820,7 @@ export default function VisualSearchPage() {
                         <div className="flex-1 min-w-0">
                           {editingCanvas === c.id ? (
                             <div className="flex gap-2">
-                              <input 
+                              <input
                                 value={editingName}
                                 onChange={(e) => setEditingName(e.target.value)}
                                 className="flex-1 px-2 py-1 rounded border border-neutral-700 bg-neutral-800 text-neutral-100"
