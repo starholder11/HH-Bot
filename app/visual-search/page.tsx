@@ -1214,12 +1214,12 @@ export default function VisualSearchPage() {
     })
   }
 
-  const collectCanvasPayload = () => {
+  const collectCanvasPayload = (override?: { name?: string; note?: string; projectId?: string }) => {
     return {
       id: `canvas-${Date.now()}`,
-      name: (canvasName || 'Untitled Canvas').trim(),
-      note: canvasNote || '',
-      projectId: canvasProjectId || undefined,
+      name: (override?.name ?? canvasName ?? 'Untitled Canvas').trim(),
+      note: override?.note ?? canvasNote ?? '',
+      projectId: override?.projectId ?? canvasProjectId || undefined,
       items: pinned.map((p, idx) => ({
         id: p.result.id,
         type: p.result.content_type,
@@ -1231,9 +1231,9 @@ export default function VisualSearchPage() {
     }
   }
 
-  const saveCanvas = async () => {
+  const saveCanvas = async (override?: { name?: string; note?: string; projectId?: string }) => {
     try {
-      const base = collectCanvasPayload()
+      const base = collectCanvasPayload(override)
       const payload = { ...base, id: canvasId || base.id }
       const res = await fetch('/api/canvas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const json = await res.json()
@@ -1591,7 +1591,7 @@ export default function VisualSearchPage() {
                   ) : (
                     <>
                       <button
-                        onClick={async () => { setCanvasNote(tempNoteValue); setIsEditingNote(false); await saveCanvas(); }}
+                        onClick={async () => { setCanvasNote(tempNoteValue); setIsEditingNote(false); await saveCanvas({ note: tempNoteValue }); }}
                         className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
                       >
                         Save
