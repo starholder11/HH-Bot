@@ -310,6 +310,8 @@ function GenerationPanel({
   const [genText, setGenText] = useState<string | null>(null);
   const [category, setCategory] = useState<null | FalModel['category']>('image');
   const [advancedModelId, setAdvancedModelId] = useState<string>('');
+  // Manual LoRA selection UI state
+  const [selectedLoras, setSelectedLoras] = useState<Array<{ id: string; path: string; scale: number; selected: boolean; label: string }>>([])
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase();
@@ -346,6 +348,49 @@ function GenerationPanel({
       } catch {}
     }
   }, [selected, canvasLoras]);
+
+  // Sync selectedLoras from canvas when available
+  useEffect(() => {
+    try {
+      const completed = (canvasLoras || []).filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
+      const mapped = completed.map((l: any, idx: number) => ({
+        id: l.requestId || String(idx),
+        path: l.artifactUrl || l.path,
+        scale: 1.0,
+        selected: false,
+        label: `${l.triggerWord || 'LoRA'}${l.version ? ` v${l.version}` : ''}`,
+      }))
+      setSelectedLoras(mapped)
+    } catch {}
+  }, [canvasLoras])
+
+  // If agent provided loras in options via prepare, reflect in selection UI
+  useEffect(() => {
+    try {
+      const lorasFromValues: any[] | undefined = (values as any)?.loras
+      if (Array.isArray(lorasFromValues) && lorasFromValues.length > 0) {
+        setSelectedLoras((prev) => {
+          const byPath = new Map(prev.map((p) => [p.path, p]))
+          const next: typeof prev = []
+          for (const l of lorasFromValues) {
+            const existing = byPath.get(l.path)
+            if (existing) {
+              next.push({ ...existing, selected: true, scale: typeof l.scale === 'number' ? l.scale : existing.scale })
+              byPath.delete(l.path)
+            } else {
+              next.push({ id: l.path, path: l.path, scale: typeof l.scale === 'number' ? l.scale : 1.0, selected: true, label: 'LoRA' })
+            }
+          }
+          // Keep any remaining known loras
+          for (const remain of byPath.values()) next.push(remain)
+          // Force model to flux-lora when explicit selection present
+          if (next.some((x) => x.selected)) setAdvancedModelId('fal-ai/flux-lora')
+          return next
+        })
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values?.loras])
 
   const categoryToMode = (c: FalModel['category']): 'image' | 'audio' | 'video' | 'text' => c;
 
@@ -407,14 +452,23 @@ function GenerationPanel({
         options: Object.fromEntries(Object.entries(values).filter(([k]) => k !== 'prompt')),
       };
 
-      // If a completed canvas LoRA exists and the selected model is FLUX-compatible, attach it
-      try {
-        const completed = (canvasLoras || []).filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
-        if (completed.length > 0 && mode === 'image') {
-          body.options = body.options || {}
-          body.options.loras = completed.map((l: any) => ({ path: l.artifactUrl || l.path, scale: 1.0 }))
-        }
-      } catch {}
+      // Apply manual LoRA selection if any
+      const chosen = selectedLoras.filter((x) => x.selected).map((x) => ({ path: x.path, scale: x.scale }))
+      if (mode === 'image' && chosen.length > 0) {
+        body.options = body.options || {}
+        body.options.loras = chosen
+        // Ensure model is flux-lora when loras are explicitly selected
+        body.model = 'fal-ai/flux-lora'
+      } else {
+        // Otherwise fallback: attach all completed canvas LoRAs if present
+        try {
+          const completed = (canvasLoras || []).filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
+          if (completed.length > 0 && mode === 'image') {
+            body.options = body.options || {}
+            body.options.loras = completed.map((l: any) => ({ path: l.artifactUrl || l.path, scale: 1.0 }))
+          }
+        } catch {}
+      }
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -549,6 +603,51 @@ function GenerationPanel({
           )}
         </div>
       </div>
+
+      {/* LoRA selector (image only) */}
+      {category === 'image' && (
+        <div className="mt-4 rounded-md border border-neutral-800 p-3 bg-neutral-900/30">
+          <div className="text-sm font-medium text-neutral-200">Canvas LoRAs</div>
+          {selectedLoras.length === 0 ? (
+            <div className="mt-1 text-xs text-neutral-500">No completed LoRAs found for this canvas.</div>
+          ) : (
+            <div className="mt-2 space-y-2">
+              {selectedLoras.map((l) => (
+                <div key={l.id} className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={l.selected}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, selected: checked } : p))
+                        if (checked) setAdvancedModelId('fal-ai/flux-lora')
+                      }}
+                      className="accent-neutral-400"
+                    />
+                    <span className="text-neutral-300">{l.label}</span>
+                  </label>
+                  <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
+                    <span>Scale</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="2"
+                      value={l.scale}
+                      onChange={(e) => {
+                        const v = Math.max(0, Math.min(2, Number(e.target.value) || 0))
+                        setSelectedLoras((prev) => prev.map((p) => p.id === l.id ? { ...p, scale: v } : p))
+                      }}
+                      className="w-16 px-2 py-1 rounded border border-neutral-800 bg-neutral-900 text-neutral-100"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Input fields appear only after model selection */}
       {selected && (
