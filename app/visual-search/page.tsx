@@ -942,6 +942,8 @@ export default function VisualSearchPage() {
   const [canvasId, setCanvasId] = useState<string | null>(null);
   const [canvases, setCanvases] = useState<Array<{ id: string; name: string; key: string; updatedAt?: string }>>([])
   const [showCanvasManager, setShowCanvasManager] = useState(false)
+  const [editingCanvas, setEditingCanvas] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
   const [zCounter, setZCounter] = useState(10);
@@ -1280,19 +1282,43 @@ export default function VisualSearchPage() {
   }
 
   const deleteCanvas = async (id: string) => {
-    if (!confirm('Delete this canvas?')) return
-    const res = await fetch(`/api/canvas?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
-    const j = await res.json()
-    if (!res.ok) { alert(j?.error || 'Delete failed'); return }
-    if (canvasId === id) setCanvasId(null)
-    void refreshCanvases()
+    try {
+      const res = await fetch(`/api/canvas?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j?.error || 'Delete failed')
+      if (canvasId === id) setCanvasId(null)
+      void refreshCanvases()
+    } catch (e) {
+      console.error('Delete failed:', e)
+    }
   }
 
   const renameCanvas = async (id: string, newName: string) => {
-    const res = await fetch('/api/canvas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name: newName }) })
-    const j = await res.json()
-    if (!res.ok) { alert(j?.error || 'Rename failed'); return }
-    void refreshCanvases()
+    try {
+      const res = await fetch('/api/canvas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name: newName }) })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j?.error || 'Rename failed')
+      void refreshCanvases()
+      setEditingCanvas(null)
+    } catch (e) {
+      console.error('Rename failed:', e)
+    }
+  }
+
+  const startEdit = (canvas: { id: string; name: string }) => {
+    setEditingCanvas(canvas.id)
+    setEditingName(canvas.name)
+  }
+
+  const cancelEdit = () => {
+    setEditingCanvas(null)
+    setEditingName('')
+  }
+
+  const saveEdit = () => {
+    if (editingCanvas && editingName.trim()) {
+      renameCanvas(editingCanvas, editingName.trim())
+    }
   }
 
   function handleGenStart() {
@@ -1411,14 +1437,21 @@ export default function VisualSearchPage() {
         ) : tab === 'canvas' ? (
           <div className="mt-3">
             <div className="text-sm text-neutral-400 mb-2">Canvas</div>
-            <div className="mb-2 grid grid-cols-1 md:grid-cols-3 gap-2">
-              <input id="canvas-name-input" placeholder="Canvas name" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" />
-              <div className="md:col-span-2 flex items-center justify-end gap-2">
-                <select id="canvas-project-select" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100">
-                  <option value="">No project</option>
-                </select>
-                <button onClick={saveCanvas} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save Canvas</button>
+            <div className="mb-2 grid grid-cols-1 md:grid-cols-4 gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={clearCanvas}
+                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+                >
+                  Clear
+                </button>
+                <button onClick={() => setShowCanvasManager(true)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Manage</button>
               </div>
+              <input id="canvas-name-input" placeholder="Canvas name" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" />
+              <select id="canvas-project-select" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100">
+                <option value="">No project</option>
+              </select>
+              <button onClick={saveCanvas} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save Canvas</button>
             </div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
@@ -1643,19 +1676,10 @@ export default function VisualSearchPage() {
   return (
     <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-7xl px-4 py-6">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <div className="text-xs text-neutral-400">Experimental</div>
             <h1 className="text-2xl font-semibold">Visual Unified Search</h1>
-          </div>
-            <div className="flex items-center gap-2">
-            <button
-              onClick={clearCanvas}
-              className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800"
-            >
-              Clear canvas
-            </button>
-              <button onClick={() => setShowCanvasManager(true)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Manage Canvases</button>
           </div>
         </div>
 
@@ -1773,32 +1797,62 @@ export default function VisualSearchPage() {
         <div className="fixed inset-0 z-[200]">
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowCanvasManager(false)} />
           <div className="absolute inset-0 flex items-start justify-center pt-16">
-            <div className="w-[720px] max-w-[95vw] rounded-xl border border-neutral-800 bg-neutral-950 shadow-xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-lg font-semibold">Canvases</div>
-                <button onClick={() => setShowCanvasManager(false)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Close</button>
+            <div className="w-[800px] max-w-[95vw] rounded-xl border border-neutral-800 bg-neutral-950 shadow-xl">
+              <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+                <div className="text-lg font-semibold text-neutral-100">Canvas Manager</div>
+                <button onClick={() => { setShowCanvasManager(false); cancelEdit() }} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">×</button>
               </div>
-              <div className="mt-3 flex gap-2">
-                <input id="new-canvas-name" placeholder="New canvas name" className="flex-1 px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" />
-                <button onClick={() => { const nameEl = document.getElementById('new-canvas-name') as HTMLInputElement | null; const name = nameEl?.value?.trim() || 'Untitled Canvas'; setCanvasId(null); (document.getElementById('canvas-name-input') as HTMLInputElement | null)!.value = name; setPinned([]); setRightTab('canvas'); setShowCanvasManager(false) }} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800">New</button>
+              
+              <div className="p-4 border-b border-neutral-800">
+                <div className="flex gap-2">
+                  <input id="new-canvas-name" placeholder="New canvas name" className="flex-1 px-3 py-2 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500" />
+                  <button onClick={() => { const nameEl = document.getElementById('new-canvas-name') as HTMLInputElement | null; const name = nameEl?.value?.trim() || 'Untitled Canvas'; setCanvasId(null); (document.getElementById('canvas-name-input') as HTMLInputElement | null)!.value = name; setPinned([]); setRightTab('canvas'); setShowCanvasManager(false); nameEl!.value = '' }} className="px-4 py-2 text-sm rounded-md border border-neutral-700 bg-blue-600 hover:bg-blue-700 text-white font-medium">Create New</button>
+                </div>
               </div>
-              <div className="mt-3 max-h-[60vh] overflow-auto divide-y divide-neutral-900">
+
+              <div className="p-4 max-h-[50vh] overflow-auto">
                 {canvases.length === 0 ? (
-                  <div className="text-sm text-neutral-500">No saved canvases yet.</div>
+                  <div className="text-center py-8 text-neutral-500">
+                    <div className="text-lg mb-2">No saved canvases yet</div>
+                    <div className="text-sm">Create your first canvas above</div>
+                  </div>
                 ) : (
-                  canvases.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between gap-2 py-2">
-                      <div className="min-w-0">
-                        <div className="text-sm text-neutral-100 truncate">{c.name || c.id}</div>
-                        <div className="text-[10px] text-neutral-500 truncate">{c.id}</div>
+                  <div className="grid gap-3">
+                    {canvases.map((c) => (
+                      <div key={c.id} className="flex items-center gap-3 p-3 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900">
+                        <div className="flex-1 min-w-0">
+                          {editingCanvas === c.id ? (
+                            <div className="flex gap-2">
+                              <input 
+                                value={editingName}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                className="flex-1 px-2 py-1 rounded border border-neutral-700 bg-neutral-800 text-neutral-100"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveEdit()
+                                  if (e.key === 'Escape') cancelEdit()
+                                }}
+                                autoFocus
+                              />
+                              <button onClick={saveEdit} className="px-2 py-1 text-xs rounded border border-green-700 bg-green-600 hover:bg-green-700 text-white">Save</button>
+                              <button onClick={cancelEdit} className="px-2 py-1 text-xs rounded border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300">Cancel</button>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="text-sm font-medium text-neutral-100">{c.name || c.id}</div>
+                              <div className="text-xs text-neutral-500 truncate">{c.id} • {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : 'No date'}</div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => { setShowCanvasManager(false); loadCanvas(c.id) }} className="px-3 py-1.5 text-xs rounded-md border border-blue-700 bg-blue-600 hover:bg-blue-700 text-white font-medium">Open</button>
+                          {editingCanvas !== c.id && (
+                            <button onClick={() => startEdit(c)} className="px-3 py-1.5 text-xs rounded-md border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300">Rename</button>
+                          )}
+                          <button onClick={() => deleteCanvas(c.id)} className="px-3 py-1.5 text-xs rounded-md border border-red-700 bg-red-600 hover:bg-red-700 text-white">Delete</button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => { setShowCanvasManager(false); loadCanvas(c.id) }} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Open</button>
-                        <button onClick={() => { const nn = prompt('Rename canvas', c.name || c.id); if (nn) renameCanvas(c.id, nn) }} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Rename</button>
-                        <button onClick={() => deleteCanvas(c.id)} className="px-2 py-1 text-xs rounded-md border border-red-900 bg-red-950 hover:bg-red-900/30 text-red-200">Delete</button>
-                      </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
