@@ -1482,7 +1482,7 @@ export default function VisualSearchPage() {
               <div className="min-w-0">
                 {!isEditingName ? (
                   <div
-                    className="px-1.5 py-1 rounded-md border border-transparent hover:border-neutral-700 cursor-text truncate text-neutral-100"
+                    className="cursor-text truncate text-neutral-100 text-base"
                     title={canvasName || 'Untitled Canvas'}
                     onDoubleClick={() => setIsEditingName(true)}
                   >
@@ -1564,7 +1564,7 @@ export default function VisualSearchPage() {
                     rows={6}
                     value={canvasNote}
                     onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={(e) => { if (e.currentTarget === document.activeElement) return; void autoSaveCanvas(); }}
+                    onBlur={() => { /* save only when leaving the textarea */ void autoSaveCanvas(); }}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                   />
@@ -1590,7 +1590,7 @@ export default function VisualSearchPage() {
                     rows={6}
                     value={canvasNote}
                     onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={(e) => { if (e.currentTarget === document.activeElement) return; void autoSaveCanvas(); }}
+                    onBlur={() => { /* save only when leaving the textarea */ void autoSaveCanvas(); }}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                   />
