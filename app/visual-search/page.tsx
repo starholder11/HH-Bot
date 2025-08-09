@@ -641,7 +641,19 @@ function GenerationPanel({
                       setAdvancedModelId('fal-ai/flux-lora')
                       setValues((prev) => ({ ...prev, loras: [{ path: chosen.path, scale: chosen.scale }] }))
                       const m = models.find((m) => m.id === 'fal-ai/flux-lora')
-                      if (m) setSelected(m)
+                      if (m) {
+                        setSelected(m)
+                      } else {
+                        // If model not found, create a temporary one to enable the prompt UI
+                        setSelected({
+                          id: 'fal-ai/flux-lora',
+                          name: 'FLUX LoRA',
+                          provider: 'fal' as const,
+                          category: 'image' as const,
+                          description: 'FLUX with LoRA support',
+                          inputSchema: { type: 'object', properties: {} }
+                        })
+                      }
                       // Switch to Generate tab when LoRA is selected
                       setRightTab?.('generate')
                     }
