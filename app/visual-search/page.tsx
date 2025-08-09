@@ -1655,7 +1655,7 @@ export default function VisualSearchPage() {
             >
               Clear canvas
             </button>
-              <button onClick={() => setShowCanvasManager(true)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Canvases</button>
+              <button onClick={() => setShowCanvasManager(true)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Manage Canvases</button>
           </div>
         </div>
 
