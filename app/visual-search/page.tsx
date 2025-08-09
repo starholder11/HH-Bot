@@ -935,6 +935,12 @@ export default function VisualSearchPage() {
   const [showCanvasManager, setShowCanvasManager] = useState(false)
   const [editingCanvas, setEditingCanvas] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  // Canvas editor controlled fields
+  const [canvasName, setCanvasName] = useState<string>('')
+  const [canvasProjectId, setCanvasProjectId] = useState<string>('')
+  const [canvasNote, setCanvasNote] = useState<string>('')
+  const [isEditingName, setIsEditingName] = useState<boolean>(false)
+  const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
   const [zCounter, setZCounter] = useState(10);
@@ -1203,8 +1209,9 @@ export default function VisualSearchPage() {
   const collectCanvasPayload = () => {
     return {
       id: `canvas-${Date.now()}`,
-      name: (document.getElementById('canvas-name-input') as HTMLInputElement | null)?.value?.trim() || 'Untitled Canvas',
-      note: (document.getElementById('canvas-note-input') as HTMLTextAreaElement | null)?.value || '',
+      name: (canvasName || 'Untitled Canvas').trim(),
+      note: canvasNote || '',
+      projectId: canvasProjectId || undefined,
       items: pinned.map((p, idx) => ({
         id: p.result.id,
         type: p.result.content_type,
@@ -1234,12 +1241,14 @@ export default function VisualSearchPage() {
   }
 
   const autoSaveCanvas = async () => {
-    if (!canvasId) return // Only auto-save if we have an existing canvas
+    if (!canvasId) {
+      // Create first, then future edits will update
+      await saveCanvas();
+      return;
+    }
     try {
       const base = collectCanvasPayload()
       const payload = { ...base, id: canvasId }
-      const projEl = document.getElementById('canvas-project-select') as HTMLSelectElement | null
-      if (projEl && projEl.value) (payload as any).projectId = projEl.value
       const res = await fetch('/api/canvas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       if (res.ok) {
         console.log('Canvas auto-saved')
@@ -1283,13 +1292,10 @@ export default function VisualSearchPage() {
         width: it.position?.w ?? 280,
         height: it.position?.h ?? 220,
       })))
-      // Name + note + project
-      const nameEl = document.getElementById('canvas-name-input') as HTMLInputElement | null
-      const noteEl = document.getElementById('canvas-note-input') as HTMLTextAreaElement | null
-      const projectEl = document.getElementById('canvas-project-select') as HTMLSelectElement | null
-      if (nameEl) nameEl.value = c.name || ''
-      if (noteEl) noteEl.value = c.note || ''
-      if (projectEl && c.projectId) projectEl.value = c.projectId
+      // Name + note + project into controlled state
+      setCanvasName(c.name || '')
+      setCanvasNote(c.note || '')
+      setCanvasProjectId(c.projectId || '')
       setRightTab('canvas')
     } catch (e) {
       console.error('Canvas load failed:', (e as Error).message)
@@ -1468,16 +1474,49 @@ export default function VisualSearchPage() {
         ) : tab === 'canvas' ? (
           <div className="mt-3">
             <div className="text-sm text-neutral-400 mb-2">Canvas</div>
-            <div className="mb-2 grid grid-cols-1 md:grid-cols-5 gap-2">
-              <input id="canvas-name-input" placeholder="Canvas name" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" onBlur={autoSaveCanvas} />
-              <select id="canvas-project-select" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" onChange={autoSaveCanvas}>
+            <div className="mb-2 grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+              {/* Name inline editable */}
+              <div className="min-w-0">
+                {!isEditingName ? (
+                  <div
+                    className="px-2 py-1.5 rounded-md border border-transparent hover:border-neutral-800 cursor-text truncate text-neutral-100 bg-neutral-900"
+                    title={canvasName || 'Untitled Canvas'}
+                    onDoubleClick={() => setIsEditingName(true)}
+                  >
+                    {canvasName || 'Untitled Canvas'}
+                  </div>
+                ) : (
+                  <input
+                    value={canvasName}
+                    onChange={(e) => setCanvasName(e.target.value)}
+                    onBlur={() => { setIsEditingName(false); void autoSaveCanvas(); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingName(false); void autoSaveCanvas(); } if (e.key === 'Escape') { setIsEditingName(false); } }}
+                    autoFocus
+                    className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+                    placeholder="Canvas name"
+                  />
+                )}
+              </div>
+
+              {/* Project controlled select */}
+              <select
+                id="canvas-project-select"
+                value={canvasProjectId}
+                onChange={(e) => { setCanvasProjectId(e.target.value); void autoSaveCanvas(); }}
+                className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+              >
                 <option value="">No project</option>
+                {projectsList.map((p) => (
+                  <option key={p.project_id} value={p.project_id}>{p.name}</option>
+                ))}
               </select>
-              <button onClick={saveCanvas} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
-              <button onClick={() => setShowCanvasManager(true)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
+
+              {/* Save / Load / Clear with compact styles */}
+              <button onClick={saveCanvas} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
+              <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
               <button
                 onClick={clearCanvas}
-                className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+                className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
               >
                 Clear
               </button>
@@ -1520,9 +1559,11 @@ export default function VisualSearchPage() {
                   <textarea
                     id="canvas-note-input"
                     rows={6}
+                    value={canvasNote}
+                    onChange={(e) => setCanvasNote(e.target.value)}
+                    onBlur={autoSaveCanvas}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
-                    onBlur={autoSaveCanvas}
                   />
                 </div>
               </div>
@@ -1544,9 +1585,11 @@ export default function VisualSearchPage() {
                   <textarea
                     id="canvas-note-input"
                     rows={6}
+                    value={canvasNote}
+                    onChange={(e) => setCanvasNote(e.target.value)}
+                    onBlur={autoSaveCanvas}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
-                    onBlur={autoSaveCanvas}
                   />
                 </div>
               </div>
@@ -1675,71 +1718,21 @@ export default function VisualSearchPage() {
     )
   }
 
-  // Populate the canvas project select with same list
+  // Fetch projects once and keep in state for controlled select
   useEffect(() => {
     let cancelled = false
-    const populateProjects = async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/projects')
         if (!res.ok) return
         const json = await res.json()
-
-        // Wait for DOM element if not ready yet
-        let select = document.getElementById('canvas-project-select') as HTMLSelectElement | null
-        let retries = 0
-        while (!select && retries < 10) {
-          await new Promise(resolve => setTimeout(resolve, 100))
-          select = document.getElementById('canvas-project-select') as HTMLSelectElement | null
-          retries++
-        }
-
-        if (!select || cancelled) return
-
-        // Clear existing except first
-        while (select.options.length > 1) select.remove(1)
-
-        // Add projects
-        ;(json.projects || []).forEach((p: any) => {
-          const opt = document.createElement('option')
-          opt.value = p.project_id
-          opt.textContent = p.name
-          select!.appendChild(opt)
-        })
-
-        console.log(`Populated ${json.projects?.length || 0} projects in dropdown`)
+        if (!cancelled) setProjectsList((json.projects || []).map((p: any) => ({ project_id: p.project_id, name: p.name })))
       } catch (e) {
-        console.error('Failed to populate projects:', e)
+        console.error('Failed to load projects:', e)
       }
-    }
-
-    populateProjects()
+    })()
     return () => { cancelled = true }
   }, [])
-
-  // Also re-populate when the Canvas tab becomes active
-  useEffect(() => {
-    if (rightTab === 'canvas') {
-      setTimeout(async () => {
-        try {
-          const res = await fetch('/api/projects')
-          if (!res.ok) return
-          const json = await res.json()
-          const select = document.getElementById('canvas-project-select') as HTMLSelectElement | null
-          if (!select) return
-
-          // Only repopulate if it's empty (except for "No project")
-          if (select.options.length <= 1) {
-            ;(json.projects || []).forEach((p: any) => {
-              const opt = document.createElement('option')
-              opt.value = p.project_id
-              opt.textContent = p.name
-              select.appendChild(opt)
-            })
-          }
-        } catch {}
-      }, 100)
-    }
-  }, [rightTab])
 
   return (
     <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100">
