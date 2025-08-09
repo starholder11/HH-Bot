@@ -108,10 +108,28 @@ const tools = {
       if (!detailRes.ok) throw new Error('Failed to load canvas')
       const detail = await detailRes.json()
       const c = detail.canvas || {}
-      const loras: any[] = Array.isArray(c.loras) ? c.loras : []
-      const completed = loras.filter((l) => l.status === 'completed' && (l.artifactUrl || l.path))
+      let loras: any[] = Array.isArray(c.loras) ? c.loras : []
+      let completed = loras.filter((l) => l.status === 'completed' && (l.artifactUrl || l.path))
       if (completed.length === 0) {
-        return { action: 'showMessage', payload: { level: 'warn', text: `Canvas '${c.name || c.id}' has no completed LoRA.` } }
+        // If training is in progress and we have a requestId, try to refresh status once or twice
+        const training = loras.find((l) => l.status === 'training' && l.requestId)
+        if (training?.requestId) {
+          const statusUrl = `${base || ''}/api/canvas/train-status?requestId=${encodeURIComponent(training.requestId)}&canvasId=${encodeURIComponent(c.id)}` || `/api/canvas/train-status?requestId=${encodeURIComponent(training.requestId)}&canvasId=${encodeURIComponent(c.id)}`
+          try {
+            for (let i = 0; i < 2; i++) {
+              await fetch(statusUrl, { method: 'GET' })
+            }
+            const refreshRes = await fetch(`${base}/api/canvas?id=${encodeURIComponent(c.id)}` || `/api/canvas?id=${encodeURIComponent(c.id)}`, { method: 'GET' })
+            if (refreshRes.ok) {
+              const refreshed = await refreshRes.json()
+              loras = Array.isArray(refreshed?.canvas?.loras) ? refreshed.canvas.loras : loras
+              completed = loras.filter((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
+            }
+          } catch {}
+        }
+      }
+      if (completed.length === 0) {
+        return { action: 'showMessage', payload: { level: 'warn', text: `Canvas '${c.name || c.id}' has no completed LoRA yet. Try again in a moment.` } }
       }
       const chosen = completed[completed.length - 1]
       // Prepare Generate with FLUX LoRA model and loras param

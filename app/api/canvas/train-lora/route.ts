@@ -88,13 +88,21 @@ export async function POST(req: NextRequest) {
 
     const base = process.env.NEXT_PUBLIC_BASE_URL || 
                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-    const updateRes = await fetch(`${base}/api/canvas`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: canvasId, loras: [ ...(canvas?.loras || []), loraEntry ] }),
-    } as any)
-    if (!updateRes.ok) {
-      console.warn('Failed to update canvas with LoRA entry')
+    // Persist to S3 directly to avoid race with index based PUT
+    try {
+      // Resolve key via index if present
+      let key = `canvases/${canvasId}.json`
+      try {
+        const index = await readJsonFromS3('canvases/index.json')
+        const entry = (index?.items || []).find((it: any) => it.id === canvasId)
+        if (entry?.key) key = entry.key
+      } catch {}
+      const next = { ...canvas, loras: [ ...(canvas?.loras || []), loraEntry ], updatedAt: new Date().toISOString() }
+      // Reuse existing writer in s3-upload
+      const { writeJsonAtKey } = await import('@/lib/s3-upload')
+      await writeJsonAtKey(key, next)
+    } catch (e) {
+      console.warn('Failed to persist LoRA entry directly to S3:', e)
     }
 
     return NextResponse.json({ success: true, requestId: queued.request_id, lora: loraEntry })
