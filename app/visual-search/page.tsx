@@ -1560,14 +1560,14 @@ export default function VisualSearchPage() {
                 )}
                 <div className="mt-3">
                   <label className="text-xs text-neutral-400">Note</label>
-                  <label htmlFor="canvas-note-input" className="sr-only">Canvas notes</label>
+                  <label htmlFor="canvas-note-input-grid" className="sr-only">Canvas notes</label>
                   <textarea
-                    name="canvas-note"
-                    id="canvas-note-input"
+                    name="canvas-note-grid"
+                    id="canvas-note-input-grid"
                     rows={6}
                     value={canvasNote}
                     onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={(e) => { if (e.relatedTarget && (e.relatedTarget as HTMLElement).id === 'canvas-note-input') return; setTimeout(() => { void autoSaveCanvas(); }, 100); }}
+                    onBlur={() => { setTimeout(() => { void autoSaveCanvas(); }, 100); }}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                   />
@@ -1588,14 +1588,14 @@ export default function VisualSearchPage() {
                 )}
                 <div className="absolute left-3 right-3 bottom-3">
                   <label className="text-xs text-neutral-400">Note</label>
-                  <label htmlFor="canvas-note-input" className="sr-only">Canvas notes</label>
+                  <label htmlFor="canvas-note-input-freeform" className="sr-only">Canvas notes</label>
                   <textarea
-                    name="canvas-note"
-                    id="canvas-note-input"
+                    name="canvas-note-freeform"
+                    id="canvas-note-input-freeform"
                     rows={6}
                     value={canvasNote}
                     onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={(e) => { if (e.relatedTarget && (e.relatedTarget as HTMLElement).id === 'canvas-note-input') return; setTimeout(() => { void autoSaveCanvas(); }, 100); }}
+                    onBlur={() => { setTimeout(() => { void autoSaveCanvas(); }, 100); }}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                   />
