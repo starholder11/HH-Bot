@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
 import { uploadFile, readJsonFromS3 } from '@/lib/s3-upload'
+import JSZip from 'jszip'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,19 +48,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'At least 3 image items are required to train a LoRA' }, { status: 400 })
     }
 
-    // Download and bundle images into a tar-like binary (simple concatenation with JSON manifest)
-    // Avoiding JSZip to minimize dependencies for now; FAL supports images_data_url as a remote URL
-    // We'll upload a JSON manifest with URLs instead, which `flux-lora-fast-training` accepts as well.
-    const manifest = { images: imageUrls }
-    const buffer = Buffer.from(JSON.stringify(manifest))
-    const uploaded = await uploadFile(buffer, 'canvas-training')
+    // Build a proper ZIP of images for FAL trainer
+    const zip = new JSZip()
+    const addPromises = imageUrls.slice(0, 24).map(async (url, idx) => {
+      const resp = await fetch(url)
+      if (!resp.ok) throw new Error(`Failed to fetch image: ${url}`)
+      const arr = await resp.arrayBuffer()
+      const ext = (() => {
+        try { return new URL(url).pathname.split('.').pop() || 'jpg' } catch { return 'jpg' }
+      })()
+      zip.file(`image_${idx + 1}.${ext}`, arr)
+    })
+    await Promise.all(addPromises)
+    const zipBuffer: Buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
+    const uploaded = await uploadFile(zipBuffer, 'canvas-training')
 
     // Submit training job
     const input = {
       images_data_url: uploaded.url,
       trigger_word: triggerWord,
       is_style: true,
-    }
+    } as any
 
     const queued = await fal.queue.submit('fal-ai/flux-lora-fast-training', { input } as any)
 
