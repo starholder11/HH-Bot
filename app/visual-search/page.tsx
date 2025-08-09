@@ -869,6 +869,66 @@ function DraggablePinned({
   );
 }
 
+function GridPinned({
+  items,
+  onReorder,
+  onRemove,
+  onOpen,
+}: {
+  items: PinnedItem[];
+  onReorder: (fromIndex: number, toIndex: number) => void;
+  onRemove: (id: string) => void;
+  onOpen: (r: UnifiedSearchResult) => void;
+}) {
+  const dragFrom = useRef<number | null>(null)
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      {items.map((p, idx) => (
+        <div
+          key={p.id}
+          draggable
+          onDragStart={(e) => {
+            dragFrom.current = idx
+            try { e.dataTransfer.setData('text/plain', String(idx)); } catch {}
+          }}
+          onDragOver={(e) => { e.preventDefault(); }}
+          onDrop={(e) => {
+            e.preventDefault()
+            const from = dragFrom.current ?? (() => { try { return Number(e.dataTransfer.getData('text/plain')) } catch { return NaN } })()
+            const to = idx
+            if (Number.isFinite(from) && from !== to) onReorder(from as number, to)
+            dragFrom.current = null
+          }}
+          className="rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden"
+        >
+          <div className="p-2 border-b border-neutral-800 flex items-center justify-between gap-2 bg-neutral-900/50">
+            <div className="text-xs text-neutral-300 truncate" title={p.result.title}>
+              {p.result.title}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onOpen(p.result)}
+                className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+              >
+                Expand
+              </button>
+              <button
+                onClick={() => onRemove(p.id)}
+                className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+          <div className="p-2">
+            <MediaPreview r={p.result} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function VisualSearchPage() {
   const { loading, error, data, search } = useUnifiedSearch();
   const [query, setQuery] = useState("");
@@ -878,6 +938,7 @@ export default function VisualSearchPage() {
   const [total, setTotal] = useState(0);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [canvasLayout, setCanvasLayout] = useState<'grid' | 'freeform'>('grid');
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
   const [zCounter, setZCounter] = useState(10);
@@ -1128,6 +1189,14 @@ export default function VisualSearchPage() {
   };
 
   const clearCanvas = () => setPinned([]);
+  const reorderPinned = (fromIndex: number, toIndex: number) => {
+    setPinned((prev) => {
+      const arr = [...prev]
+      const [moved] = arr.splice(fromIndex, 1)
+      arr.splice(toIndex, 0, moved)
+      return arr
+    })
+  }
 
   function handleGenStart() {
     setGenLoading(true);
@@ -1245,19 +1314,55 @@ export default function VisualSearchPage() {
         ) : tab === 'canvas' ? (
           <div className="mt-3">
             <div className="text-sm text-neutral-400 mb-2">Canvas</div>
-            <div
-              ref={canvasRef}
-              className="relative h-[640px] w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
-            >
-              {pinned.map((p) => (
-                <DraggablePinned key={p.id} item={p} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
-              ))}
-              {pinned.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
-                  Pin results here to build a visual board.
-                </div>
-              )}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
+                  <input
+                    type="radio"
+                    name="canvas-layout"
+                    checked={canvasLayout === 'grid'}
+                    onChange={() => setCanvasLayout('grid')}
+                    className="accent-neutral-400"
+                  />
+                  Grid
+                </label>
+                <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
+                  <input
+                    type="radio"
+                    name="canvas-layout"
+                    checked={canvasLayout === 'freeform'}
+                    onChange={() => setCanvasLayout('freeform')}
+                    className="accent-neutral-400"
+                  />
+                  Freeform
+                </label>
+              </div>
             </div>
+            {canvasLayout === 'grid' ? (
+              <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950">
+                {pinned.length === 0 ? (
+                  <div className="h-[640px] flex items-center justify-center text-neutral-500 text-sm">
+                    Pin results here to build a visual board.
+                  </div>
+                ) : (
+                  <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
+                )}
+              </div>
+            ) : (
+              <div
+                ref={canvasRef}
+                className="relative h-[640px] w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
+              >
+                {pinned.map((p) => (
+                  <DraggablePinned key={p.id} item={p} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
+                ))}
+                {pinned.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
+                    Pin results here to build a visual board.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : tab === 'output' ? (
           <div className="mt-3 space-y-3">
