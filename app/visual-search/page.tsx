@@ -941,6 +941,7 @@ export default function VisualSearchPage() {
   const [canvasLayout, setCanvasLayout] = useState<'grid' | 'freeform'>('grid');
   const [canvasId, setCanvasId] = useState<string | null>(null);
   const [canvases, setCanvases] = useState<Array<{ id: string; name: string; key: string; updatedAt?: string }>>([])
+  const [showCanvasManager, setShowCanvasManager] = useState(false)
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const [pinned, setPinned] = useState<PinnedItem[]>([]);
   const [zCounter, setZCounter] = useState(10);
@@ -1654,32 +1655,7 @@ export default function VisualSearchPage() {
             >
               Clear canvas
             </button>
-              <details className="relative">
-                <summary className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 cursor-pointer select-none">Canvases</summary>
-                <div className="absolute right-0 mt-2 w-80 max-h-80 overflow-auto rounded-md border border-neutral-800 bg-neutral-950 p-2 space-y-2 z-10">
-                  <div className="flex gap-2">
-                    <input id="new-canvas-name" placeholder="New canvas name" className="flex-1 px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" />
-                    <button onClick={() => { const nameEl = document.getElementById('new-canvas-name') as HTMLInputElement | null; const name = nameEl?.value?.trim() || 'Untitled Canvas'; setCanvasId(null); (document.getElementById('canvas-name-input') as HTMLInputElement | null)!.value = name; setPinned([]); setRightTab('canvas') }} className="px-2 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800">New</button>
-                  </div>
-                  {canvases.length === 0 ? (
-                    <div className="text-xs text-neutral-500">No saved canvases</div>
-                  ) : (
-                    canvases.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between gap-2 p-2 rounded hover:bg-neutral-900">
-                        <div className="min-w-0">
-                          <div className="text-sm text-neutral-100 truncate">{c.name || c.id}</div>
-                          <div className="text-[10px] text-neutral-500 truncate">{c.id}</div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => loadCanvas(c.id)} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Open</button>
-                          <button onClick={() => { const nn = prompt('Rename canvas', c.name || c.id); if (nn) renameCanvas(c.id, nn) }} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Rename</button>
-                          <button onClick={() => deleteCanvas(c.id)} className="px-2 py-1 text-xs rounded-md border border-red-900 bg-red-950 hover:bg-red-900/30 text-red-200">Delete</button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </details>
+              <button onClick={() => setShowCanvasManager(true)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Canvases</button>
           </div>
         </div>
 
@@ -1792,6 +1768,43 @@ export default function VisualSearchPage() {
       </div>
 
       <DetailsOverlay r={selected} onClose={() => setSelected(null)} />
+
+      {showCanvasManager && (
+        <div className="fixed inset-0 z-[200]">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCanvasManager(false)} />
+          <div className="absolute inset-0 flex items-start justify-center pt-16">
+            <div className="w-[720px] max-w-[95vw] rounded-xl border border-neutral-800 bg-neutral-950 shadow-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-lg font-semibold">Canvases</div>
+                <button onClick={() => setShowCanvasManager(false)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Close</button>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <input id="new-canvas-name" placeholder="New canvas name" className="flex-1 px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" />
+                <button onClick={() => { const nameEl = document.getElementById('new-canvas-name') as HTMLInputElement | null; const name = nameEl?.value?.trim() || 'Untitled Canvas'; setCanvasId(null); (document.getElementById('canvas-name-input') as HTMLInputElement | null)!.value = name; setPinned([]); setRightTab('canvas'); setShowCanvasManager(false) }} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800">New</button>
+              </div>
+              <div className="mt-3 max-h-[60vh] overflow-auto divide-y divide-neutral-900">
+                {canvases.length === 0 ? (
+                  <div className="text-sm text-neutral-500">No saved canvases yet.</div>
+                ) : (
+                  canvases.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between gap-2 py-2">
+                      <div className="min-w-0">
+                        <div className="text-sm text-neutral-100 truncate">{c.name || c.id}</div>
+                        <div className="text-[10px] text-neutral-500 truncate">{c.id}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setShowCanvasManager(false); loadCanvas(c.id) }} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Open</button>
+                        <button onClick={() => { const nn = prompt('Rename canvas', c.name || c.id); if (nn) renameCanvas(c.id, nn) }} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800">Rename</button>
+                        <button onClick={() => deleteCanvas(c.id)} className="px-2 py-1 text-xs rounded-md border border-red-900 bg-red-950 hover:bg-red-900/30 text-red-200">Delete</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
