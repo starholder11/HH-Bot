@@ -10,14 +10,14 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const requestId = searchParams.get('requestId') || 'ae87878a-e25c-4552-ad8f-49632f7f62a0'
     const canvasId = searchParams.get('canvasId') || 'canvas-1754773074994'
-    
+
     const apiKey = (process.env.FAL_KEY || '').trim()
     if (!apiKey) return NextResponse.json({ error: 'FAL_KEY not set' }, { status: 500 })
     fal.config({ credentials: apiKey })
 
     // Check FAL status
     const status = await fal.queue.status('fal-ai/flux-lora-fast-training', { requestId } as any)
-    
+
     // Get FAL result
     let falResult = null
     let artifactUrl = null
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         falResult = { error: (e as Error).message }
       }
     }
-    
+
     // Check canvas data
     let key = `canvases/${canvasId}.json`
     try {
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       const entry = (index?.items || []).find((it: any) => it.id === canvasId)
       if (entry?.key) key = entry.key
     } catch {}
-    
+
     const canvas = await readJsonFromS3(key)
     const loras = Array.isArray(canvas?.loras) ? canvas.loras : []
     const loraIndex = loras.findIndex((l: any) => l.requestId === requestId)
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       lorasCount: loras.length,
       loraIndex,
       targetLora,
-      allRequestIds: loras.map(l => l.requestId)
+      allRequestIds: loras.map((l: any) => l.requestId)
     })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message, stack: e?.stack }, { status: 500 })
