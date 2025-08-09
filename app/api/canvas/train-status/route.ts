@@ -22,8 +22,13 @@ export async function GET(req: NextRequest) {
     let updated = null as any
     if (status?.status === 'COMPLETED' && canvasId) {
       try {
+        console.log(`[train-status] Fetching result for requestId: ${requestId}`)
         const res = await fal.queue.result('fal-ai/flux-lora-fast-training', { requestId } as any)
+        console.log(`[train-status] FAL result:`, JSON.stringify(res, null, 2))
+        
         const artifactUrl = (res as any)?.diffusers_lora_file?.url || (res as any)?.safetensors_file?.url || (res as any)?.lora_file?.url
+        console.log(`[train-status] Extracted artifactUrl: ${artifactUrl}`)
+        
         if (artifactUrl) {
           // Merge onto canvas.loras[] matching this requestId directly via S3
           try {
@@ -34,23 +39,51 @@ export async function GET(req: NextRequest) {
               const entry = (index?.items || []).find((it: any) => it.id === canvasId)
               if (entry?.key) key = entry.key
             } catch {}
+            
+            console.log(`[train-status] Reading canvas from key: ${key}`)
             const canvas = await readJsonFromS3(key)
             const loras = Array.isArray(canvas?.loras) ? canvas.loras : []
+            console.log(`[train-status] Found ${loras.length} loras in canvas`)
+            
             const idx = loras.findIndex((l: any) => l.requestId === requestId)
+            console.log(`[train-status] LoRA index for requestId ${requestId}: ${idx}`)
+            
             if (idx >= 0) {
-              loras[idx] = { ...loras[idx], status: 'completed', artifactUrl, path: artifactUrl, updatedAt: new Date().toISOString() }
+              loras[idx] = { 
+                ...loras[idx], 
+                status: 'completed', 
+                artifactUrl, 
+                path: artifactUrl, 
+                updatedAt: new Date().toISOString() 
+              }
               updated = loras[idx]
               const updatedCanvas = { ...canvas, loras, updatedAt: new Date().toISOString() }
+              
+              console.log(`[train-status] Updating canvas with completed LoRA`)
               await writeJsonAtKey(key, updatedCanvas)
+              
               // bump index timestamp
-              try { const index = await readJsonFromS3('canvases/index.json'); const idx = (index.items || []).findIndex((it: any) => it.id === canvasId); if (idx>=0){ index.items[idx].updatedAt = updatedCanvas.updatedAt; await writeJsonAtKey('canvases/index.json', index);} } catch {}
+              try { 
+                const index = await readJsonFromS3('canvases/index.json'); 
+                const idx = (index.items || []).findIndex((it: any) => it.id === canvasId); 
+                if (idx>=0){ 
+                  index.items[idx].updatedAt = updatedCanvas.updatedAt; 
+                  await writeJsonAtKey('canvases/index.json', index);
+                } 
+              } catch {}
+              
+              console.log(`[train-status] Successfully updated LoRA:`, updated)
+            } else {
+              console.warn(`[train-status] No LoRA found with requestId ${requestId}`)
             }
           } catch (e) {
-            console.warn('Failed to update canvas loras in S3:', e)
+            console.error('Failed to update canvas loras in S3:', e)
           }
+        } else {
+          console.warn(`[train-status] No artifact URL found in FAL result`)
         }
       } catch (e) {
-        console.warn('Failed to persist completed LoRA:', e)
+        console.error('Failed to persist completed LoRA:', e)
       }
     }
 
