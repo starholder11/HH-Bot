@@ -1550,28 +1550,14 @@ export default function VisualSearchPage() {
               </div>
             </div>
             {canvasLayout === 'grid' ? (
-              <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950">
+              <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 h-[640px]">
                 {pinned.length === 0 ? (
-                  <div className="h-[640px] flex items-center justify-center text-neutral-500 text-sm">
+                  <div className="h-full flex items-center justify-center text-neutral-500 text-sm">
                     Pin results here to build a visual board.
                   </div>
                 ) : (
                   <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
                 )}
-                <div className="mt-3">
-                  <label className="text-xs text-neutral-400">Note</label>
-                  <label htmlFor="canvas-note-input-grid" className="sr-only">Canvas notes</label>
-                  <textarea
-                    name="canvas-note-grid"
-                    id="canvas-note-input-grid"
-                    rows={6}
-                    value={canvasNote}
-                    onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={() => { setTimeout(() => { void autoSaveCanvas(); }, 100); }}
-                    className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
-                    placeholder="Write notes, ideas, training guidance…"
-                  />
-                </div>
               </div>
             ) : (
               <div
@@ -1586,22 +1572,22 @@ export default function VisualSearchPage() {
                     Pin results here to build a visual board.
                   </div>
                 )}
-                <div className="absolute left-3 right-3 bottom-3">
-                  <label className="text-xs text-neutral-400">Note</label>
-                  <label htmlFor="canvas-note-input-freeform" className="sr-only">Canvas notes</label>
-                  <textarea
-                    name="canvas-note-freeform"
-                    id="canvas-note-input-freeform"
-                    rows={6}
-                    value={canvasNote}
-                    onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={() => { setTimeout(() => { void autoSaveCanvas(); }, 100); }}
-                    className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
-                    placeholder="Write notes, ideas, training guidance…"
-                  />
-                </div>
               </div>
             )}
+            <div className="mt-3">
+              <label className="text-xs text-neutral-400">Note</label>
+              <label htmlFor="canvas-note-input" className="sr-only">Canvas notes</label>
+              <textarea
+                name="canvas-note"
+                id="canvas-note-input"
+                rows={6}
+                value={canvasNote}
+                onChange={(e) => setCanvasNote(e.target.value)}
+                onBlur={() => { setTimeout(() => { void autoSaveCanvas(); }, 100); }}
+                className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+                placeholder="Write notes, ideas, training guidance…"
+              />
+            </div>
           </div>
         ) : tab === 'output' ? (
           <div className="mt-3 space-y-3">
