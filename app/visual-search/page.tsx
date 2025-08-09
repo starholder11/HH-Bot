@@ -1771,12 +1771,9 @@ export default function VisualSearchPage() {
   const refreshCurrentCanvas = async () => {
     if (!canvasId) return
     try {
-      const res = await fetch(`/api/canvas?id=${encodeURIComponent(canvasId)}`)
+      const res = await fetch(`/api/canvas/loras?id=${encodeURIComponent(canvasId)}`)
       const j = await res.json()
-      if (res.ok && j.canvas) {
-        const c = j.canvas
-        setCanvasLoras(Array.isArray(c.loras) ? c.loras : [])
-      }
+      if (res.ok) setCanvasLoras(Array.isArray(j.loras) ? j.loras : [])
     } catch (e) {
       console.error('Canvas refresh failed:', e)
     }
@@ -1979,8 +1976,8 @@ export default function VisualSearchPage() {
               setCanvasLoras(prev => prev.map(l => l.requestId === reqId ? sj.lora : l))
             }
             if (st === 'COMPLETED') {
-              // Reload canvas to get latest data
-              await loadCanvas(id)
+              // Refresh loras quickly
+              await refreshCurrentCanvas()
               return
             }
           }
