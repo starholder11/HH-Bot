@@ -1616,6 +1616,29 @@ export default function VisualSearchPage() {
     )
   }
 
+  // Populate the canvas project select with same list
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/projects')
+        if (!res.ok) return
+        const json = await res.json()
+        const select = document.getElementById('canvas-project-select') as HTMLSelectElement | null
+        if (!select) return
+        // Clear existing except first
+        while (select.options.length > 1) select.remove(1)
+        ;(json.projects || []).forEach((p: any) => {
+          const opt = document.createElement('option')
+          opt.value = p.project_id
+          opt.textContent = p.name
+          select.appendChild(opt)
+        })
+      } catch {}
+    })()
+    return () => { cancelled = true }
+  }, [])
+
   return (
     <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-7xl px-4 py-6">
