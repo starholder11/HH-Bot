@@ -25,16 +25,19 @@ export async function GET(req: NextRequest) {
         console.log(`[train-status] Fetching result for requestId: ${requestId}`)
         const res = await fal.queue.result('fal-ai/flux-lora-fast-training', { requestId } as any)
         console.log(`[train-status] FAL result:`, JSON.stringify(res, null, 2))
-        
+
+        // FAL responses can be nested under { data: { ...files } } or at the top-level
+        const resultData: any = (res as any)?.data || res
+
         // Try multiple possible paths for the artifact URL
-        const artifactUrl = (res as any)?.diffusers_lora_file?.url || 
-                           (res as any)?.safetensors_file?.url || 
-                           (res as any)?.lora_file?.url ||
-                           (res as any)?.diffusers_lora_file ||
-                           (res as any)?.safetensors_file ||
-                           (res as any)?.lora_file
+        const artifactUrl = resultData?.diffusers_lora_file?.url ||
+                            resultData?.safetensors_file?.url ||
+                            resultData?.lora_file?.url ||
+                            resultData?.diffusers_lora_file ||
+                            resultData?.safetensors_file ||
+                            resultData?.lora_file
         console.log(`[train-status] Extracted artifactUrl: ${artifactUrl}`)
-        
+
         if (artifactUrl) {
           // Merge onto canvas.loras[] matching this requestId directly via S3
           try {
@@ -45,40 +48,40 @@ export async function GET(req: NextRequest) {
               const entry = (index?.items || []).find((it: any) => it.id === canvasId)
               if (entry?.key) key = entry.key
             } catch {}
-            
+
             console.log(`[train-status] Reading canvas from key: ${key}`)
             const canvas = await readJsonFromS3(key)
             const loras = Array.isArray(canvas?.loras) ? canvas.loras : []
             console.log(`[train-status] Found ${loras.length} loras in canvas`)
-            
+
             const idx = loras.findIndex((l: any) => l.requestId === requestId)
             console.log(`[train-status] LoRA index for requestId ${requestId}: ${idx}`)
-            
+
             if (idx >= 0) {
-              loras[idx] = { 
-                ...loras[idx], 
+              loras[idx] = {
+                ...loras[idx],
                 id: loras[idx].id || loras[idx].requestId,
-                status: 'completed', 
-                artifactUrl, 
-                path: artifactUrl, 
-                updatedAt: new Date().toISOString() 
+                status: 'completed',
+                artifactUrl,
+                path: artifactUrl,
+                updatedAt: new Date().toISOString()
               }
               updated = loras[idx]
               const updatedCanvas = { ...canvas, loras, updatedAt: new Date().toISOString() }
-              
+
               console.log(`[train-status] Updating canvas with completed LoRA`)
               await writeJsonAtKey(key, updatedCanvas)
-              
+
               // bump index timestamp
-              try { 
-                const index = await readJsonFromS3('canvases/index.json'); 
-                const idx = (index.items || []).findIndex((it: any) => it.id === canvasId); 
-                if (idx>=0){ 
-                  index.items[idx].updatedAt = updatedCanvas.updatedAt; 
+              try {
+                const index = await readJsonFromS3('canvases/index.json');
+                const idx = (index.items || []).findIndex((it: any) => it.id === canvasId);
+                if (idx>=0){
+                  index.items[idx].updatedAt = updatedCanvas.updatedAt;
                   await writeJsonAtKey('canvases/index.json', index);
-                } 
+                }
               } catch {}
-              
+
               console.log(`[train-status] Successfully updated LoRA:`, updated)
             } else {
               console.warn(`[train-status] No LoRA found with requestId ${requestId}`)
