@@ -1468,21 +1468,19 @@ export default function VisualSearchPage() {
         ) : tab === 'canvas' ? (
           <div className="mt-3">
             <div className="text-sm text-neutral-400 mb-2">Canvas</div>
-            <div className="mb-2 grid grid-cols-1 md:grid-cols-4 gap-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={clearCanvas}
-                  className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-                >
-                  Clear
-                </button>
-                <button onClick={() => setShowCanvasManager(true)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Manage</button>
-              </div>
+            <div className="mb-2 grid grid-cols-1 md:grid-cols-5 gap-2">
               <input id="canvas-name-input" placeholder="Canvas name" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" onBlur={autoSaveCanvas} />
               <select id="canvas-project-select" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" onChange={autoSaveCanvas}>
                 <option value="">No project</option>
               </select>
-              <button onClick={saveCanvas} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save Canvas</button>
+              <button onClick={saveCanvas} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
+              <button onClick={() => setShowCanvasManager(true)} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
+              <button
+                onClick={clearCanvas}
+                className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+              >
+                Clear
+              </button>
             </div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
@@ -1519,10 +1517,10 @@ export default function VisualSearchPage() {
                 )}
                 <div className="mt-3">
                   <label className="text-xs text-neutral-400">Note</label>
-                  <textarea 
-                    id="canvas-note-input" 
-                    rows={6} 
-                    className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" 
+                  <textarea
+                    id="canvas-note-input"
+                    rows={6}
+                    className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                     onBlur={autoSaveCanvas}
                   />
@@ -1543,10 +1541,10 @@ export default function VisualSearchPage() {
                 )}
                 <div className="absolute left-3 right-3 bottom-3">
                   <label className="text-xs text-neutral-400">Note</label>
-                  <textarea 
-                    id="canvas-note-input" 
-                    rows={6} 
-                    className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" 
+                  <textarea
+                    id="canvas-note-input"
+                    rows={6}
+                    className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                     onBlur={autoSaveCanvas}
                   />
@@ -1685,7 +1683,7 @@ export default function VisualSearchPage() {
         const res = await fetch('/api/projects')
         if (!res.ok) return
         const json = await res.json()
-        
+
         // Wait for DOM element if not ready yet
         let select = document.getElementById('canvas-project-select') as HTMLSelectElement | null
         let retries = 0
@@ -1694,12 +1692,12 @@ export default function VisualSearchPage() {
           select = document.getElementById('canvas-project-select') as HTMLSelectElement | null
           retries++
         }
-        
+
         if (!select || cancelled) return
-        
+
         // Clear existing except first
         while (select.options.length > 1) select.remove(1)
-        
+
         // Add projects
         ;(json.projects || []).forEach((p: any) => {
           const opt = document.createElement('option')
@@ -1707,13 +1705,13 @@ export default function VisualSearchPage() {
           opt.textContent = p.name
           select!.appendChild(opt)
         })
-        
+
         console.log(`Populated ${json.projects?.length || 0} projects in dropdown`)
       } catch (e) {
         console.error('Failed to populate projects:', e)
       }
     }
-    
+
     populateProjects()
     return () => { cancelled = true }
   }, [])
@@ -1728,7 +1726,7 @@ export default function VisualSearchPage() {
           const json = await res.json()
           const select = document.getElementById('canvas-project-select') as HTMLSelectElement | null
           if (!select) return
-          
+
           // Only repopulate if it's empty (except for "No project")
           if (select.options.length <= 1) {
             ;(json.projects || []).forEach((p: any) => {
