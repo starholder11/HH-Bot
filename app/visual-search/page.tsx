@@ -939,6 +939,9 @@ export default function VisualSearchPage() {
   const [canvasName, setCanvasName] = useState<string>('')
   const [canvasProjectId, setCanvasProjectId] = useState<string>('')
   const [canvasNote, setCanvasNote] = useState<string>('')
+  const [isEditingNote, setIsEditingNote] = useState<boolean>(false)
+  const noteRef = useRef<HTMLTextAreaElement | null>(null)
+  useEffect(() => { if (isEditingNote) noteRef.current?.focus() }, [isEditingNote])
   const [isEditingName, setIsEditingName] = useState<boolean>(false)
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
@@ -1575,15 +1578,44 @@ export default function VisualSearchPage() {
               </div>
             )}
             <div className="mt-3">
-              <label className="text-xs text-neutral-400">Note</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-neutral-400" htmlFor="canvas-note-input">Note</label>
+                <div className="flex items-center gap-2">
+                  {!isEditingNote ? (
+                    <button
+                      onClick={() => setIsEditingNote(true)}
+                      className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={async () => { setIsEditingNote(false); await saveCanvas(); }}
+                        className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => { setIsEditingNote(false); /* discard: leave state as-is */ }}
+                        className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+                      >
+                        Done
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
               <label htmlFor="canvas-note-input" className="sr-only">Canvas notes</label>
               <textarea
+                ref={noteRef}
                 name="canvas-note"
                 id="canvas-note-input"
                 rows={6}
                 value={canvasNote}
                 onChange={(e) => setCanvasNote(e.target.value)}
-                className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+                readOnly={!isEditingNote}
+                className={`mt-1 w-full px-2 py-1.5 rounded-md border ${isEditingNote ? 'border-neutral-700' : 'border-transparent'} bg-neutral-900 text-neutral-100`}
                 placeholder="Write notes, ideas, training guidance…"
               />
             </div>
