@@ -1198,6 +1198,34 @@ export default function VisualSearchPage() {
     })
   }
 
+  const collectCanvasPayload = () => {
+    return {
+      id: `canvas-${Date.now()}`,
+      name: (document.getElementById('canvas-name-input') as HTMLInputElement | null)?.value?.trim() || 'Untitled Canvas',
+      note: (document.getElementById('canvas-note-input') as HTMLTextAreaElement | null)?.value || '',
+      items: pinned.map((p, idx) => ({
+        id: p.result.id,
+        type: p.result.content_type,
+        position: { x: p.x, y: p.y, w: p.width, h: p.height, z: p.z },
+        order: idx,
+        metadata: p.result.metadata,
+      })),
+      createdAt: new Date().toISOString(),
+    }
+  }
+
+  const saveCanvas = async () => {
+    try {
+      const payload = collectCanvasPayload()
+      const res = await fetch('/api/canvas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Save failed')
+      alert('Canvas saved')
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
+
   function handleGenStart() {
     setGenLoading(true);
     setGenUrl(null);
@@ -1314,6 +1342,12 @@ export default function VisualSearchPage() {
         ) : tab === 'canvas' ? (
           <div className="mt-3">
             <div className="text-sm text-neutral-400 mb-2">Canvas</div>
+            <div className="mb-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+              <input id="canvas-name-input" placeholder="Canvas name" className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" />
+              <div className="md:col-span-2 flex items-center justify-end gap-2">
+                <button onClick={saveCanvas} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save Canvas</button>
+              </div>
+            </div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
@@ -1347,6 +1381,10 @@ export default function VisualSearchPage() {
                 ) : (
                   <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
                 )}
+                <div className="mt-3">
+                  <label className="text-xs text-neutral-400">Note</label>
+                  <textarea id="canvas-note-input" rows={6} className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" placeholder="Write notes, ideas, training guidance…" />
+                </div>
               </div>
             ) : (
               <div
@@ -1361,6 +1399,10 @@ export default function VisualSearchPage() {
                     Pin results here to build a visual board.
                   </div>
                 )}
+                <div className="absolute left-3 right-3 bottom-3">
+                  <label className="text-xs text-neutral-400">Note</label>
+                  <textarea id="canvas-note-input" rows={6} className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" placeholder="Write notes, ideas, training guidance…" />
+                </div>
               </div>
             )}
           </div>

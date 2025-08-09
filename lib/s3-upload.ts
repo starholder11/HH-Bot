@@ -278,6 +278,22 @@ export async function uploadFile(
 }
 
 /**
+ * Upload JSON data to S3
+ */
+export async function uploadJson(
+  data: any,
+  options?: { prefix?: string; filenameBase?: string }
+): Promise<UploadResult> {
+  const json = Buffer.from(JSON.stringify(data, null, 2))
+  const key = generateS3Key(options?.filenameBase || 'canvas', 'json', options?.prefix || 'canvases')
+  await uploadToS3(json, key, 'application/json', {
+    uploadedAt: new Date().toISOString(),
+  })
+  const url = generateCloudFrontUrl(key)
+  return { url, key, size: json.length, contentType: 'application/json' }
+}
+
+/**
  * Delete file from S3
  */
 export async function deleteFromS3(key: string): Promise<void> {
