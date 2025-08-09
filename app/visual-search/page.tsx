@@ -1196,7 +1196,12 @@ export default function VisualSearchPage() {
     setPinned((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const clearCanvas = () => setPinned([]);
+  const clearCanvas = () => {
+    setPinned([])
+    setCanvasName('')
+    setCanvasNote('')
+    setCanvasProjectId('')
+  };
   const reorderPinned = (fromIndex: number, toIndex: number) => {
     setPinned((prev) => {
       const arr = [...prev]
@@ -1227,8 +1232,6 @@ export default function VisualSearchPage() {
     try {
       const base = collectCanvasPayload()
       const payload = { ...base, id: canvasId || base.id }
-      const projEl = document.getElementById('canvas-project-select') as HTMLSelectElement | null
-      if (projEl && projEl.value) (payload as any).projectId = projEl.value
       const res = await fetch('/api/canvas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Save failed')
@@ -1479,7 +1482,7 @@ export default function VisualSearchPage() {
               <div className="min-w-0">
                 {!isEditingName ? (
                   <div
-                    className="px-2 py-1.5 rounded-md border border-transparent hover:border-neutral-800 cursor-text truncate text-neutral-100 bg-neutral-900"
+                    className="px-1.5 py-1 rounded-md border border-transparent hover:border-neutral-700 cursor-text truncate text-neutral-100"
                     title={canvasName || 'Untitled Canvas'}
                     onDoubleClick={() => setIsEditingName(true)}
                   >
@@ -1492,7 +1495,7 @@ export default function VisualSearchPage() {
                     onBlur={() => { setIsEditingName(false); void autoSaveCanvas(); }}
                     onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingName(false); void autoSaveCanvas(); } if (e.key === 'Escape') { setIsEditingName(false); } }}
                     autoFocus
-                    className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+                    className="w-full px-2 py-1.5 rounded-md border border-neutral-700 bg-neutral-900 text-neutral-100"
                     placeholder="Canvas name"
                   />
                 )}
@@ -1561,7 +1564,7 @@ export default function VisualSearchPage() {
                     rows={6}
                     value={canvasNote}
                     onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={autoSaveCanvas}
+                    onBlur={(e) => { if (e.currentTarget === document.activeElement) return; void autoSaveCanvas(); }}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                   />
@@ -1587,7 +1590,7 @@ export default function VisualSearchPage() {
                     rows={6}
                     value={canvasNote}
                     onChange={(e) => setCanvasNote(e.target.value)}
-                    onBlur={autoSaveCanvas}
+                    onBlur={(e) => { if (e.currentTarget === document.activeElement) return; void autoSaveCanvas(); }}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
                     placeholder="Write notes, ideas, training guidance…"
                   />
