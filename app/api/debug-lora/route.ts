@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
         falResult = await fal.queue.result('fal-ai/flux-lora-fast-training', { requestId } as any)
         artifactUrl = (falResult as any)?.diffusers_lora_file?.url || (falResult as any)?.safetensors_file?.url || (falResult as any)?.lora_file?.url
       } catch (e) {
-        falResult = { error: e.message }
+        falResult = { error: (e as Error).message }
       }
     }
     
