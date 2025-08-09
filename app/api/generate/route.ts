@@ -32,9 +32,19 @@ export async function POST(req: NextRequest) {
       video: 'fal-ai/kling-video/v1.6/pro/image-to-video',
     }
 
-    const selectedModel = model || defaults[mode]
+    // Infer effective mode from model id when caller passed a mismatched mode
+    const inferModeFromModel = (modelId?: string, fallback?: string): 'image'|'audio'|'text'|'video' => {
+      const m = (modelId || '').toLowerCase()
+      if (m.includes('image-to-video') || m.includes('/video') || m.includes('video/')) return 'video'
+      if (m.includes('tts') || m.includes('text-to-speech')) return 'audio'
+      if (m.includes('llama') || m.includes('text/')) return 'text'
+      return (fallback as any) || 'image'
+    }
+    const effectiveMode = inferModeFromModel(model, mode)
+
+    const selectedModel = model || defaults[effectiveMode]
     if (!selectedModel) {
-      return NextResponse.json({ error: `No default model for mode ${mode}` }, { status: 400 })
+      return NextResponse.json({ error: `No default model for mode ${effectiveMode}` }, { status: 400 })
     }
 
     // Filter refs to URL-like strings only to avoid titles leaking into provider params
@@ -51,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Sanitize video-specific inputs to avoid 422s from provider
-    if (mode === 'video') {
+    if (effectiveMode === 'video') {
       // Coerce duration to seconds number and clamp to reasonable provider limits (e.g., many models cap at 6s)
       const coerceDurationSeconds = (val: unknown): number | undefined => {
         if (val == null) return undefined
@@ -105,10 +115,10 @@ export async function POST(req: NextRequest) {
     }
 
     // If an image-to-video model is requested but no refs were provided, fail fast with guidance
-    if (mode === 'video' && (!Array.isArray(refs) || refs.length === 0)) {
+    if (effectiveMode === 'video' && (!Array.isArray(refs) || refs.length === 0)) {
       return NextResponse.json({ error: `Video generation requires a pinned/uploaded image reference. Please provide refs[] (image URLs) on the request.` }, { status: 400 })
     }
-    if (mode === 'video' && typeof selectedModel === 'string' && selectedModel.includes('text-to-video')) {
+    if (effectiveMode === 'video' && typeof selectedModel === 'string' && selectedModel.includes('text-to-video')) {
       return NextResponse.json({ error: `Text-to-video is not enabled in this environment. Pin an image and use an image-to-video model.` }, { status: 400 })
     }
 
@@ -118,7 +128,7 @@ export async function POST(req: NextRequest) {
       anyResult = await runFal(selectedModel)
     } catch (err: any) {
       const msg = (err?.message || '').toString().toLowerCase()
-      const defaultModel = defaults[mode]
+      const defaultModel = defaults[effectiveMode]
       if (selectedModel !== defaultModel) {
         try {
           const fallback = await runFal(defaultModel)
@@ -134,7 +144,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Persist outputs to S3 when applicable
-    if (mode === 'image') {
+    if (effectiveMode === 'image') {
       // Expecting image bytes/URL in result; try common fields
       const imageBytes: string | undefined = (anyResult?.images?.[0]?.b64_json) || anyResult?.image?.b64_json || anyResult?.data?.images?.[0]?.b64_json
       const imageUrl: string | undefined = anyResult?.images?.[0]?.url || anyResult?.image?.url || anyResult?.data?.images?.[0]?.url
@@ -155,7 +165,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, result: anyResult })
     }
 
-    if (mode === 'audio') {
+    if (effectiveMode === 'audio') {
       // Try common fields for audio
       const audioB64: string | undefined = anyResult?.audio?.b64_json || anyResult?.b64_json
       const audioUrl: string | undefined = anyResult?.audio?.url || anyResult?.url
@@ -172,7 +182,7 @@ export async function POST(req: NextRequest) {
     }
 
     // For video/text, try to surface a convenient url if present
-    if (mode === 'video') {
+    if (effectiveMode === 'video') {
       const videoUrl: string | undefined = anyResult?.video?.url || anyResult?.data?.video?.url || anyResult?.output?.url || anyResult?.outputs?.[0]?.url
       if (videoUrl) {
         return NextResponse.json({ success: true, url: videoUrl, result: anyResult })
