@@ -304,6 +304,49 @@ function normalizeEmbedding(inp) {
     }
   });
 
+  // Force recreate table with current schema
+  app.post('/debug/recreate-table', async (req, res) => {
+    try {
+      console.log('🔄 Force recreating table with current schema...');
+      const db = await connect(DB_PATH);
+
+      // Drop existing table if it exists
+      try {
+        await db.dropTable(TABLE_NAME);
+        console.log('🗑️ Dropped existing table');
+      } catch (e) {
+        console.log('ℹ️ No existing table to drop');
+      }
+
+      // Create new table with current schema
+      const VECTOR_TYPE = new arrow.FixedSizeList(
+        DIM,
+        new arrow.Field('item', new arrow.Float32(), false)
+      );
+      const schema = new arrow.Schema([
+        new arrow.Field('id', new arrow.Utf8(), false),
+        new arrow.Field('content_type', new arrow.Utf8(), false),
+        new arrow.Field('title', new arrow.Utf8(), true),
+        new arrow.Field('embedding', VECTOR_TYPE, false),
+        new arrow.Field('combined_text', new arrow.Utf8(), true),
+        new arrow.Field('metadata', new arrow.Utf8(), true),
+        new arrow.Field('created_at', new arrow.Utf8(), true),
+      ]);
+
+      const emptyData = new arrow.Table(schema, []);
+      const newTable = await db.createTable(TABLE_NAME, emptyData);
+      console.log('✅ Created new table with current schema');
+
+      // Reinitialize the table reference
+      table = newTable;
+
+      res.json({ success: true, message: 'Table recreated successfully' });
+    } catch (error) {
+      console.error('❌ Failed to recreate table:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.listen(PORT, () => {
     console.log(`🚀 LanceDB service running on port ${PORT}`);
   });

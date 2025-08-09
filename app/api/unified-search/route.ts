@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   try {
     const {
       query,
-      limit = 20,
+      limit = 1000,
       page = 1,
       content_types = [],
       filters = {}
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       filters?: SearchFilters;
     } = await request.json();
 
-    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 20));
+    const safeLimit = Math.max(1, Math.min(5000, Number(limit) || 1000));
     const safePage = Math.max(1, Number(page) || 1);
     const offset = (safePage - 1) * safeLimit;
     const queryTokens = query.toLowerCase().split(/\s+/).filter(tok => tok.length > 2);
@@ -253,7 +253,7 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       // Apply content type filtering to final results
       const filterByContentTypes = (results: SearchResult[]) => {
         if (content_types.length === 0) return results;
-        
+
         return results.filter(r => {
           const mediaTypes = ['video', 'image', 'audio'];
           const matches = content_types.includes(r.content_type) ||
@@ -345,7 +345,7 @@ export async function GET(request: NextRequest) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       query,
-      limit: parseInt(searchParams.get('limit') || '20'),
+              limit: parseInt(searchParams.get('limit') || '1000'),
       content_types: searchParams.get('type') ? [searchParams.get('type')] : [],
       filters: {
         content_type: searchParams.get('content_type') as any,

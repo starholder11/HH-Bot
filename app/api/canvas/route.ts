@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
         // If index fails, fall back to old method
         console.warn('Canvas index lookup failed, trying direct key:', e)
       }
-      
+
       // Fallback to old method (direct key construction)
       const key = `canvases/${id}.json`
       const json = await readJsonFromS3(key)
@@ -98,7 +98,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     const id: string = body?.id
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
-    
+
     // Get the actual key from the index
     let key = `canvases/${id}.json` // fallback
     try {
@@ -110,7 +110,7 @@ export async function PUT(req: NextRequest) {
     } catch (e) {
       console.warn('Canvas index lookup failed for PUT, using fallback key:', e)
     }
-    
+
     // Read current to preserve items if not provided
     let current: any = {}
     try { current = await readJsonFromS3(key) } catch {}
@@ -148,7 +148,7 @@ export async function DELETE(req: NextRequest) {
     } catch (e) {
       console.warn('Canvas index lookup failed for DELETE, using fallback key:', e)
     }
-    
+
     await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: key }))
     // Update index
     try {

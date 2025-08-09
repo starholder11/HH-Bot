@@ -302,24 +302,6 @@ Be specific and descriptive. Include confidence scores for each category. Focus 
                       labeled_ai: new Date().toISOString(),
                     },
                   });
-
-                  // Auto-enqueue video for Lance DB ingestion now that AI analysis is complete
-                  try {
-                    const { enqueueAnalysisJob } = await import('./queue');
-                    await enqueueAnalysisJob({
-                      assetId: refreshedVideo.id,
-                      mediaType: refreshedVideo.media_type,
-                      title: refreshedVideo.title,
-                      s3Url: refreshedVideo.s3_url,
-                      cloudflareUrl: refreshedVideo.cloudflare_url,
-                      requestedAt: Date.now(),
-                      stage: 'post_labeling_ingestion'
-                    });
-                    console.log('📤 Enqueued Lance ingestion job for completed video:', refreshedVideo.id);
-                  } catch (enqueueErr) {
-                    console.error('Failed to enqueue Lance ingestion job for video:', enqueueErr);
-                    // Don't fail the video completion if ingestion enqueue fails
-                  }
                 } else if (videoAsset.processing_status.ai_labeling === 'processing' && completedCount + failedCount === totalKeyframes) {
                   // Check if we need to retry failed keyframes
                   const retryableKeyframes = keyframes.filter((kf: any) => {

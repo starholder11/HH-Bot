@@ -44,7 +44,7 @@ type PinnedItem = {
   id: string; // local id (stable across pins)
 };
 
-const DEFAULT_LIMIT = 18;
+const DEFAULT_LIMIT = 1000;
 
 // ---------------- FAL Models Types ----------------
 type JsonSchema = {

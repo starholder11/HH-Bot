@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai';
 import matter from 'gray-matter';
+import { getProject } from './project-storage';
 
 // LanceDB client configuration
 // Default to the new production load-balancer URL if the env var isn't provided
@@ -173,7 +174,19 @@ export class LanceDBIngestionService {
   // Process media asset for LanceDB - EXTRACT ALL NESTED ANALYSIS DATA
   async processMediaAsset(asset: MediaAsset): Promise<LanceDBRecord> {
     // Combine all text for embedding - GET EVERYTHING
-    const textParts = [
+    const textParts: string[] = [];
+
+    // If this is an image, prefix with Project: <name> when available
+    try {
+      const projectId = (asset as any).project_id as string | undefined;
+      if (asset.media_type === 'image' && projectId) {
+        const project = await getProject(projectId);
+        const projectName = project?.name?.trim() || projectId;
+        textParts.push(`Project: ${projectName}`);
+      }
+    } catch {}
+
+    textParts.push(
       asset.title,
       asset.filename,
       ...asset.ai_labels?.scenes || [],
@@ -181,7 +194,7 @@ export class LanceDBIngestionService {
       ...asset.ai_labels?.style || [],
       ...asset.ai_labels?.mood || [],
       ...asset.ai_labels?.themes || [],
-    ];
+    );
 
     // Add lyrics if audio
     if (asset.lyrics) {
@@ -288,6 +301,20 @@ export class LanceDBIngestionService {
 
     const embedding = await this.generateEmbedding(combinedText);
 
+    // Compute optional project metadata
+    const projectMeta = (() => {
+      const projectId = (asset as any).project_id as string | undefined;
+      return projectId ? { id: projectId } : undefined;
+    })();
+
+    // Attempt to augment with project name
+    try {
+      if (projectMeta?.id) {
+        const p = await getProject(projectMeta.id);
+        if (p?.name) (projectMeta as any).name = p.name;
+      }
+    } catch {}
+
     return {
       id: asset.id,
       content_type: 'media',
@@ -321,7 +348,8 @@ export class LanceDBIngestionService {
             mood_count: asset.ai_labels?.mood?.length || 0,
             themes_count: asset.ai_labels?.themes?.length || 0,
           }
-        }
+        },
+        ...(projectMeta ? { project: projectMeta } : {})
       },
       s3_url: asset.s3_url,
       cloudflare_url: asset.cloudflare_url,

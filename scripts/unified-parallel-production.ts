@@ -363,9 +363,22 @@ class UnifiedParallelIngestion {
 
       // Step 5: Convert media assets
       console.log('\n🎬 Step 5: Converting media assets...');
-      const mediaItems: ContentItem[] = mediaAssets.assets.map(asset =>
-        UnifiedParallelIngestion.mediaAssetToContentItem(asset)
-      );
+      const mediaItems: ContentItem[] = await Promise.all(mediaAssets.assets.map(async (asset) => {
+        const item = UnifiedParallelIngestion.mediaAssetToContentItem(asset);
+        if (asset.media_type === 'image' && asset.project_id) {
+          try {
+            const { getProject } = await import('../lib/project-storage');
+            const project = await getProject(asset.project_id);
+            const projectName = project?.name?.trim() || asset.project_id;
+            item.combinedText = `Project: ${projectName}\n${item.combinedText}`;
+            item.metadata = {
+              ...(item.metadata || {}),
+              project: { id: asset.project_id, name: projectName },
+            };
+          } catch {}
+        }
+        return item;
+      }));
 
       // Step 6: Combine all content
       const allItems = [...allTextItems, ...mediaItems];

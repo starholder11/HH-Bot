@@ -25,7 +25,7 @@ const tools = {
     parameters: z.object({
       query: z.string(),
       contentType: z.enum(['all', 'media', 'video', 'image', 'audio', 'text']).default('all'),
-      limit: z.number().int().min(1).max(100).default(18),
+      limit: z.number().int().min(1).max(5000).default(1000),
     }),
     execute: async ({ query, contentType, limit }) => {
       const typeParam = contentType && contentType !== 'all' ? `&type=${encodeURIComponent(contentType)}` : '';

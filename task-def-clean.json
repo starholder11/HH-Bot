@@ -1,0 +1,70 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "lancedb-service",
+      "image": "781939061434.dkr.ecr.us-east-1.amazonaws.com/lancedb-service:schema-fix",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "LANCEDB_PATH",
+          "value": "/data/lancedb"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "lancedb-persistent-storage",
+          "containerPath": "/data",
+          "readOnly": false
+        }
+      ],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:781939061434:secret:openai-api-key-plain-ObIbHG"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/lancedb-bulletproof-simple-service",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "lancedb-bulletproof-simple-task",
+  "taskRoleArn": "arn:aws:iam::781939061434:role/lancedb-bulletproof-simple-TaskRole-UZYQhahdNXVb",
+  "executionRoleArn": "arn:aws:iam::781939061434:role/lancedb-bulletproof-simple-ExecutionRole-HH1BCYupM12n",
+  "networkMode": "awsvpc",
+  "volumes": [
+    {
+      "name": "lancedb-persistent-storage",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-0e6cf504b57ea1626",
+        "rootDirectory": "/",
+        "transitEncryption": "ENABLED"
+      }
+    }
+  ],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "2048"
+}
