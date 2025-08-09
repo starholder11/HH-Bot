@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
+import { readJsonFromS3, writeJsonAtKey } from '@/lib/s3-upload'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,19 +25,25 @@ export async function GET(req: NextRequest) {
         const res = await fal.queue.result('fal-ai/flux-lora-fast-training', { requestId } as any)
         const artifactUrl = (res as any)?.diffusers_lora_file?.url || (res as any)?.safetensors_file?.url || (res as any)?.lora_file?.url
         if (artifactUrl) {
-          // Merge onto canvas.loras[] matching this requestId
-          const base = process.env.NEXT_PUBLIC_BASE_URL || 
-                       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-          const canvasRes = await fetch(`${base}/api/canvas?id=${encodeURIComponent(canvasId)}`, { headers: { 'Content-Type': 'application/json' } } as any)
-          if (canvasRes.ok) {
-            const { canvas } = await canvasRes.json()
+          // Merge onto canvas.loras[] matching this requestId directly via S3
+          try {
+            // Lookup key from index
+            let key = `canvases/${canvasId}.json`
+            try {
+              const index = await readJsonFromS3('canvases/index.json')
+              const entry = (index?.items || []).find((it: any) => it.id === canvasId)
+              if (entry?.key) key = entry.key
+            } catch {}
+            const canvas = await readJsonFromS3(key)
             const loras = Array.isArray(canvas?.loras) ? canvas.loras : []
             const idx = loras.findIndex((l: any) => l.requestId === requestId)
             if (idx >= 0) {
               loras[idx] = { ...loras[idx], status: 'completed', artifactUrl, updatedAt: new Date().toISOString() }
               updated = loras[idx]
-              await fetch(`${base}/api/canvas`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: canvasId, loras }) } as any)
+              await writeJsonAtKey(key, { ...canvas, loras, updatedAt: new Date().toISOString() })
             }
+          } catch (e) {
+            console.warn('Failed to update canvas loras in S3:', e)
           }
         }
       } catch (e) {

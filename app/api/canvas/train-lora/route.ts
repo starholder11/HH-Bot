@@ -1,18 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
-import { uploadFile } from '@/lib/s3-upload'
+import { uploadFile, readJsonFromS3 } from '@/lib/s3-upload'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 async function fetchCanvas(canvasId: string) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || 
-               (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-  const url = `${base}/api/canvas?id=${encodeURIComponent(canvasId)}`
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, cache: 'no-store' } as any)
-  if (!res.ok) throw new Error('Canvas not found')
-  const json = await res.json()
-  return json?.canvas
+  // Load via S3 like /api/canvas does to avoid internal fetch and URL issues
+  try {
+    // Try index first
+    const index = await readJsonFromS3('canvases/index.json')
+    const entry = (index?.items || []).find((it: any) => it.id === canvasId)
+    const key = entry?.key || `canvases/${canvasId}.json`
+    const canvas = await readJsonFromS3(key)
+    return canvas
+  } catch (e) {
+    // Fallback direct
+    try {
+      const key = `canvases/${canvasId}.json`
+      const canvas = await readJsonFromS3(key)
+      return canvas
+    } catch {
+      throw new Error('Canvas not found')
+    }
+  }
 }
 
 export async function POST(req: NextRequest) {
