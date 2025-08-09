@@ -1640,9 +1640,11 @@ export default function VisualSearchPage() {
               </div>
               {noteEditMode ? (
                 <textarea
+                  key="notes-edit-textarea"
                   value={noteDraft}
                   onChange={(e) => setNoteDraft(e.target.value)}
                   rows={6}
+                  autoFocus
                   className="w-full px-2 py-1.5 rounded border border-neutral-700 bg-neutral-900 text-neutral-100 resize-none"
                   placeholder="Add notes about this canvas..."
                 />
