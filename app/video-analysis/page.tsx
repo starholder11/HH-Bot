@@ -69,7 +69,7 @@ interface KeyframeStill {
 }
 
 interface Project {
-  id: string;
+  project_id: string;
   name: string;
   description?: string;
 }
