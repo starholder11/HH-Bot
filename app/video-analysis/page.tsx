@@ -203,6 +203,8 @@ export default function VideoAnalysisPage() {
       const response = await fetch('/api/media-labeling/projects');
       if (response.ok) {
         const projectsData = await response.json();
+        console.log('[video-analysis] Loaded projects:', projectsData.length, 'projects');
+        console.log('[video-analysis] Project IDs:', projectsData.map(p => p.project_id));
         setProjects(projectsData);
       }
     } catch (error) {
@@ -293,7 +295,7 @@ export default function VideoAnalysisPage() {
 
   // Enhanced video selection handler
   const handleVideoSelect = (video: VideoAsset) => {
-    console.log('[video-analysis] Selecting video:', video.title, 'ID:', video.id, 'Status:', video.processing_status?.ai_labeling);
+    console.log('[video-analysis] Selecting video:', video.title, 'ID:', video.id, 'Project ID:', video.project_id, 'Status:', video.processing_status?.ai_labeling);
 
     // Reset editing states when switching videos to prevent state carry-over
     setIsEditingFilename(false);
@@ -308,6 +310,12 @@ export default function VideoAnalysisPage() {
 
     // Reset manual analysis state when switching videos
     setIsAnalyzing(false);
+
+    // Debug: Check if project exists in projects array
+    if (video.project_id && projects.length > 0) {
+      const matchingProject = projects.find(p => p.project_id === video.project_id);
+      console.log('[video-analysis] Matching project for', video.project_id, ':', matchingProject);
+    }
   };
 
   // Get analysis status for display
