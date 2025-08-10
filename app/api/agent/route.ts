@@ -3,28 +3,88 @@ import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
+// Define explicit JSON Schema for tools to satisfy OpenAI validation requirements
+const PrepareGenerateParameters = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    type: { type: 'string', enum: ['image', 'audio', 'text', 'video'] },
+    model: { type: 'string' },
+    prompt: { type: 'string' },
+    references: { type: 'array', items: { type: 'string' } },
+    options: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        loras: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              path: { type: 'string' },
+              scale: { type: 'number', minimum: 0, maximum: 2 }
+            },
+            required: ['path', 'scale']
+          }
+        },
+        width: { type: 'integer' },
+        height: { type: 'integer' },
+        steps: { type: 'integer' },
+        seed: { type: 'number' },
+        guidance: { type: 'number' },
+        prompt: { type: 'string' },
+        negative_prompt: { type: 'string' }
+      }
+    },
+    autoRun: { type: 'boolean' }
+  }
+  // No required array needed for prepareGenerate since all fields are optional
+};
+
+const GenerateMediaParameters = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    prompt: { type: 'string' },
+    type: { type: 'string', enum: ['image', 'audio', 'text', 'video'] },
+    model: { type: 'string' },
+    references: { type: 'array', items: { type: 'string' } },
+    options: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        loras: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              path: { type: 'string' },
+              scale: { type: 'number', minimum: 0, maximum: 2 }
+            },
+            required: ['path', 'scale']
+          }
+        },
+        width: { type: 'integer' },
+        height: { type: 'integer' },
+        steps: { type: 'integer' },
+        seed: { type: 'number' },
+        guidance: { type: 'number' },
+        prompt: { type: 'string' },
+        negative_prompt: { type: 'string' }
+      }
+    }
+  },
+  required: ['prompt', 'type']
+};
+
 // Tools
 const tools = {
   // Prepare the Generate tab with structured params; client will populate the form and optionally auto-run
   prepareGenerate: tool({
     description: 'Populate the Generate tab with parameters and optionally start generation',
-    parameters: z.object({
-      type: z.enum(['image', 'audio', 'text', 'video']).optional(),
-      model: z.string().optional(),
-      prompt: z.string().optional(),
-      references: z.array(z.string()).optional(),
-      options: z.object({
-        loras: z.array(z.object({ path: z.string(), scale: z.number().min(0).max(2) })).optional(),
-        width: z.number().int().optional(),
-        height: z.number().int().optional(),
-        steps: z.number().int().optional(),
-        seed: z.number().optional(),
-        guidance: z.number().optional(),
-        prompt: z.string().optional(),
-        negative_prompt: z.string().optional(),
-      }).optional(),
-      autoRun: z.boolean().optional(),
-    }),
+    parameters: PrepareGenerateParameters,
     execute: async ({ type, model, prompt, references, options, autoRun }) => {
       return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options, autoRun: autoRun ?? true } };
     }
@@ -33,7 +93,7 @@ const tools = {
     description: 'Turn a messy user ask into a structured multi-query search plan and execute it to show results',
     parameters: z.object({
       ask: z.string().describe('User natural language request'),
-      limit: z.number().int().min(1).max(2000).optional().default(200),
+      limit: z.number().int().min(1).max(2000).default(200),
     }),
     execute: async ({ ask, limit }) => {
       // 1) Plan with a tiny planner model (strict JSON)
@@ -42,9 +102,9 @@ const tools = {
       const PlanSchema = z.object({
         queries: z.array(z.string()).min(1).max(8),
         filters: z.object({
-          types: z.array(z.enum(['all','media','video','image','audio','text'])).default(['all']).optional(),
-          mustInclude: z.array(z.string()).default([]).optional(),
-          mustExclude: z.array(z.string()).default([]).optional(),
+          types: z.array(z.enum(['all','media','video','image','audio','text'])).default(['all']),
+          mustInclude: z.array(z.string()).default([]),
+          mustExclude: z.array(z.string()).default([]),
           timeRange: z.object({ from: z.string().optional(), to: z.string().optional() }).optional(),
           tags: z.array(z.string()).optional(),
         }).default({}),
@@ -158,22 +218,7 @@ const tools = {
   }),
   generateMedia: tool({
     description: 'Generate media using FAL.ai',
-    parameters: z.object({
-      prompt: z.string(),
-      type: z.enum(['image', 'audio', 'text', 'video']),
-      model: z.string().optional(),
-      references: z.array(z.string()).optional(),
-      options: z.object({
-        loras: z.array(z.object({ path: z.string(), scale: z.number().min(0).max(2) })).optional(),
-        width: z.number().int().optional(),
-        height: z.number().int().optional(),
-        steps: z.number().int().optional(),
-        seed: z.number().optional(),
-        guidance: z.number().optional(),
-        prompt: z.string().optional(),
-        negative_prompt: z.string().optional(),
-      }).optional(),
-    }),
+    parameters: GenerateMediaParameters,
     execute: async ({ prompt, type, model, references, options }) => {
       // If no references were provided, ask the client to supply pinned refs
       if (!references || references.length === 0) {
@@ -209,7 +254,7 @@ const tools = {
     parameters: z.object({
       canvas: z.string().describe('Canvas id or name'),
       prompt: z.string().describe('Prompt to generate'),
-      scale: z.number().min(0.1).max(2).optional().default(1.0),
+      scale: z.number().min(0.1).max(2).default(1.0),
     }),
     execute: async ({ canvas, prompt, scale }) => {
       // Get all LoRAs from the global catalog first
