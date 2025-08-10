@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
       // Trim to requested limit for the response
       assets = nonKeyframes.slice(0, limit);
-      totalCount = nonKeyframes.length;
+      // Keep original totalCount for pagination, don't overwrite it
     }
 
     // 🔑 KEYFRAME INCLUSION (opt-in): Only include if explicitly requested via include_keyframes=true
