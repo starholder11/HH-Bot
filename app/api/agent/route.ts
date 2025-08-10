@@ -3,81 +3,47 @@ import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
-// Define explicit JSON Schema for tools to satisfy OpenAI validation requirements
-const PrepareGenerateParameters = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {
-    type: { type: 'string', enum: ['image', 'audio', 'text', 'video'] },
-    model: { type: 'string' },
-    prompt: { type: 'string' },
-    references: { type: 'array', items: { type: 'string' } },
-    options: {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        loras: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              path: { type: 'string' },
-              scale: { type: 'number', minimum: 0, maximum: 2 }
-            },
-            required: ['path', 'scale']
-          }
-        },
-        width: { type: 'integer' },
-        height: { type: 'integer' },
-        steps: { type: 'integer' },
-        seed: { type: 'number' },
-        guidance: { type: 'number' },
-        prompt: { type: 'string' },
-        negative_prompt: { type: 'string' }
-      }
-    },
-    autoRun: { type: 'boolean' }
-  }
-  // No required array needed for prepareGenerate since all fields are optional
-};
+// Define Zod schemas that avoid chaining issues but preserve proper structure
+const PrepareGenerateParameters = z.object({
+  type: z.enum(['image', 'audio', 'text', 'video']).optional(),
+  model: z.string().optional(),
+  prompt: z.string().optional(),
+  references: z.array(z.string()).optional(),
+  options: z.object({
+    loras: z.array(z.object({
+      path: z.string(),
+      scale: z.number().min(0).max(2)
+    })).optional(),
+    width: z.number().int().optional(),
+    height: z.number().int().optional(),
+    steps: z.number().int().optional(),
+    seed: z.number().optional(),
+    guidance: z.number().optional(),
+    prompt: z.string().optional(),
+    negative_prompt: z.string().optional(),
+  }).optional(),
+  autoRun: z.boolean().optional(),
+});
 
-const GenerateMediaParameters = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {
-    prompt: { type: 'string' },
-    type: { type: 'string', enum: ['image', 'audio', 'text', 'video'] },
-    model: { type: 'string' },
-    references: { type: 'array', items: { type: 'string' } },
-    options: {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        loras: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              path: { type: 'string' },
-              scale: { type: 'number', minimum: 0, maximum: 2 }
-            },
-            required: ['path', 'scale']
-          }
-        },
-        width: { type: 'integer' },
-        height: { type: 'integer' },
-        steps: { type: 'integer' },
-        seed: { type: 'number' },
-        guidance: { type: 'number' },
-        prompt: { type: 'string' },
-        negative_prompt: { type: 'string' }
-      }
-    }
-  },
-  required: ['prompt', 'type']
-};
+const GenerateMediaParameters = z.object({
+  prompt: z.string(),
+  type: z.enum(['image', 'audio', 'text', 'video']),
+  model: z.string().optional(),
+  references: z.array(z.string()).optional(),
+  options: z.object({
+    loras: z.array(z.object({
+      path: z.string(),
+      scale: z.number().min(0).max(2)
+    })).optional(),
+    width: z.number().int().optional(),
+    height: z.number().int().optional(),
+    steps: z.number().int().optional(),
+    seed: z.number().optional(),
+    guidance: z.number().optional(),
+    prompt: z.string().optional(),
+    negative_prompt: z.string().optional(),
+  }).optional(),
+});
 
 // Tools
 const tools = {
