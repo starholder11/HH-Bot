@@ -95,7 +95,8 @@ export default function VideoEditorPage() {
     const assetId = params.get('asset');
     if (assetId) {
       fetchVideoAsset(assetId);
-      // Projects are loaded lazily when user clicks dropdown
+      // Load projects immediately so dropdown shows correct selection
+      fetchProjects();
     }
   }, []);
 
@@ -120,6 +121,7 @@ export default function VideoEditorPage() {
       if (response.ok) {
         const video = await response.json();
         if (video.media_type === 'video') {
+          console.log('[video-editor] Loaded video:', video.filename, 'Project ID:', video.project_id);
           setSelectedVideo(video);
         } else {
           console.error('Asset is not a video:', video.media_type);
@@ -137,6 +139,8 @@ export default function VideoEditorPage() {
       const response = await fetch('/api/media-labeling/projects');
       if (response.ok) {
         const projectsData = await response.json();
+        console.log('[video-editor] Loaded projects:', projectsData.length);
+        console.log('[video-editor] Projects:', projectsData.map((p: Project) => `${p.project_id}: ${p.name}`));
         setProjects(projectsData);
       }
     } catch (error) {
