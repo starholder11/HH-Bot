@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText, tool, generateObject } from 'ai';
-import { z } from 'zod';
+import { streamText, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
 // Explicit JSON Schemas to satisfy OpenAI function schema validation
@@ -103,42 +102,15 @@ const tools = {
       required: ['ask']
     } as any,
     execute: async ({ ask, limit }) => {
-      // 1) Plan with a tiny planner model (strict JSON)
-      const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-      const plannerModelId = process.env.AGENT_PLANNER_MODEL || 'gpt-5-nano';
-      const PlanSchema = z.object({
-        queries: z.array(z.string()).min(1).max(8),
-        filters: z.object({
-          types: z.array(z.enum(['all','media','video','image','audio','text'])).default(['all']),
-          mustInclude: z.array(z.string()).default([]),
-          mustExclude: z.array(z.string()).default([]),
-          timeRange: z.object({ from: z.string().optional(), to: z.string().optional() }).optional(),
-          tags: z.array(z.string()).optional(),
-        }).default({}),
-        expandSynonyms: z.boolean().default(true),
-        numResults: z.number().int().min(10).max(1000).default(Math.min(200, limit || 200)),
-      });
-
-      let plan: z.infer<typeof PlanSchema>;
-      try {
-        const planRes = await generateObject({
-          model: openai(plannerModelId) as any,
-          schema: PlanSchema,
-          system: 'You convert a short, messy user ask into a SearchPlan JSON. No prose. Keep queries concise. Prefer 2-6 queries. Use broad synonyms when expandSynonyms is true. Never include private data.',
-          prompt: `User ask: ${ask}`,
-        });
-        plan = planRes.object as any;
-      } catch (e) {
-        // Fallback: heuristic plan if model not available
-        const words = (ask || '').toLowerCase().split(/\s+/).filter(Boolean);
-        const baseQ = words.slice(0, 6).join(' ');
-        plan = {
-          queries: [baseQ, `${baseQ} high quality`, `${baseQ} cinematic`].filter((v, i, a) => v && a.indexOf(v) === i),
-          filters: { types: ['media'], mustInclude: [], mustExclude: [] },
-          expandSynonyms: true,
-          numResults: Math.min(200, limit || 200),
-        } as any;
-      }
+      // Build a simple heuristic SearchPlan without model dependency
+      const words = (ask || '').toLowerCase().split(/\s+/).filter(Boolean);
+      const baseQ = words.slice(0, 6).join(' ');
+      const plan: any = {
+        queries: [baseQ, `${baseQ} high quality`, `${baseQ} cinematic`].filter((v, i, a) => v && a.indexOf(v) === i),
+        filters: { types: ['media'], mustInclude: [], mustExclude: [] },
+        expandSynonyms: true,
+        numResults: Math.min(200, limit || 200),
+      };
 
       // 2) Expand synonyms (domain-specific) if requested
       const synonyms: Record<string, string[]> = {
