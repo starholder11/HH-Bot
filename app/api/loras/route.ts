@@ -1,55 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readJsonFromS3, listKeys } from '@/lib/s3-upload';
+
+// Ensure no caching and Node runtime on Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
-    // Based on manual testing, these are the LoRAs that actually exist and work
-    const allLoras = [
-      {
-        canvasId: "canvas-1754851766285-7p3o4u",
-        canvasName: "Le'Circ",
-        loraId: "ddab661f-d775-47e4-894b-51dafde0d46b",
-        path: "https://v3.fal.media/files/kangaroo/tYOd8L1AVvUs9zAcZyh3D_pytorch_lora_weights.safetensors",
-        triggerWord: "CANVAS_STYLE",
-        scale: 1.0,
-        artifactUrl: "https://v3.fal.media/files/kangaroo/tYOd8L1AVvUs9zAcZyh3D_pytorch_lora_weights.safetensors",
-        status: "completed"
-      },
-      {
-        canvasId: "canvas-1754851763870-qte75d",
-        canvasName: "HOMBRE",
-        loraId: "bb43b00b-7116-4cbb-8449-e12eb04c8df6",
-        path: "https://v3.fal.media/files/rabbit/nUSz5NO0KDQWfj_hdVlCN_pytorch_lora_weights.safetensors",
-        triggerWord: "CANVAS_STYLE",
-        scale: 1.0,
-        artifactUrl: "https://v3.fal.media/files/rabbit/nUSz5NO0KDQWfj_hdVlCN_pytorch_lora_weights.safetensors",
-        status: "completed"
-      },
-      {
-        canvasId: "canvas-1754851740934-6etzax",
-        canvasName: "Initiate Compute",
-        loraId: "4f55efee-9af6-47da-b318-02a49036ae71",
-        path: "https://v3.fal.media/files/elephant/JfKfzWHRlE_OKSrCl-y6x_pytorch_lora_weights.safetensors",
-        triggerWord: "CANVAS_STYLE",
-        scale: 1.0,
-        artifactUrl: "https://v3.fal.media/files/elephant/JfKfzWHRlE_OKSrCl-y6x_pytorch_lora_weights.safetensors",
-        status: "completed"
-      },
-      {
-        canvasId: "canvas-1754773074994",
-        canvasName: "COMMISSARSHA",
-        loraId: "ae87878a-e25c-4552-ad8f-49632f7f62a0",
-        path: "https://v3.fal.media/files/zebra/Cwk1DHL7puvFGkuYvTdMJ_pytorch_lora_weights.safetensors",
-        triggerWord: "CANVAS_STYLE",
-        scale: 1.0,
-        artifactUrl: "https://v3.fal.media/files/zebra/Cwk1DHL7puvFGkuYvTdMJ_pytorch_lora_weights.safetensors",
-        status: "completed"
-      }
-    ];
+    // Load canvas index (preferred)
+    let indexData: any = null;
+    try {
+      indexData = await readJsonFromS3('canvases/index.json');
+    } catch {}
 
-    console.log(`[loras] Returning ${allLoras.length} hardcoded LoRAs - updated`);
+    // Build entries from index or fallback to listing keys
+    let entries: Array<{ id: string; name?: string; key?: string; updatedAt?: string }> = [];
+    if (indexData && Array.isArray(indexData.items)) {
+      entries = indexData.items as any[];
+    } else {
+      const keys = await listKeys('canvases/', 5000);
+      const canvasKeys = keys.filter((k) => k.endsWith('.json') && !k.endsWith('/index.json'));
+      entries = canvasKeys.map((k) => ({ id: k.split('/').pop()!.replace('.json', ''), key: k }));
+    }
+
+    // Sort newest-first by updatedAt when available
+    const sorted = [...entries].sort(
+      (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+    );
+
+    // Read all canvases in parallel (robust + fast)
+    const canvases = await Promise.all(
+      sorted.map(async (entry) => {
+        const key = entry.key || `canvases/${entry.id}.json`;
+        try {
+          const data = await readJsonFromS3(key);
+          return data as any;
+        } catch (err) {
+          // Skip unreadable canvases but keep going
+          return null;
+        }
+      })
+    );
+
+    // Aggregate completed LoRAs with artifact URL/path present
+    const allLoras: Array<{
+      canvasId: string;
+      canvasName: string;
+      loraId: string;
+      path: string;
+      triggerWord: string;
+      scale: number;
+      artifactUrl: string;
+      status: string;
+    }> = [];
+
+    for (const canvas of canvases) {
+      if (!canvas || !Array.isArray(canvas.loras)) continue;
+      for (const lora of canvas.loras) {
+        const status = String(lora?.status || '').toLowerCase();
+        const artifact = lora?.artifactUrl || lora?.path;
+        if (status === 'completed' && artifact) {
+          allLoras.push({
+            canvasId: canvas.id,
+            canvasName: canvas.name || canvas.id,
+            loraId: lora.id || lora.requestId,
+            path: artifact,
+            triggerWord: lora.triggerWord || 'CANVAS_STYLE',
+            scale: 1.0,
+            artifactUrl: artifact,
+            status: lora.status,
+          });
+        }
+      }
+    }
+
     return NextResponse.json(allLoras);
   } catch (error) {
-    console.error('[loras] Error fetching LoRAs:', error);
     return NextResponse.json({ error: 'Failed to fetch LoRAs' }, { status: 500 });
   }
 }
