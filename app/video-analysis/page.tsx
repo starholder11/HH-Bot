@@ -204,7 +204,7 @@ export default function VideoAnalysisPage() {
       if (response.ok) {
         const projectsData = await response.json();
         console.log('[video-analysis] Loaded projects:', projectsData.length, 'projects');
-        console.log('[video-analysis] Project IDs:', projectsData.map(p => p.project_id));
+        console.log('[video-analysis] Project IDs:', projectsData.map((p: Project) => p.project_id));
         setProjects(projectsData);
       }
     } catch (error) {
