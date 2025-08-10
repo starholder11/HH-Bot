@@ -549,6 +549,7 @@ export async function listMediaAssets(
 
       const elapsed = Date.now() - startTime;
       console.log(`[media-storage] S3 loading completed in ${elapsed}ms: returned ${resultAssets.length} assets (page ${page}) out of ${filteredTotalCount} matching (mediaType=${mediaType || 'all'})`);
+      console.log(`[media-storage] DEBUG: allAssets.length=${allAssets.length}, allKeys.length=${allKeys.length}, page=${page}, start=${(page - 1) * limit}, end=${(page - 1) * limit + limit}, hasMore=${hasMore}`);
 
       return {
         assets: resultAssets,
