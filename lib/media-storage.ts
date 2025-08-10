@@ -531,8 +531,8 @@ export async function listMediaAssets(
       }
 
       // At this point allAssets *may* contain more than one page worth when mediaType filter is used.
-      // Compute total count based on the full key list after any prefix / keyframe filtering
-      const filteredTotalCount = allKeys.length;
+      // IMPORTANT: Use allAssets.length for pagination, not allKeys.length, since filtering may reduce the count
+      const filteredTotalCount = allAssets.length;
 
       let resultAssets: MediaAsset[];
       if (loadAll) {
@@ -543,9 +543,9 @@ export async function listMediaAssets(
         resultAssets = allAssets.slice(start, end);
       }
 
-      // Re-compute hasMore after optional keyframe exclusion
+      // Re-compute hasMore based on the actual filtered assets count
       const endIndexEvaluated = page * limit;
-      const totalAfterFilter = allKeys.length;
+      const totalAfterFilter = allAssets.length; // Use filtered assets count, not keys count
       const hasMore = endIndexEvaluated < totalAfterFilter;
 
       const elapsed = Date.now() - startTime;
