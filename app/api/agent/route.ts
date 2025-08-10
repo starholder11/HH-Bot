@@ -3,14 +3,26 @@ import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
+// Define a JSONValue type that emits proper JSON Schema with explicit type keys
+const JSONValue: z.ZodType<any> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(JSONValue),
+    z.object({}).catchall(JSONValue),
+  ])
+);
+
 // --- FINAL minimal schemas that still pass OpenAI validation ---
-// Each has a single required "payload" field whose schema has an explicit "type: object".
+// Single required "payload" field; payload is an object whose additionalProperties has explicit schema
 const PrepareGenerateParameters = z.object({
-  payload: z.record(z.any()) // -> { type:"object", additionalProperties:true }
+  payload: z.object({}).catchall(JSONValue)
 }).strict();
 
 const GenerateMediaParameters = z.object({
-  payload: z.record(z.any())
+  payload: z.object({}).catchall(JSONValue)
 }).strict();
 
 // Tools
