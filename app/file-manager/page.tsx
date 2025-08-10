@@ -536,8 +536,7 @@ export default function FileManagerPage() {
 
   // Optimized filtered assets with stable references
   const filteredAssets = useMemo(() => {
-    const masterAssetList = Array.from(assetCacheRef.current.values());
-    const result = masterAssetList.filter(asset => {
+    const result = assets.filter(asset => {
       // Filter 1: The asset must be in the list of currently filtered IDs
       if (!filteredAssetIds.includes(asset.id)) {
         return false;
@@ -592,7 +591,7 @@ export default function FileManagerPage() {
     });
 
     return result;
-  }, [filteredAssetIds, searchTerm]);
+  }, [assets, filteredAssetIds, searchTerm]);
 
   // Determine if the search bar is active (non-empty)
   const isSearchActive = searchTerm.trim().length > 0;
