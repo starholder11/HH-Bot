@@ -3,20 +3,13 @@ import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
-// Minimal Zod schemas - remove options entirely to avoid OpenAI validation hell
+// Minimal schema: single payload field to bypass OpenAI strict validation
 const PrepareGenerateParameters = z.object({
-  type: z.enum(['image', 'audio', 'text', 'video']).optional(),
-  model: z.string().optional(),
-  prompt: z.string().optional(),
-  references: z.array(z.string()).optional(),
-  autoRun: z.boolean().optional(),
+  payload: z.any()
 });
 
 const GenerateMediaParameters = z.object({
-  prompt: z.string(),
-  type: z.enum(['image', 'audio', 'text', 'video']),
-  model: z.string().optional(),
-  references: z.array(z.string()).optional(),
+  payload: z.any()
 });
 
 // Tools
@@ -25,8 +18,9 @@ const tools = {
   prepareGenerate: tool({
     description: 'Populate the Generate tab with parameters and optionally start generation',
     parameters: PrepareGenerateParameters,
-    execute: async ({ type, model, prompt, references, autoRun }) => {
-      return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options: {}, autoRun: autoRun ?? true } };
+    execute: async ({ payload }) => {
+      const { type, model, prompt, references, autoRun } = payload || {};
+      return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options: payload?.options || {}, autoRun: autoRun ?? true } };
     }
   }),
   planAndSearch: tool({
@@ -159,21 +153,18 @@ const tools = {
   generateMedia: tool({
     description: 'Generate media using FAL.ai',
     parameters: GenerateMediaParameters,
-    execute: async ({ prompt, type, model, references }) => {
-      // If no references were provided, ask the client to supply pinned refs
+    execute: async ({ payload }) => {
+      const { prompt, type, model, references, options } = payload || {};
       if (!references || references.length === 0) {
-        // Also tell the client to show the Generate tab populated
-        return { action: 'prepareGenerate', payload: { type, model, prompt, refs: [], options: {}, autoRun: true } };
+        return { action: 'prepareGenerate', payload: { type, model, prompt, refs: [], options: options || {}, autoRun: true } };
       }
-
       const res = await fetch(`/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: type, model, prompt, refs: references || [], options: {} }),
+        body: JSON.stringify({ mode: type, model, prompt, refs: references || [], options: options || {} }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || 'Generate failed');
-      // Tell client to render in Output pane
       return { action: 'showOutput', payload: { type, response: json } };
     }
   }),
