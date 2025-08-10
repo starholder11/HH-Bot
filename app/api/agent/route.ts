@@ -33,7 +33,7 @@ const tools = {
       const res = await fetch(url || `/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}${typeParam}`, { method: 'GET' });
       if (!res.ok) throw new Error(`Unified search failed: ${res.status}`);
       const json = await res.json();
-      // Return a directive for the client to show results in the UI
+      // Return a directive for the client UI to show results in the UI
       return { action: 'showResults', payload: json };
     }
   }),
@@ -98,27 +98,77 @@ const tools = {
       const lorasRes = await fetch(`${base}/api/loras` || '/api/loras', { method: 'GET' })
       if (!lorasRes.ok) throw new Error('Failed to fetch LoRAs')
       const allLoras = await lorasRes.json()
-      
-      // Find LoRA by canvas name or ID
-      const matchingLora = allLoras.find((lora: any) => 
-        lora.canvasId === canvas || 
-        lora.canvasName.toLowerCase() === canvas.toLowerCase()
-      )
-      
-      if (!matchingLora) {
+
+      // Robust normalization: lowercase, NFKD, strip diacritics, unify quotes, remove non-alphanumerics
+      const normalize = (s: string) =>
+        s
+          .toLowerCase()
+          .normalize('NFKD')
+          .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'") // smart/single quotes to '
+          .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"') // smart double quotes to "
+          .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+          .replace(/[^a-z0-9]+/g, '') // keep only a-z0-9
+
+      const inputNorm = normalize(canvas)
+
+      // 1) Exact canvasId match
+      let best = allLoras.find((l: any) => l.canvasId === canvas)
+
+      // 2) Exact normalized name match
+      if (!best) best = allLoras.find((l: any) => normalize(String(l.canvasName || '')) === inputNorm)
+
+      // 3) Substring match either direction
+      if (!best) best = allLoras.find((l: any) => {
+        const n = normalize(String(l.canvasName || ''))
+        return n.includes(inputNorm) || inputNorm.includes(n)
+      })
+
+      // 4) Levenshtein fallback
+      if (!best) {
+        const distance = (a: string, b: string) => {
+          const m = a.length, n = b.length
+          if (m === 0) return n
+          if (n === 0) return m
+          const dp = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0))
+          for (let i = 0; i <= m; i++) dp[i][0] = i
+          for (let j = 0; j <= n; j++) dp[0][j] = j
+          for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+              const cost = a[i - 1] === b[j - 1] ? 0 : 1
+              dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + cost,
+              )
+            }
+          }
+          return dp[m][n]
+        }
+        let bestItem: any = null
+        let bestScore = Infinity
+        for (const l of allLoras) {
+          const n = normalize(String(l.canvasName || ''))
+          const d = distance(inputNorm, n)
+          if (d < bestScore) { bestScore = d; bestItem = l }
+        }
+        const maxAllowed = Math.max(1, Math.floor(Math.max(inputNorm.length, 3) * 0.25))
+        if (bestItem && bestScore <= maxAllowed) best = bestItem
+      }
+
+      if (!best) {
         return { action: 'showMessage', payload: { level: 'warn', text: `No completed LoRA found for canvas '${canvas}'.` } }
       }
-      
-      // Prepare generation with the LoRA
-      return { 
-        action: 'prepareGenerate', 
+
+      // Prepare generation with the matched LoRA
+      return {
+        action: 'prepareGenerate',
         payload: {
           type: 'image',
           model: 'fal-ai/flux-lora',
           prompt: prompt,
           options: {
             loras: [{
-              path: matchingLora.path,
+              path: best.path,
               scale: scale
             }]
           },
