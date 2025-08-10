@@ -296,6 +296,8 @@ function GenerationPanel({
   onUpdateAllLoras,
   canvasLabel,
   setRightTab,
+  saveStatus,
+  setSaveStatus,
 }: {
   pinned: PinnedItem[];
   onPinResult: (r: UnifiedSearchResult) => void;
@@ -315,6 +317,8 @@ function GenerationPanel({
   onUpdateAllLoras?: (updater: (prev: any[]) => any[]) => void;
   canvasLabel?: string;
   setRightTab?: (tab: 'results' | 'canvas' | 'output' | 'generate') => void;
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
 }) {
   const { models, loading } = useFalModels();
   const [filter, setFilter] = useState('');
@@ -330,7 +334,6 @@ function GenerationPanel({
   // Manual LoRA selection UI state
   const [selectedLoras, setSelectedLoras] = useState<Array<{ id: string; path: string; scale: number; selected: boolean; label: string }>>([])
   const [loraSelect, setLoraSelect] = useState<string>('')
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase();
@@ -1600,6 +1603,8 @@ function RightPane({
             onUpdateAllLoras={setAllLoras}
             canvasLabel={canvasName || 'Canvas'}
             setRightTab={setTab}
+            saveStatus={saveStatus}
+            setSaveStatus={setSaveStatus}
           />
         </div>
       )}
@@ -1671,6 +1676,7 @@ export default function VisualSearchPage() {
   const [genUrl, setGenUrl] = useState<string | null>(null);
   const [genMode, setGenMode] = useState<'image' | 'video' | 'audio' | 'text' | null>(null);
   const [genRaw, setGenRaw] = useState<any>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const agentRunLockRef = useRef(false);
   // Bridge for agent → UI actions
   useEffect(() => {
