@@ -3,14 +3,15 @@ import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
-// Minimal schema: single payload field to bypass OpenAI strict validation
+// --- FINAL minimal schemas that still pass OpenAI validation ---
+// Each has a single required "payload" field whose schema has an explicit "type: object".
 const PrepareGenerateParameters = z.object({
-  payload: z.any()
-});
+  payload: z.record(z.any()) // -> { type:"object", additionalProperties:true }
+}).strict();
 
 const GenerateMediaParameters = z.object({
-  payload: z.any()
-});
+  payload: z.record(z.any())
+}).strict();
 
 // Tools
 const tools = {
@@ -19,8 +20,8 @@ const tools = {
     description: 'Populate the Generate tab with parameters and optionally start generation',
     parameters: PrepareGenerateParameters,
     execute: async ({ payload }) => {
-      const { type, model, prompt, references, autoRun } = payload || {};
-      return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options: payload?.options || {}, autoRun: autoRun ?? true } };
+      const { type, model, prompt, references, autoRun, options } = (payload || {}) as any;
+      return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options: options || {}, autoRun: autoRun ?? true } };
     }
   }),
   planAndSearch: tool({
@@ -154,7 +155,7 @@ const tools = {
     description: 'Generate media using FAL.ai',
     parameters: GenerateMediaParameters,
     execute: async ({ payload }) => {
-      const { prompt, type, model, references, options } = payload || {};
+      const { prompt, type, model, references, options } = (payload || {}) as any;
       if (!references || references.length === 0) {
         return { action: 'prepareGenerate', payload: { type, model, prompt, refs: [], options: options || {}, autoRun: true } };
       }
