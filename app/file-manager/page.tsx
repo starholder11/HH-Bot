@@ -794,7 +794,7 @@ export default function FileManagerPage() {
       .replace(/\.[^.]+$/, ''); // Remove extension
   };
 
-  // Get asset display info
+    // Get asset display info
   const getAssetDisplayInfo = (asset: MediaAsset) => {
     // Special handling for keyframes
     if (asset._keyframe_metadata) {
