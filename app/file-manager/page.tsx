@@ -201,10 +201,12 @@ export default function FileManagerPage() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
 
-  // Pagination state
+  // Pagination + progressive fetching
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(100); // Show 100 assets per page
-  const [totalAssetCount, setTotalAssetCount] = useState(0); // Track total from server
+  const [itemsPerPage] = useState(100); // UI page size
+  const FETCH_CHUNK_SIZE = 2000; // server fetch chunk size
+  const PREFETCH_THRESHOLD = 200; // when within 200 items of end, prefetch next chunk
+  const [totalAssetCount, setTotalAssetCount] = useState(0); // Track total loaded into cache
 
   // Filename editing state
   const [isEditingFilename, setIsEditingFilename] = useState(false);
@@ -217,6 +219,10 @@ export default function FileManagerPage() {
   // Asset cache for stable references
   const assetCacheRef = useRef<Map<string, MediaAsset>>(new Map());
   const [filteredAssetIds, setFilteredAssetIds] = useState<string[]>([]); // NEW: separate filtered IDs
+  const fetchedChunkPagesRef = useRef<Set<number>>(new Set());
+  const nextChunkPageRef = useRef<number>(1);
+  const isFetchingChunkRef = useRef<boolean>(false);
+  const serverHasMoreRef = useRef<boolean>(true);
 
   // Mounted state to prevent state updates on unmounted component
   const isMounted = useRef(true);
@@ -227,15 +233,26 @@ export default function FileManagerPage() {
 
   // Load assets and projects
   useEffect(() => {
-    loadAssetsIncremental();
+    loadAssetsIncremental(1, FETCH_CHUNK_SIZE, true);
     loadProjects();
   }, []);
 
   // Define loadAssets with useCallback to prevent infinite re-renders
-  const loadAssetsIncremental = useCallback(async () => {
+  const loadAssetsIncremental = useCallback(async (chunkPage?: number, chunkLimit?: number, force?: boolean) => {
     try {
+      const pageToFetch = chunkPage ?? nextChunkPageRef.current;
+      const limitToFetch = chunkLimit ?? FETCH_CHUNK_SIZE;
+
+      if (!force && fetchedChunkPagesRef.current.has(pageToFetch)) {
+        return; // this chunk already fetched
+      }
+      if (isFetchingChunkRef.current) {
+        return; // avoid concurrent fetches
+      }
+      isFetchingChunkRef.current = true;
+
       let newData: MediaAsset[] = [];
-      let totalCount = 0;
+      let hasMoreFromServer = false;
 
       if (mediaTypeFilter === 'audio') {
         // For audio filter, fetch from audio-labeling API (which uses S3 JSON files)
@@ -269,29 +286,26 @@ export default function FileManagerPage() {
           lyrics: song.lyrics || '',
           prompt: song.prompt || '',
         }));
-        totalCount = newData.length;
+        hasMoreFromServer = false;
       } else {
         // For images, videos, and "all media", use existing media-labeling API with pagination
         const params = new URLSearchParams();
         if (mediaTypeFilter && mediaTypeFilter !== 'audio') params.append('type', mediaTypeFilter);
         if (projectFilter) params.append('project', projectFilter);
-        params.append('page', currentPage.toString());
-        params.append('limit', itemsPerPage.toString());
+        params.append('page', pageToFetch.toString());
+        params.append('limit', limitToFetch.toString());
         if (excludeKeyframes) params.append('exclude_keyframes','true');
 
         const queryString = params.toString();
-        console.log(`[file-manager] 🔍 API Request: /api/media-labeling/assets?${queryString} | excludeKeyframes=${excludeKeyframes}`);
+        console.log(`[file-manager] 🔍 API Request (chunk): /api/media-labeling/assets?${queryString} | excludeKeyframes=${excludeKeyframes}`);
         const response = await fetch(`/api/media-labeling/assets${queryString ? `?${queryString}` : ''}`);
         const result = await response.json();
 
         newData = result.assets || [];
-        totalCount = result.totalCount || 0;
+        hasMoreFromServer = Boolean(result.hasMore);
       }
 
       if (!isMounted.current) return; // Prevent state update on unmounted component
-
-      // Update total asset count for pagination
-      setTotalAssetCount(totalCount);
 
       // --- REFACTORED MERGE LOGIC ---
       // 1. Merge new data into the master cache
@@ -305,18 +319,17 @@ export default function FileManagerPage() {
         }
       }
 
-      // 2. Determine the new set of filtered IDs from the API response
-      const newFilteredIds = new Set(newData.map(a => a.id));
-
-      // 3. Update the filtered IDs state if it has changed
-      setFilteredAssetIds(prevIds => {
-        const currentFilteredIds = new Set(prevIds);
-        const isEqual = newFilteredIds.size === currentFilteredIds.size && Array.from(newFilteredIds).every(id => currentFilteredIds.has(id));
-        if (!isEqual) {
-          return Array.from(newFilteredIds);
-        }
-        return prevIds; // Return previous state to avoid re-render
-      });
+      // 2. Append new IDs (dedup, preserve order)
+      if (newData.length > 0) {
+        setFilteredAssetIds(prevIds => {
+          const existingSet = new Set(prevIds);
+          const appended: string[] = [];
+          for (const a of newData) {
+            if (!existingSet.has(a.id)) appended.push(a.id);
+          }
+          return prevIds.concat(appended);
+        });
+      }
 
 
       // 4. If the master cache was updated, trigger a re-render of the assets list
@@ -334,10 +347,17 @@ export default function FileManagerPage() {
       }
 
 
+      // Track pagination state
+      fetchedChunkPagesRef.current.add(pageToFetch);
+      nextChunkPageRef.current = Math.max(nextChunkPageRef.current, pageToFetch + 1);
+      serverHasMoreRef.current = hasMoreFromServer && newData.length > 0;
+
     } catch (error) {
       console.error('Error loading assets:', error);
+    } finally {
+      isFetchingChunkRef.current = false;
     }
-  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage, excludeKeyframes]); // Dependencies simplified
+  }, [mediaTypeFilter, projectFilter, excludeKeyframes]); // Dependencies simplified
 
   // Smart merge function that maintains stable object references
   const mergeAssetsWithCache = (newData: MediaAsset[], cache: Map<string, MediaAsset>, result: MediaAsset[]): boolean => {
@@ -404,15 +424,26 @@ export default function FileManagerPage() {
     // Clear cache when filters change to start fresh
     assetCacheRef.current.clear();
     setCurrentPage(1); // Reset to page 1 when filters change
-    loadAssetsIncremental();
+    setFilteredAssetIds([]);
+    fetchedChunkPagesRef.current.clear();
+    nextChunkPageRef.current = 1;
+    serverHasMoreRef.current = true;
+    loadAssetsIncremental(1, FETCH_CHUNK_SIZE, true);
   }, [mediaTypeFilter, projectFilter, excludeKeyframes]);
 
-  // Separate effect for page changes - load additional data
+  // Prefetch next chunk as pagination approaches end of loaded list
   useEffect(() => {
-    if (currentPage > 1) {
-      loadAssetsIncremental();
+    const endIndex = currentPage * itemsPerPage;
+    const remaining = filteredAssetIds.length - endIndex;
+    if (remaining <= PREFETCH_THRESHOLD && serverHasMoreRef.current) {
+      loadAssetsIncremental(nextChunkPageRef.current, FETCH_CHUNK_SIZE);
     }
-  }, [currentPage]);
+  }, [currentPage, itemsPerPage, filteredAssetIds.length, loadAssetsIncremental]);
+
+  // Keep total count synced with loaded IDs
+  useEffect(() => {
+    setTotalAssetCount(filteredAssetIds.length);
+  }, [filteredAssetIds]);
 
   // NEW: Add a dedicated effect to synchronize selection with filters and assets
   useEffect(() => {
@@ -543,29 +574,24 @@ export default function FileManagerPage() {
 
   // Optimized filtered assets with stable references
   const filteredAssets = useMemo(() => {
-    const result = assets.filter(asset => {
-      // Filter 1: The asset must be in the list of currently filtered IDs
-      if (!filteredAssetIds.includes(asset.id)) {
-        return false;
-      }
+    const cache = assetCacheRef.current;
+    const isSearch = searchTerm.trim().length > 0;
 
-      // Search filter
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
+    if (isSearch) {
+      const searchLower = searchTerm.toLowerCase();
+      const result: MediaAsset[] = [];
+      for (const id of filteredAssetIds) {
+        const asset = cache.get(id);
+        if (!asset) continue;
         const matchesSearch =
-          // Basic asset info
           (asset.title && asset.title.toLowerCase().includes(searchLower)) ||
           (asset.filename && asset.filename.toLowerCase().includes(searchLower)) ||
-
-          // Manual labels
           (asset.manual_labels?.custom_tags || []).some(tag => tag && tag.toLowerCase().includes(searchLower)) ||
           (asset.manual_labels?.style || []).some(style => style && style.toLowerCase().includes(searchLower)) ||
           (asset.manual_labels?.mood || []).some(mood => mood && mood.toLowerCase().includes(searchLower)) ||
           (asset.manual_labels?.themes || []).some(theme => theme && theme.toLowerCase().includes(searchLower)) ||
           (asset.manual_labels?.scenes || []).some(scene => scene && scene.toLowerCase().includes(searchLower)) ||
           (asset.manual_labels?.objects || []).some(object => object && object.toLowerCase().includes(searchLower)) ||
-
-          // AI-generated labels
           (asset.ai_labels && (
             (asset.ai_labels.scenes || []).some(scene => scene && scene.toLowerCase().includes(searchLower)) ||
             (asset.ai_labels.objects || []).some(object => object && object.toLowerCase().includes(searchLower)) ||
@@ -573,32 +599,30 @@ export default function FileManagerPage() {
             (asset.ai_labels.mood || []).some(mood => mood && mood.toLowerCase().includes(searchLower)) ||
             (asset.ai_labels.themes || []).some(theme => theme && theme.toLowerCase().includes(searchLower))
           )) ||
-
-          // Audio-specific fields
           (asset.media_type === 'audio' && asset.lyrics && asset.lyrics.toLowerCase().includes(searchLower)) ||
           (asset.media_type === 'audio' && asset.prompt && asset.prompt.toLowerCase().includes(searchLower)) ||
-
-          // Audio manual labels (for custom styles like "Madchester")
           (asset.media_type === 'audio' && asset.manual_labels?.custom_styles?.some((style: string) => style && style.toLowerCase().includes(searchLower))) ||
           (asset.media_type === 'audio' && asset.manual_labels?.custom_moods?.some((mood: string) => mood && mood.toLowerCase().includes(searchLower))) ||
           (asset.media_type === 'audio' && asset.manual_labels?.custom_themes?.some((theme: string) => theme && theme.toLowerCase().includes(searchLower))) ||
           (asset.media_type === 'audio' && asset.manual_labels?.primary_genre && asset.manual_labels.primary_genre.toLowerCase().includes(searchLower)) ||
-
-          // Metadata search
           (asset.metadata && asset.metadata.artist && asset.metadata.artist.toLowerCase().includes(searchLower)) ||
           (asset.metadata && asset.metadata.format && asset.metadata.format.toLowerCase().includes(searchLower));
-
-        if (!matchesSearch) return false;
+        if (matchesSearch) result.push(asset);
       }
+      return result;
+    }
 
-      // Note: Media type and project filters are already applied server-side in loadAssetsIncremental()
-      // So we don't need to re-filter them here to avoid race conditions
-
-      return true;
-    });
-
+    // Non-search: return only the current page slice from the loaded IDs
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageIds = filteredAssetIds.slice(start, end);
+    const result: MediaAsset[] = [];
+    for (const id of pageIds) {
+      const asset = cache.get(id);
+      if (asset) result.push(asset);
+    }
     return result;
-  }, [assets, filteredAssetIds, searchTerm]);
+  }, [filteredAssetIds, searchTerm, currentPage, itemsPerPage]);
 
   // Determine if the search bar is active (non-empty)
   const isSearchActive = searchTerm.trim().length > 0;
@@ -998,12 +1022,11 @@ export default function FileManagerPage() {
             ))}
           </div>
 
-          {/* Server-side Pagination Controls */}
+          {/* Pagination Controls over cached list with progressive prefetch */}
           {totalAssetCount > itemsPerPage && (
             <div className="mt-4 flex items-center justify-between border-t pt-4">
               <div className="text-sm text-gray-500">
-                Page {currentPage} of {Math.ceil(totalAssetCount / itemsPerPage)}
-                ({totalAssetCount} total assets)
+                Page {currentPage} of {Math.max(1, Math.ceil(totalAssetCount / itemsPerPage))} ({totalAssetCount} loaded)
               </div>
               <div className="flex items-center space-x-2">
                 <button
@@ -1016,7 +1039,7 @@ export default function FileManagerPage() {
 
                 <div className="flex items-center space-x-1">
                   {Array.from({ length: Math.min(5, Math.ceil(totalAssetCount / itemsPerPage)) }, (_, i) => {
-                    const totalPages = Math.ceil(totalAssetCount / itemsPerPage);
+                    const totalPages = Math.max(1, Math.ceil(totalAssetCount / itemsPerPage));
                     const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
                     if (pageNumber > totalPages) return null;
 
@@ -1037,8 +1060,8 @@ export default function FileManagerPage() {
                 </div>
 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalAssetCount / itemsPerPage), prev + 1))}
-                  disabled={currentPage === Math.ceil(totalAssetCount / itemsPerPage)}
+                  onClick={() => setCurrentPage(prev => Math.min(Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)), prev + 1))}
+                  disabled={currentPage === Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)) && !serverHasMoreRef.current}
                   className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Next
