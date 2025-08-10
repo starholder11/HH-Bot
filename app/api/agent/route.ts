@@ -3,13 +3,13 @@ import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
-// Simplified Zod schemas to avoid OpenAI function schema validation issues
+// Ultra-simplified Zod schemas to avoid all OpenAI function schema validation issues
 const PrepareGenerateParameters = z.object({
   type: z.enum(['image', 'audio', 'text', 'video']).optional(),
   model: z.string().optional(),
   prompt: z.string().optional(),
   references: z.array(z.string()).optional(),
-  options: z.record(z.any()).optional(), // Use generic record to avoid nested validation
+  options: z.any().optional(), // Use z.any() to avoid all nested validation
   autoRun: z.boolean().optional(),
 });
 
@@ -18,7 +18,7 @@ const GenerateMediaParameters = z.object({
   type: z.enum(['image', 'audio', 'text', 'video']),
   model: z.string().optional(),
   references: z.array(z.string()).optional(),
-  options: z.record(z.any()).optional(), // Use generic record to avoid nested validation
+  options: z.any().optional(), // Use z.any() to avoid all nested validation
 });
 
 // Tools
