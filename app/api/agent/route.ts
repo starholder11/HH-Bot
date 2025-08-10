@@ -132,12 +132,12 @@ const tools = {
         return Array.from(new Set(expanded)).slice(0, 6);
       };
 
-      const queries = Array.from(new Set(plan.queries.flatMap(expandTerms))).slice(0, 12);
+      const queries: string[] = Array.from(new Set((plan.queries as string[]).flatMap(expandTerms))).slice(0, 12);
       const types = (plan.filters?.types && plan.filters.types.length ? plan.filters.types : ['all']) as any;
 
       // 3) Execute in parallel against unified search
       const base = process.env.PUBLIC_API_BASE_URL || '';
-      const fetchOne = async (q: string) => {
+      const fetchOne = async (q: string): Promise<any> => {
         const typeParam = types.includes('all') ? '' : `&type=${encodeURIComponent(types[0])}`;
         const url = `${base}/api/unified-search?q=${encodeURIComponent(q)}&limit=${Math.min(plan.numResults, limit)}${typeParam}` || `/api/unified-search?q=${encodeURIComponent(q)}&limit=${Math.min(plan.numResults, limit)}${typeParam}`;
         try {
@@ -147,7 +147,7 @@ const tools = {
         } catch { return null; }
       };
 
-      const pages = await Promise.all(queries.map(fetchOne));
+      const pages = await Promise.all((queries as string[]).map((q) => fetchOne(q)));
       const results: any[] = [];
       const seen = new Set<string>();
       for (const page of pages) {
