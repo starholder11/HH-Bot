@@ -3,37 +3,92 @@ import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
-// Define a JSONValue type that emits proper JSON Schema with explicit type keys
-const JSONValue: z.ZodType<any> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(JSONValue),
-    z.object({}).catchall(JSONValue),
-  ])
-);
+// Explicit JSON Schemas to satisfy OpenAI function schema validation
+const PrepareGenerateParameters: any = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    type: { type: 'string', enum: ['image', 'audio', 'text', 'video'] },
+    model: { type: 'string' },
+    prompt: { type: 'string' },
+    references: { type: 'array', items: { type: 'string' } },
+    options: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        loras: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              path: { type: 'string' },
+              scale: { type: 'number', minimum: 0, maximum: 2 }
+            },
+            required: ['path', 'scale']
+          }
+        },
+        width: { type: 'integer' },
+        height: { type: 'integer' },
+        steps: { type: 'integer' },
+        seed: { type: 'number' },
+        guidance: { type: 'number' },
+        prompt: { type: 'string' },
+        negative_prompt: { type: 'string' }
+      },
+      required: ['loras','width','height','steps','seed','guidance','prompt','negative_prompt']
+    },
+    autoRun: { type: 'boolean' }
+  },
+  required: ['type','model','prompt','references','options','autoRun']
+};
 
-// --- FINAL minimal schemas that still pass OpenAI validation ---
-// Single required "payload" field; payload is an object whose additionalProperties has explicit schema
-const PrepareGenerateParameters = z.object({
-  payload: z.object({}).catchall(JSONValue)
-}).strict();
-
-const GenerateMediaParameters = z.object({
-  payload: z.object({}).catchall(JSONValue)
-}).strict();
+const GenerateMediaParameters: any = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    prompt: { type: 'string' },
+    type: { type: 'string', enum: ['image', 'audio', 'text', 'video'] },
+    model: { type: 'string' },
+    references: { type: 'array', items: { type: 'string' } },
+    options: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        loras: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              path: { type: 'string' },
+              scale: { type: 'number', minimum: 0, maximum: 2 }
+            },
+            required: ['path', 'scale']
+          }
+        },
+        width: { type: 'integer' },
+        height: { type: 'integer' },
+        steps: { type: 'integer' },
+        seed: { type: 'number' },
+        guidance: { type: 'number' },
+        prompt: { type: 'string' },
+        negative_prompt: { type: 'string' }
+      },
+      required: ['loras','width','height','steps','seed','guidance','prompt','negative_prompt']
+    }
+  },
+  required: ['prompt','type','model','references','options']
+};
 
 // Tools
 const tools = {
   // Prepare the Generate tab with structured params; client will populate the form and optionally auto-run
   prepareGenerate: tool({
     description: 'Populate the Generate tab with parameters and optionally start generation',
-    parameters: PrepareGenerateParameters,
-    execute: async ({ payload }) => {
-      const { type, model, prompt, references, autoRun, options } = (payload || {}) as any;
-      return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options: options || {}, autoRun: autoRun ?? true } };
+    parameters: PrepareGenerateParameters as any,
+    execute: async ({ type, model, prompt, references, options, autoRun }) => {
+      return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options, autoRun: autoRun ?? true } };
     }
   }),
   planAndSearch: tool({
@@ -165,9 +220,8 @@ const tools = {
   }),
   generateMedia: tool({
     description: 'Generate media using FAL.ai',
-    parameters: GenerateMediaParameters,
-    execute: async ({ payload }) => {
-      const { prompt, type, model, references, options } = (payload || {}) as any;
+    parameters: GenerateMediaParameters as any,
+    execute: async ({ prompt, type, model, references, options }) => {
       if (!references || references.length === 0) {
         return { action: 'prepareGenerate', payload: { type, model, prompt, refs: [], options: options || {}, autoRun: true } };
       }
