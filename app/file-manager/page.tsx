@@ -435,7 +435,7 @@ export default function FileManagerPage() {
   useEffect(() => {
     const endIndex = currentPage * itemsPerPage;
     const remaining = filteredAssetIds.length - endIndex;
-    if (remaining <= PREFETCH_THRESHOLD && serverHasMoreRef.current) {
+    if (remaining <= PREFETCH_THRESHOLD) {
       loadAssetsIncremental(nextChunkPageRef.current, FETCH_CHUNK_SIZE);
     }
   }, [currentPage, itemsPerPage, filteredAssetIds.length, loadAssetsIncremental]);
@@ -1060,8 +1060,8 @@ export default function FileManagerPage() {
                 </div>
 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)), prev + 1))}
-                  disabled={currentPage === Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)) && !serverHasMoreRef.current}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage === Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)) && !isFetchingChunkRef.current && !serverHasMoreRef.current}
                   className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Next
