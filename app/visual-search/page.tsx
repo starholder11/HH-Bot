@@ -767,6 +767,8 @@ function GenerationPanel({
                   fd.append('file', file);
                   fd.append('type', 'image');
                   fd.append('directory', 'images');
+                  // Pass a default project for visual search uploads
+                  fd.append('projectId', 'visual-search-refs');
                   const resp = await fetch('/api/upload', { method: 'POST', body: fd });
                   const json = await resp.json();
                   if (resp.ok && json.url) {

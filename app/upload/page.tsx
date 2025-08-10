@@ -29,11 +29,16 @@ export default function UploadPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       // Determine if it's an image
       const isImage = file.type.startsWith('image/');
       formData.append('type', isImage ? 'image' : 'file');
       formData.append('directory', isImage ? 'public/images' : 'public/files');
+
+      // For images, pass a default project for general uploads
+      if (isImage) {
+        formData.append('projectId', 'general-uploads');
+      }
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -68,7 +73,7 @@ export default function UploadPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-6">
             S3 File Upload
           </h1>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -125,4 +130,4 @@ export default function UploadPage() {
       </div>
     </div>
   );
-} 
+}
