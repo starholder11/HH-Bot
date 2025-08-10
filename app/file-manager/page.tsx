@@ -206,7 +206,8 @@ export default function FileManagerPage() {
   const [itemsPerPage] = useState(100); // UI page size
   const FETCH_CHUNK_SIZE = 2000; // server fetch chunk size
   const PREFETCH_THRESHOLD = 200; // when within 200 items of end, prefetch next chunk
-  const [totalAssetCount, setTotalAssetCount] = useState(0); // Track total loaded into cache
+  const [totalAssetCount, setTotalAssetCount] = useState(0); // Loaded into cache
+  const [serverTotalAssetCount, setServerTotalAssetCount] = useState(0); // Reported by server
 
   // Filename editing state
   const [isEditingFilename, setIsEditingFilename] = useState(false);
@@ -292,6 +293,9 @@ export default function FileManagerPage() {
         const params = new URLSearchParams();
         if (mediaTypeFilter && mediaTypeFilter !== 'audio') params.append('type', mediaTypeFilter);
         if (projectFilter) params.append('project', projectFilter);
+        if (!excludeKeyframes && (!mediaTypeFilter || mediaTypeFilter === 'image')) {
+          params.append('include_keyframes', 'true');
+        }
         params.append('page', pageToFetch.toString());
         params.append('limit', limitToFetch.toString());
         if (excludeKeyframes) params.append('exclude_keyframes','true');
@@ -303,6 +307,8 @@ export default function FileManagerPage() {
 
         newData = result.assets || [];
         hasMoreFromServer = Boolean(result.hasMore);
+        const srvTotal = typeof result.totalCount === 'number' ? result.totalCount : 0;
+        setServerTotalAssetCount(prev => (srvTotal > prev ? srvTotal : prev));
       }
 
       if (!isMounted.current) return; // Prevent state update on unmounted component
@@ -1023,10 +1029,10 @@ export default function FileManagerPage() {
           </div>
 
           {/* Pagination Controls over cached list with progressive prefetch */}
-          {totalAssetCount > itemsPerPage && (
+          {(serverTotalAssetCount || totalAssetCount) > itemsPerPage && (
             <div className="mt-4 flex items-center justify-between border-t pt-4">
               <div className="text-sm text-gray-500">
-                Page {currentPage} of {Math.max(1, Math.ceil(totalAssetCount / itemsPerPage))} ({totalAssetCount} loaded)
+                Page {currentPage} of {Math.max(1, Math.ceil((serverTotalAssetCount || totalAssetCount) / itemsPerPage))} ({totalAssetCount} loaded)
               </div>
               <div className="flex items-center space-x-2">
                 <button
@@ -1038,8 +1044,8 @@ export default function FileManagerPage() {
                 </button>
 
                 <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, Math.ceil(totalAssetCount / itemsPerPage)) }, (_, i) => {
-                    const totalPages = Math.max(1, Math.ceil(totalAssetCount / itemsPerPage));
+                  {Array.from({ length: Math.min(5, Math.ceil((serverTotalAssetCount || totalAssetCount) / itemsPerPage)) }, (_, i) => {
+                    const totalPages = Math.max(1, Math.ceil((serverTotalAssetCount || totalAssetCount) / itemsPerPage));
                     const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
                     if (pageNumber > totalPages) return null;
 
@@ -1061,7 +1067,7 @@ export default function FileManagerPage() {
 
                 <button
                   onClick={() => setCurrentPage(prev => prev + 1)}
-                  disabled={currentPage === Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)) && !isFetchingChunkRef.current && !serverHasMoreRef.current}
+                  disabled={currentPage >= Math.max(1, Math.ceil((serverTotalAssetCount || totalAssetCount) / itemsPerPage))}
                   className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Next

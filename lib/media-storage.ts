@@ -355,9 +355,9 @@ export async function listMediaAssets(
 
       // Progressive loading: Check if we need to load more keys based on pagination
       const requestedEndIndex = page * limit;
-      const needsMoreKeys = s3KeysCache && s3KeysCache.hasMoreKeys && 
+      const needsMoreKeys = s3KeysCache && s3KeysCache.hasMoreKeys &&
                            requestedEndIndex > (s3KeysCache.keys.length * 0.8); // Load more when 80% through
-      
+
       // Return cached keys if still fresh and we have enough for this page
       if (!isProd && s3KeysCache && (now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL) && !needsMoreKeys) {
         const cache = s3KeysCache; // Narrowing for TypeScript
@@ -402,11 +402,11 @@ export async function listMediaAssets(
 
           // Sort new batch and merge with existing
           fetched.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
-          
+
           // Merge with existing keys (existing keys are already sorted)
           const newKeys = fetched.map(f => f.key);
           allKeys = [...s3KeysCache.keys, ...newKeys];
-          
+
           console.log(`[media-storage] Progressive loading: extended to ${allKeys.length} keys`);
         } else {
           console.log('[media-storage] Initial loading: fetching first batch');
@@ -440,13 +440,13 @@ export async function listMediaAssets(
           // Sort by LastModified descending so newest uploads appear first
           fetched.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
           allKeys = fetched.map(f => f.key);
-          
+
           console.log(`[media-storage] Initial loading: loaded ${allKeys.length} keys, hasMore: ${!!continuationToken}`);
         }
 
         // Update cache with progressive loading state
-        s3KeysCache = { 
-          keys: allKeys, 
+        s3KeysCache = {
+          keys: allKeys,
           fetchedAt: now,
           hasMoreKeys: !!continuationToken, // Track if more keys are available
           lastContinuationToken: continuationToken
@@ -540,7 +540,7 @@ export async function listMediaAssets(
       } else {
         console.log(`[media-storage] Fetching and parsing ${keys.length} JSON files from S3`);
         // Fetch JSON content directly with higher concurrency and fewer batches
-        const concurrency = 200; // was 50
+        const concurrency = 300; // was 50 -> 200 -> 300 for faster cold load
 
         for (let i = 0; i < keys.length; i += concurrency) {
           const slice = keys.slice(i, i + concurrency);
@@ -1127,7 +1127,7 @@ export async function getAllKeyframes(): Promise<KeyframeStill[]> {
     // PERFORMANCE FIX: Use listMediaAssets to leverage existing S3 caching instead of doing separate S3 scan
     const mediaAssetsResult = await listMediaAssets(undefined, { loadAll: true });
     const keyframeAssets = mediaAssetsResult.assets.filter(asset => asset.media_type === 'keyframe_still');
-    
+
     // Convert MediaAssets to KeyframeStill format
     const keyframes: KeyframeStill[] = keyframeAssets.map(asset => ({
       id: asset.id,
