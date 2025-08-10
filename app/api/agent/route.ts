@@ -13,7 +13,16 @@ const tools = {
       model: z.string().optional(),
       prompt: z.string().optional(),
       references: z.array(z.string()).optional(),
-      options: z.object({}).catchall(z.any()).optional(),
+      options: z.object({
+        loras: z.array(z.object({ path: z.string(), scale: z.number().min(0).max(2).optional() })).optional(),
+        width: z.number().int().optional(),
+        height: z.number().int().optional(),
+        steps: z.number().int().optional(),
+        seed: z.number().optional(),
+        guidance: z.number().optional(),
+        prompt: z.string().optional(),
+        negative_prompt: z.string().optional(),
+      }).optional(),
       autoRun: z.boolean().optional(),
     }),
     execute: async ({ type, model, prompt, references, options, autoRun }) => {
@@ -154,7 +163,16 @@ const tools = {
       type: z.enum(['image', 'audio', 'text', 'video']),
       model: z.string().optional(),
       references: z.array(z.string()).optional(),
-      options: z.object({}).catchall(z.any()).optional(),
+      options: z.object({
+        loras: z.array(z.object({ path: z.string(), scale: z.number().min(0).max(2).optional() })).optional(),
+        width: z.number().int().optional(),
+        height: z.number().int().optional(),
+        steps: z.number().int().optional(),
+        seed: z.number().optional(),
+        guidance: z.number().optional(),
+        prompt: z.string().optional(),
+        negative_prompt: z.string().optional(),
+      }).optional(),
     }),
     execute: async ({ prompt, type, model, references, options }) => {
       // If no references were provided, ask the client to supply pinned refs
