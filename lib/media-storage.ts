@@ -412,7 +412,7 @@ export async function listMediaAssets(
           console.log('[media-storage] Initial loading: fetching first batch');
           // Initial loading: fetch limited batches for performance
           let batchCount = 0;
-          const INITIAL_BATCHES = 2; // Start with 2000 keys
+          const INITIAL_BATCHES = 3; // Start with up to 3000 keys to reduce follow-up fetches
 
           do {
             const resp: ListObjectsV2CommandOutput = await s3.send(
@@ -539,39 +539,39 @@ export async function listMediaAssets(
         allAssets = parsedAssetsCache.assets;
       } else {
         console.log(`[media-storage] Fetching and parsing ${keys.length} JSON files from S3`);
-        // Fetch JSON content directly with higher concurrency
-        const concurrency = 50;
+        // Fetch JSON content directly with higher concurrency and fewer batches
+        const concurrency = 200; // was 50
 
-      for (let i = 0; i < keys.length; i += concurrency) {
-        const slice = keys.slice(i, i + concurrency);
-        const batch = await Promise.all(slice.map(async key => {
-          try {
-            const getObjectResponse = await s3.send(new GetObjectCommand({
-              Bucket: bucket,
-              Key: key,
-            }));
+        for (let i = 0; i < keys.length; i += concurrency) {
+          const slice = keys.slice(i, i + concurrency);
+          const batch = await Promise.all(slice.map(async key => {
+            try {
+              const getObjectResponse = await s3.send(new GetObjectCommand({
+                Bucket: bucket,
+                Key: key,
+              }));
 
-            if (!getObjectResponse.Body) return null;
+              if (!getObjectResponse.Body) return null;
 
-            const jsonContent = await streamToString(getObjectResponse.Body as Readable);
-            const asset = JSON.parse(jsonContent) as MediaAsset;
+              const jsonContent = await streamToString(getObjectResponse.Body as Readable);
+              const asset = JSON.parse(jsonContent) as MediaAsset;
 
-            // Apply media type filter here to avoid unnecessary processing
-            if (mediaType && !isMediaTypeMatch(asset, mediaType)) {
+              // Apply media type filter here to avoid unnecessary processing
+              if (mediaType && !isMediaTypeMatch(asset, mediaType)) {
+                return null;
+              }
+
+              return asset;
+            } catch (error) {
+              console.warn(`[media-storage] Failed to fetch asset ${key}:`, error);
               return null;
             }
+          }));
 
-            return asset;
-          } catch (error) {
-            console.warn(`[media-storage] Failed to fetch asset ${key}:`, error);
-            return null;
-          }
-        }));
-
-        batch.forEach(asset => {
-          if (asset) allAssets.push(asset);
-        });
-      }
+          batch.forEach(asset => {
+            if (asset) allAssets.push(asset);
+          });
+        }
 
         // Sort by creation date (newest first)
         allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
