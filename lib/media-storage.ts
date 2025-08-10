@@ -412,7 +412,7 @@ export async function listMediaAssets(
           console.log('[media-storage] Initial loading: fetching first batch');
           // Initial loading: fetch limited batches for performance
           let batchCount = 0;
-          const INITIAL_BATCHES = 2; // Back to 2000 keys to reduce list time
+          const INITIAL_BATCHES = 3; // Load up to ~3000 keys so totals like 2285 are reflected
 
           do {
             const resp: ListObjectsV2CommandOutput = await s3.send(
