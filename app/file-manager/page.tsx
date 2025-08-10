@@ -205,10 +205,8 @@ export default function FileManagerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(100); // UI page size
   const FETCH_CHUNK_SIZE = 2000; // server fetch chunk size
-  const PREFETCH_THRESHOLD = 500; // prefetch earlier to ensure next pages are ready
-  const [totalAssetCount, setTotalAssetCount] = useState(0); // Loaded into cache
-  const [serverTotalAssetCount, setServerTotalAssetCount] = useState(0); // Reported by server
-  const [initializing, setInitializing] = useState(true);
+  const PREFETCH_THRESHOLD = 200; // when within 200 items of end, prefetch next chunk
+  const [totalAssetCount, setTotalAssetCount] = useState(0); // Track total loaded into cache
 
   // Filename editing state
   const [isEditingFilename, setIsEditingFilename] = useState(false);
@@ -235,8 +233,7 @@ export default function FileManagerPage() {
 
   // Load assets and projects
   useEffect(() => {
-    setInitializing(true);
-    loadAssetsIncremental(1, FETCH_CHUNK_SIZE, true).finally(() => setInitializing(false));
+    loadAssetsIncremental(1, FETCH_CHUNK_SIZE, true);
     loadProjects();
   }, []);
 
@@ -306,8 +303,6 @@ export default function FileManagerPage() {
 
         newData = result.assets || [];
         hasMoreFromServer = Boolean(result.hasMore);
-        const srvTotal = typeof result.totalCount === 'number' ? result.totalCount : 0;
-        setServerTotalAssetCount(prev => (srvTotal > prev ? srvTotal : prev));
       }
 
       if (!isMounted.current) return; // Prevent state update on unmounted component
@@ -356,15 +351,6 @@ export default function FileManagerPage() {
       fetchedChunkPagesRef.current.add(pageToFetch);
       nextChunkPageRef.current = Math.max(nextChunkPageRef.current, pageToFetch + 1);
       serverHasMoreRef.current = hasMoreFromServer && newData.length > 0;
-
-      // Proactive prefetch next chunk right after initial load completes
-      if (pageToFetch === 1 && serverHasMoreRef.current && !fetchedChunkPagesRef.current.has(2)) {
-        setTimeout(() => {
-          if (!isFetchingChunkRef.current) {
-            loadAssetsIncremental(2, FETCH_CHUNK_SIZE);
-          }
-        }, 100);
-      }
 
     } catch (error) {
       console.error('Error loading assets:', error);
@@ -450,14 +436,6 @@ export default function FileManagerPage() {
     const endIndex = currentPage * itemsPerPage;
     const remaining = filteredAssetIds.length - endIndex;
     if (remaining <= PREFETCH_THRESHOLD) {
-      loadAssetsIncremental(nextChunkPageRef.current, FETCH_CHUNK_SIZE);
-    }
-  }, [currentPage, itemsPerPage, filteredAssetIds.length, loadAssetsIncremental]);
-
-  // Ensure we fetch when user navigates beyond loaded range (hard guarantee)
-  useEffect(() => {
-    const endIndex = currentPage * itemsPerPage;
-    if (endIndex > filteredAssetIds.length) {
       loadAssetsIncremental(nextChunkPageRef.current, FETCH_CHUNK_SIZE);
     }
   }, [currentPage, itemsPerPage, filteredAssetIds.length, loadAssetsIncremental]);
@@ -1022,15 +1000,7 @@ export default function FileManagerPage() {
             onMouseEnter={() => setAssetListFocused(true)}
             onMouseLeave={() => setAssetListFocused(false)}
           >
-            {(() => {
-              const endIndex = currentPage * itemsPerPage;
-              const isBeyondLoaded = endIndex > filteredAssetIds.length;
-              if (isBeyondLoaded && filteredAssets.length === 0) {
-                return (
-                  <div className="text-xs text-gray-500 py-8 text-center">Loading more assets…</div>
-                );
-              }
-              return filteredAssets.map((asset: MediaAsset) => (
+            {filteredAssets.map((asset: MediaAsset) => (
               <AssetListItem
                 key={asset.id}
                 asset={asset}
@@ -1049,15 +1019,14 @@ export default function FileManagerPage() {
                 getAssetIcon={getAssetIcon}
                 getAssetDisplayInfo={getAssetDisplayInfo}
               />
-              ));
-            })()}
+            ))}
           </div>
 
           {/* Pagination Controls over cached list with progressive prefetch */}
-          {(serverTotalAssetCount || totalAssetCount) > itemsPerPage && (
+          {totalAssetCount > itemsPerPage && (
             <div className="mt-4 flex items-center justify-between border-t pt-4">
               <div className="text-sm text-gray-500">
-                Page {currentPage} of {Math.max(1, Math.ceil((serverTotalAssetCount || totalAssetCount) / itemsPerPage))} ({totalAssetCount} loaded)
+                Page {currentPage} of {Math.max(1, Math.ceil(totalAssetCount / itemsPerPage))} ({totalAssetCount} loaded)
               </div>
               <div className="flex items-center space-x-2">
                 <button
@@ -1069,8 +1038,8 @@ export default function FileManagerPage() {
                 </button>
 
                 <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, Math.ceil((serverTotalAssetCount || totalAssetCount) / itemsPerPage)) }, (_, i) => {
-                    const totalPages = Math.max(1, Math.ceil((serverTotalAssetCount || totalAssetCount) / itemsPerPage));
+                  {Array.from({ length: Math.min(5, Math.ceil(totalAssetCount / itemsPerPage)) }, (_, i) => {
+                    const totalPages = Math.max(1, Math.ceil(totalAssetCount / itemsPerPage));
                     const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
                     if (pageNumber > totalPages) return null;
 
@@ -1092,7 +1061,7 @@ export default function FileManagerPage() {
 
                 <button
                   onClick={() => setCurrentPage(prev => prev + 1)}
-                  disabled={currentPage >= Math.max(1, Math.ceil((serverTotalAssetCount || totalAssetCount) / itemsPerPage))}
+                  disabled={currentPage === Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)) && !isFetchingChunkRef.current && !serverHasMoreRef.current}
                   className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Next
