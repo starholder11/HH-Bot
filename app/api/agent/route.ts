@@ -29,6 +29,7 @@ const tools = {
     execute: async ({ ask, limit }) => {
       // 1) Plan with a tiny planner model (strict JSON)
       const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+      const plannerModelId = process.env.AGENT_PLANNER_MODEL || 'gpt-5-nano';
       const PlanSchema = z.object({
         queries: z.array(z.string()).min(1).max(8),
         filters: z.object({
@@ -42,13 +43,26 @@ const tools = {
         numResults: z.number().int().min(10).max(1000).default(Math.min(200, limit || 200)),
       });
 
-      const planRes = await generateObject({
-        model: openai('gpt-5-nano') as any,
-        schema: PlanSchema,
-        system: 'You convert a short, messy user ask into a SearchPlan JSON. No prose. Keep queries concise. Prefer 2-6 queries. Use broad synonyms when expandSynonyms is true. Never include private data.',
-        prompt: `User ask: ${ask}`,
-      });
-      const plan = planRes.object;
+      let plan: z.infer<typeof PlanSchema>;
+      try {
+        const planRes = await generateObject({
+          model: openai(plannerModelId) as any,
+          schema: PlanSchema,
+          system: 'You convert a short, messy user ask into a SearchPlan JSON. No prose. Keep queries concise. Prefer 2-6 queries. Use broad synonyms when expandSynonyms is true. Never include private data.',
+          prompt: `User ask: ${ask}`,
+        });
+        plan = planRes.object as any;
+      } catch (e) {
+        // Fallback: heuristic plan if model not available
+        const words = (ask || '').toLowerCase().split(/\s+/).filter(Boolean);
+        const baseQ = words.slice(0, 6).join(' ');
+        plan = {
+          queries: [baseQ, `${baseQ} high quality`, `${baseQ} cinematic`].filter((v, i, a) => v && a.indexOf(v) === i),
+          filters: { types: ['media'], mustInclude: [], mustExclude: [] },
+          expandSynonyms: true,
+          numResults: Math.min(200, limit || 200),
+        } as any;
+      }
 
       // 2) Expand synonyms (domain-specific) if requested
       const synonyms: Record<string, string[]> = {
