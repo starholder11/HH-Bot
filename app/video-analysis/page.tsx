@@ -587,7 +587,7 @@ export default function VideoAnalysisPage() {
                 {/* Video Player Section */}
                 <div className="bg-white rounded-lg border border-gray-200">
                   <div className="p-6 border-b border-gray-200">
-                    {/* Single Top Row: Name (edit) | Category Selector | Analyze (settings) */}
+                    {/* Single Top Row: Name (edit) | Project Selector | Analyze (settings) */}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-6 flex-1">
                         {/* Name Section */}
@@ -640,15 +640,15 @@ export default function VideoAnalysisPage() {
                           )}
                         </div>
 
-                        {/* Category Selector */}
+                        {/* Project Selector */}
                         <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">Category:</span>
+                          <span className="text-sm text-gray-600">Project:</span>
                           <select
                             value={selectedVideo.project_id || ''}
                             onChange={(e) => updateProjectAssignment(e.target.value || null)}
                             className="border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 text-sm"
                           >
-                            <option value="">No Category</option>
+                            <option value="">No Project</option>
                             {projects.map(project => (
                               <option key={project.project_id} value={project.project_id}>
                                 {project.name}
