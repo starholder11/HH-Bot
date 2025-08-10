@@ -14,7 +14,7 @@ const tools = {
       prompt: z.string().optional(),
       references: z.array(z.string()).optional(),
       options: z.object({
-        loras: z.array(z.object({ path: z.string(), scale: z.number().min(0).max(2).default(1.0) })).optional(),
+        loras: z.array(z.object({ path: z.string(), scale: z.number().min(0).max(2) })).optional(),
         width: z.number().int().optional(),
         height: z.number().int().optional(),
         steps: z.number().int().optional(),
@@ -164,7 +164,7 @@ const tools = {
       model: z.string().optional(),
       references: z.array(z.string()).optional(),
       options: z.object({
-        loras: z.array(z.object({ path: z.string(), scale: z.number().min(0).max(2).default(1.0) })).optional(),
+        loras: z.array(z.object({ path: z.string(), scale: z.number().min(0).max(2) })).optional(),
         width: z.number().int().optional(),
         height: z.number().int().optional(),
         steps: z.number().int().optional(),
@@ -286,10 +286,7 @@ const tools = {
           model: 'fal-ai/flux-lora',
           prompt: prompt,
           options: {
-            loras: [{
-              path: best.path,
-              scale: scale
-            }]
+            loras: [{ path: best.path, scale: typeof scale === 'number' ? scale : 1.0 }]
           },
           autoRun: true
         }
