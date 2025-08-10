@@ -589,9 +589,18 @@ export async function listMediaAssets(
         };
       }
 
-      // At this point allAssets contains all loaded assets after filtering
-      // CRITICAL: Use allAssets.length for BOTH totalCount and hasMore calculations
-      const filteredTotalCount = allAssets.length;
+      // At this point allAssets contains all loaded assets for the selected key window
+      // For non-mediaType filtered listings, use the total number of keys available as the true total count
+      // so pagination reflects the entire available dataset, not just this page window.
+      let filteredTotalCount: number;
+      if (!mediaType) {
+        // allKeys already respects excludeKeyframes filtering
+        filteredTotalCount = (typeof allKeys?.length === 'number') ? allKeys.length : allAssets.length;
+      } else {
+        // For mediaType-specific listings we do not know the full count without scanning all keys.
+        // Use the number we loaded; hasMore is inferred below.
+        filteredTotalCount = allAssets.length;
+      }
 
       let resultAssets: MediaAsset[];
       if (loadAll) {
@@ -602,9 +611,21 @@ export async function listMediaAssets(
         resultAssets = allAssets.slice(start, end);
       }
 
-      // Calculate hasMore based on the same count used for totalCount
-      const endIndexEvaluated = page * limit;
-      const hasMore = endIndexEvaluated < filteredTotalCount;
+      // Calculate hasMore
+      let hasMore: boolean;
+      if (!mediaType) {
+        const endIndexEvaluated = page * limit;
+        // More if we have not yet reached the end of known keys, or if S3 indicates more keys exist
+        hasMore = endIndexEvaluated < (allKeys?.length || 0) || (s3KeysCache?.hasMoreKeys ?? false);
+      } else {
+        // If we hit the desiredMatches exactly, and there are more keys available to scan, assume more
+        const endIndexEvaluated = page * limit;
+        hasMore = resultAssets.length === limit || (s3KeysCache?.hasMoreKeys ?? false);
+        // Keep a sane lower bound as well
+        if (!hasMore) {
+          hasMore = endIndexEvaluated < (allKeys?.length || 0);
+        }
+      }
 
       const elapsed = Date.now() - startTime;
       console.log(`[media-storage] S3 loading completed in ${elapsed}ms: returned ${resultAssets.length} assets (page ${page}) out of ${filteredTotalCount} matching (mediaType=${mediaType || 'all'})`);

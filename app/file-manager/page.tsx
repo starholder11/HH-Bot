@@ -208,6 +208,7 @@ export default function FileManagerPage() {
   const PREFETCH_THRESHOLD = 500; // prefetch earlier to ensure next pages are ready
   const [totalAssetCount, setTotalAssetCount] = useState(0); // Loaded into cache
   const [serverTotalAssetCount, setServerTotalAssetCount] = useState(0); // Reported by server
+  const [initializing, setInitializing] = useState(true);
 
   // Filename editing state
   const [isEditingFilename, setIsEditingFilename] = useState(false);
@@ -234,7 +235,8 @@ export default function FileManagerPage() {
 
   // Load assets and projects
   useEffect(() => {
-    loadAssetsIncremental(1, FETCH_CHUNK_SIZE, true);
+    setInitializing(true);
+    loadAssetsIncremental(1, FETCH_CHUNK_SIZE, true).finally(() => setInitializing(false));
     loadProjects();
   }, []);
 
