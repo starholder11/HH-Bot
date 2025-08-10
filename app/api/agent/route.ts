@@ -93,10 +93,15 @@ const tools = {
   }),
   planAndSearch: tool({
     description: 'Turn a messy user ask into a structured multi-query search plan and execute it to show results',
-    parameters: z.object({
-      ask: z.string().describe('User natural language request'),
-      limit: z.number().int().min(1).max(2000).default(200),
-    }),
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        ask: { type: 'string' },
+        limit: { type: 'integer', minimum: 1, maximum: 2000 },
+      },
+      required: ['ask']
+    } as any,
     execute: async ({ ask, limit }) => {
       // 1) Plan with a tiny planner model (strict JSON)
       const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
@@ -194,11 +199,16 @@ const tools = {
   }),
   searchUnified: tool({
     description: 'Search across media and text content',
-    parameters: z.object({
-      query: z.string(),
-      contentType: z.enum(['all', 'media', 'video', 'image', 'audio', 'text']).default('all'),
-      limit: z.number().int().min(1).max(5000).default(1000),
-    }),
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        query: { type: 'string' },
+        contentType: { type: 'string', enum: ['all', 'media', 'video', 'image', 'audio', 'text'] },
+        limit: { type: 'integer', minimum: 1, maximum: 5000 },
+      },
+      required: ['query']
+    } as any,
     execute: async ({ query, contentType, limit }) => {
       const typeParam = contentType && contentType !== 'all' ? `&type=${encodeURIComponent(contentType)}` : '';
       const url = `${process.env.PUBLIC_API_BASE_URL || ''}/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}${typeParam}`;
@@ -211,7 +221,7 @@ const tools = {
   }),
   agentStatus: tool({
     description: 'Get the in-app agent generation status (what is running, last run URL)',
-    parameters: z.object({}),
+    parameters: { type: 'object', additionalProperties: false, properties: {} } as any,
     execute: async () => {
       const res = await fetch(`${process.env.PUBLIC_API_BASE_URL || ''}/api/agent/status` || '/api/agent/status', { method: 'GET' });
       if (!res.ok) throw new Error('Status fetch failed');
@@ -237,11 +247,16 @@ const tools = {
   }),
   pinToCanvas: tool({
     description: 'Pin an item to the visual canvas by metadata',
-    parameters: z.object({
-      id: z.string(),
-      title: z.string().optional(),
-      url: z.string().url().optional(),
-    }),
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        id: { type: 'string' },
+        title: { type: 'string' },
+        url: { type: 'string' },
+      },
+      required: ['id']
+    } as any,
     // Note: This returns a directive for the client UI to handle, since server cannot mutate client state
     execute: async ({ id, title, url }) => {
       return { action: 'pinToCanvas', id, title, url };
@@ -249,11 +264,16 @@ const tools = {
   }),
   useCanvasLora: tool({
     description: 'Select a canvas by id or name, pick its completed LoRA, and prepare image generation with that LoRA applied',
-    parameters: z.object({
-      canvas: z.string().describe('Canvas id or name'),
-      prompt: z.string().describe('Prompt to generate'),
-      scale: z.number().min(0.1).max(2).default(1.0),
-    }),
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        canvas: { type: 'string' },
+        prompt: { type: 'string' },
+        scale: { type: 'number', minimum: 0.1, maximum: 2 },
+      },
+      required: ['canvas','prompt']
+    } as any,
     execute: async ({ canvas, prompt, scale }) => {
       // Get all LoRAs from the global catalog first
       const base = process.env.PUBLIC_API_BASE_URL || ''
