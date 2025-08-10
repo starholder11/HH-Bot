@@ -602,13 +602,13 @@ export async function listMediaAssets(
         filteredTotalCount = allAssets.length;
       }
 
+      // We already selected exactly the keys for this page (unless loadAll)
+      // so do NOT slice again here, or pages beyond 1 will be empty.
       let resultAssets: MediaAsset[];
       if (loadAll) {
         resultAssets = allAssets;
       } else {
-        const start = (page - 1) * limit;
-        const end = start + limit;
-        resultAssets = allAssets.slice(start, end);
+        resultAssets = allAssets;
       }
 
       // Calculate hasMore
