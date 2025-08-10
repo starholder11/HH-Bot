@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 🔑 KEYFRAME INCLUSION (opt-in): Only include if explicitly requested via include_keyframes=true
-    if (includeKeyframes && !excludeKeyframes && !searchQuery && (!mediaType || mediaType === 'image')) {
+    // TEMP PERFORMANCE: do not include keyframes in the initial assets listing to keep first-page fast
+    if (false && includeKeyframes && !excludeKeyframes && !searchQuery && (!mediaType || mediaType === 'image')) {
       console.log(`[assets-api] Including keyframes for ${mediaType || 'all media'}`);
 
       try {
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
         totalCount += transformedKeyframes.length;
 
         // Re-sort combined assets by creation date
-        assets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        assets.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
         // Re-apply pagination to combined results
         if (!searchQuery) {

@@ -205,7 +205,7 @@ export default function FileManagerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(100); // UI page size
   const FETCH_CHUNK_SIZE = 2000; // server fetch chunk size
-  const PREFETCH_THRESHOLD = 200; // when within 200 items of end, prefetch next chunk
+  const PREFETCH_THRESHOLD = 500; // prefetch earlier to ensure next pages are ready
   const [totalAssetCount, setTotalAssetCount] = useState(0); // Loaded into cache
   const [serverTotalAssetCount, setServerTotalAssetCount] = useState(0); // Reported by server
 
@@ -293,9 +293,6 @@ export default function FileManagerPage() {
         const params = new URLSearchParams();
         if (mediaTypeFilter && mediaTypeFilter !== 'audio') params.append('type', mediaTypeFilter);
         if (projectFilter) params.append('project', projectFilter);
-        if (!excludeKeyframes && (!mediaTypeFilter || mediaTypeFilter === 'image')) {
-          params.append('include_keyframes', 'true');
-        }
         params.append('page', pageToFetch.toString());
         params.append('limit', limitToFetch.toString());
         if (excludeKeyframes) params.append('exclude_keyframes','true');
@@ -357,6 +354,15 @@ export default function FileManagerPage() {
       fetchedChunkPagesRef.current.add(pageToFetch);
       nextChunkPageRef.current = Math.max(nextChunkPageRef.current, pageToFetch + 1);
       serverHasMoreRef.current = hasMoreFromServer && newData.length > 0;
+
+      // Proactive prefetch next chunk right after initial load completes
+      if (pageToFetch === 1 && serverHasMoreRef.current && !fetchedChunkPagesRef.current.has(2)) {
+        setTimeout(() => {
+          if (!isFetchingChunkRef.current) {
+            loadAssetsIncremental(2, FETCH_CHUNK_SIZE);
+          }
+        }, 100);
+      }
 
     } catch (error) {
       console.error('Error loading assets:', error);
@@ -442,6 +448,14 @@ export default function FileManagerPage() {
     const endIndex = currentPage * itemsPerPage;
     const remaining = filteredAssetIds.length - endIndex;
     if (remaining <= PREFETCH_THRESHOLD) {
+      loadAssetsIncremental(nextChunkPageRef.current, FETCH_CHUNK_SIZE);
+    }
+  }, [currentPage, itemsPerPage, filteredAssetIds.length, loadAssetsIncremental]);
+
+  // Ensure we fetch when user navigates beyond loaded range (hard guarantee)
+  useEffect(() => {
+    const endIndex = currentPage * itemsPerPage;
+    if (endIndex > filteredAssetIds.length) {
       loadAssetsIncremental(nextChunkPageRef.current, FETCH_CHUNK_SIZE);
     }
   }, [currentPage, itemsPerPage, filteredAssetIds.length, loadAssetsIncremental]);
@@ -1006,7 +1020,15 @@ export default function FileManagerPage() {
             onMouseEnter={() => setAssetListFocused(true)}
             onMouseLeave={() => setAssetListFocused(false)}
           >
-            {filteredAssets.map((asset: MediaAsset) => (
+            {(() => {
+              const endIndex = currentPage * itemsPerPage;
+              const isBeyondLoaded = endIndex > filteredAssetIds.length;
+              if (isBeyondLoaded && filteredAssets.length === 0) {
+                return (
+                  <div className="text-xs text-gray-500 py-8 text-center">Loading more assets…</div>
+                );
+              }
+              return filteredAssets.map((asset: MediaAsset) => (
               <AssetListItem
                 key={asset.id}
                 asset={asset}
@@ -1025,7 +1047,8 @@ export default function FileManagerPage() {
                 getAssetIcon={getAssetIcon}
                 getAssetDisplayInfo={getAssetDisplayInfo}
               />
-            ))}
+              ));
+            })()}
           </div>
 
           {/* Pagination Controls over cached list with progressive prefetch */}

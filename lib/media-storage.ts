@@ -412,7 +412,7 @@ export async function listMediaAssets(
           console.log('[media-storage] Initial loading: fetching first batch');
           // Initial loading: fetch limited batches for performance
           let batchCount = 0;
-          const INITIAL_BATCHES = 3; // Start with up to 3000 keys to reduce follow-up fetches
+          const INITIAL_BATCHES = 2; // Back to 2000 keys to reduce list time
 
           do {
             const resp: ListObjectsV2CommandOutput = await s3.send(
@@ -540,7 +540,7 @@ export async function listMediaAssets(
       } else {
         console.log(`[media-storage] Fetching and parsing ${keys.length} JSON files from S3`);
         // Fetch JSON content directly with higher concurrency and fewer batches
-        const concurrency = 300; // was 50 -> 200 -> 300 for faster cold load
+        const concurrency = 200; // 200 is a safer sweet spot for Lambda cold-start
 
         for (let i = 0; i < keys.length; i += concurrency) {
           const slice = keys.slice(i, i + concurrency);
