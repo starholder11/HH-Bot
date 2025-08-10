@@ -69,7 +69,7 @@ interface KeyframeStill {
 }
 
 interface Project {
-  id: string;
+  project_id: string;
   name: string;
   description?: string;
 }
@@ -409,18 +409,18 @@ export default function VideoEditorPage() {
                 )}
               </div>
 
-              {/* Category Selector */}
+              {/* Project Selector */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Category:</span>
+                <span className="text-sm text-gray-600">Project:</span>
                 <select
                   value={selectedVideo.project_id || ''}
                   onChange={(e) => updateProjectAssignment(e.target.value || null)}
                   onClick={handleProjectDropdownClick}
                   className="border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 text-sm"
                 >
-                  <option value="">No Category</option>
+                  <option value="">No Project</option>
                   {projects.map(project => (
-                    <option key={project.id} value={project.id}>
+                    <option key={project.project_id} value={project.project_id}>
                       {project.name}
                     </option>
                   ))}
