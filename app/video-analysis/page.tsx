@@ -508,7 +508,7 @@ export default function VideoAnalysisPage() {
               >
                 <option value="">All Projects</option>
                 {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
+                  <option key={project.project_id} value={project.project_id}>
                     {project.name}
                   </option>
                 ))}
