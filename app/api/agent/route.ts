@@ -3,25 +3,13 @@ import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
-// Define Zod schemas that avoid chaining issues but preserve proper structure
+// Simplified Zod schemas to avoid OpenAI function schema validation issues
 const PrepareGenerateParameters = z.object({
   type: z.enum(['image', 'audio', 'text', 'video']).optional(),
   model: z.string().optional(),
   prompt: z.string().optional(),
   references: z.array(z.string()).optional(),
-  options: z.object({
-    loras: z.array(z.object({
-      path: z.string(),
-      scale: z.number().min(0).max(2)
-    })).optional(),
-    width: z.number().int().optional(),
-    height: z.number().int().optional(),
-    steps: z.number().int().optional(),
-    seed: z.number().optional(),
-    guidance: z.number().optional(),
-    prompt: z.string().optional(),
-    negative_prompt: z.string().optional(),
-  }).optional(),
+  options: z.record(z.any()).optional(), // Use generic record to avoid nested validation
   autoRun: z.boolean().optional(),
 });
 
@@ -30,19 +18,7 @@ const GenerateMediaParameters = z.object({
   type: z.enum(['image', 'audio', 'text', 'video']),
   model: z.string().optional(),
   references: z.array(z.string()).optional(),
-  options: z.object({
-    loras: z.array(z.object({
-      path: z.string(),
-      scale: z.number().min(0).max(2)
-    })).optional(),
-    width: z.number().int().optional(),
-    height: z.number().int().optional(),
-    steps: z.number().int().optional(),
-    seed: z.number().optional(),
-    guidance: z.number().optional(),
-    prompt: z.string().optional(),
-    negative_prompt: z.string().optional(),
-  }).optional(),
+  options: z.record(z.any()).optional(), // Use generic record to avoid nested validation
 });
 
 // Tools
