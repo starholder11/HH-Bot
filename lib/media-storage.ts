@@ -530,8 +530,8 @@ export async function listMediaAssets(
         };
       }
 
-      // At this point allAssets *may* contain more than one page worth when mediaType filter is used.
-      // IMPORTANT: Use allAssets.length for pagination, not allKeys.length, since filtering may reduce the count
+      // At this point allAssets contains all loaded assets after filtering
+      // CRITICAL: Use allAssets.length for BOTH totalCount and hasMore calculations
       const filteredTotalCount = allAssets.length;
 
       let resultAssets: MediaAsset[];
@@ -543,10 +543,9 @@ export async function listMediaAssets(
         resultAssets = allAssets.slice(start, end);
       }
 
-      // Re-compute hasMore based on the actual filtered assets count
+      // Calculate hasMore based on the same count used for totalCount
       const endIndexEvaluated = page * limit;
-      const totalAfterFilter = allAssets.length; // Use filtered assets count, not keys count
-      const hasMore = endIndexEvaluated < totalAfterFilter;
+      const hasMore = endIndexEvaluated < filteredTotalCount;
 
       const elapsed = Date.now() - startTime;
       console.log(`[media-storage] S3 loading completed in ${elapsed}ms: returned ${resultAssets.length} assets (page ${page}) out of ${filteredTotalCount} matching (mediaType=${mediaType || 'all'})`);
