@@ -231,8 +231,14 @@ export default function FileManagerPage() {
     loadProjects();
   }, []);
 
+  // Add loading state to prevent race conditions
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  
   // Define loadAssets with useCallback to prevent infinite re-renders
   const loadAssetsIncremental = useCallback(async () => {
+    if (isLoadingAssets) return; // Prevent concurrent requests
+    
+    setIsLoadingAssets(true);
     try {
       let newData: MediaAsset[] = [];
       let totalCount = 0;
@@ -336,8 +342,10 @@ export default function FileManagerPage() {
 
     } catch (error) {
       console.error('Error loading assets:', error);
+    } finally {
+      setIsLoadingAssets(false);
     }
-  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage, excludeKeyframes]); // Dependencies simplified
+  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage, excludeKeyframes, isLoadingAssets]); // Dependencies simplified
 
   // Smart merge function that maintains stable object references
   const mergeAssetsWithCache = (newData: MediaAsset[], cache: Map<string, MediaAsset>, result: MediaAsset[]): boolean => {
@@ -401,8 +409,17 @@ export default function FileManagerPage() {
 
   // Load assets when filters change - prevent race conditions
   useEffect(() => {
+    // Only proceed if not already loading to prevent race conditions
+    if (isLoadingAssets) return;
+    
     // Clear cache when filters change to start fresh
-    // assetCacheRef.current.clear();
+    assetCacheRef.current.clear();
+    
+    // Clear current filtered asset IDs to start fresh
+    setFilteredAssetIds([]);
+    
+    // Clear current assets to show loading state
+    setAssets([]);
 
     loadAssetsIncremental();
   }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage, excludeKeyframes]);
@@ -621,7 +638,7 @@ export default function FileManagerPage() {
     }
   }, [assetListFocused, selectedAsset]);
 
-  // Reset page when filters change
+  // Reset page when filters change (but not when page itself changes)
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, mediaTypeFilter, projectFilter, excludeKeyframes]);
