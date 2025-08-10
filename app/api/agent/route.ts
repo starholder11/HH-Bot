@@ -157,8 +157,8 @@ const tools = {
           if (seen.has(id)) continue;
           // simple filter pass
           const text = `${item.title || ''} ${item.description || ''} ${JSON.stringify(item.metadata||{})}`.toLowerCase();
-          const mustInc = (plan.filters?.mustInclude || []).every(t => text.includes(t.toLowerCase()));
-          const mustExc = (plan.filters?.mustExclude || []).some(t => text.includes(t.toLowerCase()));
+          const mustInc = (plan.filters?.mustInclude || []).every((t: string) => text.includes(t.toLowerCase()));
+          const mustExc = (plan.filters?.mustExclude || []).some((t: string) => text.includes(t.toLowerCase()));
           if (!mustInc || mustExc) continue;
           seen.add(id);
           results.push(item);
