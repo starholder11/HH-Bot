@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText, tool } from 'ai';
+import { streamText, tool, generateObject } from 'ai';
 import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 
@@ -18,6 +18,93 @@ const tools = {
     }),
     execute: async ({ type, model, prompt, references, options, autoRun }) => {
       return { action: 'prepareGenerate', payload: { type, model, prompt, refs: references, options, autoRun: autoRun ?? true } };
+    }
+  }),
+  planAndSearch: tool({
+    description: 'Turn a messy user ask into a structured multi-query search plan and execute it to show results',
+    parameters: z.object({
+      ask: z.string().describe('User natural language request'),
+      limit: z.number().int().min(1).max(2000).optional().default(200),
+    }),
+    execute: async ({ ask, limit }) => {
+      // 1) Plan with a tiny planner model (strict JSON)
+      const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+      const PlanSchema = z.object({
+        queries: z.array(z.string()).min(1).max(8),
+        filters: z.object({
+          types: z.array(z.enum(['all','media','video','image','audio','text'])).default(['all']).optional(),
+          mustInclude: z.array(z.string()).default([]).optional(),
+          mustExclude: z.array(z.string()).default([]).optional(),
+          timeRange: z.object({ from: z.string().optional(), to: z.string().optional() }).optional(),
+          tags: z.array(z.string()).optional(),
+        }).default({}),
+        expandSynonyms: z.boolean().default(true),
+        numResults: z.number().int().min(10).max(1000).default(Math.min(200, limit || 200)),
+      });
+
+      const planRes = await generateObject({
+        model: openai('gpt-5-nano') as any,
+        schema: PlanSchema,
+        system: 'You convert a short, messy user ask into a SearchPlan JSON. No prose. Keep queries concise. Prefer 2-6 queries. Use broad synonyms when expandSynonyms is true. Never include private data.',
+        prompt: `User ask: ${ask}`,
+      });
+      const plan = planRes.object;
+
+      // 2) Expand synonyms (domain-specific) if requested
+      const synonyms: Record<string, string[]> = {
+        creepy: ['eerie','uncanny','liminal','haunting','spooky','gothic','nocturne'],
+        cool: ['stylish','sleek','retro','vintage','aesthetic','polished'],
+        futuristic: ['sci-fi','cyberpunk','neo','space age'],
+        old: ['vintage','antique','retro','classic'],
+      };
+      const expandTerms = (q: string) => {
+        if (!plan.expandSynonyms) return [q];
+        const parts = q.split(/\s+/);
+        const expanded: string[] = [q];
+        for (const p of parts) {
+          const key = p.toLowerCase().replace(/[^a-z0-9]/g,'');
+          if (synonyms[key]) {
+            synonyms[key].forEach(s => expanded.push(q + ' ' + s));
+          }
+        }
+        return Array.from(new Set(expanded)).slice(0, 6);
+      };
+
+      const queries = Array.from(new Set(plan.queries.flatMap(expandTerms))).slice(0, 12);
+      const types = (plan.filters?.types && plan.filters.types.length ? plan.filters.types : ['all']) as any;
+
+      // 3) Execute in parallel against unified search
+      const base = process.env.PUBLIC_API_BASE_URL || '';
+      const fetchOne = async (q: string) => {
+        const typeParam = types.includes('all') ? '' : `&type=${encodeURIComponent(types[0])}`;
+        const url = `${base}/api/unified-search?q=${encodeURIComponent(q)}&limit=${Math.min(plan.numResults, limit)}${typeParam}` || `/api/unified-search?q=${encodeURIComponent(q)}&limit=${Math.min(plan.numResults, limit)}${typeParam}`;
+        try {
+          const r = await fetch(url, { method: 'GET' });
+          if (!r.ok) return null;
+          return await r.json();
+        } catch { return null; }
+      };
+
+      const pages = await Promise.all(queries.map(fetchOne));
+      const results: any[] = [];
+      const seen = new Set<string>();
+      for (const page of pages) {
+        const arr = page?.results?.all || page?.results || page?.all || [];
+        for (const item of arr) {
+          const id = String(item.id || item.metadata?.id || item.url || Math.random());
+          if (seen.has(id)) continue;
+          // simple filter pass
+          const text = `${item.title || ''} ${item.description || ''} ${JSON.stringify(item.metadata||{})}`.toLowerCase();
+          const mustInc = (plan.filters?.mustInclude || []).every(t => text.includes(t.toLowerCase()));
+          const mustExc = (plan.filters?.mustExclude || []).some(t => text.includes(t.toLowerCase()));
+          if (!mustInc || mustExc) continue;
+          seen.add(id);
+          results.push(item);
+        }
+      }
+
+      // 4) Return to UI
+      return { action: 'showResults', payload: { success: true, query: ask, total_results: results.length, results: { all: results, media: results, text: [] } } };
     }
   }),
   searchUnified: tool({
@@ -189,7 +276,7 @@ export async function POST(req: NextRequest) {
 
   const result = await streamText({
     // Cast to any to avoid versioned type conflicts between subpackages during CI type check
-    model: openai('gpt-4o-mini') as any,
+    model: openai('gpt-5-nano') as any,
     system:
       'You are the on-page agent for a creative workspace. ALWAYS prefer calling tools over free-form answers. ' +
       'For anything involving finding media or text, call searchUnified and return its directive unchanged. ' +
