@@ -399,13 +399,20 @@ export default function FileManagerPage() {
     return false;
   };
 
-  // Load assets when filters change - prevent race conditions
+  // Load assets when filters change (NOT when page changes)
   useEffect(() => {
     // Clear cache when filters change to start fresh
-    // assetCacheRef.current.clear();
-
+    assetCacheRef.current.clear();
+    setCurrentPage(1); // Reset to page 1 when filters change
     loadAssetsIncremental();
-  }, [mediaTypeFilter, projectFilter, currentPage, itemsPerPage, excludeKeyframes]);
+  }, [mediaTypeFilter, projectFilter, excludeKeyframes]);
+
+  // Separate effect for page changes - load additional data
+  useEffect(() => {
+    if (currentPage > 1) {
+      loadAssetsIncremental();
+    }
+  }, [currentPage]);
 
   // NEW: Add a dedicated effect to synchronize selection with filters and assets
   useEffect(() => {
@@ -620,10 +627,10 @@ export default function FileManagerPage() {
     }
   }, [assetListFocused, selectedAsset]);
 
-  // Reset page when filters change
+  // Reset page when search term changes (filters are handled above)
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, mediaTypeFilter, projectFilter, excludeKeyframes]);
+  }, [searchTerm]);
 
   // Create new project
   const createProject = async () => {
