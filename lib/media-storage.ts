@@ -18,6 +18,8 @@ import { listSongs } from './song-storage'; // Import existing audio functionali
 interface S3KeysCache {
   keys: string[];
   fetchedAt: number; // epoch ms
+  hasMoreKeys: boolean; // Whether there are more keys available in S3
+  lastContinuationToken?: string; // Token to continue loading from S3
 }
 
 // Module-level variable – unique per process
@@ -351,47 +353,104 @@ export async function listMediaAssets(
 
             const now = Date.now();
 
-      // Return cached keys if still fresh (dev only – production never uses the cache)
-      if (!isProd && s3KeysCache && (now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL)) {
+      // Progressive loading: Check if we need to load more keys based on pagination
+      const requestedEndIndex = page * limit;
+      const needsMoreKeys = s3KeysCache && s3KeysCache.hasMoreKeys && 
+                           requestedEndIndex > (s3KeysCache.keys.length * 0.8); // Load more when 80% through
+      
+      // Return cached keys if still fresh and we have enough for this page
+      if (!isProd && s3KeysCache && (now - s3KeysCache.fetchedAt < S3_LIST_CACHE_TTL) && !needsMoreKeys) {
         const cache = s3KeysCache; // Narrowing for TypeScript
         allKeys = cache.keys;
         console.log(`[media-storage] Using cached S3 key list (age ${(now - cache.fetchedAt) / 1000}s, ${allKeys.length} keys)`);
       } else {
         console.log('[media-storage] Listing objects from S3 with pagination…');
 
-        // Fetch ALL keys under the prefix, paginating beyond the 1 000-key S3 limit.
         type KeyInfo = { key: string; lastModified: Date };
-        const fetched: KeyInfo[] = [];
+        let fetched: KeyInfo[] = [];
         let continuationToken: string | undefined = undefined;
 
-        do {
-          const resp: ListObjectsV2CommandOutput = await s3.send(
-            new ListObjectsV2Command({
-              Bucket: bucket,
-              Prefix: PREFIX,
-              MaxKeys: 1000, // hard S3 page limit
-              ContinuationToken: continuationToken,
-            })
-          );
+        if (needsMoreKeys && s3KeysCache) {
+          console.log(`[media-storage] Progressive loading: extending from ${s3KeysCache.keys.length} keys`);
+          // Progressive loading: extend existing cache
+          continuationToken = s3KeysCache.lastContinuationToken;
+          let batchCount = 0;
+          const MAX_BATCHES = 2; // Load 2 more batches (2000 more keys)
 
-          (resp.Contents || [])
-            .filter(obj => obj.Key?.endsWith('.json'))
-            .forEach(obj => {
-              fetched.push({
-                key: obj.Key!,
-                lastModified: obj.LastModified || new Date(0),
+          do {
+            const resp: ListObjectsV2CommandOutput = await s3.send(
+              new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: PREFIX,
+                MaxKeys: 1000,
+                ContinuationToken: continuationToken,
+              })
+            );
+
+            (resp.Contents || [])
+              .filter(obj => obj.Key?.endsWith('.json'))
+              .forEach(obj => {
+                fetched.push({
+                  key: obj.Key!,
+                  lastModified: obj.LastModified || new Date(0),
+                });
               });
-            });
 
-          continuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
-        } while (continuationToken);
+            continuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
+            batchCount++;
+          } while (continuationToken && batchCount < MAX_BATCHES);
 
-        // Sort by LastModified descending so newest uploads appear first
-        fetched.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
-        allKeys = fetched.map(f => f.key);
+          // Sort new batch and merge with existing
+          fetched.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
+          
+          // Merge with existing keys (existing keys are already sorted)
+          const newKeys = fetched.map(f => f.key);
+          allKeys = [...s3KeysCache.keys, ...newKeys];
+          
+          console.log(`[media-storage] Progressive loading: extended to ${allKeys.length} keys`);
+        } else {
+          console.log('[media-storage] Initial loading: fetching first batch');
+          // Initial loading: fetch limited batches for performance
+          let batchCount = 0;
+          const INITIAL_BATCHES = 2; // Start with 2000 keys
 
-        // Update cache
-        s3KeysCache = { keys: allKeys, fetchedAt: now };
+          do {
+            const resp: ListObjectsV2CommandOutput = await s3.send(
+              new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: PREFIX,
+                MaxKeys: 1000,
+                ContinuationToken: continuationToken,
+              })
+            );
+
+            (resp.Contents || [])
+              .filter(obj => obj.Key?.endsWith('.json'))
+              .forEach(obj => {
+                fetched.push({
+                  key: obj.Key!,
+                  lastModified: obj.LastModified || new Date(0),
+                });
+              });
+
+            continuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
+            batchCount++;
+          } while (continuationToken && batchCount < INITIAL_BATCHES);
+
+          // Sort by LastModified descending so newest uploads appear first
+          fetched.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
+          allKeys = fetched.map(f => f.key);
+          
+          console.log(`[media-storage] Initial loading: loaded ${allKeys.length} keys, hasMore: ${!!continuationToken}`);
+        }
+
+        // Update cache with progressive loading state
+        s3KeysCache = { 
+          keys: allKeys, 
+          fetchedAt: now,
+          hasMoreKeys: !!continuationToken, // Track if more keys are available
+          lastContinuationToken: continuationToken
+        };
       }
 
       // Optional keyframe exclusion – filter keys that live under /keyframes/ directory before anything else
