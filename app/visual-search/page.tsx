@@ -1484,7 +1484,8 @@ function RightPane({
           ) : (
             <div
               ref={canvasRef}
-              className="relative h-[640px] w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
+              className="relative w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
+              style={{ height: Math.max(640, Math.ceil((pinned || []).reduce((m, p) => Math.max(m, (p.y || 0) + (p.height || 0)), 0) + 40)) }}
             >
               {pinned.map((p) => (
                 <DraggablePinned key={p.id} item={p} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
@@ -1711,6 +1712,20 @@ export default function VisualSearchPage() {
           if (Array.isArray(all) && all.length > 0) {
             setResults(all);
             setRightTab('results');
+          }
+        } catch {}
+      },
+      // Surface server tool messages (e.g., no LoRA found) to the user
+      showMessage: (payload: any) => {
+        try {
+          const level = (payload?.level || 'info').toString();
+          const text = (payload?.text || '').toString();
+          if (text) {
+            // Basic UI fallback: alert + console log; avoids silent failures
+            console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log']('[agent]', text);
+            if (typeof window !== 'undefined') {
+              try { window.alert(text); } catch {}
+            }
           }
         } catch {}
       },
@@ -2250,14 +2265,8 @@ export default function VisualSearchPage() {
   return (
     <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-7xl px-4 py-6">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <div className="text-xs text-neutral-400">Experimental</div>
-            <h1 className="text-2xl font-semibold">Visual Unified Search</h1>
-          </div>
-        </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col sm:flex-row gap-3">
+        <form onSubmit={handleSubmit} className="mt-2 flex flex-col sm:flex-row gap-3">
           <div className="flex-1 flex items-center gap-2">
             <input
               value={query}
