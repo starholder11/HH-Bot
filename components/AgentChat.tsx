@@ -100,7 +100,8 @@ export default function AgentChat() {
                     return;
                   }
                   if (possibleResult?.action === 'pinToCanvas' && typeof window !== 'undefined') {
-                    (window as any).__agentApi?.pin?.(possibleResult);
+                    console.log('🟢 AgentChat: Early pinToCanvas detection, calling pin with:', possibleResult);
+                    (window as any).__agentApi?.pin?.(possibleResult.payload || possibleResult);
                     return;
                   }
                 } catch {}

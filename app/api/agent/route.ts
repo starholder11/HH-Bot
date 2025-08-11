@@ -28,17 +28,41 @@ const tools = {
   }),
   
   pinToCanvas: tool({
-    description: 'Pin selected content to canvas for reference or generation',
+    description: 'Pin content to canvas. Provide contentId from search results or specify content to pin.',
     parameters: z.object({
-      contentId: z.string(),
-      type: z.string(),
-      url: z.string(),
-      title: z.string().optional(),
+      contentId: z.string().describe('ID of content to pin (e.g. "2068-odyssey")'),
+      type: z.string().optional().describe('Content type if known (image/video/audio)'),
+      url: z.string().optional().describe('Content URL if known'),
+      title: z.string().optional().describe('Content title/name'),
+      userRequest: z.string().optional().describe('Original user request for context'),
     }),
-    execute: async ({ contentId, type, url, title }) => {
+    execute: async ({ contentId, type, url, title, userRequest }) => {
+      // Smart defaults and content lookup
+      let finalType = type || 'image'; // Default to image
+      let finalUrl = url || ''; // Will be resolved by UI
+      let finalTitle = title || contentId; // Use contentId as fallback title
+      
+      // Try to infer type from contentId or request
+      if (!type && contentId) {
+        const id = contentId.toLowerCase();
+        if (id.includes('video') || id.includes('movie') || id.includes('clip')) {
+          finalType = 'video';
+        } else if (id.includes('audio') || id.includes('song') || id.includes('music')) {
+          finalType = 'audio';
+        }
+      }
+      
       return { 
         action: 'pinToCanvas', 
-        payload: { contentId, type, url, title: title || 'Pinned Content' }
+        payload: { 
+          id: contentId, // UI bridge expects 'id' not 'contentId'
+          contentId, // Keep for backward compatibility
+          type: finalType, 
+          url: finalUrl, 
+          title: finalTitle,
+          needsLookup: !url, // Signal to UI that it needs to resolve URL
+          originalRequest: userRequest
+        }
       };
     }
   }),
@@ -266,10 +290,11 @@ export async function POST(req: NextRequest) {
       'You are a tool-calling agent. Call exactly ONE tool and stop. ' +
       'For generation requests (make/create X): call prepareGenerate with userRequest parameter containing the full user message. ' +
       'For search requests: call searchUnified with the query. ' +
-      'For canvas operations: call openCanvas, pinToCanvas, nameImage, saveImage, or useCanvasLora as appropriate. ' +
+      'For pin requests (pin X to canvas): call pinToCanvas with contentId (extract the ID from user message like "2068-odyssey") and userRequest. ' +
+      'For other canvas operations: call openCanvas, nameImage, saveImage, or useCanvasLora as appropriate. ' +
       'For greetings: call chat tool. ' +
       'For status: call agentStatus. ' +
-      'ALWAYS pass the full user message as userRequest parameter when calling prepareGenerate. ' +
+      'ALWAYS extract the content ID when pinning (e.g. "pin 2068-odyssey" → contentId: "2068-odyssey"). ' +
       'NEVER call multiple tools. NEVER give text responses after tool calls.',
     messages,
     tools,
