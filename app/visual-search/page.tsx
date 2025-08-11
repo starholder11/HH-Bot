@@ -889,25 +889,38 @@ function ResultCard({
     return collected.slice(0, 6);
   }, [r.metadata]);
 
-  // Build a rich description snippet with smart title stripping
+  // Build clean description snippet - NO BULLSHIT CIRCULAR BLOCKS
   const snippet: string = useMemo(() => {
     const raw = (r.preview || r.description || "").toString();
     if (!raw) return "";
     
-    // Strip title repetition at start if present
+    // For videos/keyframes - COMPLETELY strip the circular description garbage
+    if (r.content_type === 'video' || r.id?.includes('keyframe') || r.id?.includes('Frame')) {
+      let cleanText = raw;
+      
+      // Remove the entire circular description block pattern
+      cleanText = cleanText
+        .replace(/^Project:\s*[A-Z]+[^.]*\./i, '') // Remove "Project: XXX ..."
+        .replace(/^The (video|image) depicts?[^.]*\./i, '') // Remove "The video depicts..."
+        .replace(/^A (video|image) (that\s+)?(shows?|depicts?)[^.]*\./i, '') // Remove "A video that shows..."
+        .replace(/^\s*The [^.]*\.\s*/i, '') // Remove any other "The..." sentence starters
+        .split('\n')[0] // Take only first meaningful line
+        .trim();
+      
+      // If nothing meaningful left, try to extract just the core concept
+      if (!cleanText || cleanText.length < 10) {
+        const lines = raw.split('\n').filter(line => line.trim().length > 10);
+        cleanText = lines[lines.length - 1] || ''; // Take the last substantial line
+      }
+      
+      return cleanText.substring(0, 200); // Limit to reasonable length
+    }
+    
+    // For other content types, just strip title repetition
     let cleanText = raw;
     if (r.title) {
       const titlePattern = new RegExp(`^${r.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\n?`, 'i');
       cleanText = raw.replace(titlePattern, '');
-    }
-    
-    // For videos/keyframes, strip the ugly circular description blocks
-    if (r.content_type === 'video' || r.id?.includes('keyframe') || r.id?.includes('Frame')) {
-      // Remove common video description prefixes
-      cleanText = cleanText
-        .replace(/^Project:\s*[A-Z]+\s*/i, '')
-        .replace(/^The (video|image) depicts?\s*/i, '')
-        .replace(/^A (video|image) (that\s+)?(shows?|depicts?)\s*/i, '');
     }
     
     return cleanText.trim();
@@ -915,7 +928,7 @@ function ResultCard({
 
   return (
     <div className={classNames(
-      "group rounded-xl border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-800/60 transition-all duration-200 overflow-hidden shadow-lg hover:shadow-xl",
+      "group rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 transition-colors overflow-hidden",
       selected ? "ring-2 ring-neutral-500" : undefined
     )}
     onClick={(e) => {
@@ -928,35 +941,35 @@ function ResultCard({
       }
     }}
     >
-      <div className="p-4 pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-xs px-2 py-1 rounded-full border border-neutral-700 bg-neutral-800/80 text-neutral-200 font-medium">
-            {r.content_type.toUpperCase()}
+      <div className="p-3 pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs px-2 py-0.5 rounded-full border border-neutral-700 bg-neutral-800/60 text-neutral-300">
+            {r.content_type}
           </div>
-          <div className="text-xs text-neutral-400 font-mono">{scorePct}%</div>
+          <div className="text-[10px] text-neutral-400">{scorePct}%</div>
         </div>
-        <div className="mt-3 font-semibold text-neutral-100 line-clamp-2 leading-tight" title={r.title}>
+        <div className="mt-2 font-medium text-neutral-100 line-clamp-1" title={r.title}>
           {r.title}
         </div>
       </div>
-      <div className="px-4">
+      <div className="px-3">
         <MediaPreview r={r} />
       </div>
-      <div className="p-4 pt-3">
-        {/* Rich description snippet - double length for better context */}
+      <div className="p-3">
+        {/* Clean description snippet - DOUBLE length, NO circular bullshit */}
         {snippet && (
-          <p className="text-sm text-neutral-300 line-clamp-6 leading-relaxed">{snippet}</p>
+          <p className="text-sm text-neutral-300 line-clamp-6">{snippet}</p>
         )}
         
         {/* Labels for ALL media types */}
         {labels.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap gap-1">
             {labels.map((l, idx) => (
               <button
                 key={`${l}-${idx}`}
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onLabelClick?.(l); }}
-                className="text-xs px-2.5 py-1 rounded-full border border-neutral-700 bg-gradient-to-r from-neutral-800 to-neutral-900 text-neutral-300 hover:from-neutral-700 hover:to-neutral-800 hover:text-neutral-100 transition-all duration-150 hover:scale-105"
+                className="text-[10px] px-2 py-0.5 rounded-full border border-neutral-800 bg-neutral-950 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 transition-colors"
               >
                 {l}
               </button>
@@ -964,16 +977,16 @@ function ResultCard({
           </div>
         )}
       </div>
-      <div className="p-4 pt-0 flex gap-3">
+      <div className="p-3 pt-0 flex gap-2">
         <button
           onClick={() => onPin(r)}
-          className="flex-1 px-3 py-2 text-sm font-medium rounded-lg border border-neutral-700 bg-gradient-to-r from-neutral-800 to-neutral-900 hover:from-neutral-700 hover:to-neutral-800 text-neutral-100 transition-all duration-150 hover:scale-105"
+          className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100"
         >
           Pin to canvas
         </button>
         <button
           onClick={() => onOpen(r)}
-          className="flex-1 px-3 py-2 text-sm font-medium rounded-lg border border-neutral-700 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-blue-100 transition-all duration-150 hover:scale-105"
+          className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100"
         >
           Expand
         </button>
