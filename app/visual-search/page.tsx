@@ -1687,30 +1687,39 @@ export default function VisualSearchPage() {
       pin: (payload: { id?: string; title?: string; url?: string; needsLookup?: boolean }) => {
         console.log('🚨 DIAGNOSTIC v2-CACHE-BUST: Pin function called!', new Date().toISOString(), 'Build:', process.env.NODE_ENV);
         if (!payload?.url && !payload?.id) return;
-        
+
         console.log('🟢 Bridge: pin called with payload:', payload);
-        
+
         let targetResult: UnifiedSearchResult | null = null;
-        
+
         // Try to find the content in current search results or global cache if no URL provided
         if (!payload.url && payload.id) {
           console.log('🔍 Bridge: Looking up content by ID:', payload.id);
           console.log('🔍 Bridge: Current results count:', results.length);
           console.log('🔍 Bridge: Global cache size:', globalResultsCache.size);
           console.log('🔍 Bridge: Cache has key?', globalResultsCache.has(payload.id));
-          
+
+          // Helpful error if cache is empty
+          if (globalResultsCache.size === 0 && results.length === 0) {
+            console.log('⚠️ Bridge: No cached content! User needs to search first before pinning.');
+          }
+
           // First try current results
           targetResult = results.find(r => r.id === payload.id || r.title === payload.id) || null;
           console.log('🔍 Bridge: Found in current results:', !!targetResult);
-          
-          // If not found, try global cache
+
+                    // If not found, try global cache
           if (!targetResult) {
             targetResult = globalResultsCache.get(payload.id) || null;
             console.log('🔍 Bridge: Found in global cache:', !!targetResult);
+            if (targetResult) {
+              console.log('🎯 Bridge: Cache hit! URL:', targetResult.metadata?.cloudflare_url);
+            }
             
             // Debug: check all cache keys for partial matches
             if (!targetResult && payload.id) {
               const cacheKeys = Array.from(globalResultsCache.keys());
+              console.log('🔍 Bridge: Available cache keys:', cacheKeys.slice(0, 20));
               const matchingKeys = cacheKeys.filter(key => key.includes(payload.id!) || payload.id!.includes(key));
               console.log('🔍 Bridge: Partial matching cache keys:', matchingKeys);
               
@@ -1718,13 +1727,16 @@ export default function VisualSearchPage() {
               if (matchingKeys.length > 0) {
                 targetResult = globalResultsCache.get(matchingKeys[0]) || null;
                 console.log('🔍 Bridge: Found by partial match:', !!targetResult);
+                if (targetResult) {
+                  console.log('🎯 Bridge: Partial match URL:', targetResult.metadata?.cloudflare_url);
+                }
               }
             }
           }
-          
+
           console.log('🔍 Bridge: Final found result:', targetResult);
         }
-        
+
         // Create pin object from found result or payload
         const pinObject: UnifiedSearchResult = targetResult ? {
           ...targetResult,
@@ -1735,13 +1747,13 @@ export default function VisualSearchPage() {
           title: payload.title || 'Pinned by Agent',
           description: '',
           score: 0,
-          metadata: { 
-            cloudflare_url: payload.url || '', 
-            media_type: 'image' 
+          metadata: {
+            cloudflare_url: payload.url || '',
+            media_type: 'image'
           } as any,
           preview: payload.title || payload.url || '',
         } as any;
-        
+
         console.log('🟢 Bridge: Pinning object:', pinObject);
         pinResult(pinObject);
         setRightTab('canvas');
@@ -1759,34 +1771,43 @@ export default function VisualSearchPage() {
           console.log('🟢 Bridge: showResults called with:', resp);
           // Handle multiple possible structures:
           // 1. Direct payload from agent: {results: {all: [...]}}
-          // 2. Nested payload: {results: {all: [...]}}  
+          // 2. Nested payload: {results: {all: [...]}}
           // 3. Direct array: [...]
-          const all: UnifiedSearchResult[] = 
-            resp?.results?.all || 
-            resp?.all || 
-            resp?.results || 
+          const all: UnifiedSearchResult[] =
+            resp?.results?.all ||
+            resp?.all ||
+            resp?.results ||
             (Array.isArray(resp) ? resp : []);
-          
+
           console.log('🟢 Bridge: Extracted results:', all.length, 'items');
-          
+
           if (Array.isArray(all) && all.length > 0) {
             setResults(all);
             setTotal(all.length);
             setRightTab('results');
-            
+
             // Cache all results globally for pin lookup
             setGlobalResultsCache(prevCache => {
               const newCache = new Map(prevCache);
               all.forEach(item => {
                 if (item.id) newCache.set(item.id, item);
                 if (item.title) newCache.set(item.title, item);
-                console.log('🔧 Bridge: Caching item - id:', item.id, 'title:', item.title);
+                console.log('🔧 Bridge: Caching item - id:', item.id, 'title:', item.title, 'url:', item.metadata?.cloudflare_url);
               });
               console.log('🟢 Bridge: Cached', all.length, 'results globally. Total cache size:', newCache.size);
               console.log('🔧 Bridge: Cache keys sample:', Array.from(newCache.keys()).slice(0, 10));
+              
+              // Debug: Check if 2068-odyssey is specifically cached
+              const odysseyItem = newCache.get('2068-odyssey');
+              if (odysseyItem) {
+                console.log('🎯 Bridge: Found 2068-odyssey in cache:', odysseyItem.metadata?.cloudflare_url);
+              } else {
+                console.log('❌ Bridge: 2068-odyssey NOT found in cache');
+              }
+              
               return newCache;
             });
-            
+
             console.log('🟢 Bridge: UI updated with results');
           } else {
             console.log('🔴 Bridge: No valid results found in payload');
@@ -1820,7 +1841,7 @@ export default function VisualSearchPage() {
           const planRefs: string[] = Array.isArray(payload?.refs) ? payload.refs : [];
           const pinnedUrls = (pinnedRef.current || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean);
           const refs: string[] = (planRefs.length > 0 ? planRefs : pinnedUrls) as string[];
-          
+
           console.log('🟢 Bridge: prepareGenerate - planRefs:', planRefs.length, 'pinnedUrls:', pinnedUrls.length, 'final refs:', refs.length);
           console.log('🟢 Bridge: prepareGenerate - refs:', refs);
 
