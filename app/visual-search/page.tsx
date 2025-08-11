@@ -2660,6 +2660,7 @@ export default function VisualSearchPage() {
             setPage={setPage}
             executeSearch={executeSearch}
             query={query}
+            setQuery={setQuery}
             isEditingName={isEditingName}
             setIsEditingName={setIsEditingName}
             canvasName={canvasName}
