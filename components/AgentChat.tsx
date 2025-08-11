@@ -21,7 +21,7 @@ export default function AgentChat() {
     setInput('');
     setBusy(true);
     
-    console.log('🔵 AgentChat: Sending request:', input.trim());
+    console.log('🟨 AGENT FIXED v2: Sending request:', input.trim());
     
     const res = await fetch('/api/agent', {
       method: 'POST',
@@ -39,7 +39,7 @@ export default function AgentChat() {
       const { value, done } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value);
-      console.log('🔵 AgentChat: Raw chunk:', chunk);
+      console.log('🟨 AGENT FIXED v2: Raw chunk:', chunk);
       
       for (const raw of chunk.split('\n')) {
         const line = raw.trim();
