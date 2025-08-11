@@ -35,19 +35,26 @@ export default function AgentChat() {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let assistant = '';
+    let buffer = ''; // Buffer for incomplete chunks
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value);
       console.log('🟨 AGENT FIXED v2: Raw chunk:', chunk);
       
-      for (const raw of chunk.split('\n')) {
-        const line = raw.trim();
-        if (!line) continue;
-        console.log('🔵 AgentChat: Processing line:', line);
-        if (line.startsWith('0:')) {
+      // Add to buffer and process complete lines
+      buffer += chunk;
+      const lines = buffer.split('\n');
+      // Keep the last line in buffer (might be incomplete)
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        console.log('🔵 AgentChat: Processing line:', trimmed);
+        if (trimmed.startsWith('0:')) {
           // Vercel AI SDK text delta channel
-          let delta: any = line.slice(2);
+          let delta: any = trimmed.slice(2);
           try { delta = JSON.parse(delta); } catch {}
           if (typeof delta !== 'string') delta = String(delta ?? '');
           assistant += delta;
@@ -62,10 +69,10 @@ export default function AgentChat() {
           });
           continue;
         }
-        if (line.startsWith('data:')) {
+        if (trimmed.startsWith('data:')) {
           // legacy/data event fallback
           try {
-            const payload = JSON.parse(line.slice(5));
+            const payload = JSON.parse(trimmed.slice(5));
             if (payload.delta || payload.text) {
               assistant += payload.delta || payload.text || '';
               setMessages((prev) => {
@@ -105,10 +112,10 @@ export default function AgentChat() {
           continue;
         }
         // Generic channel: e.g., "1:{...}", "2:{...}" etc. Try to parse JSON after first colon
-        const idx = line.indexOf(':');
+        const idx = trimmed.indexOf(':');
         if (idx > 0) {
           try {
-            const obj = JSON.parse(line.slice(idx + 1));
+            const obj = JSON.parse(trimmed.slice(idx + 1));
             console.log('🔵 AgentChat: Parsed tool object:', obj);
             
             const result = obj?.result ?? obj;
