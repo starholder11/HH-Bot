@@ -92,3 +92,5 @@ export class LanceDBIngestionService {
     return this.table.countRows();
   }
 }
+
+

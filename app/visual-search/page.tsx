@@ -2,47 +2,29 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from 'next/dynamic';
+import type { UnifiedSearchResult, UnifiedSearchResponse, ContentType, PinnedItem } from './types';
+import { getResultMediaUrl } from './utils/mediaUrl';
+import { stripCircularDescription } from './utils/textCleanup';
+import * as searchService from './services/searchService';
+import { useResults } from './hooks/useResults';
+import { cacheStore } from './services/cacheStore';
+import ResultsGrid from './components/ResultsGrid';
+import VSResultCard from './components/ResultCard/ResultCard';
+import DetailsOverlay from './components/DetailsOverlay';
+import CanvasBoard from './components/Canvas/CanvasBoard';
+import GridPinned from './components/Canvas/GridPinned';
+import CanvasToolbar from './components/Canvas/CanvasToolbar';
+import CanvasManagerModal from './components/Canvas/CanvasManagerModal';
+import GeneratePanel from './components/Generate/GeneratePanel';
+import { debug } from './utils/log';
+import { useResultsStore } from './store/resultsStore';
+import { useUiStore } from './store/uiStore';
+import { useCanvasStore } from './store/canvasStore';
 
 // Dynamically import AgentChat to avoid SSR issues
 const AgentChat = dynamic(() => import('../../components/AgentChat'), { ssr: false });
 
-type ContentType = "video" | "image" | "audio" | "text";
-
-type UnifiedSearchResult = {
-  id: string;
-  content_type: ContentType;
-  title: string;
-  description?: string;
-  score: number;
-  metadata: any;
-  url?: string;
-  s3_url?: string;
-  cloudflare_url?: string;
-  preview?: string;
-};
-
-type UnifiedSearchResponse = {
-  success: boolean;
-  query: string;
-  total_results: number;
-  page?: number;
-  page_size?: number;
-  results: {
-    media: UnifiedSearchResult[];
-    text: UnifiedSearchResult[];
-    all: UnifiedSearchResult[];
-  };
-};
-
-type PinnedItem = {
-  result: UnifiedSearchResult;
-  x: number;
-  y: number;
-  z: number;
-  width: number;
-  height: number;
-  id: string; // local id (stable across pins)
-};
+// Moved types to ./types
 
 const DEFAULT_LIMIT = 1000;
 
@@ -67,97 +49,11 @@ function classNames(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-function useUnifiedSearch() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<UnifiedSearchResponse | null>(null);
 
-  const search = useCallback(
-    async (
-      query: string,
-      opts?: {
-        limit?: number;
-        page?: number;
-        types?: ContentType[] | ("media" | "all")[];
-      }
-    ) => {
-      if (!query || query.trim().length === 0) return;
-      setLoading(true);
-      setError(null);
-      try {
-        // Use the unified-search GET interface explicitly
-        const limit = opts?.limit ?? DEFAULT_LIMIT;
-        const page = opts?.page ?? 1;
-        const selectedTypes = (opts?.types || []).filter((t) => t !== "all");
-        const typeParam = selectedTypes.length === 1 ? `&type=${encodeURIComponent(String(selectedTypes[0]))}` : "";
-        const url = `/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}&page=${page}${typeParam}`;
-        const res = await fetch(url, { method: "GET" });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`Search failed: ${res.status} ${text}`);
-        }
-        const json: UnifiedSearchResponse = await res.json();
-        setData(json);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
 
-  return { loading, error, data, search } as const;
-}
 
-function MediaPreview({ r }: { r: UnifiedSearchResult }) {
-  const mediaUrl: string | undefined =
-    (r.metadata?.cloudflare_url as string | undefined) ||
-    (r.metadata?.s3_url as string | undefined) ||
-    (r.url as string | undefined) ||
-    (r.s3_url as string | undefined) ||
-    (r.cloudflare_url as string | undefined);
 
-  if (r.content_type === "image" && mediaUrl) {
-    return (
-      <img
-        src={mediaUrl}
-        alt={r.title}
-        className="w-full h-40 object-cover rounded-md border border-neutral-800"
-        draggable={false}
-      />
-    );
-  }
-  if (r.content_type === "video" && mediaUrl) {
-    return (
-      <video
-        src={mediaUrl}
-        controls
-        className="w-full h-40 object-cover rounded-md border border-neutral-800 bg-black"
-      />
-    );
-  }
-  if (r.content_type === "audio" && mediaUrl) {
-    return (
-      <div className="w-full h-40 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-950">
-        <audio src={mediaUrl} controls className="w-full px-2" />
-      </div>
-    );
-  }
-
-  // For text, do NOT duplicate the excerpt here. Show a simple label block.
-  return null;
-}
-
-function getResultMediaUrl(r: UnifiedSearchResult): string | undefined {
-  return (
-    (r.metadata?.cloudflare_url as string | undefined) ||
-    (r.metadata?.s3_url as string | undefined) ||
-    (r.url as string | undefined) ||
-    (r.s3_url as string | undefined) ||
-    (r.cloudflare_url as string | undefined)
-  );
-}
+// getResultMediaUrl now in utils/mediaUrl
 
 function useFalModels() {
   const [models, setModels] = useState<FalModel[]>([]);
@@ -484,29 +380,20 @@ function GenerationPanel({
           }
         } catch {}
       }
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || 'Generation failed');
+      const json = await (await import('./services/generateService')).runGenerate(body);
 
       // Try multiple common locations for media URL
       const candidates = [
-        json.url,
-        json.result?.url,
-        json.result?.images?.[0]?.url,
-        json.result?.image?.url,
-        json.result?.audio?.url,
-        json.result?.video?.url,
-        json.result?.output?.url,
-        json.result?.output?.[0]?.url,
-        json.result?.output?.[0]?.content?.[0]?.url,
-        json.result?.outputs?.[0]?.url,
-        json.result?.data?.[0]?.url,
-        json.result?.data?.images?.[0]?.url,
-        json.result?.data?.video?.url,
+        (json as any)?.url,
+        (json as any)?.result?.video?.url,
+        (json as any)?.result?.url,
+        (json as any)?.result?.images?.[0]?.url,
+        (json as any)?.result?.image?.url,
+        (json as any)?.result?.audio?.url,
+        (json as any)?.result?.output?.url,
+        (json as any)?.result?.output?.[0]?.url,
+        (json as any)?.result?.data?.images?.[0]?.url,
+        (json as any)?.result?.data?.video?.url,
       ].filter(Boolean) as string[];
       const url = candidates[0];
 
@@ -517,6 +404,7 @@ function GenerationPanel({
       // propagate to parent right-pane state
       onGenResult(mode, url, json.result ?? json);
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error('Generation failed:', (e as Error).message);
     } finally {
       setBusy(false);
@@ -544,15 +432,18 @@ function GenerationPanel({
         setSaveStatus('saved');
         // Reset to idle after 2 seconds
         setTimeout(() => setSaveStatus('idle'), 2000);
+        // eslint-disable-next-line no-console
         console.log('Saved to library');
       } else {
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 2000);
+        // eslint-disable-next-line no-console
         console.error('Save failed:', json?.error || 'Save failed');
       }
     } catch (error) {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 2000);
+      // eslint-disable-next-line no-console
       console.error('Error saving to library:', error);
     }
   }
@@ -859,184 +750,9 @@ function GenerationPanel({
   );
 }
 
-function ResultCard({
-  r,
-  onPin,
-  onOpen,
-  onLabelClick,
-  selectionEnabled,
-  selected,
-  onToggleSelect,
-}: {
-  r: UnifiedSearchResult;
-  onPin: (r: UnifiedSearchResult) => void;
-  onOpen: (r: UnifiedSearchResult) => void;
-  onLabelClick?: (label: string) => void;
-  selectionEnabled?: boolean;
-  selected?: boolean;
-  onToggleSelect?: (r: UnifiedSearchResult, shiftKey?: boolean) => void;
-}) {
-  const scorePct = Math.round((Math.max(0, Math.min(1, r.score)) || 0) * 100);
-  const labels: string[] = useMemo(() => {
-    const collected: string[] = [];
-    try {
-      // Primary: AI labels if present (works great for videos)
-      const ai = r.metadata?.ai_labels || {};
-      ["scenes", "objects", "style", "mood", "themes"].forEach((k) => {
-        const arr = ai?.[k];
-        if (Array.isArray(arr)) collected.push(...arr.slice(0, 3));
-      });
+// Removed inline ResultCard - now using extracted component
 
-      // Fallbacks commonly present on images
-      const tagArrays: any[] = [];
-      if (Array.isArray((r as any).labels)) tagArrays.push((r as any).labels);
-      if (Array.isArray(r.metadata?.labels)) tagArrays.push(r.metadata?.labels);
-      if (Array.isArray(r.metadata?.tags)) tagArrays.push(r.metadata?.tags);
-      if (Array.isArray(r.metadata?.keywords)) tagArrays.push(r.metadata?.keywords);
-      tagArrays.forEach((arr) => collected.push(...arr.slice(0, 6)));
-
-      // Last resort: derive from description/title for images
-      if (collected.length === 0 && r.content_type === 'image') {
-        const base = `${r.title || ''} ${r.preview || r.description || ''}`
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, ' ')
-          .split(/\s+/)
-          .filter((w) => w.length > 3 && !/^(with|the|and|from|into|over|under|into|this|that|your|their|then|than|were|have|been|will|would|could|should|very|much|more|less|into|onto)$/.test(w))
-          .slice(0, 20);
-        const uniq: string[] = [];
-        base.forEach((w) => { if (!uniq.includes(w)) uniq.push(w); });
-        collected.push(...uniq.slice(0, 6));
-      }
-    } catch {}
-    return collected.slice(0, 6);
-  }, [r.metadata, r.title, r.preview, r.description, r.content_type]);
-
-  // Build clean description snippet - NO BULLSHIT CIRCULAR BLOCKS
-  const snippet: string = useMemo(() => {
-    const raw = (r.preview || r.description || "").toString();
-    if (!raw) return "";
-    
-    // For videos/keyframes - COMPLETELY ELIMINATE the circular description garbage
-    if (r.content_type === 'video' || r.id?.includes('keyframe') || r.id?.includes('Frame')) {
-      let cleanText = raw;
-      
-      // AGGRESSIVE removal of all circular description patterns
-      cleanText = cleanText
-        // Remove entire circular blocks that start with common patterns
-        .replace(/^Project:\s*[^.]+\.[^.]*\./gi, '') 
-        .replace(/^The (video|image|frame) (depicts?|shows?)[^.]+\.[^.]*\./gi, '')
-        .replace(/^A (video|image|frame) (that\s+)?(shows?|depicts?|features?)[^.]+\.[^.]*\./gi, '')
-        .replace(/^(This|It) (shows?|depicts?|features?)[^.]+\.[^.]*\./gi, '')
-        // Remove any sentence that starts with "The" and is longer than 50 chars
-        .replace(/^\s*The [^.]{50,}\./gm, '')
-        // Remove repeating title patterns
-        .replace(new RegExp(`^${r.title?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^.]*\.`, 'gi'), '')
-        // Clean up whitespace and newlines
-        .replace(/\n\s*\n/g, '\n')
-        .trim();
-      
-      // If we still have garbage, try to extract meaningful keywords only
-      if (cleanText.length < 10 || cleanText.toLowerCase().includes('depicts') || cleanText.toLowerCase().includes('shows')) {
-        // Extract just the meaningful labels/tags if available
-        const meaningfulParts = cleanText.split(/[.,;]/).filter(part => 
-          part.trim().length > 3 && 
-          !part.toLowerCase().includes('depicts') && 
-          !part.toLowerCase().includes('shows') &&
-          !part.toLowerCase().includes('features') &&
-          !part.toLowerCase().includes('video') &&
-          part.trim().length < 30
-        );
-        cleanText = meaningfulParts.slice(0, 3).join(', ');
-      }
-      
-      return cleanText.substring(0, 150).trim(); // Shorter limit for cleaner cards
-    }
-    
-    // For other content types, just strip title repetition
-    let cleanText = raw;
-    if (r.title) {
-      const titlePattern = new RegExp(`^${r.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\n?`, 'i');
-      cleanText = raw.replace(titlePattern, '');
-    }
-    
-    return cleanText.trim();
-  }, [r.preview, r.description, r.title, r.content_type, r.id]);
-
-  return (
-    <div className={classNames(
-      "group rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 transition-colors overflow-hidden",
-      selected ? "ring-2 ring-neutral-500" : undefined
-    )}
-    onClick={(e) => {
-      if (e.shiftKey && onToggleSelect) {
-        onToggleSelect(r, true); // Shift-click enables multi-select
-      } else if (selectionEnabled && onToggleSelect) {
-        onToggleSelect(r, false);
-      } else {
-        onOpen(r); // Regular click opens the item
-      }
-    }}
-    >
-      <div className="p-3 pb-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="text-xs px-2 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
-              {r.content_type}
-            </div>
-            <div className="text-[10px] text-neutral-400">{scorePct}%</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => { e.stopPropagation(); try { onPin(r); } catch (err) { console.error('pin failed', err); } }}
-              className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-neutral-200 transition-colors"
-              title="Pin to canvas"
-            >
-              📌
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); try { onOpen(r); } catch (err) { console.error('expand failed', err); } }}
-              className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-neutral-200 transition-colors"
-              title="Expand"
-            >
-              ➕
-            </button>
-          </div>
-        </div>
-        <div className="mt-2 font-medium text-neutral-100 line-clamp-1" title={r.title}>
-          {r.title}
-        </div>
-      </div>
-      <div className="px-3">
-        <MediaPreview r={r} />
-      </div>
-      <div className="p-3">
-        {/* Clean description snippet - DOUBLE length, NO circular bullshit */}
-        {snippet && (
-          <p className="text-sm text-neutral-300 line-clamp-6">{snippet}</p>
-        )}
-        
-        {/* Labels for ALL media types */}
-        {labels.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {labels.map((l, idx) => (
-              <button
-                key={`${l}-${idx}`}
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onLabelClick?.(l); }}
-                className="text-[10px] px-2 py-0.5 rounded-full border border-neutral-800 bg-neutral-950 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 transition-colors"
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-    </div>
-  );
-}
-
-function DetailsOverlay({
+function LegacyDetailsOverlay({
   r,
   onClose,
 }: {
@@ -1130,7 +846,13 @@ function DetailsOverlay({
             </div>
           ) : (
             <>
-              <MediaPreview r={r} />
+              {getResultMediaUrl(r) && (r.content_type === 'image' ? (
+                <img src={getResultMediaUrl(r)} alt={r.title} className="w-full rounded-md border border-neutral-800 bg-black" />
+              ) : r.content_type === 'video' ? (
+                <video src={getResultMediaUrl(r)} controls className="w-full rounded-md border border-neutral-800 bg-black" />
+              ) : r.content_type === 'audio' ? (
+                <div className="p-2"><audio src={getResultMediaUrl(r)} controls className="w-full" /></div>
+              ) : null)}
               <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
                 {r.preview || r.description || 'No additional preview available.'}
               </div>
@@ -1155,133 +877,7 @@ function DetailsOverlay({
   );
 }
 
-function DraggablePinned({
-  item,
-  onMove,
-  onRemove,
-  onOpen,
-}: {
-  item: PinnedItem;
-  onMove: (id: string, x: number, y: number) => void;
-  onRemove: (id: string) => void;
-  onOpen: (r: UnifiedSearchResult) => void;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (!ref.current) return;
-    dragging.current = true;
-    const rect = ref.current.getBoundingClientRect();
-    offset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-  };
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    const newX = e.clientX - offset.current.x - (ref.current?.parentElement?.getBoundingClientRect().left || 0);
-    const newY = e.clientY - offset.current.y - (ref.current?.parentElement?.getBoundingClientRect().top || 0);
-    onMove(item.id, Math.max(0, newX), Math.max(0, newY));
-  };
-  const handlePointerUp = (e: React.PointerEvent) => {
-    dragging.current = false;
-    (e.target as Element).releasePointerCapture?.(e.pointerId);
-  };
-
-  return (
-    <div
-      ref={ref}
-      className="absolute rounded-xl border border-neutral-800 bg-neutral-950 shadow-lg overflow-hidden"
-      style={{ left: item.x, top: item.y, width: item.width, height: item.height, zIndex: item.z }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    >
-      <div className="p-2 border-b border-neutral-800 flex items-center justify-between gap-2 bg-neutral-900/50">
-        <div className="text-xs text-neutral-300 truncate" title={item.result.title}>
-          {item.result.title}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onOpen(item.result)}
-            className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-          >
-            Expand
-          </button>
-          <button
-            onClick={() => onRemove(item.id)}
-            className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-      <div className="p-2 h-[calc(100%-40px)]">
-        <MediaPreview r={item.result} />
-      </div>
-    </div>
-  );
-}
-
-function GridPinned({
-  items,
-  onReorder,
-  onRemove,
-  onOpen,
-}: {
-  items: PinnedItem[];
-  onReorder: (fromIndex: number, toIndex: number) => void;
-  onRemove: (id: string) => void;
-  onOpen: (r: UnifiedSearchResult) => void;
-}) {
-  const dragFrom = useRef<number | null>(null)
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-      {items.map((p, idx) => (
-        <div
-          key={p.id}
-          draggable
-          onDragStart={(e) => {
-            dragFrom.current = idx
-            try { e.dataTransfer.setData('text/plain', String(idx)); } catch {}
-          }}
-          onDragOver={(e) => { e.preventDefault(); }}
-          onDrop={(e) => {
-            e.preventDefault()
-            const from = dragFrom.current ?? (() => { try { return Number(e.dataTransfer.getData('text/plain')) } catch { return NaN } })()
-            const to = idx
-            if (Number.isFinite(from) && from !== to) onReorder(from as number, to)
-            dragFrom.current = null
-          }}
-          className="rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden"
-        >
-          <div className="p-2 border-b border-neutral-800 flex items-center justify-between gap-2 bg-neutral-900/50">
-            <div className="text-xs text-neutral-300 truncate" title={p.result.title}>
-              {p.result.title}
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => onOpen(p.result)}
-                className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-              >
-                Expand
-              </button>
-              <button
-                onClick={() => onRemove(p.id)}
-                className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-          <div className="p-2">
-            <MediaPreview r={p.result} />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
+// DraggablePinned and GridPinned moved to components/Canvas
 
 // Project picker moved to top-level to avoid remount issues
 function ProjectPicker() {
@@ -1498,145 +1094,62 @@ function RightPane({
             </div>
             <div className="text-xs text-neutral-500">{totalResults} total</div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-start content-start">
-            {results.map((r) => (
-              <ResultCard
-                key={`${r.id}-${r.score}`}
-                r={r}
-                onPin={onPin}
-                onOpen={onOpen}
-                onLabelClick={(label) => {
-                  setQuery(label);
-                  executeSearch(label, 1);
-                  setTab('results');
-                }}
-                selectionEnabled={multiSelect}
-                selected={selectedIds.has(r.id)}
-                onToggleSelect={toggleSelect}
-              />
-            ))}
+          <div className="mt-2">
+            <ResultsGrid
+              results={results}
+              renderCard={(r) => (
+                <VSResultCard
+                  r={r}
+                  onPin={onPin}
+                  onOpen={onOpen}
+                  onLabelClick={(label) => {
+                    setQuery(label);
+                    executeSearch(label, 1);
+                    setTab('results');
+                  }}
+                  selectionEnabled={multiSelect}
+                  selected={selectedIds.has(r.id)}
+                  onToggleSelect={toggleSelect}
+                />
+              )}
+            />
             {!loading && results.length === 0 && (
-              <div className="col-span-full text-neutral-400 text-sm">Try a search to see results.</div>
+              <div className="text-neutral-400 text-sm mt-2">Try a search to see results.</div>
             )}
           </div>
         </div>
       ) : tab === 'canvas' ? (
         <div className="mt-3">
           <div className="text-sm text-neutral-400 mb-2">Canvas</div>
-          <div className="mb-2 grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
-            {/* Name inline editable */}
-            <div className="min-w-0">
-              {!isEditingName ? (
-                <div
-                  className="cursor-text truncate text-neutral-100 text-base"
-                  title={canvasName || 'Untitled Canvas'}
-                  onDoubleClick={() => setIsEditingName(true)}
-                >
-                  {canvasName || 'Untitled Canvas'}
-                </div>
-              ) : (
-                <input
-                  value={canvasName}
-                  onChange={(e) => setCanvasName(e.target.value)}
-                  onBlur={() => { setIsEditingName(false); setTimeout(() => { void autoSaveCanvas(); }, 150); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingName(false); void autoSaveCanvas(); } if (e.key === 'Escape') { setIsEditingName(false); } }}
-                  autoFocus
-                  className="w-full px-2 py-1.5 rounded-md border border-neutral-700 bg-neutral-900 text-neutral-100"
-                  placeholder="Canvas name"
-                />
-              )}
-            </div>
-
-            {/* Project controlled select */}
-            <label htmlFor="canvas-project-select" className="sr-only">Project</label>
-            <select
-              id="canvas-project-select"
-              value={canvasProjectId}
-              onChange={(e) => { setCanvasProjectId(e.target.value); void autoSaveCanvas(); }}
-              className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
-            >
-              <option value="">No project</option>
-              {projectsList.map((p) => (
-                <option key={p.project_id} value={p.project_id}>{p.name}</option>
-              ))}
-            </select>
-
-            {/* LoRA controls */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void trainCanvasLora()}
-                disabled={!pinned.length || !!(loraTraining && loraTraining.status !== 'failed' && loraTraining.status !== 'COMPLETED')}
-                className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
-                title={!pinned.length ? 'Pin at least 3 images to train a LoRA' : 'Train a LoRA from pinned images'}
-              >
-                {loraTraining ? `LoRA: ${loraTraining.status}` : 'Train LoRA'}
-              </button>
-              {Array.isArray(canvasLoras) && canvasLoras.length > 0 && (
-                <div className="text-xs text-neutral-400 truncate" title={canvasLoras.map((l) => `${l.status}${l.artifactUrl ? ' ✓' : ''}`).join(', ')}>
-                  {canvasLoras.length} LoRA(s)
-                </div>
-              )}
-            </div>
-
-            {/* Save / Load / Clear with compact styles */}
-            <button onClick={() => void saveCanvas()} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
-            <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
-            <button
-              onClick={clearCanvas}
-              className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-            >
-              Clear
-            </button>
-          </div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
-                <input
-                  type="radio"
-                  name="canvas-layout"
-                  checked={canvasLayout === 'grid'}
-                  onChange={() => setCanvasLayout('grid')}
-                  className="accent-neutral-400"
-                />
-                Grid
-              </label>
-              <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
-                <input
-                  type="radio"
-                  name="canvas-layout"
-                  checked={canvasLayout === 'freeform'}
-                  onChange={() => setCanvasLayout('freeform')}
-                  className="accent-neutral-400"
-                />
-                Freeform
-              </label>
-            </div>
-          </div>
+          <CanvasToolbar
+            isEditingName={isEditingName}
+            setIsEditingName={setIsEditingName}
+            canvasName={canvasName}
+            setCanvasName={setCanvasName}
+            autoSaveCanvas={autoSaveCanvas}
+            canvasProjectId={canvasProjectId}
+            setCanvasProjectId={setCanvasProjectId}
+            projectsList={projectsList}
+            saveCanvas={saveCanvas}
+            setShowCanvasManager={setShowCanvasManager}
+            clearCanvas={clearCanvas}
+            canvasLayout={canvasLayout}
+            setCanvasLayout={setCanvasLayout}
+            loraTraining={loraTraining}
+            trainCanvasLora={trainCanvasLora}
+            canvasLoras={canvasLoras}
+          />
           {canvasLayout === 'grid' ? (
             <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 h-[640px]">
               {pinned.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-neutral-500 text-sm">
-                  Pin results here to build a visual board.
-                </div>
+                <div className="h-full flex items-center justify-center text-neutral-500 text-sm">Pin results here to build a visual board.</div>
               ) : (
                 <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
               )}
             </div>
           ) : (
-            <div
-              ref={canvasRef}
-              className="relative w-full rounded-xl border border-neutral-800 bg-[radial-gradient(circle_at_20%_0%,rgba(66,66,66,0.25),transparent_35%),radial-gradient(circle_at_80%_100%,rgba(66,66,66,0.25),transparent_35%)] overflow-hidden"
-              style={{ height: Math.max(640, Math.ceil((pinned || []).reduce((m, p) => Math.max(m, (p.y || 0) + (p.height || 0)), 0) + 40)) }}
-            >
-              {pinned.map((p) => (
-                <DraggablePinned key={p.id} item={p} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
-              ))}
-              {pinned.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
-                  Pin results here to build a visual board.
-                </div>
-              )}
+            <div ref={canvasRef}>
+              <CanvasBoard items={pinned} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
             </div>
           )}
           <div className="mt-3">
@@ -1736,18 +1249,11 @@ function RightPane({
         </div>
       ) : (
         <div className="mt-3">
-          <GenerationPanel
+          <GeneratePanel
             pinned={pinned}
             onPinResult={onPin}
             onGenStart={() => { setTab('output'); onParentGenStart(); }}
             onGenResult={(m, url, raw) => { setTab('output'); onParentGenResult(m, url, raw); }}
-            canvasLoras={canvasLoras}
-            allLoras={allLoras}
-            onUpdateAllLoras={setAllLoras}
-            canvasLabel={canvasName || 'Canvas'}
-            setRightTab={setTab}
-            saveStatus={saveStatus}
-            setSaveStatus={setSaveStatus}
           />
         </div>
       )}
@@ -1771,39 +1277,23 @@ function RightPane({
 }
 
 export default function VisualSearchPage() {
-  const { loading, error, data, search } = useUnifiedSearch();
-  const [query, setQuery] = useState("");
+  const { executeSearch } = useResults();
+  const { query, page, results, total, setQuery, setPage, setResults } = useResultsStore();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { rightTab, setRightTab, multiSelect, selectedIds, toggleMultiSelect, setSelectedIds, toggleSelectedId } = useUiStore();
   const [types, setTypes] = useState<Array<ContentType | "media" | "all">>(["all"]);
-  const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   // Use persistent cache that survives component re-renders
   const getGlobalCache = (): Map<string, UnifiedSearchResult> => {
-    if (typeof window === 'undefined') return new Map();
-    try {
-      const cached = sessionStorage.getItem('globalResultsCache');
-      if (cached) {
-        const data = JSON.parse(cached);
-        return new Map(Object.entries(data));
-      }
-    } catch (e) {
-      console.warn('Failed to load global cache:', e);
-    }
-    return new Map();
+    const obj = cacheStore.get<Record<string, UnifiedSearchResult>>('globalResultsCache');
+    return new Map(Object.entries(obj || {}));
   };
 
   const setGlobalCache = (cache: Map<string, UnifiedSearchResult>) => {
-    if (typeof window === 'undefined') return;
-    try {
-      const data = Object.fromEntries(cache.entries());
-      sessionStorage.setItem('globalResultsCache', JSON.stringify(data));
-      console.log('🔧 Bridge: Persisted cache with', cache.size, 'items');
-    } catch (e) {
-      console.warn('Failed to persist global cache:', e);
-    }
+    const data = Object.fromEntries(cache.entries());
+    cacheStore.set('globalResultsCache', data);
   };
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [multiSelect, setMultiSelect] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // page/total/multiSelect/selectedIds now from stores
   const [canvasLayout, setCanvasLayout] = useState<'grid' | 'freeform'>('grid');
   const [canvasId, setCanvasId] = useState<string | null>(null);
   const [canvases, setCanvases] = useState<Array<{ id: string; name: string; key: string; updatedAt?: string }>>([])
@@ -1829,17 +1319,17 @@ export default function VisualSearchPage() {
   const [isEditingName, setIsEditingName] = useState<boolean>(false)
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
-  const [pinned, setPinned] = useState<PinnedItem[]>([]);
+  const { pinned, addPin, movePin, removePin, reorderPinned, setPinned: setPinnedInStore } = useCanvasStore();
   const pinnedRef = useRef<PinnedItem[]>([]);
 
   // Keep ref in sync with state
   useEffect(() => {
     pinnedRef.current = pinned;
   }, [pinned]);
-  const [zCounter, setZCounter] = useState(10);
+  // zCounter now handled in store
   const canvasRef = useRef<HTMLDivElement | null>(null);
   // Right pane tab and generation output state
-  const [rightTab, setRightTab] = useState<'results' | 'canvas' | 'output' | 'generate'>('results');
+  // rightTab now from uiStore
   const [genLoading, setGenLoading] = useState(false);
   const [genUrl, setGenUrl] = useState<string | null>(null);
   const [genMode, setGenMode] = useState<'image' | 'video' | 'audio' | 'text' | null>(null);
@@ -1851,59 +1341,57 @@ export default function VisualSearchPage() {
     (window as any).__agentApi = {
       // Called by client after tool pinToCanvas returns
       pin: (payload: { id?: string; title?: string; url?: string; needsLookup?: boolean }) => {
-        console.log('🚨 DIAGNOSTIC v2-CACHE-BUST: Pin function called!', new Date().toISOString(), 'Build:', process.env.NODE_ENV);
+        // debug: agent pin bridge invoked
         if (!payload?.url && !payload?.id) return;
 
-        console.log('🟢 Bridge: pin called with payload:', payload);
+        debug('vs:agent:pin', 'payload', payload);
 
         let targetResult: UnifiedSearchResult | null = null;
 
                 // Try to find the content in current search results or global cache if no URL provided
         if (!payload.url && payload.id) {
-          console.log('🔍 Bridge: Looking up content by ID:', payload.id);
-          console.log('🔍 Bridge: Current results count:', results.length);
+          debug('vs:agent:pin', 'lookup id', payload.id, 'results', results.length);
 
           // Load persistent cache
           const globalResultsCache = getGlobalCache();
-          console.log('🔍 Bridge: Global cache size:', globalResultsCache.size);
-          console.log('🔍 Bridge: Cache has key?', globalResultsCache.has(payload.id));
+          debug('vs:agent:cache', 'size', globalResultsCache.size, 'has?', globalResultsCache.has(payload.id));
 
           // Helpful error if cache is empty
           if (globalResultsCache.size === 0 && results.length === 0) {
-            console.log('⚠️ Bridge: No cached content! User needs to search first before pinning.');
+            debug('vs:agent:cache', 'no cache, search first');
           }
 
           // First try current results
-          targetResult = results.find(r => r.id === payload.id || r.title === payload.id) || null;
-          console.log('🔍 Bridge: Found in current results:', !!targetResult);
+          targetResult = results.find((r: UnifiedSearchResult) => r.id === payload.id || r.title === payload.id) || null;
+          debug('vs:agent:pin', 'found in results', !!targetResult);
 
           // If not found, try persistent global cache
           if (!targetResult) {
             targetResult = globalResultsCache.get(payload.id) || null;
-            console.log('🔍 Bridge: Found in global cache:', !!targetResult);
+            debug('vs:agent:cache', 'found in cache', !!targetResult);
             if (targetResult) {
-              console.log('🎯 Bridge: Cache hit! URL:', targetResult.metadata?.cloudflare_url);
+              debug('vs:agent:cache', 'hit url', targetResult.metadata?.cloudflare_url);
             }
 
             // Debug: check all cache keys for partial matches
             if (!targetResult && payload.id) {
               const cacheKeys = Array.from(globalResultsCache.keys());
-              console.log('🔍 Bridge: Available cache keys:', cacheKeys.slice(0, 20));
+              debug('vs:agent:cache', 'keys sample', cacheKeys.slice(0, 20));
               const matchingKeys = cacheKeys.filter(key => key.includes(payload.id!) || payload.id!.includes(key));
-              console.log('🔍 Bridge: Partial matching cache keys:', matchingKeys);
+              debug('vs:agent:cache', 'partial keys', matchingKeys);
 
               // Try to find by any matching key
               if (matchingKeys.length > 0) {
                 targetResult = globalResultsCache.get(matchingKeys[0]) || null;
-                console.log('🔍 Bridge: Found by partial match:', !!targetResult);
+                debug('vs:agent:cache', 'found by partial match', !!targetResult);
                 if (targetResult) {
-                  console.log('🎯 Bridge: Partial match URL:', targetResult.metadata?.cloudflare_url);
+                  debug('vs:agent:cache', 'partial url', targetResult.metadata?.cloudflare_url);
                 }
               }
             }
           }
 
-          console.log('🔍 Bridge: Final found result:', targetResult);
+          debug('vs:agent:pin', 'final result', targetResult?.id);
         }
 
         // Create pin object from found result or payload
@@ -1923,7 +1411,7 @@ export default function VisualSearchPage() {
           preview: payload.title || payload.url || '',
         } as any;
 
-        console.log('🟢 Bridge: Pinning object:', pinObject);
+        debug('vs:agent:pin', 'pinning', pinObject?.id);
         pinResult(pinObject);
         setRightTab('canvas');
       },
@@ -1937,7 +1425,7 @@ export default function VisualSearchPage() {
       },
       showResults: (resp: any) => {
         try {
-          console.log('🟢 Bridge: showResults called with:', resp);
+          debug('vs:agent:results', 'showResults payload');
           // Handle multiple possible structures:
           // 1. Direct payload from agent: {results: {all: [...]}}
           // 2. Nested payload: {results: {all: [...]}}
@@ -1948,11 +1436,10 @@ export default function VisualSearchPage() {
             resp?.results ||
             (Array.isArray(resp) ? resp : []);
 
-          console.log('🟢 Bridge: Extracted results:', all.length, 'items');
+          debug('vs:agent:results', 'extracted', all.length);
 
           if (Array.isArray(all) && all.length > 0) {
-            setResults(all);
-            setTotal(all.length);
+            setResults(all, all.length);
             setRightTab('results');
 
             // Cache all results globally for pin lookup using persistent storage
@@ -1962,24 +1449,18 @@ export default function VisualSearchPage() {
             all.forEach(item => {
               if (item.id) newCache.set(item.id, item);
               if (item.title) newCache.set(item.title, item);
-              console.log('🔧 Bridge: Caching item - id:', item.id, 'title:', item.title, 'url:', item.metadata?.cloudflare_url);
+              debug('vs:cache', 'caching', item.id, item.title);
             });
 
             setGlobalCache(newCache);
-            console.log('🟢 Bridge: Cached', all.length, 'results globally. Total cache size:', newCache.size);
-            console.log('🔧 Bridge: Cache keys sample:', Array.from(newCache.keys()).slice(0, 10));
+            debug('vs:cache', 'cached', all.length, 'total', newCache.size);
 
             // Debug: Check if 2068-odyssey is specifically cached
-            const odysseyItem = newCache.get('2068-odyssey');
-            if (odysseyItem) {
-              console.log('🎯 Bridge: Found 2068-odyssey in cache:', odysseyItem.metadata?.cloudflare_url);
-            } else {
-              console.log('❌ Bridge: 2068-odyssey NOT found in cache');
-            }
+            newCache.get('2068-odyssey');
 
-            console.log('🟢 Bridge: UI updated with results');
+            debug('vs:agent:results', 'updated UI');
           } else {
-            console.log('🔴 Bridge: No valid results found in payload');
+            debug('vs:agent:results', 'no valid results');
           }
         } catch (e) {
           console.error('🔴 Bridge: showResults failed:', e);
@@ -2001,7 +1482,7 @@ export default function VisualSearchPage() {
       },
       // Simplified path: run generation directly using the plan; show Output
       prepareGenerate: async (payload: any) => {
-        console.log('🚨 DIAGNOSTIC v2-CACHE-BUST: prepareGenerate called!', new Date().toISOString(), 'Build:', process.env.NODE_ENV);
+        debug('vs:agent:gen', 'prepareGenerate');
         try {
           if (agentRunLockRef.current || genLoading) return; agentRunLockRef.current = true;
           const mode = payload?.type as 'image' | 'video' | 'audio' | 'text' | undefined;
@@ -2023,9 +1504,10 @@ export default function VisualSearchPage() {
                 const url = getResultMediaUrl(pinnedItem.result);
                 if (url) {
                   resolvedPlanRefs.push(url);
-                  console.log('🔧 Bridge: Resolved content ID', ref, 'to URL:', url);
+                  debug('vs:agent:gen', 'resolved id', ref);
                 } else {
-                  console.warn('🟠 Bridge: Could not get URL for pinned item:', ref);
+                  // eslint-disable-next-line no-console
+                  console.warn('Bridge: missing url for pinned', ref);
                 }
               } else {
                 // Try to find in global cache
@@ -2035,12 +1517,14 @@ export default function VisualSearchPage() {
                   const url = getResultMediaUrl(cachedItem);
                   if (url) {
                     resolvedPlanRefs.push(url);
-                    console.log('🔧 Bridge: Resolved content ID', ref, 'from cache to URL:', url);
+                    debug('vs:agent:gen', 'resolved from cache', ref);
                   } else {
-                    console.warn('🟠 Bridge: Could not get URL for cached item:', ref);
+                    // eslint-disable-next-line no-console
+                    console.warn('Bridge: missing url for cache', ref);
                   }
                 } else {
-                  console.warn('🟠 Bridge: Could not resolve content ID to URL:', ref);
+                  // eslint-disable-next-line no-console
+                  console.warn('Bridge: could not resolve id', ref);
                 }
               }
             }
@@ -2048,9 +1532,7 @@ export default function VisualSearchPage() {
 
           const refs: string[] = (resolvedPlanRefs.length > 0 ? resolvedPlanRefs : pinnedUrls) as string[];
 
-          console.log('🟢 Bridge: prepareGenerate - planRefs:', planRefs.length, 'resolvedPlanRefs:', resolvedPlanRefs.length, 'pinnedUrls:', pinnedUrls.length, 'final refs:', refs.length);
-          console.log('🟢 Bridge: prepareGenerate - original planRefs:', planRefs);
-          console.log('🟢 Bridge: prepareGenerate - resolved refs:', refs);
+          debug('vs:agent:gen', 'refs', { plan: planRefs.length, resolved: resolvedPlanRefs.length, pinned: pinnedUrls.length, final: refs.length });
 
           if (!mode || !prompt) return;
           // Update status API
@@ -2063,31 +1545,25 @@ export default function VisualSearchPage() {
           setRightTab('output');
 
           const body = { mode, model, prompt, refs, options: payload?.options || {} } as any;
-          console.log('🔵 Bridge: Sending generation request:', body);
-          const res = await fetch('/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          });
+          debug('vs:agent:gen', 'sending');
+          const json = await (await import('./services/generateService')).runGenerate(body);
 
-          console.log('🔵 Bridge: Generation response status:', res.status);
-          const json = await res.json();
-          console.log('🔵 Bridge: Generation response JSON:', JSON.stringify(json, null, 2));
+          debug('vs:agent:gen', 'response');
 
           const candidates = [
-            json?.url,                          // Direct URL from API response
-            json?.result?.video?.url,           // WAN-2.1 format: { result: { video: { url } } }
-            json?.result?.url,                  // Generic result URL
-            json?.result?.images?.[0]?.url,     // Image generation
-            json?.result?.image?.url,           // Single image
-            json?.result?.audio?.url,           // Audio generation
-            json?.result?.output?.url,          // Generic output URL
-            json?.result?.output?.[0]?.url,     // Array of outputs
-            json?.result?.data?.images?.[0]?.url, // Nested data structure
-            json?.result?.data?.video?.url,     // Nested video data
+            (json as any)?.url,
+            (json as any)?.result?.video?.url,
+            (json as any)?.result?.url,
+            (json as any)?.result?.images?.[0]?.url,
+            (json as any)?.result?.image?.url,
+            (json as any)?.result?.audio?.url,
+            (json as any)?.result?.output?.url,
+            (json as any)?.result?.output?.[0]?.url,
+            (json as any)?.result?.data?.images?.[0]?.url,
+            (json as any)?.result?.data?.video?.url,
           ].filter(Boolean) as string[];
 
-          console.log('🔵 Bridge: URL candidates:', candidates);
+          debug('vs:agent:gen', 'url candidates', candidates.length);
 
           setGenMode(mode);
           const out = candidates[0] || null;
@@ -2095,19 +1571,14 @@ export default function VisualSearchPage() {
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
 
-          console.log('🔵 Bridge: Final output URL:', out);
-          console.log('🔵 Bridge: Generation complete - success:', !!out, 'mode:', mode);
+          debug('vs:agent:gen', 'final url', !!out, mode);
 
           // Check for errors in the response
-          if (json?.error) {
-            console.error('🔴 Bridge: Generation API error:', json.error);
-            if (json?.details) {
-              console.error('🔴 Bridge: Error details:', json.details);
-            }
-          }
+          // Log note if present
+          // note can be displayed in UI if desired
 
           try {
-            await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs }, success: !!out, error: json?.error } }) });
+            await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs }, success: !!out } }) });
           } catch {}
         } catch (e) {
           setGenLoading(false);
@@ -2192,24 +1663,20 @@ export default function VisualSearchPage() {
     };
   }, []);
 
-  useEffect(() => {
-    setResults(data?.results?.all || []);
-    setTotal(data?.total_results || 0);
-    if (typeof data?.page === 'number') setPage(data.page);
-  }, [data]);
-
-  const executeSearch = useCallback(
-    (q: string, nextPage?: number) => {
-      const effectiveTypes = types.includes("all") ? [] : types;
-      search(q, { limit: DEFAULT_LIMIT, page: nextPage ?? page, types: effectiveTypes as any });
-    },
-    [search, types, page]
-  );
+  // Results are now managed by useResults hook and resultsStore
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
-      executeSearch(query);
+      try {
+        setLoading(true);
+        setError(null);
+        await executeSearch(query);
+      } catch (err: any) {
+        setError(err.message || 'Search failed');
+      } finally {
+        setLoading(false);
+      }
     },
     [executeSearch, query]
   );
@@ -2224,24 +1691,17 @@ export default function VisualSearchPage() {
   };
 
   const toggleSelect = (r: UnifiedSearchResult, shiftKey: boolean = false) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (shiftKey) {
-        // Shift-click: enable multi-select mode and add to selection
-        setMultiSelect(true);
-        next.add(r.id);
-      } else {
-        if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
-      }
-      return next;
-    });
+    if (shiftKey) {
+      toggleMultiSelect(true);
+    }
+    toggleSelectedId(r.id);
   };
 
   const pinSelected = () => {
-    const toPin = results.filter((r) => selectedIds.has(r.id));
-    toPin.forEach((r) => pinResult(r));
+    const toPin = results.filter((r: UnifiedSearchResult) => selectedIds.has(r.id));
+    toPin.forEach((r: UnifiedSearchResult) => pinResult(r));
     setSelectedIds(new Set());
-    setMultiSelect(false);
+    toggleMultiSelect(false);
     setRightTab('canvas');
   };
 
@@ -2250,33 +1710,15 @@ export default function VisualSearchPage() {
     const rect = canvas?.getBoundingClientRect();
     const baseX = Math.max(0, (rect?.width || 800) * 0.05 + Math.random() * 60);
     const baseY = Math.max(0, (rect?.height || 500) * 0.05 + Math.random() * 60);
-    const newId = `${r.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setPinned((prev) => [
-      ...prev,
-      {
-        id: newId,
-        result: r,
-        x: baseX,
-        y: baseY,
-        z: zCounter + 1,
-        width: 280,
-        height: 220,
-      },
-    ]);
-    setZCounter((z) => z + 1);
+    addPin(r, baseX, baseY);
   };
 
-  const movePinned = (id: string, x: number, y: number) => {
-    setPinned((prev) => prev.map((p) => (p.id === id ? { ...p, x, y, z: zCounter + 1 } : p)));
-    setZCounter((z) => z + 1);
-  };
+  // movePinned from store
 
-  const removePinned = (id: string) => {
-    setPinned((prev) => prev.filter((p) => p.id !== id));
-  };
+  // removePinned from store
 
   const clearCanvas = () => {
-    setPinned([])
+    setPinnedInStore(() => [])
     setCanvasName('')
     setCanvasNote('')
     setCanvasProjectId('')
@@ -2287,25 +1729,14 @@ export default function VisualSearchPage() {
   const refreshCurrentCanvas = async () => {
     if (!canvasId) return
     try {
-      const res = await fetch(`/api/canvas/loras?id=${encodeURIComponent(canvasId)}`)
-      const j = await res.json()
-      if (res.ok) {
-        setCanvasLoras(Array.isArray(j.loras) ? j.loras : [])
-        // Also refresh global LoRAs when canvas updates
-        await fetchAllLoras()
-      }
+      const j = await (await import('./services/canvasService')).getCanvasLoras(canvasId)
+      setCanvasLoras(Array.isArray(j.loras) ? j.loras : [])
+      await fetchAllLoras()
     } catch (e) {
       console.error('Canvas refresh failed:', e)
     }
   }
-  const reorderPinned = (fromIndex: number, toIndex: number) => {
-    setPinned((prev) => {
-      const arr = [...prev]
-      const [moved] = arr.splice(fromIndex, 1)
-      arr.splice(toIndex, 0, moved)
-      return arr
-    })
-  }
+  // reorderPinned from store
 
   const collectCanvasPayload = (override?: { name?: string; note?: string; projectId?: string }) => {
     return {
@@ -2313,7 +1744,7 @@ export default function VisualSearchPage() {
       name: (override?.name ?? canvasName ?? 'Untitled Canvas').trim(),
       note: override?.note ?? canvasNote ?? '',
       projectId: (override?.projectId ?? canvasProjectId) || undefined,
-      items: pinned.map((p, idx) => ({
+      items: pinned.map((p: PinnedItem, idx: number) => ({
         id: p.result.id,
         type: p.result.content_type,
         position: { x: p.x, y: p.y, w: p.width, h: p.height, z: p.z },
@@ -2328,13 +1759,11 @@ export default function VisualSearchPage() {
     try {
       const base = collectCanvasPayload(override)
       const payload = { ...base, id: canvasId || base.id }
-      const res = await fetch('/api/canvas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Save failed')
+      const json = await (await import('./services/canvasService')).saveCanvas(payload)
       setCanvasId(payload.id)
       try { if (typeof window !== 'undefined') localStorage.setItem('lastCanvasId', payload.id) } catch {}
       void refreshCanvases()
-      console.log('Canvas saved')
+      debug('vs:canvas', 'saved')
     } catch (e) {
       console.error('Canvas save failed:', (e as Error).message)
     }
@@ -2349,10 +1778,8 @@ export default function VisualSearchPage() {
     try {
       const base = collectCanvasPayload()
       const payload = { ...base, id: canvasId }
-      const res = await fetch('/api/canvas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      if (res.ok) {
-        console.log('Canvas auto-saved')
-      }
+      await (await import('./services/canvasService')).updateCanvas(payload)
+      debug('vs:canvas', 'auto-saved')
     } catch (e) {
       console.error('Canvas auto-save failed:', (e as Error).message)
     }
@@ -2360,9 +1787,8 @@ export default function VisualSearchPage() {
 
   const refreshCanvases = async () => {
     try {
-      const res = await fetch('/api/canvas', { method: 'GET' })
-      const j = await res.json()
-      if (res.ok) setCanvases((j.items || []).map((x: any) => ({ id: x.id, name: x.name, key: x.key, updatedAt: x.updatedAt })))
+      const j = await (await import('./services/canvasService')).listCanvases()
+      setCanvases((j.items || []).map((x: any) => ({ id: x.id, name: x.name, key: x.key, updatedAt: x.updatedAt })))
     } catch {}
   }
 
@@ -2374,11 +1800,8 @@ export default function VisualSearchPage() {
   // Fetch all LoRAs from the global catalog
   const fetchAllLoras = async () => {
     try {
-      const response = await fetch('/api/loras')
-      if (response.ok) {
-        const loras = await response.json()
-        setAllLoras(loras)
-      }
+      const loras = await (await import('./services/canvasService')).listAllLoras()
+      setAllLoras(loras)
     } catch (error) {
       console.error('Failed to fetch all LoRAs:', error)
     }
@@ -2393,14 +1816,12 @@ export default function VisualSearchPage() {
 
   const loadCanvas = async (id: string) => {
     try {
-      const res = await fetch(`/api/canvas?id=${encodeURIComponent(id)}`)
-      const j = await res.json()
-      if (!res.ok) throw new Error(j?.error || 'Failed to load canvas')
+      const j = await (await import('./services/canvasService')).getCanvas(id)
       const c = j.canvas
       setCanvasId(c.id)
       try { if (typeof window !== 'undefined') localStorage.setItem('lastCanvasId', c.id) } catch {}
       // Load pinned from items
-      setPinned((c.items || []).map((it: any, idx: number) => ({
+      setPinnedInStore(() => (c.items || []).map((it: any, idx: number) => ({
         id: `${it.id}-${idx}-${Math.random().toString(36).slice(2,6)}`,
         result: {
           id: it.id,
@@ -2415,7 +1836,7 @@ export default function VisualSearchPage() {
         z: it.position?.z ?? (idx + 1),
         width: it.position?.w ?? 280,
         height: it.position?.h ?? 220,
-      })))
+      })));
       // Name + note + project into controlled state
       setCanvasName(c.name || '')
       setCanvasNote(c.note || '')
@@ -2463,9 +1884,8 @@ export default function VisualSearchPage() {
       polledReqIdsRef.current.add(rid)
       const tick = async () => {
         try {
-          const s = await fetch(`/api/canvas/train-status?requestId=${encodeURIComponent(rid)}&canvasId=${encodeURIComponent(canvasId)}`)
-          const sj = await s.json()
-          if (s.ok && (sj?.status === 'COMPLETED' || sj?.lora)) {
+          const sj = await (await import('./services/canvasService')).getTrainStatus(rid, canvasId)
+          if (sj?.status === 'COMPLETED' || (sj as any)?.lora) {
             // Refresh
             await loadCanvas(canvasId)
             return
@@ -2486,13 +1906,7 @@ export default function VisualSearchPage() {
       const id = canvasId || ''
       if (!id) throw new Error('Canvas ID missing')
       setLoraTraining({ status: 'starting' })
-      const res = await fetch('/api/canvas/train-lora', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ canvasId: id, triggerWord: 'CANVAS_STYLE' })
-      })
-      const j = await res.json()
-      if (!res.ok) throw new Error(j?.error || 'Training start failed')
+      const j = await (await import('./services/canvasService')).trainLora(id, 'CANVAS_STYLE')
       const reqId = j.requestId as string
       setLoraTraining({ status: 'queued', requestId: reqId })
       // Add training LoRA to current state immediately
@@ -2659,13 +2073,13 @@ export default function VisualSearchPage() {
           <RightPane
             results={results}
             loading={loading}
-            totalResults={data?.total_results || 0}
+            totalResults={total}
             onPin={pinResult}
             onOpen={setSelected}
             canvasRef={canvasRef}
             pinned={pinned}
-            movePinned={movePinned}
-            removePinned={removePinned}
+            movePinned={movePin}
+            removePinned={removePin}
             tab={rightTab}
             setTab={setRightTab}
             genLoading={genLoading}
@@ -2704,7 +2118,7 @@ export default function VisualSearchPage() {
                 if (resp.ok) {
                   setSaveStatus('saved');
                   setTimeout(() => setSaveStatus('idle'), 2000);
-                  console.log('Saved to library');
+                  debug('vs:gen', 'saved to library')
                 } else {
                   const j = await resp.json();
                   setSaveStatus('error');
@@ -2784,70 +2198,7 @@ export default function VisualSearchPage() {
       <DetailsOverlay r={selected} onClose={() => setSelected(null)} />
 
       {showCanvasManager && (
-        <div className="fixed inset-0 z-[200]">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCanvasManager(false)} />
-          <div className="absolute inset-0 flex items-start justify-center pt-16">
-            <div className="w-[800px] max-w-[95vw] rounded-xl border border-neutral-800 bg-neutral-950 shadow-xl">
-              <div className="flex items-center justify-between p-4 border-b border-neutral-800">
-                <div className="text-lg font-semibold text-neutral-100">Canvas Manager</div>
-                <button onClick={() => { setShowCanvasManager(false); cancelEdit() }} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">×</button>
-              </div>
-
-              <div className="p-4 border-b border-neutral-800">
-                <div className="flex gap-2">
-                  <input id="new-canvas-name" placeholder="New canvas name" className="flex-1 px-3 py-2 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500" />
-                  <button onClick={() => { const nameEl = document.getElementById('new-canvas-name') as HTMLInputElement | null; const name = nameEl?.value?.trim() || 'Untitled Canvas'; setCanvasId(null); (document.getElementById('canvas-name-input') as HTMLInputElement | null)!.value = name; setPinned([]); setRightTab('canvas'); setShowCanvasManager(false); nameEl!.value = '' }} className="px-4 py-2 text-sm rounded-md border border-neutral-700 bg-blue-600 hover:bg-blue-700 text-white font-medium">Create New</button>
-                </div>
-              </div>
-
-              <div className="p-4 max-h-[50vh] overflow-auto">
-                {canvases.length === 0 ? (
-                  <div className="text-center py-8 text-neutral-500">
-                    <div className="text-lg mb-2">No saved canvases yet</div>
-                    <div className="text-sm">Create your first canvas above</div>
-                  </div>
-                ) : (
-                  <div className="grid gap-3">
-                    {canvases.map((c) => (
-                      <div key={c.id} className="flex items-center gap-3 p-3 rounded-lg border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900">
-                        <div className="flex-1 min-w-0">
-                          {editingCanvas === c.id ? (
-                            <div className="flex gap-2">
-                              <input
-                                value={editingName}
-                                onChange={(e) => setEditingName(e.target.value)}
-                                className="flex-1 px-2 py-1 rounded border border-neutral-700 bg-neutral-800 text-neutral-100"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') saveEdit()
-                                  if (e.key === 'Escape') cancelEdit()
-                                }}
-                                autoFocus
-                              />
-                              <button onClick={saveEdit} className="px-2 py-1 text-xs rounded border border-green-700 bg-green-600 hover:bg-green-700 text-white">Save</button>
-                              <button onClick={cancelEdit} className="px-2 py-1 text-xs rounded border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300">Cancel</button>
-                            </div>
-                          ) : (
-                            <div>
-                              <div className="text-sm font-medium text-neutral-100">{c.name || c.id}</div>
-                              <div className="text-xs text-neutral-500 truncate">{c.id} • {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : 'No date'}</div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => { setShowCanvasManager(false); loadCanvas(c.id) }} className="px-3 py-1.5 text-xs rounded-md border border-blue-700 bg-blue-600 hover:bg-blue-700 text-white font-medium">Open</button>
-                          {editingCanvas !== c.id && (
-                            <button onClick={() => startEdit(c)} className="px-3 py-1.5 text-xs rounded-md border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300">Rename</button>
-                          )}
-                          <button onClick={() => deleteCanvas(c.id)} className="px-3 py-1.5 text-xs rounded-md border border-red-700 bg-red-600 hover:bg-red-700 text-white">Delete</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <CanvasManagerModal onClose={() => setShowCanvasManager(false)} onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }} />
       )}
     </div>
   );
