@@ -145,13 +145,10 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
     );
   }
 
-  // text fallback – generate a little decorative card
+  // For text, do NOT duplicate the excerpt here. Show a simple label block.
   return (
-    <div className="w-full h-40 rounded-md border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-3 overflow-hidden">
+    <div className="w-full h-10 rounded-md border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 px-3 flex items-center">
       <div className="text-xs uppercase tracking-wide text-neutral-400">Text</div>
-      <div className="mt-2 text-sm line-clamp-5 text-neutral-200">
-        {r.preview || r.description || "No preview available"}
-      </div>
     </div>
   );
 }
@@ -870,6 +867,7 @@ function ResultCard({
   r,
   onPin,
   onOpen,
+  onLabelClick,
   selectionEnabled,
   selected,
   onToggleSelect,
@@ -877,6 +875,7 @@ function ResultCard({
   r: UnifiedSearchResult;
   onPin: (r: UnifiedSearchResult) => void;
   onOpen: (r: UnifiedSearchResult) => void;
+  onLabelClick?: (label: string) => void;
   selectionEnabled?: boolean;
   selected?: boolean;
   onToggleSelect?: (r: UnifiedSearchResult, shiftKey?: boolean) => void;
@@ -893,6 +892,22 @@ function ResultCard({
     } catch {}
     return collected.slice(0, 6);
   }, [r.metadata]);
+
+  // Build a concise snippet: prefer preview or description, but strip title repetition
+  const snippet: string = useMemo(() => {
+    const raw = (r.preview || r.description || "").toString();
+    if (!raw) return "";
+    // If the first line equals the title, drop it
+    const lines = raw.split(/\r?\n/);
+    if (lines.length > 1 && r.title && lines[0].trim() === r.title.trim()) {
+      return lines.slice(1).join("\n");
+    }
+    // Some descriptions embed title + description like "<title>\n<desc>"; handle generically
+    if (r.title && raw.startsWith(r.title + "\n")) {
+      return raw.substring((r.title + "\n").length);
+    }
+    return raw;
+  }, [r.preview, r.description, r.title]);
 
   return (
     <div className={classNames(
@@ -923,19 +938,22 @@ function ResultCard({
       <div className="px-3">
         <MediaPreview r={r} />
       </div>
-      <div className="p-3 grow">
-        <p className="text-sm text-neutral-300 line-clamp-3">
-          {r.preview || r.description || ""}
-        </p>
+      <div className="p-3">
+        {/* Description snippet only; title is already shown above */}
+        {snippet && (
+          <p className="text-sm text-neutral-300 line-clamp-3">{snippet}</p>
+        )}
         {labels.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {labels.map((l, idx) => (
-              <span
+              <button
                 key={`${l}-${idx}`}
-                className="text-[10px] px-2 py-0.5 rounded-full border border-neutral-800 bg-neutral-950 text-neutral-400"
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onLabelClick?.(l); }}
+                className="text-[10px] px-2 py-0.5 rounded-full border border-neutral-800 bg-neutral-950 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 transition-colors"
               >
                 {l}
-              </span>
+              </button>
             ))}
           </div>
         )}
@@ -965,6 +983,10 @@ function DetailsOverlay({
   r: UnifiedSearchResult | null;
   onClose: () => void;
 }) {
+  const [fullText, setFullText] = useState<string | null>(null);
+  const [isLoadingText, setIsLoadingText] = useState<boolean>(false);
+  const [textError, setTextError] = useState<string | null>(null);
+
   if (!r) return null;
 
   const mediaUrl: string | undefined =
@@ -976,6 +998,45 @@ function DetailsOverlay({
 
   const sourceUrl: string | undefined =
     (r.metadata?.source_url as string | undefined) || mediaUrl || r.url;
+
+  // Extract slug for text content
+  const extractSlugFromResult = (res: UnifiedSearchResult): string | null => {
+    const parent = (res as any)?.metadata?.parent_slug as string | undefined;
+    if (parent) {
+      const parts = parent.split('/');
+      return parts.length > 0 ? parts[parts.length - 1] : parent;
+    }
+    if (typeof res.id === 'string' && res.id.startsWith('text_')) {
+      try {
+        const after = res.id.split('text_')[1];
+        const beforeHash = after.split('#')[0];
+        const subParts = beforeHash.split('/');
+        return subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash;
+      } catch {}
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    setFullText(null);
+    setTextError(null);
+    setIsLoadingText(false);
+    if (r && r.content_type === 'text') {
+      const slug = extractSlugFromResult(r);
+      if (!slug) return;
+      setIsLoadingText(true);
+      fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`)
+        .then(async (res) => {
+          const json = await res.json();
+          if (!res.ok || !json?.success) {
+            throw new Error(json?.error || 'Failed to load content');
+          }
+          setFullText(json.content as string);
+        })
+        .catch((e) => setTextError((e as Error).message))
+        .finally(() => setIsLoadingText(false));
+    }
+  }, [r?.id]);
 
   return (
     <div className="fixed inset-0 z-[100]">
@@ -997,10 +1058,24 @@ function DetailsOverlay({
           </button>
         </div>
         <div className="p-4 space-y-4 overflow-auto">
-          <MediaPreview r={r} />
-          <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
-            {r.preview || r.description || "No additional preview available."}
-          </div>
+          {r.content_type === 'text' ? (
+            <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
+              {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
+              {!isLoadingText && textError && (
+                <div className="text-red-400">{textError}</div>
+              )}
+              {!isLoadingText && !textError && (
+                <>{fullText || (r.preview || r.description || 'No content available.')}</>
+              )}
+            </div>
+          ) : (
+            <>
+              <MediaPreview r={r} />
+              <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
+                {r.preview || r.description || 'No additional preview available.'}
+              </div>
+            </>
+          )}
           {sourceUrl && (
             <div>
               <a
@@ -1361,13 +1436,16 @@ function RightPane({
             </div>
             <div className="text-xs text-neutral-500">{totalResults} total</div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-start content-start">
             {results.map((r) => (
               <ResultCard
                 key={`${r.id}-${r.score}`}
                 r={r}
                 onPin={onPin}
                 onOpen={onOpen}
+                onLabelClick={(label) => {
+                  executeSearch(label);
+                }}
                 selectionEnabled={multiSelect}
                 selected={selectedIds.has(r.id)}
                 onToggleSelect={toggleSelect}
@@ -1720,21 +1798,21 @@ export default function VisualSearchPage() {
         if (!payload.url && payload.id) {
           console.log('🔍 Bridge: Looking up content by ID:', payload.id);
           console.log('🔍 Bridge: Current results count:', results.length);
-          
+
           // Load persistent cache
           const globalResultsCache = getGlobalCache();
           console.log('🔍 Bridge: Global cache size:', globalResultsCache.size);
           console.log('🔍 Bridge: Cache has key?', globalResultsCache.has(payload.id));
-          
+
           // Helpful error if cache is empty
           if (globalResultsCache.size === 0 && results.length === 0) {
             console.log('⚠️ Bridge: No cached content! User needs to search first before pinning.');
           }
-          
+
           // First try current results
           targetResult = results.find(r => r.id === payload.id || r.title === payload.id) || null;
           console.log('🔍 Bridge: Found in current results:', !!targetResult);
-          
+
           // If not found, try persistent global cache
           if (!targetResult) {
             targetResult = globalResultsCache.get(payload.id) || null;
@@ -1742,14 +1820,14 @@ export default function VisualSearchPage() {
             if (targetResult) {
               console.log('🎯 Bridge: Cache hit! URL:', targetResult.metadata?.cloudflare_url);
             }
-            
+
             // Debug: check all cache keys for partial matches
             if (!targetResult && payload.id) {
               const cacheKeys = Array.from(globalResultsCache.keys());
               console.log('🔍 Bridge: Available cache keys:', cacheKeys.slice(0, 20));
               const matchingKeys = cacheKeys.filter(key => key.includes(payload.id!) || payload.id!.includes(key));
               console.log('🔍 Bridge: Partial matching cache keys:', matchingKeys);
-              
+
               // Try to find by any matching key
               if (matchingKeys.length > 0) {
                 targetResult = globalResultsCache.get(matchingKeys[0]) || null;
@@ -1760,7 +1838,7 @@ export default function VisualSearchPage() {
               }
             }
           }
-          
+
           console.log('🔍 Bridge: Final found result:', targetResult);
         }
 
@@ -1816,17 +1894,17 @@ export default function VisualSearchPage() {
             // Cache all results globally for pin lookup using persistent storage
             const existingCache = getGlobalCache();
             const newCache = new Map(existingCache);
-            
+
             all.forEach(item => {
               if (item.id) newCache.set(item.id, item);
               if (item.title) newCache.set(item.title, item);
               console.log('🔧 Bridge: Caching item - id:', item.id, 'title:', item.title, 'url:', item.metadata?.cloudflare_url);
             });
-            
+
             setGlobalCache(newCache);
             console.log('🟢 Bridge: Cached', all.length, 'results globally. Total cache size:', newCache.size);
             console.log('🔧 Bridge: Cache keys sample:', Array.from(newCache.keys()).slice(0, 10));
-            
+
             // Debug: Check if 2068-odyssey is specifically cached
             const odysseyItem = newCache.get('2068-odyssey');
             if (odysseyItem) {
@@ -1867,7 +1945,7 @@ export default function VisualSearchPage() {
           const prompt = payload?.prompt as string | undefined;
           const planRefs: string[] = Array.isArray(payload?.refs) ? payload.refs : [];
           const pinnedUrls = (pinnedRef.current || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean);
-          
+
           // Convert planRefs IDs to actual URLs by looking them up in pinned items or cache
           const resolvedPlanRefs: string[] = [];
           for (const ref of planRefs) {
@@ -1903,7 +1981,7 @@ export default function VisualSearchPage() {
               }
             }
           }
-          
+
           const refs: string[] = (resolvedPlanRefs.length > 0 ? resolvedPlanRefs : pinnedUrls) as string[];
 
           console.log('🟢 Bridge: prepareGenerate - planRefs:', planRefs.length, 'resolvedPlanRefs:', resolvedPlanRefs.length, 'pinnedUrls:', pinnedUrls.length, 'final refs:', refs.length);
@@ -1927,7 +2005,7 @@ export default function VisualSearchPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
           });
-          
+
           console.log('🔵 Bridge: Generation response status:', res.status);
           const json = await res.json();
           console.log('🔵 Bridge: Generation response JSON:', JSON.stringify(json, null, 2));
@@ -1944,7 +2022,7 @@ export default function VisualSearchPage() {
             json?.result?.data?.images?.[0]?.url, // Nested data structure
             json?.result?.data?.video?.url,     // Nested video data
           ].filter(Boolean) as string[];
-          
+
           console.log('🔵 Bridge: URL candidates:', candidates);
 
           setGenMode(mode);
@@ -1952,10 +2030,10 @@ export default function VisualSearchPage() {
           setGenUrl(out);
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
-          
+
           console.log('🔵 Bridge: Final output URL:', out);
           console.log('🔵 Bridge: Generation complete - success:', !!out, 'mode:', mode);
-          
+
           // Check for errors in the response
           if (json?.error) {
             console.error('🔴 Bridge: Generation API error:', json.error);
@@ -1963,7 +2041,7 @@ export default function VisualSearchPage() {
               console.error('🔴 Bridge: Error details:', json.details);
             }
           }
-          
+
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs }, success: !!out, error: json?.error } }) });
           } catch {}
