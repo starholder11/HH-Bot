@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       console.log(`[api/generate] 🔵 Model: ${modelId}, Mode: ${effectiveMode}`)
       try {
         console.log(`[api/generate] 🔵 Starting fal.subscribe for ${modelId}...`)
-        const result = await fal.subscribe(modelId, { input, logs: true, onQueueUpdate: (update) => {
+        const result = await fal.subscribe(modelId, { input, logs: true, onQueueUpdate: (update: any) => {
           console.log(`[api/generate] 🟡 Queue update for ${modelId}:`, update)
         } } as any)
         console.log(`[api/generate] 🟢 fal.subscribe SUCCESS for ${modelId}:`, JSON.stringify(result, null, 2))
