@@ -1867,10 +1867,48 @@ export default function VisualSearchPage() {
           const prompt = payload?.prompt as string | undefined;
           const planRefs: string[] = Array.isArray(payload?.refs) ? payload.refs : [];
           const pinnedUrls = (pinnedRef.current || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean);
-          const refs: string[] = (planRefs.length > 0 ? planRefs : pinnedUrls) as string[];
+          
+          // Convert planRefs IDs to actual URLs by looking them up in pinned items or cache
+          const resolvedPlanRefs: string[] = [];
+          for (const ref of planRefs) {
+            // Check if ref is already a URL
+            if (ref.startsWith('http')) {
+              resolvedPlanRefs.push(ref);
+            } else {
+              // Look up the URL by content ID in pinned items
+              const pinnedItem = (pinnedRef.current || []).find(p => p.result.id === ref || p.result.title === ref);
+              if (pinnedItem) {
+                const url = getResultMediaUrl(pinnedItem.result);
+                if (url) {
+                  resolvedPlanRefs.push(url);
+                  console.log('🔧 Bridge: Resolved content ID', ref, 'to URL:', url);
+                } else {
+                  console.warn('🟠 Bridge: Could not get URL for pinned item:', ref);
+                }
+              } else {
+                // Try to find in global cache
+                const globalResultsCache = getGlobalCache();
+                const cachedItem = globalResultsCache.get(ref);
+                if (cachedItem) {
+                  const url = getResultMediaUrl(cachedItem);
+                  if (url) {
+                    resolvedPlanRefs.push(url);
+                    console.log('🔧 Bridge: Resolved content ID', ref, 'from cache to URL:', url);
+                  } else {
+                    console.warn('🟠 Bridge: Could not get URL for cached item:', ref);
+                  }
+                } else {
+                  console.warn('🟠 Bridge: Could not resolve content ID to URL:', ref);
+                }
+              }
+            }
+          }
+          
+          const refs: string[] = (resolvedPlanRefs.length > 0 ? resolvedPlanRefs : pinnedUrls) as string[];
 
-          console.log('🟢 Bridge: prepareGenerate - planRefs:', planRefs.length, 'pinnedUrls:', pinnedUrls.length, 'final refs:', refs.length);
-          console.log('🟢 Bridge: prepareGenerate - refs:', refs);
+          console.log('🟢 Bridge: prepareGenerate - planRefs:', planRefs.length, 'resolvedPlanRefs:', resolvedPlanRefs.length, 'pinnedUrls:', pinnedUrls.length, 'final refs:', refs.length);
+          console.log('🟢 Bridge: prepareGenerate - original planRefs:', planRefs);
+          console.log('🟢 Bridge: prepareGenerate - resolved refs:', refs);
 
           if (!mode || !prompt) return;
           // Update status API
