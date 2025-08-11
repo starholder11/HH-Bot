@@ -1712,6 +1712,12 @@ export default function VisualSearchPage() {
               const cacheKeys = Array.from(globalResultsCache.keys());
               const matchingKeys = cacheKeys.filter(key => key.includes(payload.id!) || payload.id!.includes(key));
               console.log('🔍 Bridge: Partial matching cache keys:', matchingKeys);
+              
+              // Try to find by any matching key
+              if (matchingKeys.length > 0) {
+                targetResult = globalResultsCache.get(matchingKeys[0]) || null;
+                console.log('🔍 Bridge: Found by partial match:', !!targetResult);
+              }
             }
           }
           
@@ -1728,7 +1734,10 @@ export default function VisualSearchPage() {
           title: payload.title || 'Pinned by Agent',
           description: '',
           score: 0,
-          metadata: { cloudflare_url: payload.url, media_type: 'image' } as any,
+          metadata: { 
+            cloudflare_url: payload.url || '', 
+            media_type: 'image' 
+          } as any,
           preview: payload.title || payload.url || '',
         } as any;
         
