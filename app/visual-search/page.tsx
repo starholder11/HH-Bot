@@ -1685,7 +1685,7 @@ export default function VisualSearchPage() {
     (window as any).__agentApi = {
       // Called by client after tool pinToCanvas returns
       pin: (payload: { id?: string; title?: string; url?: string; needsLookup?: boolean }) => {
-        console.log('🚨 DIAGNOSTIC v7e570c89: Pin function called!', new Date().toISOString());
+        console.log('🚨 DIAGNOSTIC v2-CACHE-BUST: Pin function called!', new Date().toISOString(), 'Build:', process.env.NODE_ENV);
         if (!payload?.url && !payload?.id) return;
         
         console.log('🟢 Bridge: pin called with payload:', payload);
@@ -1811,7 +1811,7 @@ export default function VisualSearchPage() {
       },
       // Simplified path: run generation directly using the plan; show Output
       prepareGenerate: async (payload: any) => {
-        console.log('🚨 DIAGNOSTIC v7e570c89: prepareGenerate called!', new Date().toISOString());
+        console.log('🚨 DIAGNOSTIC v2-CACHE-BUST: prepareGenerate called!', new Date().toISOString(), 'Build:', process.env.NODE_ENV);
         try {
           if (agentRunLockRef.current || genLoading) return; agentRunLockRef.current = true;
           const mode = payload?.type as 'image' | 'video' | 'audio' | 'text' | undefined;
