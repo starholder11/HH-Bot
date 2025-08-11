@@ -11,11 +11,19 @@ const tools = {
       query: z.string(),
     }),
     execute: async ({ query }) => {
-      const url = `${process.env.PUBLIC_API_BASE_URL || ''}/api/unified-search?q=${encodeURIComponent(query)}&limit=100`;
-      const res = await fetch(url || `/api/unified-search?q=${encodeURIComponent(query)}&limit=50`, { method: 'GET' });
-      if (!res.ok) throw new Error(`Unified search failed: ${res.status}`);
-      const json = await res.json();
-      return { action: 'showResults', payload: json };
+      try {
+        const baseUrl = process.env.PUBLIC_API_BASE_URL || `http://localhost:3000`;
+        const url = `${baseUrl}/api/unified-search?q=${encodeURIComponent(query)}&limit=100`;
+        const res = await fetch(url, { method: 'GET' });
+        if (!res.ok) throw new Error(`Unified search failed: ${res.status}`);
+        const json = await res.json();
+        if (!json.success) {
+          return `Search unavailable: ${json.error || 'Unknown error'}. Try again later.`;
+        }
+        return { action: 'showResults', payload: json };
+      } catch (error) {
+        return `Search temporarily unavailable. ${error instanceof Error ? error.message : 'Please try again later.'}`;
+      }
     }
   }),
   
@@ -111,43 +119,10 @@ export async function POST(req: NextRequest) {
   const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|audio|look.*up|gimme|give me)\b/i;
   const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
 
-  // Hard guarantee: for search intents, bypass LLM and directly return a tool-style directive stream
-  if (searchIntentRegex.test(lastText)) {
-    try {
-      const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
-      const host = req.headers.get('host') || '';
-      const origin = process.env.PUBLIC_API_BASE_URL || (host ? `${forwardedProto}://${host}` : '');
-      const url = `${origin}/api/unified-search?q=${encodeURIComponent(lastText)}&limit=100`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Unified search failed: ${res.status}`);
-      const data = await res.json();
-
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          const payload = { result: { action: 'showResults', payload: data } };
-          controller.enqueue(encoder.encode(`1:${JSON.stringify(payload)}\n`));
-          controller.close();
-        },
-      });
-      return new Response(stream, {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      });
-    } catch (error) {
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          const payload = { result: { action: 'agentStatus', payload: { status: 'idle', error: (error instanceof Error ? error.message : String(error)) } } };
-          controller.enqueue(encoder.encode(`1:${JSON.stringify(payload)}\n`));
-          controller.close();
-        },
-      });
-      return new Response(stream, {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      });
-    }
-  }
-  const forcedToolChoice: any = greetingIntentRegex.test(lastText)
+  // Hard guarantee: for search intents, force searchUnified tool
+  const forcedToolChoice: any = searchIntentRegex.test(lastText)
+    ? { type: 'tool', toolName: 'searchUnified' }
+    : greetingIntentRegex.test(lastText)
       ? { type: 'tool', toolName: 'chat' }
       : 'auto';
 
