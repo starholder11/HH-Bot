@@ -201,7 +201,7 @@ export default function AgentChat() {
           onKeyDown={(e) => {
             if (e.key === 'Enter') send();
           }}
-          placeholder="Ask the agent to search, pin, or gen…"
+          placeholder="Ask the agent to search, pin, or generate…"
         />
         <button
           className="px-5 py-3 rounded-xl bg-blue-600 text-white font-medium disabled:opacity-50"
