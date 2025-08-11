@@ -32,6 +32,7 @@ const tools = {
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// Updated: Working agent with proper tool calling
 
 export async function POST(req: NextRequest) {
   const { messages } = await req.json();
