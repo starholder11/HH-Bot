@@ -152,10 +152,16 @@ export default function AgentChat() {
             }
             
             // Handle plain string tool results (chat tool responses)
+            console.log('🔵 AgentChat: Checking if normalized is string:', typeof normalized, normalized);
             if (typeof normalized === 'string' && normalized.trim()) {
-              console.log('🟢 AgentChat: Displaying string result as assistant message:', normalized);
-              setMessages((prev) => [...prev, { role: 'assistant', content: normalized }]);
+              console.log('🟢 AgentChat: YES - Displaying string result as assistant message:', normalized);
+              setMessages((prev) => {
+                console.log('🟢 AgentChat: Adding to messages:', [...prev, { role: 'assistant', content: normalized }]);
+                return [...prev, { role: 'assistant', content: normalized }];
+              });
               continue;
+            } else {
+              console.log('🔴 AgentChat: NOT a string, skipping:', normalized);
             }
           } catch {}
         }
