@@ -894,26 +894,40 @@ function ResultCard({
     const raw = (r.preview || r.description || "").toString();
     if (!raw) return "";
     
-    // For videos/keyframes - COMPLETELY strip the circular description garbage
+    // For videos/keyframes - COMPLETELY ELIMINATE the circular description garbage
     if (r.content_type === 'video' || r.id?.includes('keyframe') || r.id?.includes('Frame')) {
       let cleanText = raw;
       
-      // Remove the entire circular description block pattern
+      // AGGRESSIVE removal of all circular description patterns
       cleanText = cleanText
-        .replace(/^Project:\s*[A-Z]+[^.]*\./i, '') // Remove "Project: XXX ..."
-        .replace(/^The (video|image) depicts?[^.]*\./i, '') // Remove "The video depicts..."
-        .replace(/^A (video|image) (that\s+)?(shows?|depicts?)[^.]*\./i, '') // Remove "A video that shows..."
-        .replace(/^\s*The [^.]*\.\s*/i, '') // Remove any other "The..." sentence starters
-        .split('\n')[0] // Take only first meaningful line
+        // Remove entire circular blocks that start with common patterns
+        .replace(/^Project:\s*[^.]+\.[^.]*\./gi, '') 
+        .replace(/^The (video|image|frame) (depicts?|shows?)[^.]+\.[^.]*\./gi, '')
+        .replace(/^A (video|image|frame) (that\s+)?(shows?|depicts?|features?)[^.]+\.[^.]*\./gi, '')
+        .replace(/^(This|It) (shows?|depicts?|features?)[^.]+\.[^.]*\./gi, '')
+        // Remove any sentence that starts with "The" and is longer than 50 chars
+        .replace(/^\s*The [^.]{50,}\./gm, '')
+        // Remove repeating title patterns
+        .replace(new RegExp(`^${r.title?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^.]*\.`, 'gi'), '')
+        // Clean up whitespace and newlines
+        .replace(/\n\s*\n/g, '\n')
         .trim();
       
-      // If nothing meaningful left, try to extract just the core concept
-      if (!cleanText || cleanText.length < 10) {
-        const lines = raw.split('\n').filter(line => line.trim().length > 10);
-        cleanText = lines[lines.length - 1] || ''; // Take the last substantial line
+      // If we still have garbage, try to extract meaningful keywords only
+      if (cleanText.length < 10 || cleanText.toLowerCase().includes('depicts') || cleanText.toLowerCase().includes('shows')) {
+        // Extract just the meaningful labels/tags if available
+        const meaningfulParts = cleanText.split(/[.,;]/).filter(part => 
+          part.trim().length > 3 && 
+          !part.toLowerCase().includes('depicts') && 
+          !part.toLowerCase().includes('shows') &&
+          !part.toLowerCase().includes('features') &&
+          !part.toLowerCase().includes('video') &&
+          part.trim().length < 30
+        );
+        cleanText = meaningfulParts.slice(0, 3).join(', ');
       }
       
-      return cleanText.substring(0, 200); // Limit to reasonable length
+      return cleanText.substring(0, 150).trim(); // Shorter limit for cleaner cards
     }
     
     // For other content types, just strip title repetition
@@ -943,10 +957,24 @@ function ResultCard({
     >
       <div className="p-3 pb-2">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-xs px-2 py-0.5 rounded-full border border-neutral-700 bg-neutral-800/60 text-neutral-300">
+          <div className="text-xs px-2 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
             {r.content_type}
           </div>
-          <div className="text-[10px] text-neutral-400">{scorePct}%</div>
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] text-neutral-400">{scorePct}%</div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onPin(r); }}
+              className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-neutral-200 transition-colors"
+            >
+              📌
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onOpen(r); }}
+              className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-neutral-200 transition-colors"
+            >
+              ➕
+            </button>
+          </div>
         </div>
         <div className="mt-2 font-medium text-neutral-100 line-clamp-1" title={r.title}>
           {r.title}
@@ -977,20 +1005,7 @@ function ResultCard({
           </div>
         )}
       </div>
-      <div className="p-3 pt-0 flex gap-2">
-        <button
-          onClick={() => onPin(r)}
-          className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100"
-        >
-          Pin to canvas
-        </button>
-        <button
-          onClick={() => onOpen(r)}
-          className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100"
-        >
-          Expand
-        </button>
-      </div>
+
     </div>
   );
 }
