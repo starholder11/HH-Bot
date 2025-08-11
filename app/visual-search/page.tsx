@@ -1633,7 +1633,31 @@ export default function VisualSearchPage() {
   const [query, setQuery] = useState("");
   const [types, setTypes] = useState<Array<ContentType | "media" | "all">>(["all"]);
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
-  const [globalResultsCache, setGlobalResultsCache] = useState<Map<string, UnifiedSearchResult>>(new Map());
+  // Use persistent cache that survives component re-renders
+  const getGlobalCache = (): Map<string, UnifiedSearchResult> => {
+    if (typeof window === 'undefined') return new Map();
+    try {
+      const cached = sessionStorage.getItem('globalResultsCache');
+      if (cached) {
+        const data = JSON.parse(cached);
+        return new Map(Object.entries(data));
+      }
+    } catch (e) {
+      console.warn('Failed to load global cache:', e);
+    }
+    return new Map();
+  };
+
+  const setGlobalCache = (cache: Map<string, UnifiedSearchResult>) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const data = Object.fromEntries(cache.entries());
+      sessionStorage.setItem('globalResultsCache', JSON.stringify(data));
+      console.log('🔧 Bridge: Persisted cache with', cache.size, 'items');
+    } catch (e) {
+      console.warn('Failed to persist global cache:', e);
+    }
+  };
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [multiSelect, setMultiSelect] = useState(false);
@@ -1692,23 +1716,26 @@ export default function VisualSearchPage() {
 
         let targetResult: UnifiedSearchResult | null = null;
 
-        // Try to find the content in current search results or global cache if no URL provided
+                // Try to find the content in current search results or global cache if no URL provided
         if (!payload.url && payload.id) {
           console.log('🔍 Bridge: Looking up content by ID:', payload.id);
           console.log('🔍 Bridge: Current results count:', results.length);
+          
+          // Load persistent cache
+          const globalResultsCache = getGlobalCache();
           console.log('🔍 Bridge: Global cache size:', globalResultsCache.size);
           console.log('🔍 Bridge: Cache has key?', globalResultsCache.has(payload.id));
-
+          
           // Helpful error if cache is empty
           if (globalResultsCache.size === 0 && results.length === 0) {
             console.log('⚠️ Bridge: No cached content! User needs to search first before pinning.');
           }
-
+          
           // First try current results
           targetResult = results.find(r => r.id === payload.id || r.title === payload.id) || null;
           console.log('🔍 Bridge: Found in current results:', !!targetResult);
-
-                    // If not found, try global cache
+          
+          // If not found, try persistent global cache
           if (!targetResult) {
             targetResult = globalResultsCache.get(payload.id) || null;
             console.log('🔍 Bridge: Found in global cache:', !!targetResult);
@@ -1733,7 +1760,7 @@ export default function VisualSearchPage() {
               }
             }
           }
-
+          
           console.log('🔍 Bridge: Final found result:', targetResult);
         }
 
@@ -1786,27 +1813,27 @@ export default function VisualSearchPage() {
             setTotal(all.length);
             setRightTab('results');
 
-            // Cache all results globally for pin lookup
-            setGlobalResultsCache(prevCache => {
-              const newCache = new Map(prevCache);
-              all.forEach(item => {
-                if (item.id) newCache.set(item.id, item);
-                if (item.title) newCache.set(item.title, item);
-                console.log('🔧 Bridge: Caching item - id:', item.id, 'title:', item.title, 'url:', item.metadata?.cloudflare_url);
-              });
-              console.log('🟢 Bridge: Cached', all.length, 'results globally. Total cache size:', newCache.size);
-              console.log('🔧 Bridge: Cache keys sample:', Array.from(newCache.keys()).slice(0, 10));
-              
-              // Debug: Check if 2068-odyssey is specifically cached
-              const odysseyItem = newCache.get('2068-odyssey');
-              if (odysseyItem) {
-                console.log('🎯 Bridge: Found 2068-odyssey in cache:', odysseyItem.metadata?.cloudflare_url);
-              } else {
-                console.log('❌ Bridge: 2068-odyssey NOT found in cache');
-              }
-              
-              return newCache;
+            // Cache all results globally for pin lookup using persistent storage
+            const existingCache = getGlobalCache();
+            const newCache = new Map(existingCache);
+            
+            all.forEach(item => {
+              if (item.id) newCache.set(item.id, item);
+              if (item.title) newCache.set(item.title, item);
+              console.log('🔧 Bridge: Caching item - id:', item.id, 'title:', item.title, 'url:', item.metadata?.cloudflare_url);
             });
+            
+            setGlobalCache(newCache);
+            console.log('🟢 Bridge: Cached', all.length, 'results globally. Total cache size:', newCache.size);
+            console.log('🔧 Bridge: Cache keys sample:', Array.from(newCache.keys()).slice(0, 10));
+            
+            // Debug: Check if 2068-odyssey is specifically cached
+            const odysseyItem = newCache.get('2068-odyssey');
+            if (odysseyItem) {
+              console.log('🎯 Bridge: Found 2068-odyssey in cache:', odysseyItem.metadata?.cloudflare_url);
+            } else {
+              console.log('❌ Bridge: 2068-odyssey NOT found in cache');
+            }
 
             console.log('🟢 Bridge: UI updated with results');
           } else {
