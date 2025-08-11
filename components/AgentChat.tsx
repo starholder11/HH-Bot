@@ -71,19 +71,28 @@ export default function AgentChat() {
                 }
                 return [...prev, { role: 'assistant', content: assistant } as Msg];
               });
-            } else if (payload.type === 'tool-call' && payload.result) {
-              // If the tool returned a directive, call client bridge instead of dumping JSON
-              try {
-                const result = payload.result;
-                if (result?.action === 'showResults' && typeof window !== 'undefined') {
-                  (window as any).__agentApi?.showResults?.(result.payload);
-                } else if (result?.action === 'pinToCanvas' && typeof window !== 'undefined') {
-                  (window as any).__agentApi?.pin?.(result);
-                } else {
-                  setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(result, null, 2) }]);
-                }
-              } catch {
-                setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(payload.result, null, 2) }]);
+            } else {
+              // Tool results in SSE: some providers send { type: 'tool-result', result: {...} }
+              // Others may send the result object directly
+              const possibleResult = payload?.result ?? payload;
+              if (possibleResult) {
+                try {
+                  if (possibleResult?.action === 'showResults' && typeof window !== 'undefined') {
+                    (window as any).__agentApi?.showResults?.(possibleResult.payload);
+                    return;
+                  }
+                  if (possibleResult?.results && typeof window !== 'undefined') {
+                    // Direct search payload without action wrapper
+                    (window as any).__agentApi?.showResults?.(possibleResult);
+                    return;
+                  }
+                  if (possibleResult?.action === 'pinToCanvas' && typeof window !== 'undefined') {
+                    (window as any).__agentApi?.pin?.(possibleResult);
+                    return;
+                  }
+                } catch {}
+                // Fallback: show raw tool JSON
+                setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(possibleResult, null, 2) }]);
               }
             }
           } catch {}
