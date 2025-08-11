@@ -61,7 +61,7 @@ const tools = {
         const status = await res.json();
         return { action: 'agentStatus', payload: status };
       } catch (error) {
-        return { action: 'agentStatus', payload: { status: 'idle', error: error.message } };
+        return { action: 'agentStatus', payload: { status: 'idle', error: error instanceof Error ? error.message : String(error) } };
       }
     }
   }),
