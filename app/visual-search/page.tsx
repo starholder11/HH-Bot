@@ -1694,16 +1694,28 @@ export default function VisualSearchPage() {
         // Try to find the content in current search results or global cache if no URL provided
         if (!payload.url && payload.id) {
           console.log('🔍 Bridge: Looking up content by ID:', payload.id);
+          console.log('🔍 Bridge: Current results count:', results.length);
+          console.log('🔍 Bridge: Global cache size:', globalResultsCache.size);
+          console.log('🔍 Bridge: Cache has key?', globalResultsCache.has(payload.id));
+          
           // First try current results
           targetResult = results.find(r => r.id === payload.id || r.title === payload.id) || null;
+          console.log('🔍 Bridge: Found in current results:', !!targetResult);
           
           // If not found, try global cache
           if (!targetResult) {
             targetResult = globalResultsCache.get(payload.id) || null;
             console.log('🔍 Bridge: Found in global cache:', !!targetResult);
+            
+            // Debug: check all cache keys for partial matches
+            if (!targetResult) {
+              const cacheKeys = Array.from(globalResultsCache.keys());
+              const matchingKeys = cacheKeys.filter(key => key.includes(payload.id) || payload.id.includes(key));
+              console.log('🔍 Bridge: Partial matching cache keys:', matchingKeys);
+            }
           }
           
-          console.log('🔍 Bridge: Found result:', targetResult);
+          console.log('🔍 Bridge: Final found result:', targetResult);
         }
         
         // Create pin object from found result or payload
@@ -1758,8 +1770,10 @@ export default function VisualSearchPage() {
               all.forEach(item => {
                 if (item.id) newCache.set(item.id, item);
                 if (item.title) newCache.set(item.title, item);
+                console.log('🔧 Bridge: Caching item - id:', item.id, 'title:', item.title);
               });
               console.log('🟢 Bridge: Cached', all.length, 'results globally. Total cache size:', newCache.size);
+              console.log('🔧 Bridge: Cache keys sample:', Array.from(newCache.keys()).slice(0, 10));
               return newCache;
             });
             
