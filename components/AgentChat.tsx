@@ -5,10 +5,27 @@ import { useAgentStream } from '@/app/visual-search/hooks/useAgentStream';
 
 type Msg = { role: 'user' | 'assistant' | 'tool'; content: string };
 
+function AgentStreamRunner({
+  messages,
+  onDelta,
+  onTool,
+  onDone,
+}: {
+  messages: Msg[];
+  onDelta: (d: string) => void;
+  onTool: (obj: any) => void;
+  onDone: () => void;
+}) {
+  useAgentStream(messages, onDelta, onTool, onDone);
+  return null;
+}
+
 export default function AgentChat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [runId, setRunId] = useState(0);
+  const [pendingMessages, setPendingMessages] = useState<Msg[] | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -21,44 +38,49 @@ export default function AgentChat() {
     setMessages(next);
     setInput('');
     setBusy(true);
-    let assistant = '';
-    useAgentStream(
-      next,
-      (delta) => {
-        assistant += delta;
-        setMessages((prev) => {
-          const hasAssistant = prev[prev.length - 1]?.role === 'assistant';
-          if (hasAssistant) {
-            const copy = prev.slice();
-            copy[copy.length - 1] = { role: 'assistant', content: assistant } as Msg;
-            return copy;
-          }
-          return [...prev, { role: 'assistant', content: assistant } as Msg];
-        });
-      },
-      (possibleResult) => {
-        // Route tool actions to the window bridge
-        try {
-          const payload = possibleResult?.payload ?? possibleResult;
-          const action = possibleResult?.action;
-          if (action === 'showResults') (window as any).__agentApi?.showResults?.(payload);
-          else if (possibleResult?.results) (window as any).__agentApi?.showResults?.(possibleResult);
-          else if (action === 'pinToCanvas') (window as any).__agentApi?.pin?.(payload || possibleResult);
-          else if (action === 'prepareGenerate') (window as any).__agentApi?.prepareGenerate?.(payload);
-          else if (action === 'showOutput') (window as any).__agentApi?.showOutput?.(payload);
-          else if (action === 'openCanvas') (window as any).__agentApi?.openCanvas?.(payload);
-          else if (action === 'nameImage') (window as any).__agentApi?.nameImage?.(payload);
-          else if (action === 'saveImage') (window as any).__agentApi?.saveImage?.(payload);
-          else if (action === 'useCanvasLora') (window as any).__agentApi?.useCanvasLora?.(payload);
-          else setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(possibleResult, null, 2) }]);
-        } catch {}
-      },
-      () => setBusy(false)
-    );
+    setPendingMessages(next);
+    setRunId((id) => id + 1);
   }
 
   return (
     <div className="flex flex-col h-[576px]">
+      {busy && pendingMessages && (
+        <AgentStreamRunner
+          key={runId}
+          messages={pendingMessages}
+          onDelta={(delta) => {
+            setMessages((prev) => {
+              const lastIsAssistant = prev[prev.length - 1]?.role === 'assistant';
+              if (lastIsAssistant) {
+                const copy = prev.slice();
+                copy[copy.length - 1] = { role: 'assistant', content: (copy[copy.length - 1] as any).content + delta } as Msg;
+                return copy;
+              }
+              return [...prev, { role: 'assistant', content: delta } as Msg];
+            });
+          }}
+          onTool={(possibleResult) => {
+            try {
+              const payload = possibleResult?.payload ?? possibleResult;
+              const action = possibleResult?.action;
+              if (action === 'showResults') (window as any).__agentApi?.showResults?.(payload);
+              else if (possibleResult?.results) (window as any).__agentApi?.showResults?.(possibleResult);
+              else if (action === 'pinToCanvas') (window as any).__agentApi?.pin?.(payload || possibleResult);
+              else if (action === 'prepareGenerate') (window as any).__agentApi?.prepareGenerate?.(payload);
+              else if (action === 'showOutput') (window as any).__agentApi?.showOutput?.(payload);
+              else if (action === 'openCanvas') (window as any).__agentApi?.openCanvas?.(payload);
+              else if (action === 'nameImage') (window as any).__agentApi?.nameImage?.(payload);
+              else if (action === 'saveImage') (window as any).__agentApi?.saveImage?.(payload);
+              else if (action === 'useCanvasLora') (window as any).__agentApi?.useCanvasLora?.(payload);
+              else setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(possibleResult, null, 2) }]);
+            } catch {}
+          }}
+          onDone={() => {
+            setBusy(false);
+            setPendingMessages(null);
+          }}
+        />
+      )}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto space-y-3 p-4 rounded-xl border border-neutral-800 bg-neutral-900/60"

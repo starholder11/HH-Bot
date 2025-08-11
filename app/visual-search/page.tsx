@@ -1251,6 +1251,7 @@ function RightPane({
         <div className="mt-3">
           <GeneratePanel
             pinned={pinned}
+            availableLoras={(canvasLoras || []).filter((l: any) => (l.status || '').toLowerCase() === 'completed').map((l: any) => ({ id: l.loraId || l.requestId || l.path, path: l.artifactUrl || l.path, label: `${canvasName || 'Canvas'} • ${l.triggerWord || 'LoRA'}`, scale: 1 }))}
             onPinResult={onPin}
             onGenStart={() => { setTab('output'); onParentGenStart(); }}
             onGenResult={(m, url, raw) => { setTab('output'); onParentGenResult(m, url, raw); }}

@@ -33,11 +33,13 @@ function useFalModels() {
 
 export default function GeneratePanel({
   pinned,
+  availableLoras = [],
   onPinResult,
   onGenStart,
   onGenResult,
 }: {
   pinned: PinnedItem[];
+  availableLoras?: Array<{ id: string; path: string; label: string; scale?: number }>;
   onPinResult: (r: UnifiedSearchResult) => void;
   onGenStart: () => void;
   onGenResult: (mode: 'image' | 'video' | 'audio' | 'text', url: string | undefined, raw: any) => void;
@@ -69,6 +71,12 @@ export default function GeneratePanel({
     })();
     return () => { cancelled = true };
   }, []);
+
+  // Map availableLoras into local list
+  useEffect(() => {
+    const next = (availableLoras || []).map((l) => ({ id: l.id, path: l.path, label: l.label, scale: typeof l.scale === 'number' ? l.scale : 1, selected: false }));
+    setSelectedLoras(next);
+  }, [availableLoras]);
   const filtered = useMemo(() => {
     const q = filter.toLowerCase();
     return models.filter((m) => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
@@ -137,6 +145,42 @@ export default function GeneratePanel({
         {filtered.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
       </select>
       <textarea value={values.prompt || ''} onChange={(e) => setValues((p) => ({ ...p, prompt: e.target.value }))} rows={4} className="w-full px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100" placeholder="Prompt" />
+      {/* Refs uploader */}
+      <div className="rounded-md border border-neutral-800 p-2">
+        <div className="text-xs text-neutral-400 mb-2">Reference images</div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-neutral-400 inline-flex items-center gap-2">
+            <input type="checkbox" checked={useRefs} onChange={(e) => setUseRefs(e.target.checked)} />
+            Use pinned as refs
+          </label>
+          <label className="px-2 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100 cursor-pointer">
+            Attach image
+            <input type="file" accept="image/*" hidden onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const fd = new FormData();
+              fd.append('file', file);
+              fd.append('type', 'image');
+              fd.append('directory', 'public/uploads');
+              try {
+                const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                const json = await res.json();
+                if (res.ok && json?.url) setUploadedRefs((prev) => [...prev, json.url]);
+              } catch {}
+            }} />
+          </label>
+        </div>
+        {uploadedRefs.length > 0 && (
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {uploadedRefs.map((u, idx) => (
+              <div key={idx} className="relative">
+                <img src={u} className="w-full h-20 object-cover rounded border border-neutral-800" alt="ref" />
+                <button className="absolute top-1 right-1 text-xs px-1.5 py-0.5 rounded bg-neutral-900/80 border border-neutral-700" onClick={() => setUploadedRefs((p) => p.filter((x) => x !== u))}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <LoraSelector loras={selectedLoras} onChange={setSelectedLoras} />
       <div className="flex items-center gap-2">
         <label className="text-xs text-neutral-400 inline-flex items-center gap-2">
