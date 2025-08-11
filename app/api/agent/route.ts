@@ -102,6 +102,63 @@ const tools = {
     }
   }),
 
+  openCanvas: tool({
+    description: 'Open the canvas interface for planning generation',
+    parameters: z.object({
+      mode: z.string().optional(),
+    }),
+    execute: async ({ mode }) => {
+      return { 
+        action: 'openCanvas', 
+        payload: { mode: mode || 'default' }
+      };
+    }
+  }),
+
+  nameImage: tool({
+    description: 'Set name/title for generated images',
+    parameters: z.object({
+      imageId: z.string(),
+      name: z.string(),
+    }),
+    execute: async ({ imageId, name }) => {
+      return { 
+        action: 'nameImage', 
+        payload: { imageId, name }
+      };
+    }
+  }),
+
+  saveImage: tool({
+    description: 'Save image to library/collection',
+    parameters: z.object({
+      imageId: z.string(),
+      collection: z.string().optional(),
+      metadata: z.object({}).optional(),
+    }),
+    execute: async ({ imageId, collection, metadata }) => {
+      return { 
+        action: 'saveImage', 
+        payload: { imageId, collection: collection || 'default', metadata: metadata || {} }
+      };
+    }
+  }),
+
+  useCanvasLora: tool({
+    description: 'Apply LoRA model to canvas generation',
+    parameters: z.object({
+      loraName: z.string(),
+      strength: z.number().optional(),
+      trigger: z.string().optional(),
+    }),
+    execute: async ({ loraName, strength, trigger }) => {
+      return { 
+        action: 'useCanvasLora', 
+        payload: { loraName, strength: strength || 1.0, trigger: trigger || '' }
+      };
+    }
+  }),
+
 };
 
 export const runtime = 'nodejs';
@@ -120,17 +177,29 @@ export async function POST(req: NextRequest) {
   const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
   const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft)\s+(a|an|some)?\s*(picture|image|photo|video|audio|song|track|music)\b/i;
   const pinIntentRegex = /\b(pin|save|bookmark|attach)\s+.*(to|on)\s+(the\s+)?(canvas|board)\b/i;
+  const openCanvasIntentRegex = /\b(open|show|display)\s+(the\s+)?(canvas|board|generation\s+interface)\b/i;
+  const nameImageIntentRegex = /\b(name|title|call|label)\s+(this\s+)?(image|picture|photo)\b/i;
+  const saveImageIntentRegex = /\b(save|store|keep)\s+(this\s+)?(image|picture|photo)\s*(to\s+)?(library|collection|gallery)?\b/i;
+  const useLoraIntentRegex = /\b(use|apply|add)\s+(the\s+)?(lora|model)\b/i;
 
-  // Hard guarantee: for specific intents, force appropriate tools
-  const forcedToolChoice: any = generateIntentRegex.test(lastText)
-    ? { type: 'tool', toolName: 'prepareGenerate' }
-    : pinIntentRegex.test(lastText)
-      ? { type: 'tool', toolName: 'pinToCanvas' }
-      : searchIntentRegex.test(lastText)
-        ? { type: 'tool', toolName: 'searchUnified' }
-        : greetingIntentRegex.test(lastText)
-          ? { type: 'tool', toolName: 'chat' }
-          : 'auto';
+  // Hard guarantee: for specific intents, force appropriate tools (order matters - most specific first)
+  const forcedToolChoice: any = openCanvasIntentRegex.test(lastText)
+    ? { type: 'tool', toolName: 'openCanvas' }
+    : nameImageIntentRegex.test(lastText)
+      ? { type: 'tool', toolName: 'nameImage' }
+      : saveImageIntentRegex.test(lastText)
+        ? { type: 'tool', toolName: 'saveImage' }
+        : useLoraIntentRegex.test(lastText)
+          ? { type: 'tool', toolName: 'useCanvasLora' }
+          : generateIntentRegex.test(lastText)
+            ? { type: 'tool', toolName: 'prepareGenerate' }
+            : pinIntentRegex.test(lastText)
+              ? { type: 'tool', toolName: 'pinToCanvas' }
+              : searchIntentRegex.test(lastText)
+                ? { type: 'tool', toolName: 'searchUnified' }
+                : greetingIntentRegex.test(lastText)
+                  ? { type: 'tool', toolName: 'chat' }
+                  : 'auto';
 
   const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 

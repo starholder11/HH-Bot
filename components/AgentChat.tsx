@@ -152,6 +152,26 @@ export default function AgentChat() {
               setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(normalized.payload, null, 2) }]);
               continue;
             }
+            if (normalized?.action === 'openCanvas' && typeof window !== 'undefined') {
+              console.log('🟢 AgentChat: Calling openCanvas with payload:', normalized.payload);
+              (window as any).__agentApi?.openCanvas?.(normalized.payload);
+              continue;
+            }
+            if (normalized?.action === 'nameImage' && typeof window !== 'undefined') {
+              console.log('🟢 AgentChat: Calling nameImage with payload:', normalized.payload);
+              (window as any).__agentApi?.nameImage?.(normalized.payload);
+              continue;
+            }
+            if (normalized?.action === 'saveImage' && typeof window !== 'undefined') {
+              console.log('🟢 AgentChat: Calling saveImage with payload:', normalized.payload);
+              (window as any).__agentApi?.saveImage?.(normalized.payload);
+              continue;
+            }
+            if (normalized?.action === 'useCanvasLora' && typeof window !== 'undefined') {
+              console.log('🟢 AgentChat: Calling useCanvasLora with payload:', normalized.payload);
+              (window as any).__agentApi?.useCanvasLora?.(normalized.payload);
+              continue;
+            }
             if (normalized?.action) {
               console.log('🔴 AgentChat: Unknown action found:', normalized.action);
             } else {
