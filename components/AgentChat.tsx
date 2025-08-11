@@ -130,40 +130,34 @@ export default function AgentChat() {
               console.log('🟢 AgentChat: Calling showResults with payload:', normalized.payload);
               (window as any).__agentApi?.showResults?.(normalized.payload);
               continue;
-            } else if (normalized?.action === 'showResults') {
-              console.log('🔴 AgentChat: showResults action found but window undefined');
-            } else if (normalized?.action) {
-              console.log('🔴 AgentChat: Different action found:', normalized.action);
-            } else {
-              console.log('🔴 AgentChat: No action property found');
             }
             if (normalized?.action === 'pinToCanvas' && typeof window !== 'undefined') {
-              (window as any).__agentApi?.pin?.(normalized);
-              continue;
-            }
-            if (normalized?.action === 'showOutput' && typeof window !== 'undefined') {
-              (window as any).__agentApi?.showOutput?.(normalized.payload);
+              console.log('🟢 AgentChat: Calling pinToCanvas with payload:', normalized.payload);
+              (window as any).__agentApi?.pin?.(normalized.payload);
               continue;
             }
             if (normalized?.action === 'prepareGenerate' && typeof window !== 'undefined') {
-              // Always attach currently pinned refs from the page if not present
-              try {
-                const gp = (window as any).__agentApi;
-                const payload = { ...(normalized.payload || {}) };
-                if (!Array.isArray(payload.refs) || payload.refs.length === 0) {
-                  payload.refs = (gp?.getPinnedRefs?.() || []) as string[];
-                }
-                (window as any).__agentApi?.prepareGenerate?.(payload);
-              } catch {
-                (window as any).__agentApi?.prepareGenerate?.(normalized.payload);
-              }
+              console.log('🟢 AgentChat: Calling prepareGenerate with payload:', normalized.payload);
+              (window as any).__agentApi?.prepareGenerate?.(normalized.payload);
+              continue;
+            }
+            if (normalized?.action === 'showOutput' && typeof window !== 'undefined') {
+              console.log('🟢 AgentChat: Calling showOutput with payload:', normalized.payload);
+              (window as any).__agentApi?.showOutput?.(normalized.payload);
               continue;
             }
             if (normalized?.action === 'agentStatus' && typeof window !== 'undefined') {
-              // also show a readable message in the chat
+              console.log('🟢 AgentChat: Calling agentStatus with payload:', normalized.payload);
+              // Show readable status in chat
               setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(normalized.payload, null, 2) }]);
               continue;
             }
+            if (normalized?.action) {
+              console.log('🔴 AgentChat: Unknown action found:', normalized.action);
+            } else {
+              console.log('🔴 AgentChat: No action property found');
+            }
+
             
             // Handle plain string tool results (chat tool responses)
             console.log('🔵 AgentChat: Checking if normalized is string:', typeof normalized, normalized);

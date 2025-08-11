@@ -118,13 +118,19 @@ export async function POST(req: NextRequest) {
   const lastText = typeof lastUserMessage === 'string' ? lastUserMessage : '';
   const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|audio|look.*up|gimme|give me)\b/i;
   const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
+  const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft)\s+(a|an|some)?\s*(picture|image|photo|video|audio|song|track|music)\b/i;
+  const pinIntentRegex = /\b(pin|save|bookmark|attach)\s+.*(to|on)\s+(the\s+)?(canvas|board)\b/i;
 
-  // Hard guarantee: for search intents, force searchUnified tool
-  const forcedToolChoice: any = searchIntentRegex.test(lastText)
-    ? { type: 'tool', toolName: 'searchUnified' }
-    : greetingIntentRegex.test(lastText)
-      ? { type: 'tool', toolName: 'chat' }
-      : 'auto';
+  // Hard guarantee: for specific intents, force appropriate tools
+  const forcedToolChoice: any = generateIntentRegex.test(lastText)
+    ? { type: 'tool', toolName: 'prepareGenerate' }
+    : pinIntentRegex.test(lastText)
+      ? { type: 'tool', toolName: 'pinToCanvas' }
+      : searchIntentRegex.test(lastText)
+        ? { type: 'tool', toolName: 'searchUnified' }
+        : greetingIntentRegex.test(lastText)
+          ? { type: 'tool', toolName: 'chat' }
+          : 'auto';
 
   const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
