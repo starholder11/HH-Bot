@@ -1249,8 +1249,17 @@ function RightPane({
         </div>
       ) : (
         <div className="mt-3">
-          {/* Legacy generate UI is already embedded above (model list + dynamic fields + refs + lora + actions). */}
-          {/* Nothing else to render here; right pane shows the generate controls directly. */}
+          {/* Generate Tab - Full Legacy Generate UI */}
+          <GenerationPanel
+            pinned={pinned}
+            onPinResult={onPin}
+            onGenStart={onParentGenStart}
+            onGenResult={onParentGenResult}
+            canvasLoras={canvasLoras.filter(l => l.status === 'completed')}
+            setRightTab={setTab}
+            saveStatus={saveStatus}
+            setSaveStatus={setSaveStatus}
+          />
         </div>
       )}
       {tab === 'results' && (
