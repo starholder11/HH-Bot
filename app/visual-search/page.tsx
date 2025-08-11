@@ -1883,12 +1883,16 @@ export default function VisualSearchPage() {
           setRightTab('output');
 
           const body = { mode, model, prompt, refs, options: payload?.options || {} } as any;
+          console.log('🔵 Bridge: Sending generation request:', body);
           const res = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
           });
+          
+          console.log('🔵 Bridge: Generation response status:', res.status);
           const json = await res.json();
+          console.log('🔵 Bridge: Generation response JSON:', JSON.stringify(json, null, 2));
 
           const candidates = [
             json?.url,
@@ -1902,18 +1906,37 @@ export default function VisualSearchPage() {
             json?.result?.data?.images?.[0]?.url,
             json?.result?.data?.video?.url,
           ].filter(Boolean) as string[];
+          
+          console.log('🔵 Bridge: URL candidates:', candidates);
 
           setGenMode(mode);
           const out = candidates[0] || null;
           setGenUrl(out);
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
+          
+          console.log('🔵 Bridge: Final output URL:', out);
+          console.log('🔵 Bridge: Generation complete - success:', !!out, 'mode:', mode);
+          
+          // Check for errors in the response
+          if (json?.error) {
+            console.error('🔴 Bridge: Generation API error:', json.error);
+            if (json?.details) {
+              console.error('🔴 Bridge: Error details:', json.details);
+            }
+          }
+          
           try {
-            await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs } } }) });
+            await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs }, success: !!out, error: json?.error } }) });
           } catch {}
         } catch (e) {
           setGenLoading(false);
-          console.error(e);
+          console.error('🔴 Bridge: Generation failed with error:', e);
+          console.error('🔴 Bridge: Error details:', {
+            message: (e as any)?.message,
+            stack: (e as any)?.stack,
+            name: (e as any)?.name
+          });
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), error: (e as any)?.message || 'Unknown error' } }) });
           } catch {}

@@ -105,20 +105,25 @@ export async function POST(req: NextRequest) {
     }
 
     const runFal = async (modelId: string): Promise<any> => {
-      console.log(`[api/generate] Attempting ${modelId} with input:`, JSON.stringify(input, null, 2))
+      console.log(`[api/generate] 🔵 Attempting ${modelId} with input:`, JSON.stringify(input, null, 2))
+      console.log(`[api/generate] 🔵 Model: ${modelId}, Mode: ${effectiveMode}`)
       try {
-        const result = await fal.subscribe(modelId, { input, logs: true, onQueueUpdate: () => {} } as any)
-        console.log(`[api/generate] fal.subscribe success for ${modelId}:`, JSON.stringify(result, null, 2))
+        console.log(`[api/generate] 🔵 Starting fal.subscribe for ${modelId}...`)
+        const result = await fal.subscribe(modelId, { input, logs: true, onQueueUpdate: (update) => {
+          console.log(`[api/generate] 🟡 Queue update for ${modelId}:`, update)
+        } } as any)
+        console.log(`[api/generate] 🟢 fal.subscribe SUCCESS for ${modelId}:`, JSON.stringify(result, null, 2))
         return result
       } catch (e: any) {
-        console.warn(`[api/generate] fal.subscribe failed for ${modelId}: ${e?.message || e}`)
+        console.warn(`[api/generate] 🟠 fal.subscribe failed for ${modelId}: ${e?.message || e}`)
         // Fallback to non-subscribe run
         try {
+          console.log(`[api/generate] 🔵 Fallback to fal.run for ${modelId}...`)
           const result = await fal.run(modelId, { input } as any)
-          console.log(`[api/generate] fal.run success for ${modelId}:`, JSON.stringify(result, null, 2))
+          console.log(`[api/generate] 🟢 fal.run SUCCESS for ${modelId}:`, JSON.stringify(result, null, 2))
           return result
         } catch (e2: any) {
-          console.error(`[api/generate] Both fal.subscribe and fal.run failed for ${modelId}:`, e2?.message || e2)
+          console.error(`[api/generate] 🔴 Both fal.subscribe and fal.run FAILED for ${modelId}:`, e2?.message || e2)
           throw e2
         }
       }
@@ -194,12 +199,22 @@ export async function POST(req: NextRequest) {
     // For video/text, try to surface a convenient url if present
     if (effectiveMode === 'video') {
       const videoUrl: string | undefined = anyResult?.video?.url || anyResult?.data?.video?.url || anyResult?.output?.url || anyResult?.outputs?.[0]?.url
+      console.log(`[api/generate] 🔍 Video URL extraction - found:`, videoUrl)
+      console.log(`[api/generate] 🔍 Video result structure:`, {
+        'anyResult?.video?.url': anyResult?.video?.url,
+        'anyResult?.data?.video?.url': anyResult?.data?.video?.url,
+        'anyResult?.output?.url': anyResult?.output?.url,
+        'anyResult?.outputs?.[0]?.url': anyResult?.outputs?.[0]?.url
+      })
       if (videoUrl) {
+        console.log(`[api/generate] 🟢 Returning video URL:`, videoUrl)
         return NextResponse.json({ success: true, url: videoUrl, result: anyResult })
       }
     }
     // If nothing matched, include a diagnostic hint so the UI can show more detail quickly
-    return NextResponse.json({ success: true, url: anyResult?.url || anyResult?.images?.[0]?.url || anyResult?.image?.url || anyResult?.audio?.url || anyResult?.data?.images?.[0]?.url, result: anyResult })
+    const fallbackUrl = anyResult?.url || anyResult?.images?.[0]?.url || anyResult?.image?.url || anyResult?.audio?.url || anyResult?.data?.images?.[0]?.url
+    console.log(`[api/generate] 🔍 Fallback URL extraction - found:`, fallbackUrl)
+    return NextResponse.json({ success: true, url: fallbackUrl, result: anyResult })
     } catch (err: any) {
     console.error('[api/generate] error:', err)
     const details = (err && typeof err === 'object') ? (err.response?.data || err.data || err.details) : undefined
