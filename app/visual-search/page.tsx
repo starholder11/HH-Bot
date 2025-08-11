@@ -146,11 +146,7 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
   }
 
   // For text, do NOT duplicate the excerpt here. Show a simple label block.
-  return (
-    <div className="w-full h-10 rounded-md border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 px-3 flex items-center">
-      <div className="text-xs uppercase tracking-wide text-neutral-400">Text</div>
-    </div>
-  );
+  return null;
 }
 
 function getResultMediaUrl(r: UnifiedSearchResult): string | undefined {
@@ -911,7 +907,7 @@ function ResultCard({
 
   return (
     <div className={classNames(
-      "group rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 transition-colors overflow-hidden flex flex-col",
+      "group rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 transition-colors overflow-hidden",
       selected ? "ring-2 ring-neutral-500" : undefined
     )}
     onClick={(e) => {
@@ -1282,6 +1278,7 @@ function RightPane({
   setPage,
   executeSearch,
   query,
+  setQuery,
   // Canvas props
   isEditingName,
   setIsEditingName,
@@ -1337,6 +1334,7 @@ function RightPane({
   setPage: (p: number) => void;
   executeSearch: (q: string, nextPage?: number) => void;
   query: string;
+  setQuery: (q: string) => void;
   isEditingName: boolean;
   setIsEditingName: (v: boolean) => void;
   canvasName: string;
@@ -1444,7 +1442,9 @@ function RightPane({
                 onPin={onPin}
                 onOpen={onOpen}
                 onLabelClick={(label) => {
-                  executeSearch(label);
+                  setQuery(label);
+                  executeSearch(label, 1);
+                  setTab('results');
                 }}
                 selectionEnabled={multiSelect}
                 selected={selectedIds.has(r.id)}
