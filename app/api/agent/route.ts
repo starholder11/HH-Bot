@@ -161,7 +161,8 @@ const tools = {
       // Simple greeting responses that will be displayed as normal text
       const greetings = ["Hey! Ready to help you find content or create something awesome!", "Hello! What can I help you discover today?", "Hi there! Looking for some media or want to generate something?"];
       const response = greetings[Math.floor(Math.random() * greetings.length)];
-      return response; // Return plain string for normal chat display
+      // Return a structured action so the UI can treat this as assistant text clearly
+      return { action: 'chat', payload: { text: response } };
     }
   }),
 
@@ -202,7 +203,7 @@ const tools = {
     }),
     execute: async ({ imageId, name, userRequest }) => {
       let finalName = name || 'Untitled';
-      
+
       // Try to extract filename from "save as filename" pattern
       if (!name && userRequest) {
         const saveAsMatch = userRequest.match(/\b(save|name|call)\s+((this\s+)?(image|picture|photo|video)\s+)?as\s+([\w\-_]+)\b/i);
@@ -210,11 +211,11 @@ const tools = {
           finalName = saveAsMatch[5];
         }
       }
-      
+
       return {
         action: 'nameImage',
-        payload: { 
-          imageId: imageId || 'current', 
+        payload: {
+          imageId: imageId || 'current',
           name: finalName,
           extractedFromRequest: !!userRequest
         }

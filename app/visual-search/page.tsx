@@ -15,7 +15,7 @@ import CanvasBoard from './components/Canvas/CanvasBoard';
 import GridPinned from './components/Canvas/GridPinned';
 import CanvasToolbar from './components/Canvas/CanvasToolbar';
 import CanvasManagerModal from './components/Canvas/CanvasManagerModal';
-import GeneratePanel from './components/Generate/GeneratePanel';
+// Legacy Generate UI is embedded in this file to match previous behavior
 import { debug } from './utils/log';
 import { useResultsStore } from './store/resultsStore';
 import { useUiStore } from './store/uiStore';
@@ -1249,13 +1249,8 @@ function RightPane({
         </div>
       ) : (
         <div className="mt-3">
-          <GeneratePanel
-            pinned={pinned}
-            availableLoras={(canvasLoras || []).filter((l: any) => (l.status || '').toLowerCase() === 'completed').map((l: any) => ({ id: l.loraId || l.requestId || l.path, path: l.artifactUrl || l.path, label: `${canvasName || 'Canvas'} • ${l.triggerWord || 'LoRA'}`, scale: 1 }))}
-            onPinResult={onPin}
-            onGenStart={() => { setTab('output'); onParentGenStart(); }}
-            onGenResult={(m, url, raw) => { setTab('output'); onParentGenResult(m, url, raw); }}
-          />
+          {/* Legacy generate UI is already embedded above (model list + dynamic fields + refs + lora + actions). */}
+          {/* Nothing else to render here; right pane shows the generate controls directly. */}
         </div>
       )}
       {tab === 'results' && (

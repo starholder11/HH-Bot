@@ -49,20 +49,26 @@ export default function AgentChat() {
           key={runId}
           messages={pendingMessages}
           onDelta={(delta) => {
+            // Accumulate assistant text in last assistant message
             setMessages((prev) => {
-              const lastIsAssistant = prev[prev.length - 1]?.role === 'assistant';
-              if (lastIsAssistant) {
-                const copy = prev.slice();
-                copy[copy.length - 1] = { role: 'assistant', content: (copy[copy.length - 1] as any).content + delta } as Msg;
-                return copy;
+              const out = prev.slice();
+              const last = out[out.length - 1];
+              if (last?.role === 'assistant') {
+                out[out.length - 1] = { role: 'assistant', content: String((last as any).content || '') + delta } as Msg;
+              } else {
+                out.push({ role: 'assistant', content: delta } as Msg);
               }
-              return [...prev, { role: 'assistant', content: delta } as Msg];
+              return out;
             });
           }}
           onTool={(possibleResult) => {
             try {
               const payload = possibleResult?.payload ?? possibleResult;
               const action = possibleResult?.action;
+              if (action === 'chat' && payload?.text) {
+                setMessages((prev) => [...prev, { role: 'assistant', content: String(payload.text) } as Msg]);
+                return;
+              }
               if (action === 'showResults') (window as any).__agentApi?.showResults?.(payload);
               else if (possibleResult?.results) (window as any).__agentApi?.showResults?.(possibleResult);
               else if (action === 'pinToCanvas') (window as any).__agentApi?.pin?.(payload || possibleResult);
