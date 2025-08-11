@@ -116,12 +116,19 @@ export default function AgentChat() {
             const normalized = Array.isArray(result) ? result[0] : result;
             
             console.log('🔵 AgentChat: Normalized result:', normalized);
+            console.log('🔵 AgentChat: Checking for showResults action:', normalized?.action);
             
             // Handle action-based tool results (showResults, pinToCanvas, etc.)
             if (normalized?.action === 'showResults' && typeof window !== 'undefined') {
               console.log('🟢 AgentChat: Calling showResults with payload:', normalized.payload);
               (window as any).__agentApi?.showResults?.(normalized.payload);
               continue;
+            } else if (normalized?.action === 'showResults') {
+              console.log('🔴 AgentChat: showResults action found but window undefined');
+            } else if (normalized?.action) {
+              console.log('🔴 AgentChat: Different action found:', normalized.action);
+            } else {
+              console.log('🔴 AgentChat: No action property found');
             }
             if (normalized?.action === 'pinToCanvas' && typeof window !== 'undefined') {
               (window as any).__agentApi?.pin?.(normalized);
