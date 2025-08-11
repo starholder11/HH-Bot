@@ -20,6 +20,9 @@ export default function AgentChat() {
     setMessages(next);
     setInput('');
     setBusy(true);
+    
+    console.log('🔵 AgentChat: Sending request:', input.trim());
+    
     const res = await fetch('/api/agent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -36,9 +39,12 @@ export default function AgentChat() {
       const { value, done } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value);
+      console.log('🔵 AgentChat: Raw chunk:', chunk);
+      
       for (const raw of chunk.split('\n')) {
         const line = raw.trim();
         if (!line) continue;
+        console.log('🔵 AgentChat: Processing line:', line);
         if (line.startsWith('0:')) {
           // Vercel AI SDK text delta channel
           let delta: any = line.slice(2);
@@ -103,10 +109,16 @@ export default function AgentChat() {
         if (idx > 0) {
           try {
             const obj = JSON.parse(line.slice(idx + 1));
+            console.log('🔵 AgentChat: Parsed tool object:', obj);
+            
             const result = obj?.result ?? obj;
             // Some providers send arrays of results; normalize to first
             const normalized = Array.isArray(result) ? result[0] : result;
+            
+            console.log('🔵 AgentChat: Normalized result:', normalized);
+            
             if (normalized?.action === 'showResults' && typeof window !== 'undefined') {
+              console.log('🟢 AgentChat: Calling showResults with payload:', normalized.payload);
               (window as any).__agentApi?.showResults?.(normalized.payload);
               continue;
             }
