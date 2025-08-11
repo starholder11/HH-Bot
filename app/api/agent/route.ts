@@ -109,13 +109,13 @@ export async function POST(req: NextRequest) {
     // Cast to any to avoid versioned type conflicts between subpackages during CI type check
     model: openai('gpt-4o-mini') as any,
     system:
-      'You are a tool-only agent. You MUST call tools for everything - never give plain text responses. ' +
-      'CRITICAL: For ANY mention of images, pictures, photos, videos, audio, content, media - call searchUnified tool immediately. ' +
-      'Examples that REQUIRE searchUnified: "pictures", "images", "photos", "show me", "find", "give me", "western", "country", etc. ' +
-      'For greetings like "wassup", "hello", "hi" - call chat tool with the greeting message. ' +
-      'For status checks - call agentStatus. ' +
-      'DO NOT explain what you will do - just call the appropriate tool once. ' +
-      'If you are unsure, default to searchUnified.',
+      'You are a tool-calling agent. NEVER format, list, or display images/videos/content in text responses. ' +
+      'CRITICAL: For content requests ("pics", "images", "find", "show", "western", "mood", etc.) - ONLY call searchUnified tool. ' +
+      'WRONG: "Here are some pictures: 1. ![image](url) 2. ![image](url)" ' +
+      'RIGHT: Call searchUnified tool with query and stop. ' +
+      'DO NOT format, embed, or list any content - just call the tool and end. ' +
+      'For greetings - call chat tool. For status - call agentStatus. ' +
+      'When user wants content - searchUnified only.',
     messages,
     tools,
     toolChoice: 'auto',
