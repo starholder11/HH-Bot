@@ -253,6 +253,37 @@ const tools = {
     }
   }),
 
+  listLoras: tool({
+    description: 'List all available LoRA models for image generation. Use when user asks about LoRAs, models, styles, or wants to see what custom models are available.',
+    parameters: z.object({}),
+    execute: async () => {
+      try {
+        const baseUrl = process.env.PUBLIC_API_BASE_URL || `http://localhost:3000`;
+        const url = `${baseUrl}/api/loras`;
+        const res = await fetch(url, { method: 'GET' });
+        if (!res.ok) throw new Error(`LoRA list failed: ${res.status}`);
+        const loras = await res.json();
+        
+        if (!Array.isArray(loras) || loras.length === 0) {
+          return { action: 'chat', payload: { text: 'No LoRA models found. LoRAs are custom styles trained from canvas images that can be used for generation.' } };
+        }
+
+        const loraList = loras.map(l => 
+          `• **${l.canvasName}** (${l.triggerWord}) - Canvas: ${l.canvasId}`
+        ).join('\n');
+
+        return { 
+          action: 'chat', 
+          payload: { 
+            text: `Found ${loras.length} available LoRA models:\n\n${loraList}\n\nTo use a LoRA, select it in the Generate tab and it will automatically switch to the FLUX-LoRA model for image generation.` 
+          } 
+        };
+      } catch (error) {
+        return { action: 'chat', payload: { text: `Failed to fetch LoRA models: ${error instanceof Error ? error.message : 'Unknown error'}` } };
+      }
+    }
+  }),
+
 };
 
 export const runtime = 'nodejs';
@@ -279,12 +310,15 @@ export async function POST(req: NextRequest) {
   const saveImageIntentRegex = /\b(save|store|keep)\s+(this\s+)?(image|picture|photo|video)\s*(to\s+)?(library|collection|gallery)?\b/i;
   const saveAsIntentRegex = /\b(save|name|call)\s+((this\s+)?(image|picture|photo|video)\s+)?as\s+[\w\-_]+\b/i;
   const useLoraIntentRegex = /\b(use|apply|add)\s+(the\s+)?(lora|model)\b/i;
+  const listLoraIntentRegex = /\b(list|show|what|which|available|get)\s+.*(lora|model|style)s?\b/i;
 
   // Hard guarantee: for specific intents, force appropriate tools (order matters - most specific first)
   const forcedToolChoice: any = useContentGenerateRegex.test(lastText)
     ? { type: 'tool', toolName: 'prepareGenerate' }
     : saveAsIntentRegex.test(lastText)
       ? { type: 'tool', toolName: 'nameImage' }  // "save as filename" should name first, then save
+    : listLoraIntentRegex.test(lastText)
+      ? { type: 'tool', toolName: 'listLoras' }
     : openCanvasIntentRegex.test(lastText)
       ? { type: 'tool', toolName: 'openCanvas' }
       : nameImageIntentRegex.test(lastText)

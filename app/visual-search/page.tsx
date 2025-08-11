@@ -1256,6 +1256,7 @@ function RightPane({
             onGenStart={onParentGenStart}
             onGenResult={onParentGenResult}
             canvasLoras={canvasLoras.filter(l => l.status === 'completed')}
+            allLoras={allLoras}
             setRightTab={setTab}
             saveStatus={saveStatus}
             setSaveStatus={setSaveStatus}
@@ -1321,6 +1322,25 @@ export default function VisualSearchPage() {
     status: string;
   }>>([]);
   const [canvasNote, setCanvasNote] = useState<string>('')
+
+  // Fetch global LoRAs on mount and when rightTab changes to generate
+  useEffect(() => {
+    if (rightTab === 'generate') {
+      const fetchAllLoras = async () => {
+        try {
+          const response = await fetch('/api/loras');
+          if (response.ok) {
+            const loras = await response.json();
+            setAllLoras(Array.isArray(loras) ? loras : []);
+            debug('vs:loras', 'Fetched', loras.length, 'global LoRAs');
+          }
+        } catch (error) {
+          debug('vs:loras', 'Failed to fetch global LoRAs:', error);
+        }
+      };
+      void fetchAllLoras();
+    }
+  }, [rightTab]);
   const [isEditingName, setIsEditingName] = useState<boolean>(false)
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
