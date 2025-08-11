@@ -26,7 +26,7 @@ const tools = {
       }
     }
   }),
-  
+
   pinToCanvas: tool({
     description: 'Pin content to canvas. Provide contentId from search results or specify content to pin.',
     parameters: z.object({
@@ -41,7 +41,7 @@ const tools = {
       let finalType = type || 'image'; // Default to image
       let finalUrl = url || ''; // Will be resolved by UI
       let finalTitle = title || contentId; // Use contentId as fallback title
-      
+
       // Try to infer type from contentId or request
       if (!type && contentId) {
         const id = contentId.toLowerCase();
@@ -51,14 +51,14 @@ const tools = {
           finalType = 'audio';
         }
       }
-      
-      return { 
-        action: 'pinToCanvas', 
-        payload: { 
+
+      return {
+        action: 'pinToCanvas',
+        payload: {
           id: contentId, // UI bridge expects 'id' not 'contentId'
           contentId, // Keep for backward compatibility
-          type: finalType, 
-          url: finalUrl, 
+          type: finalType,
+          url: finalUrl,
           title: finalTitle,
           needsLookup: !url, // Signal to UI that it needs to resolve URL
           originalRequest: userRequest
@@ -79,7 +79,7 @@ const tools = {
     execute: async ({ userRequest, type, prompt, model, refs }) => {
       // Smart extraction from user request
       const request = userRequest.toLowerCase();
-      
+
       // Detect media type from request
       let finalType = type;
       if (!finalType) {
@@ -91,7 +91,7 @@ const tools = {
           finalType = 'image';
         }
       }
-      
+
       // Extract prompt from request
       let finalPrompt = prompt;
       if (!finalPrompt) {
@@ -99,14 +99,14 @@ const tools = {
         const patterns = [
           // "make video of X" or "make a video of X"
           /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:video|movie|clip|animation)\s+(?:of|about|with|showing)?\s*(.+)/i,
-          // "make audio of X" or "make a song of X"  
+          // "make audio of X" or "make a song of X"
           /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:audio|song|track|music|sound)\s+(?:of|about|with|featuring)?\s*(.+)/i,
           // "make image of X" or "make a picture of X"
           /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:picture|image|photo)\s+(?:of|about|with|showing)?\s*(.+)/i,
           // Generic fallback - anything after make/create
           /(?:make|create|generate|produce|build|design|craft)\s+(.+)/i
         ];
-        
+
         for (const pattern of patterns) {
           const match = userRequest.match(pattern);
           if (match && match[1]) {
@@ -118,18 +118,18 @@ const tools = {
             }
           }
         }
-        
+
         if (!finalPrompt) {
           finalPrompt = 'Creative content';
         }
       }
-      
-      return { 
-        action: 'prepareGenerate', 
-        payload: { 
-          type: finalType, 
-          prompt: finalPrompt, 
-          model: model || 'default', 
+
+      return {
+        action: 'prepareGenerate',
+        payload: {
+          type: finalType,
+          prompt: finalPrompt,
+          model: model || 'default',
           refs: refs || [],
           originalRequest: userRequest
         }
@@ -142,8 +142,8 @@ const tools = {
     parameters: z.object({}),
     execute: async () => {
       try {
-        const res = await fetch(`${process.env.PUBLIC_API_BASE_URL || ''}/api/agent/status` || '/api/agent/status', { method: 'GET' });
-        if (!res.ok) throw new Error('Status fetch failed');
+      const res = await fetch(`${process.env.PUBLIC_API_BASE_URL || ''}/api/agent/status` || '/api/agent/status', { method: 'GET' });
+      if (!res.ok) throw new Error('Status fetch failed');
         const status = await res.json();
         return { action: 'agentStatus', payload: status };
       } catch (error) {
@@ -173,8 +173,8 @@ const tools = {
       metadata: z.object({}).optional(),
     }),
     execute: async ({ content, type, metadata }) => {
-      return { 
-        action: 'showOutput', 
+      return {
+        action: 'showOutput',
         payload: { content, type, metadata: metadata || {} }
       };
     }
@@ -186,23 +186,38 @@ const tools = {
       mode: z.string().optional(),
     }),
     execute: async ({ mode }) => {
-      return { 
-        action: 'openCanvas', 
+      return {
+        action: 'openCanvas',
         payload: { mode: mode || 'default' }
       };
     }
   }),
 
   nameImage: tool({
-    description: 'Set name/title for generated images',
+    description: 'Set name/title for generated images or videos. For "save as filename" requests, extract the filename.',
     parameters: z.object({
       imageId: z.string().optional(),
       name: z.string().optional(),
+      userRequest: z.string().optional().describe('Full user request to extract filename from'),
     }),
-    execute: async ({ imageId, name }) => {
-      return { 
-        action: 'nameImage', 
-        payload: { imageId: imageId || 'current', name: name || 'Untitled' }
+    execute: async ({ imageId, name, userRequest }) => {
+      let finalName = name || 'Untitled';
+      
+      // Try to extract filename from "save as filename" pattern
+      if (!name && userRequest) {
+        const saveAsMatch = userRequest.match(/\b(save|name|call)\s+((this\s+)?(image|picture|photo|video)\s+)?as\s+([\w\-_]+)\b/i);
+        if (saveAsMatch && saveAsMatch[5]) {
+          finalName = saveAsMatch[5];
+        }
+      }
+      
+      return {
+        action: 'nameImage',
+        payload: { 
+          imageId: imageId || 'current', 
+          name: finalName,
+          extractedFromRequest: !!userRequest
+        }
       };
     }
   }),
@@ -215,8 +230,8 @@ const tools = {
       metadata: z.object({}).optional(),
     }),
     execute: async ({ imageId, collection, metadata }) => {
-      return { 
-        action: 'saveImage', 
+      return {
+        action: 'saveImage',
         payload: { imageId: imageId || 'current', collection: collection || 'default', metadata: metadata || {} }
       };
     }
@@ -230,8 +245,8 @@ const tools = {
       trigger: z.string().optional(),
     }),
     execute: async ({ loraName, strength, trigger }) => {
-      return { 
-        action: 'useCanvasLora', 
+      return {
+        action: 'useCanvasLora',
         payload: { loraName, strength: strength || 1.0, trigger: trigger || '' }
       };
     }
@@ -259,13 +274,16 @@ export async function POST(req: NextRequest) {
   const useContentGenerateRegex = /\b(use|with|using)\s+(the\s+)?(pinned|selected|this|that)\s+.*(to\s+)?(make|create|generate)\b/i;
   const pinIntentRegex = /\b(pin|save|bookmark|attach)\s+.*(to|on)\s+(the\s+)?(canvas|board)\b/i;
   const openCanvasIntentRegex = /\b(open|show|display)\s+(the\s+)?(canvas|board|generation\s+interface)\b/i;
-  const nameImageIntentRegex = /\b(name|title|call|label)\s+(this\s+)?(image|picture|photo)\b/i;
-  const saveImageIntentRegex = /\b(save|store|keep)\s+(this\s+)?(image|picture|photo)\s*(to\s+)?(library|collection|gallery)?\b/i;
+  const nameImageIntentRegex = /\b(name|title|call|label)\s+(this\s+)?(image|picture|photo|video)\b/i;
+  const saveImageIntentRegex = /\b(save|store|keep)\s+(this\s+)?(image|picture|photo|video)\s*(to\s+)?(library|collection|gallery)?\b/i;
+  const saveAsIntentRegex = /\b(save|name|call)\s+((this\s+)?(image|picture|photo|video)\s+)?as\s+[\w\-_]+\b/i;
   const useLoraIntentRegex = /\b(use|apply|add)\s+(the\s+)?(lora|model)\b/i;
 
   // Hard guarantee: for specific intents, force appropriate tools (order matters - most specific first)
   const forcedToolChoice: any = useContentGenerateRegex.test(lastText)
     ? { type: 'tool', toolName: 'prepareGenerate' }
+    : saveAsIntentRegex.test(lastText)
+      ? { type: 'tool', toolName: 'nameImage' }  // "save as filename" should name first, then save
     : openCanvasIntentRegex.test(lastText)
       ? { type: 'tool', toolName: 'openCanvas' }
       : nameImageIntentRegex.test(lastText)
@@ -294,7 +312,8 @@ export async function POST(req: NextRequest) {
       'For generation requests (make/create X): call prepareGenerate with userRequest parameter containing the full user message. ' +
       'For search requests: call searchUnified with the query. ' +
       'For pin requests (pin X to canvas): call pinToCanvas with contentId (extract the ID from user message like "2068-odyssey") and userRequest. ' +
-      'For other canvas operations: call openCanvas, nameImage, saveImage, or useCanvasLora as appropriate. ' +
+      'For name/save requests (save as filename, name as X): call nameImage with userRequest parameter to extract the filename. ' +
+      'For other canvas operations: call openCanvas, saveImage, or useCanvasLora as appropriate. ' +
       'For greetings: call chat tool. ' +
       'For status: call agentStatus. ' +
       'ALWAYS extract the content ID when pinning (e.g. "pin 2068-odyssey" → contentId: "2068-odyssey"). ' +
