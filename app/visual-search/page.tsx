@@ -1633,6 +1633,7 @@ export default function VisualSearchPage() {
   const [query, setQuery] = useState("");
   const [types, setTypes] = useState<Array<ContentType | "media" | "all">>(["all"]);
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
+  const [globalResultsCache, setGlobalResultsCache] = useState<Map<string, UnifiedSearchResult>>(new Map());
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [multiSelect, setMultiSelect] = useState(false);
@@ -1690,10 +1691,18 @@ export default function VisualSearchPage() {
         
         let targetResult: UnifiedSearchResult | null = null;
         
-        // Try to find the content in current search results if no URL provided
+        // Try to find the content in current search results or global cache if no URL provided
         if (!payload.url && payload.id) {
           console.log('🔍 Bridge: Looking up content by ID:', payload.id);
+          // First try current results
           targetResult = results.find(r => r.id === payload.id || r.title === payload.id) || null;
+          
+          // If not found, try global cache
+          if (!targetResult) {
+            targetResult = globalResultsCache.get(payload.id) || null;
+            console.log('🔍 Bridge: Found in global cache:', !!targetResult);
+          }
+          
           console.log('🔍 Bridge: Found result:', targetResult);
         }
         
@@ -1742,6 +1751,18 @@ export default function VisualSearchPage() {
             setResults(all);
             setTotal(all.length);
             setRightTab('results');
+            
+            // Cache all results globally for pin lookup
+            setGlobalResultsCache(prevCache => {
+              const newCache = new Map(prevCache);
+              all.forEach(item => {
+                if (item.id) newCache.set(item.id, item);
+                if (item.title) newCache.set(item.title, item);
+              });
+              console.log('🟢 Bridge: Cached', all.length, 'results globally. Total cache size:', newCache.size);
+              return newCache;
+            });
+            
             console.log('🟢 Bridge: UI updated with results');
           } else {
             console.log('🔴 Bridge: No valid results found in payload');
@@ -1772,7 +1793,11 @@ export default function VisualSearchPage() {
           const model = payload?.model as string | undefined;
           const prompt = payload?.prompt as string | undefined;
           const planRefs: string[] = Array.isArray(payload?.refs) ? payload.refs : [];
-          const refs: string[] = (planRefs.length > 0 ? planRefs : (pinnedRef.current || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean)) as string[];
+          const pinnedUrls = (pinnedRef.current || []).map((p) => getResultMediaUrl(p.result)).filter(Boolean);
+          const refs: string[] = (planRefs.length > 0 ? planRefs : pinnedUrls) as string[];
+          
+          console.log('🟢 Bridge: prepareGenerate - planRefs:', planRefs.length, 'pinnedUrls:', pinnedUrls.length, 'final refs:', refs.length);
+          console.log('🟢 Bridge: prepareGenerate - refs:', refs);
 
           if (!mode || !prompt) return;
           // Update status API
