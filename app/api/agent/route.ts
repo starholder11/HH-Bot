@@ -253,9 +253,10 @@ export async function POST(req: NextRequest) {
   const lastText = typeof lastUserMessage === 'string' ? lastUserMessage : '';
   const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|audio|look.*up|gimme|give me)\b/i;
   const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
-  const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft)\s+(a|an|some)?\s*(picture|image|photo|video|audio|song|track|music)\b/i;
-  const videoGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+(a|an|some)?\s*(video|movie|clip|animation)\b/i;
-  const audioGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+(a|an|some)?\s*(audio|song|track|music|sound)\b/i;
+  const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft)\s+.*(picture|image|photo|video|audio|song|track|music|movie|clip|animation)\b/i;
+  const videoGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+.*(video|movie|clip|animation)\b/i;
+  const audioGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+.*(audio|song|track|music|sound)\b/i;
+  const useContentGenerateRegex = /\b(use|with|using)\s+(the\s+)?(pinned|selected|this|that)\s+.*(to\s+)?(make|create|generate)\b/i;
   const pinIntentRegex = /\b(pin|save|bookmark|attach)\s+.*(to|on)\s+(the\s+)?(canvas|board)\b/i;
   const openCanvasIntentRegex = /\b(open|show|display)\s+(the\s+)?(canvas|board|generation\s+interface)\b/i;
   const nameImageIntentRegex = /\b(name|title|call|label)\s+(this\s+)?(image|picture|photo)\b/i;
@@ -263,23 +264,25 @@ export async function POST(req: NextRequest) {
   const useLoraIntentRegex = /\b(use|apply|add)\s+(the\s+)?(lora|model)\b/i;
 
   // Hard guarantee: for specific intents, force appropriate tools (order matters - most specific first)
-  const forcedToolChoice: any = openCanvasIntentRegex.test(lastText)
-    ? { type: 'tool', toolName: 'openCanvas' }
-    : nameImageIntentRegex.test(lastText)
-      ? { type: 'tool', toolName: 'nameImage' }
-      : saveImageIntentRegex.test(lastText)
-        ? { type: 'tool', toolName: 'saveImage' }
-        : useLoraIntentRegex.test(lastText)
-          ? { type: 'tool', toolName: 'useCanvasLora' }
-          : generateIntentRegex.test(lastText)
-            ? { type: 'tool', toolName: 'prepareGenerate' }
-            : pinIntentRegex.test(lastText)
-              ? { type: 'tool', toolName: 'pinToCanvas' }
-              : searchIntentRegex.test(lastText)
-                ? { type: 'tool', toolName: 'searchUnified' }
-                : greetingIntentRegex.test(lastText)
-                  ? { type: 'tool', toolName: 'chat' }
-                  : 'auto';
+  const forcedToolChoice: any = useContentGenerateRegex.test(lastText)
+    ? { type: 'tool', toolName: 'prepareGenerate' }
+    : openCanvasIntentRegex.test(lastText)
+      ? { type: 'tool', toolName: 'openCanvas' }
+      : nameImageIntentRegex.test(lastText)
+        ? { type: 'tool', toolName: 'nameImage' }
+        : saveImageIntentRegex.test(lastText)
+          ? { type: 'tool', toolName: 'saveImage' }
+          : useLoraIntentRegex.test(lastText)
+            ? { type: 'tool', toolName: 'useCanvasLora' }
+            : generateIntentRegex.test(lastText)
+              ? { type: 'tool', toolName: 'prepareGenerate' }
+              : pinIntentRegex.test(lastText)
+                ? { type: 'tool', toolName: 'pinToCanvas' }
+                : searchIntentRegex.test(lastText)
+                  ? { type: 'tool', toolName: 'searchUnified' }
+                  : greetingIntentRegex.test(lastText)
+                    ? { type: 'tool', toolName: 'chat' }
+                    : 'auto';
 
   const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 

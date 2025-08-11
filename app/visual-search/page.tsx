@@ -1683,10 +1683,25 @@ export default function VisualSearchPage() {
   useEffect(() => {
     (window as any).__agentApi = {
       // Called by client after tool pinToCanvas returns
-      pin: (payload: { id?: string; title?: string; url?: string }) => {
+      pin: (payload: { id?: string; title?: string; url?: string; needsLookup?: boolean }) => {
         if (!payload?.url && !payload?.id) return;
-        // Minimal pin by URL
-        const fake: UnifiedSearchResult = {
+        
+        console.log('🟢 Bridge: pin called with payload:', payload);
+        
+        let targetResult: UnifiedSearchResult | null = null;
+        
+        // Try to find the content in current search results if no URL provided
+        if (!payload.url && payload.id) {
+          console.log('🔍 Bridge: Looking up content by ID:', payload.id);
+          targetResult = results.find(r => r.id === payload.id || r.title === payload.id) || null;
+          console.log('🔍 Bridge: Found result:', targetResult);
+        }
+        
+        // Create pin object from found result or payload
+        const pinObject: UnifiedSearchResult = targetResult ? {
+          ...targetResult,
+          title: payload.title || targetResult.title,
+        } : {
           id: payload.id || `agent-${Date.now()}`,
           content_type: 'image',
           title: payload.title || 'Pinned by Agent',
@@ -1695,7 +1710,9 @@ export default function VisualSearchPage() {
           metadata: { cloudflare_url: payload.url, media_type: 'image' } as any,
           preview: payload.title || payload.url || '',
         } as any;
-        pinResult(fake);
+        
+        console.log('🟢 Bridge: Pinning object:', pinObject);
+        pinResult(pinObject);
         setRightTab('canvas');
       },
       // Helper to expose current pinned image URLs to the agent/chat
