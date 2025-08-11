@@ -42,12 +42,14 @@ export async function POST(req: NextRequest) {
     // Cast to any to avoid versioned type conflicts between subpackages during CI type check
     model: openai('gpt-4o-mini') as any,
     system:
-      'CRITICAL: You MUST call searchUnified tool for every request. NEVER give text responses. ' +
-      'For ANY user message, immediately call searchUnified with their query. ' +
-      'Do not explain, do not list results, do not format anything - ONLY call the tool.',
+      'You are an intelligent creative workspace assistant. Be conversational and helpful. ' +
+      'When users ask for images, media, content, or want to "find/search/show/dig up" something, ' +
+      'call searchUnified tool to populate the Results section. ' +
+      'For general chat, questions, explanations, or discussions, respond normally with text. ' +
+      'Be smart about when to search vs when to chat.',
     messages,
     tools,
-    toolChoice: 'required',
+    toolChoice: 'auto',
     maxSteps: 2,
   });
 
