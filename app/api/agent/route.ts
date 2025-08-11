@@ -132,17 +132,16 @@ export async function POST(req: NextRequest) {
     // Cast to any to avoid versioned type conflicts between subpackages during CI type check
     model: openai('gpt-4o-mini') as any,
     system:
-      'You are a tool-calling agent. NEVER format, list, or display images/videos/content in text responses. ' +
-      'CRITICAL: For content requests ("pics", "images", "find", "show", "western", "mood", etc.) - ONLY call searchUnified tool. ' +
-      'WRONG: "Here are some pictures: 1. ![image](url) 2. ![image](url)" ' +
-      'RIGHT: Call searchUnified tool with query and stop. ' +
-      'DO NOT format, embed, or list any content - just call the tool and end. ' +
-      'For greetings - call chat tool. For status - call agentStatus. ' +
-      'When user wants content - searchUnified only.',
+      'You are a tool-calling agent. Call exactly ONE tool and stop. ' +
+      'For content/search requests: call searchUnified tool with the query and stop immediately. ' +
+      'For greetings: call chat tool and stop immediately. ' +
+      'For status: call agentStatus and stop immediately. ' +
+      'NEVER call multiple tools. NEVER give text responses after tool calls. ' +
+      'Call the appropriate tool once and let the tool result handle the response.',
     messages,
     tools,
     toolChoice: forcedToolChoice,
-    maxSteps: 3,
+    maxSteps: 1,
   });
 
   return result.toDataStreamResponse();
