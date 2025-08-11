@@ -28,14 +28,14 @@ export async function POST(req: NextRequest) {
       image: 'fal-ai/fast-sdxl',
       audio: 'fal-ai/tts',
       text: 'fal-ai/llama-3.1',
-      // Use a known image→video model by default; require refs for video
-      video: 'fal-ai/kling-video/v1.6/pro/image-to-video',
+      // Use WAN-2.1 as default video model - faster, higher quality, better response structure
+      video: 'fal-ai/wan-i2v',
     }
 
     // Infer effective mode from model id when caller passed a mismatched mode
     const inferModeFromModel = (modelId?: string, fallback?: string): 'image'|'audio'|'text'|'video' => {
       const m = (modelId || '').toLowerCase()
-      if (m.includes('image-to-video') || m.includes('/video') || m.includes('video/')) return 'video'
+      if (m.includes('image-to-video') || m.includes('/video') || m.includes('video/') || m.includes('wan-i2v') || m.includes('i2v')) return 'video'
       if (m.includes('tts') || m.includes('text-to-speech')) return 'audio'
       if (m.includes('llama') || m.includes('text/')) return 'text'
       return (fallback as any) || 'image'
@@ -198,6 +198,7 @@ export async function POST(req: NextRequest) {
 
     // For video/text, try to surface a convenient url if present
     if (effectiveMode === 'video') {
+      // WAN-2.1 returns { "video": { "url": "..." } }, Kling returns different structure
       const videoUrl: string | undefined = anyResult?.video?.url || anyResult?.data?.video?.url || anyResult?.output?.url || anyResult?.outputs?.[0]?.url
       console.log(`[api/generate] 🔍 Video URL extraction - found:`, videoUrl)
       console.log(`[api/generate] 🔍 Video result structure:`, {

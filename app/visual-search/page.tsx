@@ -1895,16 +1895,16 @@ export default function VisualSearchPage() {
           console.log('🔵 Bridge: Generation response JSON:', JSON.stringify(json, null, 2));
 
           const candidates = [
-            json?.url,
-            json?.result?.url,
-            json?.result?.images?.[0]?.url,
-            json?.result?.image?.url,
-            json?.result?.audio?.url,
-            json?.result?.video?.url,
-            json?.result?.output?.url,
-            json?.result?.output?.[0]?.url,
-            json?.result?.data?.images?.[0]?.url,
-            json?.result?.data?.video?.url,
+            json?.url,                          // Direct URL from API response
+            json?.result?.video?.url,           // WAN-2.1 format: { result: { video: { url } } }
+            json?.result?.url,                  // Generic result URL
+            json?.result?.images?.[0]?.url,     // Image generation
+            json?.result?.image?.url,           // Single image
+            json?.result?.audio?.url,           // Audio generation
+            json?.result?.output?.url,          // Generic output URL
+            json?.result?.output?.[0]?.url,     // Array of outputs
+            json?.result?.data?.images?.[0]?.url, // Nested data structure
+            json?.result?.data?.video?.url,     // Nested video data
           ].filter(Boolean) as string[];
           
           console.log('🔵 Bridge: URL candidates:', candidates);
