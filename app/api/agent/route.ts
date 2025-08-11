@@ -72,10 +72,10 @@ const tools = {
       message: z.string(),
     }),
     execute: async ({ message }) => {
-      // Simple greeting responses
+      // Simple greeting responses that will be displayed as normal text
       const greetings = ["Hey! Ready to help you find content or create something awesome!", "Hello! What can I help you discover today?", "Hi there! Looking for some media or want to generate something?"];
       const response = greetings[Math.floor(Math.random() * greetings.length)];
-      return { message: response };
+      return response; // Return plain string for normal chat display
     }
   }),
 
