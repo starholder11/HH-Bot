@@ -44,17 +44,71 @@ const tools = {
   }),
 
   prepareGenerate: tool({
-    description: 'Set up media generation with parameters (images, videos, audio)',
+    description: 'Set up media generation with parameters. Call this for any "make/create" requests.',
     parameters: z.object({
-      type: z.enum(['image', 'video', 'audio']),
-      prompt: z.string(),
+      userRequest: z.string().describe('The full user request text to analyze'),
+      type: z.enum(['image', 'video', 'audio']).optional().describe('Media type if known'),
+      prompt: z.string().optional().describe('Generation prompt if specified'),
       model: z.string().optional(),
       refs: z.array(z.string()).optional(),
     }),
-    execute: async ({ type, prompt, model, refs }) => {
+    execute: async ({ userRequest, type, prompt, model, refs }) => {
+      // Smart extraction from user request
+      const request = userRequest.toLowerCase();
+      
+      // Detect media type from request
+      let finalType = type;
+      if (!finalType) {
+        if (/\b(video|movie|clip|animation)\b/i.test(request)) {
+          finalType = 'video';
+        } else if (/\b(audio|song|track|music|sound)\b/i.test(request)) {
+          finalType = 'audio';
+        } else {
+          finalType = 'image';
+        }
+      }
+      
+      // Extract prompt from request
+      let finalPrompt = prompt;
+      if (!finalPrompt) {
+        // Try to extract descriptive content after media type
+        const patterns = [
+          // "make video of X" or "make a video of X"
+          /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:video|movie|clip|animation)\s+(?:of|about|with|showing)?\s*(.+)/i,
+          // "make audio of X" or "make a song of X"  
+          /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:audio|song|track|music|sound)\s+(?:of|about|with|featuring)?\s*(.+)/i,
+          // "make image of X" or "make a picture of X"
+          /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:picture|image|photo)\s+(?:of|about|with|showing)?\s*(.+)/i,
+          // Generic fallback - anything after make/create
+          /(?:make|create|generate|produce|build|design|craft)\s+(.+)/i
+        ];
+        
+        for (const pattern of patterns) {
+          const match = userRequest.match(pattern);
+          if (match && match[1]) {
+            const extracted = match[1].trim();
+            // Skip if it's just the media type
+            if (!['video', 'audio', 'image', 'picture', 'photo', 'song', 'track', 'music', 'movie', 'clip'].includes(extracted.toLowerCase())) {
+              finalPrompt = extracted;
+              break;
+            }
+          }
+        }
+        
+        if (!finalPrompt) {
+          finalPrompt = 'Creative content';
+        }
+      }
+      
       return { 
         action: 'prepareGenerate', 
-        payload: { type, prompt, model: model || 'default', refs: refs || [] }
+        payload: { 
+          type: finalType, 
+          prompt: finalPrompt, 
+          model: model || 'default', 
+          refs: refs || [],
+          originalRequest: userRequest
+        }
       };
     }
   }),
@@ -118,13 +172,13 @@ const tools = {
   nameImage: tool({
     description: 'Set name/title for generated images',
     parameters: z.object({
-      imageId: z.string(),
-      name: z.string(),
+      imageId: z.string().optional(),
+      name: z.string().optional(),
     }),
     execute: async ({ imageId, name }) => {
       return { 
         action: 'nameImage', 
-        payload: { imageId, name }
+        payload: { imageId: imageId || 'current', name: name || 'Untitled' }
       };
     }
   }),
@@ -132,14 +186,14 @@ const tools = {
   saveImage: tool({
     description: 'Save image to library/collection',
     parameters: z.object({
-      imageId: z.string(),
+      imageId: z.string().optional(),
       collection: z.string().optional(),
       metadata: z.object({}).optional(),
     }),
     execute: async ({ imageId, collection, metadata }) => {
       return { 
         action: 'saveImage', 
-        payload: { imageId, collection: collection || 'default', metadata: metadata || {} }
+        payload: { imageId: imageId || 'current', collection: collection || 'default', metadata: metadata || {} }
       };
     }
   }),
@@ -176,6 +230,8 @@ export async function POST(req: NextRequest) {
   const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|audio|look.*up|gimme|give me)\b/i;
   const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
   const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft)\s+(a|an|some)?\s*(picture|image|photo|video|audio|song|track|music)\b/i;
+  const videoGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+(a|an|some)?\s*(video|movie|clip|animation)\b/i;
+  const audioGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+(a|an|some)?\s*(audio|song|track|music|sound)\b/i;
   const pinIntentRegex = /\b(pin|save|bookmark|attach)\s+.*(to|on)\s+(the\s+)?(canvas|board)\b/i;
   const openCanvasIntentRegex = /\b(open|show|display)\s+(the\s+)?(canvas|board|generation\s+interface)\b/i;
   const nameImageIntentRegex = /\b(name|title|call|label)\s+(this\s+)?(image|picture|photo)\b/i;
@@ -208,11 +264,13 @@ export async function POST(req: NextRequest) {
     model: openai('gpt-4o-mini') as any,
     system:
       'You are a tool-calling agent. Call exactly ONE tool and stop. ' +
-      'For content/search requests: call searchUnified tool with the query and stop immediately. ' +
-      'For greetings: call chat tool and stop immediately. ' +
-      'For status: call agentStatus and stop immediately. ' +
-      'NEVER call multiple tools. NEVER give text responses after tool calls. ' +
-      'Call the appropriate tool once and let the tool result handle the response.',
+      'For generation requests (make/create X): call prepareGenerate with userRequest parameter containing the full user message. ' +
+      'For search requests: call searchUnified with the query. ' +
+      'For canvas operations: call openCanvas, pinToCanvas, nameImage, saveImage, or useCanvasLora as appropriate. ' +
+      'For greetings: call chat tool. ' +
+      'For status: call agentStatus. ' +
+      'ALWAYS pass the full user message as userRequest parameter when calling prepareGenerate. ' +
+      'NEVER call multiple tools. NEVER give text responses after tool calls.',
     messages,
     tools,
     toolChoice: forcedToolChoice,
