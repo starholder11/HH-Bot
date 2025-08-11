@@ -42,9 +42,12 @@ export async function POST(req: NextRequest) {
     // Cast to any to avoid versioned type conflicts between subpackages during CI type check
     model: openai('gpt-4o-mini') as any,
     system:
-      'You are a fast search agent. For ANY search request, immediately call searchUnified tool with the search query. Never give text responses - only use tools. Be fast and direct.',
+      'CRITICAL: You MUST call searchUnified tool for every request. NEVER give text responses. ' +
+      'For ANY user message, immediately call searchUnified with their query. ' +
+      'Do not explain, do not list results, do not format anything - ONLY call the tool.',
     messages,
     tools,
+    toolChoice: 'required',
     maxSteps: 2,
   });
 
