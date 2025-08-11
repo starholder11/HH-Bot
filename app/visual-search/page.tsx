@@ -880,14 +880,36 @@ function ResultCard({
   const labels: string[] = useMemo(() => {
     const collected: string[] = [];
     try {
+      // Primary: AI labels if present (works great for videos)
       const ai = r.metadata?.ai_labels || {};
       ["scenes", "objects", "style", "mood", "themes"].forEach((k) => {
         const arr = ai?.[k];
         if (Array.isArray(arr)) collected.push(...arr.slice(0, 3));
       });
+
+      // Fallbacks commonly present on images
+      const tagArrays: any[] = [];
+      if (Array.isArray((r as any).labels)) tagArrays.push((r as any).labels);
+      if (Array.isArray(r.metadata?.labels)) tagArrays.push(r.metadata?.labels);
+      if (Array.isArray(r.metadata?.tags)) tagArrays.push(r.metadata?.tags);
+      if (Array.isArray(r.metadata?.keywords)) tagArrays.push(r.metadata?.keywords);
+      tagArrays.forEach((arr) => collected.push(...arr.slice(0, 6)));
+
+      // Last resort: derive from description/title for images
+      if (collected.length === 0 && r.content_type === 'image') {
+        const base = `${r.title || ''} ${r.preview || r.description || ''}`
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, ' ')
+          .split(/\s+/)
+          .filter((w) => w.length > 3 && !/^(with|the|and|from|into|over|under|into|this|that|your|their|then|than|were|have|been|will|would|could|should|very|much|more|less|into|onto)$/.test(w))
+          .slice(0, 20);
+        const uniq: string[] = [];
+        base.forEach((w) => { if (!uniq.includes(w)) uniq.push(w); });
+        collected.push(...uniq.slice(0, 6));
+      }
     } catch {}
     return collected.slice(0, 6);
-  }, [r.metadata]);
+  }, [r.metadata, r.title, r.preview, r.description, r.content_type]);
 
   // Build clean description snippet - NO BULLSHIT CIRCULAR BLOCKS
   const snippet: string = useMemo(() => {
@@ -957,20 +979,24 @@ function ResultCard({
     >
       <div className="p-3 pb-2">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-xs px-2 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
-            {r.content_type}
+          <div className="flex items-center gap-2">
+            <div className="text-xs px-2 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
+              {r.content_type}
+            </div>
+            <div className="text-[10px] text-neutral-400">{scorePct}%</div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-[10px] text-neutral-400">{scorePct}%</div>
             <button
-              onClick={(e) => { e.stopPropagation(); onPin(r); }}
+              onClick={(e) => { e.stopPropagation(); try { onPin(r); } catch (err) { console.error('pin failed', err); } }}
               className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-neutral-200 transition-colors"
+              title="Pin to canvas"
             >
               📌
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); onOpen(r); }}
+              onClick={(e) => { e.stopPropagation(); try { onOpen(r); } catch (err) { console.error('expand failed', err); } }}
               className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-neutral-200 transition-colors"
+              title="Expand"
             >
               ➕
             </button>
