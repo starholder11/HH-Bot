@@ -117,6 +117,7 @@ export default function AgentChat() {
             
             console.log('🔵 AgentChat: Normalized result:', normalized);
             
+            // Handle action-based tool results (showResults, pinToCanvas, etc.)
             if (normalized?.action === 'showResults' && typeof window !== 'undefined') {
               console.log('🟢 AgentChat: Calling showResults with payload:', normalized.payload);
               (window as any).__agentApi?.showResults?.(normalized.payload);
@@ -147,6 +148,13 @@ export default function AgentChat() {
             if (normalized?.action === 'agentStatus' && typeof window !== 'undefined') {
               // also show a readable message in the chat
               setMessages((prev) => [...prev, { role: 'tool', content: JSON.stringify(normalized.payload, null, 2) }]);
+              continue;
+            }
+            
+            // Handle plain string tool results (chat tool responses)
+            if (typeof normalized === 'string' && normalized.trim()) {
+              console.log('🟢 AgentChat: Displaying string result as assistant message:', normalized);
+              setMessages((prev) => [...prev, { role: 'assistant', content: normalized }]);
               continue;
             }
           } catch {}
