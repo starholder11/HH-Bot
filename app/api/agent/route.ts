@@ -11,7 +11,7 @@ const tools = {
       query: z.string(),
     }),
     execute: async ({ query }) => {
-      const url = `${process.env.PUBLIC_API_BASE_URL || ''}/api/unified-search?q=${encodeURIComponent(query)}&limit=50`;
+      const url = `${process.env.PUBLIC_API_BASE_URL || ''}/api/unified-search?q=${encodeURIComponent(query)}&limit=100`;
       const res = await fetch(url || `/api/unified-search?q=${encodeURIComponent(query)}&limit=50`, { method: 'GET' });
       if (!res.ok) throw new Error(`Unified search failed: ${res.status}`);
       const json = await res.json();
@@ -96,15 +96,15 @@ export async function POST(req: NextRequest) {
     // Cast to any to avoid versioned type conflicts between subpackages during CI type check
     model: openai('gpt-4o-mini') as any,
     system:
-      'You are a UI controller agent. ALWAYS use tools to perform actions - never give text responses with embedded content. ' +
-      'For ANY request involving content (images, videos, audio, search, media, "show me", "find", "pull up"), ' +
-      'immediately call searchUnified tool. ' +
-      'For status requests, call agentStatus. ' +
-      'NEVER format or display content in text - always use the appropriate tool to populate the UI sections. ' +
-      'If user says "show me", "find", "search", "pull up", "gimme" - call searchUnified immediately.',
+      'You are a tool-only agent. You MUST call tools for everything - never give plain text responses. ' +
+      'CRITICAL: For ANY mention of images, pictures, photos, videos, audio, content, media - call searchUnified tool immediately. ' +
+      'Examples that REQUIRE searchUnified: "pictures", "images", "photos", "show me", "find", "give me", "western", "country", etc. ' +
+      'For greetings like "wassup", "hello" - call agentStatus. ' +
+      'DO NOT explain what you will do - just call the tool. ' +
+      'If you are unsure, default to searchUnified.',
     messages,
     tools,
-    toolChoice: 'auto',
+    toolChoice: 'required',
     maxSteps: 3,
   });
 
