@@ -103,6 +103,19 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   const { messages } = await req.json();
 
+  // Server-side intent routing to guarantee correct tool usage
+  const lastUserMessage = Array.isArray(messages)
+    ? [...messages].reverse().find((m: any) => m?.role === 'user')?.content ?? ''
+    : '';
+  const lastText = typeof lastUserMessage === 'string' ? lastUserMessage : '';
+  const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|audio|look.*up|gimme|give me)\b/i;
+  const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
+  const forcedToolChoice: any = searchIntentRegex.test(lastText)
+    ? { type: 'tool', toolName: 'searchUnified' }
+    : greetingIntentRegex.test(lastText)
+      ? { type: 'tool', toolName: 'chat' }
+      : 'auto';
+
   const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
   const result = await streamText({
@@ -118,7 +131,7 @@ export async function POST(req: NextRequest) {
       'When user wants content - searchUnified only.',
     messages,
     tools,
-    toolChoice: 'auto',
+    toolChoice: forcedToolChoice,
     maxSteps: 3,
   });
 
