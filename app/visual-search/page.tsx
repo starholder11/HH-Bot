@@ -1708,12 +1708,30 @@ export default function VisualSearchPage() {
       },
       showResults: (resp: any) => {
         try {
-          const all: UnifiedSearchResult[] = resp?.results?.all || resp?.results || resp?.all || [];
+          console.log('🟢 Bridge: showResults called with:', resp);
+          // Handle multiple possible structures:
+          // 1. Direct payload from agent: {results: {all: [...]}}
+          // 2. Nested payload: {results: {all: [...]}}  
+          // 3. Direct array: [...]
+          const all: UnifiedSearchResult[] = 
+            resp?.results?.all || 
+            resp?.all || 
+            resp?.results || 
+            (Array.isArray(resp) ? resp : []);
+          
+          console.log('🟢 Bridge: Extracted results:', all.length, 'items');
+          
           if (Array.isArray(all) && all.length > 0) {
             setResults(all);
+            setTotal(all.length);
             setRightTab('results');
+            console.log('🟢 Bridge: UI updated with results');
+          } else {
+            console.log('🔴 Bridge: No valid results found in payload');
           }
-        } catch {}
+        } catch (e) {
+          console.error('🔴 Bridge: showResults failed:', e);
+        }
       },
       // Surface server tool messages (e.g., no LoRA found) to the user
       showMessage: (payload: any) => {
