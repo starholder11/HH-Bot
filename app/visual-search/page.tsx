@@ -1708,9 +1708,9 @@ export default function VisualSearchPage() {
             console.log('🔍 Bridge: Found in global cache:', !!targetResult);
             
             // Debug: check all cache keys for partial matches
-            if (!targetResult) {
+            if (!targetResult && payload.id) {
               const cacheKeys = Array.from(globalResultsCache.keys());
-              const matchingKeys = cacheKeys.filter(key => key.includes(payload.id) || payload.id.includes(key));
+              const matchingKeys = cacheKeys.filter(key => key.includes(payload.id!) || payload.id!.includes(key));
               console.log('🔍 Bridge: Partial matching cache keys:', matchingKeys);
             }
           }
