@@ -66,6 +66,19 @@ const tools = {
     }
   }),
 
+  chat: tool({
+    description: 'Handle greetings and general conversation',
+    parameters: z.object({
+      message: z.string(),
+    }),
+    execute: async ({ message }) => {
+      // Simple greeting responses
+      const greetings = ["Hey! Ready to help you find content or create something awesome!", "Hello! What can I help you discover today?", "Hi there! Looking for some media or want to generate something?"];
+      const response = greetings[Math.floor(Math.random() * greetings.length)];
+      return { message: response };
+    }
+  }),
+
   showOutput: tool({
     description: 'Display generation output in Output section',
     parameters: z.object({
@@ -99,12 +112,13 @@ export async function POST(req: NextRequest) {
       'You are a tool-only agent. You MUST call tools for everything - never give plain text responses. ' +
       'CRITICAL: For ANY mention of images, pictures, photos, videos, audio, content, media - call searchUnified tool immediately. ' +
       'Examples that REQUIRE searchUnified: "pictures", "images", "photos", "show me", "find", "give me", "western", "country", etc. ' +
-      'For greetings like "wassup", "hello" - call agentStatus. ' +
-      'DO NOT explain what you will do - just call the tool. ' +
+      'For greetings like "wassup", "hello", "hi" - call chat tool with the greeting message. ' +
+      'For status checks - call agentStatus. ' +
+      'DO NOT explain what you will do - just call the appropriate tool once. ' +
       'If you are unsure, default to searchUnified.',
     messages,
     tools,
-    toolChoice: 'required',
+    toolChoice: 'auto',
     maxSteps: 3,
   });
 
