@@ -87,7 +87,7 @@ export type LayoutAsset = {
   projectId?: string;
   media_type: 'layout';
   layout_type: 'canvas_export' | 'blueprint_composer' | 'imported';
-  layout: {
+  layout_data: {
     designSize: { width: number; height: number };
     cellSize: number;
     styling: {

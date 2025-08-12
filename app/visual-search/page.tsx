@@ -2002,7 +2002,6 @@ export default function VisualSearchPage() {
         filename: `${canvasName || 'canvas'}_layout.json`,
         title: `${canvasName || 'Untitled Canvas'} Layout`,
         description: `Layout exported from canvas: ${canvasName || 'Untitled Canvas'}`,
-        projectId: canvasProjectId || null,
         media_type: 'layout' as const,
         layout_type: 'canvas_export' as const,
         s3_url: `layouts/${layoutId}.json`, // Will be set by API
