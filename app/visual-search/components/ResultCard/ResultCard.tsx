@@ -39,6 +39,42 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
       </div>
     );
   }
+  if (r.content_type === 'layout') {
+    return (
+      <div className="w-full h-40 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-900 relative overflow-hidden">
+        {/* Layout Preview Icon */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-4xl text-neutral-600">🎨</div>
+        </div>
+        
+        {/* Layout Info Overlay */}
+        <div className="absolute bottom-2 left-2 right-2 bg-black/70 rounded px-2 py-1">
+          <div className="text-xs text-neutral-300">
+            {r.metadata?.layout_type || 'Layout'} • {r.metadata?.item_count || 0} items
+          </div>
+          <div className="text-xs text-neutral-500">
+            {r.metadata?.width || 0}×{r.metadata?.height || 0}
+          </div>
+        </div>
+        
+        {/* Mini Grid Representation */}
+        <div className="absolute inset-4 opacity-20">
+          <div className="w-full h-full border border-neutral-600" style={{
+            backgroundImage: `
+              linear-gradient(to right, #4b5563 1px, transparent 1px),
+              linear-gradient(to bottom, #4b5563 1px, transparent 1px)
+            `,
+            backgroundSize: '8px 8px'
+          }}>
+            {/* Sample layout items */}
+            <div className="absolute top-1 left-1 w-6 h-4 bg-blue-600/30 border border-blue-500/50 rounded-sm" />
+            <div className="absolute top-1 right-1 w-4 h-6 bg-green-600/30 border border-green-500/50 rounded-sm" />
+            <div className="absolute bottom-1 left-1 w-8 h-3 bg-purple-600/30 border border-purple-500/50 rounded-sm" />
+          </div>
+        </div>
+      </div>
+    );
+  }
   return null;
 }
 

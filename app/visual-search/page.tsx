@@ -1941,7 +1941,7 @@ export default function VisualSearchPage() {
       // Generate layout asset
       const layoutId = `layout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const now = new Date().toISOString();
-      
+
       const layoutAsset = {
         id: layoutId,
         filename: `${canvasName || 'canvas'}_layout.json`,
@@ -2040,7 +2040,7 @@ export default function VisualSearchPage() {
 
       // Save layout asset via API
       console.log('Exporting canvas as layout asset...', layoutAsset);
-      
+
       const response = await fetch('/api/media-assets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

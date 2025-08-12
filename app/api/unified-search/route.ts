@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 interface SearchResult {
   id: string;
-  content_type: 'video' | 'image' | 'audio' | 'text';
+  content_type: 'video' | 'image' | 'audio' | 'text' | 'layout';
   title: string;
   description: string;
   score: number;
@@ -15,8 +15,8 @@ interface SearchResult {
 }
 
 interface SearchFilters {
-  content_type?: 'media' | 'text' | 'all';
-  media_type?: 'image' | 'video' | 'audio';
+  content_type?: 'media' | 'text' | 'layout' | 'all';
+  media_type?: 'image' | 'video' | 'audio' | 'layout';
   date_range?: {
     start: string;
     end: string;
@@ -118,6 +118,47 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
 
       console.log(`📊 Got ${results.length} results from LanceDB`);
 
+      // Search layout assets if requested
+      let layoutResults: SearchResult[] = [];
+      try {
+        if (content_types.length === 0 || content_types.includes('layout') || content_types.includes('all')) {
+          console.log(`🎨 Searching layout assets for query: "${query}"`);
+          const { searchMediaAssets } = await import('../../../lib/media-storage');
+          const layouts = await searchMediaAssets(query, 'layout');
+          
+          layoutResults = layouts.map(layout => ({
+            id: layout.id,
+            content_type: 'layout' as const,
+            title: layout.title,
+            description: layout.ai_labels?.themes?.join(', ') || layout.filename,
+            score: 0.8, // Default high relevance for layout matches
+            metadata: {
+              ...layout,
+              s3_url: layout.s3_url,
+              cloudflare_url: layout.cloudflare_url,
+              layout_type: layout.layout_type,
+              item_count: layout.metadata?.item_count || 0,
+              has_inline_content: layout.metadata?.has_inline_content || false,
+            },
+            url: layout.s3_url,
+            s3_url: layout.s3_url,
+            cloudflare_url: layout.cloudflare_url,
+            preview: `Layout: ${layout.title} (${layout.metadata?.item_count || 0} items)`,
+            searchable_text: [
+              layout.title,
+              layout.description || '',
+              layout.ai_labels?.themes?.join(' ') || '',
+              layout.manual_labels?.custom_tags?.join(' ') || '',
+              layout.layout_data?.items?.map(item => item.snippet || '').join(' ') || ''
+            ].filter(Boolean).join(' ')
+          }));
+
+          console.log(`🎨 Found ${layoutResults.length} layout assets`);
+        }
+      } catch (error) {
+        console.warn('Layout search failed:', error);
+      }
+
       // Process and filter results
       const processedResults: SearchResult[] = results
         .map((result: any) => ({
@@ -167,15 +208,24 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         })
         .sort((a: any, b: any) => b.score - a.score);
 
-      console.log(`✅ Returning ${processedResults.length} filtered results`);
+      // Add layout results to the processed results
+      const allResults = [...processedResults, ...layoutResults]
+        .sort((a: any, b: any) => b.score - a.score);
+
+      console.log(`✅ Returning ${allResults.length} filtered results (${processedResults.length} from LanceDB, ${layoutResults.length} layouts)`);
 
       // --- Aggregate top-3 chunk similarity per document ---
       const mediaResults: SearchResult[] = [];
+      const layoutResultsFiltered: SearchResult[] = [];
       const docMap = new Map<string, { rep: SearchResult; scores: number[] }>();
 
-      for (const res of processedResults) {
+      for (const res of allResults) {
         if (['video', 'image', 'audio'].includes(res.content_type)) {
           mediaResults.push(res);
+          continue;
+        }
+        if (res.content_type === 'layout') {
+          layoutResultsFiltered.push(res);
           continue;
         }
         // text chunk
@@ -257,31 +307,38 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         return results.filter(r => {
           const mediaTypes = ['video', 'image', 'audio'];
           const matches = content_types.includes(r.content_type) ||
-            (content_types.includes('media') && mediaTypes.includes(r.content_type));
+            (content_types.includes('media') && mediaTypes.includes(r.content_type)) ||
+            (content_types.includes('layout') && r.content_type === 'layout');
           return matches;
         });
       };
 
       const filteredMedia = filterByContentTypes(finalMedia);
       const filteredText = filterByContentTypes(finalText);
+      const filteredLayouts = filterByContentTypes(layoutResultsFiltered);
 
-      // Blend media and text for the unified "all" list so text isn't drowned out
-      const textQuota = Math.max(1, Math.ceil(safeLimit * 0.6));
-      const mediaQuota = Math.max(0, safeLimit - textQuota);
+      // Blend media, text, and layouts for the unified "all" list
+      const textQuota = Math.max(1, Math.ceil(safeLimit * 0.5));
+      const mediaQuota = Math.max(0, Math.ceil(safeLimit * 0.3));
+      const layoutQuota = Math.max(0, safeLimit - textQuota - mediaQuota);
 
       const topText = filteredText.slice(0, textQuota);
       const topMedia = filteredMedia.slice(0, mediaQuota);
+      const topLayouts = filteredLayouts.slice(0, layoutQuota);
 
-      // Interleave to keep the feed varied
+      // Interleave to keep the feed varied: text, media, layout rotation
       const blendedAll: SearchResult[] = [];
-      const maxLen = Math.max(topText.length, topMedia.length);
+      const maxLen = Math.max(topText.length, topMedia.length, topLayouts.length);
       for (let i = 0; i < maxLen; i++) {
         if (i < topText.length) blendedAll.push(topText[i]);
         if (i < topMedia.length) blendedAll.push(topMedia[i]);
+        if (i < topLayouts.length) blendedAll.push(topLayouts[i]);
       }
       // If any remaining due to quota mismatch, append rest
-      if (blendedAll.length < (topText.length + topMedia.length)) {
-        const extras = filteredText.slice(topText.length).concat(filteredMedia.slice(topMedia.length));
+      if (blendedAll.length < (topText.length + topMedia.length + topLayouts.length)) {
+        const extras = filteredText.slice(topText.length)
+          .concat(filteredMedia.slice(topMedia.length))
+          .concat(filteredLayouts.slice(topLayouts.length));
         for (const e of extras) blendedAll.push(e);
       }
 
@@ -289,17 +346,19 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       const pagedAll = blendedAll.slice(offset, offset + safeLimit);
       const pagedMedia = filteredMedia.slice(offset, offset + safeLimit);
       const pagedText = filteredText.slice(offset, offset + safeLimit);
+      const pagedLayouts = filteredLayouts.slice(offset, offset + safeLimit);
 
       const groupedResults = {
         media: pagedMedia,
         text: pagedText,
+        layout: pagedLayouts,
         all: pagedAll,
       };
 
       const responseData = {
         success: true,
         query,
-        total_results: processedResults.length,
+        total_results: allResults.length, // Include layout results in total
         page: safePage,
         page_size: safeLimit,
         results: groupedResults,
@@ -366,14 +425,23 @@ function applyFilters(result: SearchResult, filters: SearchFilters): boolean {
       if (!['video', 'image', 'audio'].includes(result.content_type)) {
         return false;
       }
+    } else if (filters.content_type === 'layout') {
+      // For 'layout' filter, only accept layout content
+      if (result.content_type !== 'layout') {
+        return false;
+      }
     } else if (result.content_type !== filters.content_type) {
       return false;
     }
   }
 
-  // Media type filter (only applies to media content)
-  if (filters.media_type && ['video', 'image', 'audio'].includes(result.content_type)) {
-    if (result.content_type !== filters.media_type) {
+  // Media type filter (applies to media content and layout)
+  if (filters.media_type) {
+    if (['video', 'image', 'audio'].includes(result.content_type)) {
+      if (result.content_type !== filters.media_type) {
+        return false;
+      }
+    } else if (filters.media_type === 'layout' && result.content_type !== 'layout') {
       return false;
     }
   }
@@ -398,6 +466,22 @@ function applyFilters(result: SearchResult, filters: SearchFilters): boolean {
         ...(result.metadata?.ai_labels?.style || []),
         ...(result.metadata?.ai_labels?.mood || []),
         ...(result.metadata?.ai_labels?.themes || []),
+      ].map(label => label.toLowerCase());
+
+      const hasMatchingTag = filters.tags.some(tag =>
+        allLabels.some(label => label.includes(tag.toLowerCase()))
+      );
+
+      if (!hasMatchingTag) {
+        return false;
+      }
+    } else if (result.content_type === 'layout') {
+      // For layout content, check AI labels and custom tags
+      const allLabels = [
+        ...(result.metadata?.ai_labels?.themes || []),
+        ...(result.metadata?.ai_labels?.style || []),
+        ...(result.metadata?.manual_labels?.custom_tags || []),
+        result.metadata?.layout_type || ''
       ].map(label => label.toLowerCase());
 
       const hasMatchingTag = filters.tags.some(tag =>

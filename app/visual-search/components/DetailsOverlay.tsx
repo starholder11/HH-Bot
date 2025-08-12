@@ -1,8 +1,14 @@
 "use client";
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import type { UnifiedSearchResult } from '../types';
 import { getResultMediaUrl } from '../utils/mediaUrl';
 import MediaMetadata from './MediaMetadata';
+import dynamic from 'next/dynamic';
+
+const LayoutViewer = dynamic(() => import('../Layout/LayoutViewer'), {
+  ssr: false,
+  loading: () => <div className="w-full h-64 bg-neutral-900 rounded border border-neutral-800 flex items-center justify-center text-neutral-400">Loading layout...</div>
+});
 
 export default function DetailsOverlay({ r, onClose, onSearch }: {
   r: UnifiedSearchResult | null;
@@ -28,10 +34,10 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
     setAssetError(null);
     setIsLoadingAsset(false);
 
-    if (r && ['image', 'video', 'audio'].includes(r.content_type)) {
+    if (r && ['image', 'video', 'audio', 'layout'].includes(r.content_type)) {
       setIsLoadingAsset(true);
       
-      // Audio uses a different API endpoint structure
+      // Different content types use different API endpoints
       const apiEndpoint = r.content_type === 'audio' 
         ? `/api/audio-labeling/songs/${r.id}`
         : `/api/media-assets/${r.id}`;
@@ -197,7 +203,9 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
           ) : (
             <>
               {/* Media Display */}
-              {mediaUrl && (r.content_type === 'image' ? (
+              {r.content_type === 'layout' && fullAsset ? (
+                <LayoutViewer layout={fullAsset.asset || fullAsset} className="w-full" />
+              ) : mediaUrl && (r.content_type === 'image' ? (
                 <img src={mediaUrl} alt={r.title} className="w-full rounded-lg border border-neutral-800 bg-black" />
               ) : r.content_type === 'video' ? (
                 <video src={mediaUrl} controls className="w-full rounded-lg border border-neutral-800 bg-black" />
