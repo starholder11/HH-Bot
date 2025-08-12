@@ -18,7 +18,7 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch layouts directly from layouts API
       const response = await fetch('/api/layouts');
 
@@ -28,7 +28,7 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to load layouts');
       }
@@ -130,8 +130,8 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
               key={layout.id}
               className={`
                 relative rounded-lg border p-3 cursor-pointer transition-all
-                ${isSelected 
-                  ? 'border-blue-600 bg-blue-900/20' 
+                ${isSelected
+                  ? 'border-blue-600 bg-blue-900/20'
                   : 'border-neutral-700 bg-neutral-800/40 hover:bg-neutral-800/60'
                 }
               `}
@@ -140,7 +140,7 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
               {/* Layout Preview */}
               <div className="flex items-start gap-3">
                 {/* Mini Grid Preview */}
-                <div 
+                <div
                   className="flex-shrink-0 w-16 h-12 rounded border border-neutral-600 bg-neutral-900 relative overflow-hidden"
                   style={{
                     backgroundImage: `

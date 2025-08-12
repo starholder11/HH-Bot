@@ -35,6 +35,7 @@ const AgentChat = dynamic(() => import('../../components/AgentChat'), { ssr: fal
 // Dynamically import Layout components
 const LayoutsBrowser = dynamic(() => import('./components/Layout/LayoutsBrowser'), { ssr: false });
 const LayoutEditor = dynamic(() => import('./components/Layout/LayoutEditor'), { ssr: false });
+const LayoutEditorModal = dynamic(() => import('./components/Layout/LayoutEditorModal'), { ssr: false });
 
 // Moved types to ./types
 
@@ -190,29 +191,12 @@ function FieldRenderer({
 // LayoutsTab component for managing and viewing layouts
 function LayoutsTab() {
   const [selectedLayout, setSelectedLayout] = useState<LayoutAsset | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const handleSelectLayout = (layout: LayoutAsset) => {
     setSelectedLayout(layout);
+    setShowModal(true);
   };
-
-  const handleCloseEditor = () => {
-    setSelectedLayout(null);
-  };
-
-  const handleSaveLayout = (updatedLayout: LayoutAsset) => {
-    setSelectedLayout(updatedLayout);
-    // Optionally refresh the browser list here
-  };
-
-  if (selectedLayout) {
-    return (
-      <LayoutEditor
-        layout={selectedLayout}
-        onClose={handleCloseEditor}
-        onSave={handleSaveLayout}
-      />
-    );
-  }
 
   return (
     <div>
@@ -221,6 +205,13 @@ function LayoutsTab() {
         onSelectLayout={handleSelectLayout}
         selectedLayoutId={selectedLayout ? (selectedLayout as LayoutAsset).id : null}
       />
+      {showModal && selectedLayout && (
+        <LayoutEditorModal
+          layout={selectedLayout}
+          onClose={() => setShowModal(false)}
+          onSaved={(l) => { setSelectedLayout(l); setShowModal(false); }}
+        />
+      )}
     </div>
   );
 }
