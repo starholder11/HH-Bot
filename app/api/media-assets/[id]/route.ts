@@ -21,8 +21,24 @@ export async function GET(
     if (!asset) {
       try {
         const { getKeyframeAsset } = await import('@/lib/media-storage');
-        asset = await getKeyframeAsset(id);
-        console.log(`[media-assets] Found as keyframe asset: ${asset?.title}`);
+        const keyframeAsset = await getKeyframeAsset(id);
+        if (keyframeAsset) {
+          // Convert KeyframeStill to MediaAsset-like structure for consistency
+          asset = {
+            ...keyframeAsset,
+            manual_labels: keyframeAsset.manual_labels || {
+              scenes: [],
+              objects: [],
+              style: [],
+              mood: [],
+              themes: [],
+              custom_tags: []
+            },
+            created_at: keyframeAsset.created_at || new Date().toISOString(),
+            updated_at: keyframeAsset.updated_at || new Date().toISOString()
+          } as any;
+          console.log(`[media-assets] Found as keyframe asset: ${asset?.title}`);
+        }
       } catch (err) {
         console.log(`[media-assets] Not found as keyframe asset either`);
       }
