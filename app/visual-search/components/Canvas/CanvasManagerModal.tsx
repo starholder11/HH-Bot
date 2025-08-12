@@ -3,14 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { useCanvasStore } from '../../store/canvasStore';
 import * as canvasService from '../../services/canvasService';
 
-export default function CanvasManagerModal({ 
-  onClose, 
-  onLoad, 
-  onDelete, 
-  onRename, 
-  onTrainLora 
-}: { 
-  onClose: () => void; 
+export default function CanvasManagerModal({
+  onClose,
+  onLoad,
+  onDelete,
+  onRename,
+  onTrainLora
+}: {
+  onClose: () => void;
   onLoad: (id: string) => void;
   onDelete?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
@@ -79,7 +79,7 @@ export default function CanvasManagerModal({
                       className="w-full px-2 py-1 rounded border border-neutral-700 bg-neutral-800 text-neutral-100 text-sm"
                     />
                   ) : (
-                    <div 
+                    <div
                       className="cursor-pointer"
                       onDoubleClick={() => {
                         if (c.id) {
@@ -98,27 +98,27 @@ export default function CanvasManagerModal({
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex items-center gap-2 ml-3">
-                  <button 
-                    onClick={() => c.id && onLoad(c.id)} 
+                  <button
+                    onClick={() => c.id && onLoad(c.id)}
                     className="px-2.5 py-1 text-sm rounded border border-neutral-700 bg-blue-600 hover:bg-blue-700 text-white"
                     title="Load canvas"
                   >
                     Load
                   </button>
-                  
+
                   {onTrainLora && (
-                    <button 
-                      onClick={() => c.id && onTrainLora(c.id)} 
+                    <button
+                      onClick={() => c.id && onTrainLora(c.id)}
                       className="px-2.5 py-1 text-sm rounded border border-neutral-700 bg-purple-600 hover:bg-purple-700 text-white"
                       title="Train LoRA from this canvas"
                     >
                       LoRA
                     </button>
                   )}
-                  
-                  <button 
+
+                  <button
                     onClick={() => {
                       if (c.id) {
                         setEditingId(c.id);
@@ -130,9 +130,9 @@ export default function CanvasManagerModal({
                   >
                     Rename
                   </button>
-                  
+
                   {onDelete && (
-                    <button 
+                    <button
                       onClick={() => {
                         if (c.id && confirm(`Delete canvas "${c.name || c.id}"? This cannot be undone.`)) {
                           onDelete(c.id);

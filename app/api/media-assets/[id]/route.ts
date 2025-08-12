@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMediaAsset, listMediaAssets } from '@/lib/media-storage';
+import { getMediaAsset, listMediaAssets, saveMediaAsset, deleteMediaAsset, type MediaAsset } from '@/lib/media-storage';
 
 export async function GET(
   request: NextRequest,
@@ -76,6 +76,96 @@ export async function GET(
       {
         success: false,
         error: 'Failed to fetch asset metadata',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/media-assets/[id] - Update a specific media asset
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    const body = await request.json();
+
+    if (!id) {
+      return NextResponse.json({ error: 'Asset ID is required' }, { status: 400 });
+    }
+
+    // Get the existing asset
+    const existingAsset = await getMediaAsset(id);
+    if (!existingAsset) {
+      return NextResponse.json({ success: false, error: 'Asset not found' }, { status: 404 });
+    }
+
+    // Update the asset
+    const now = new Date().toISOString();
+    const updatedAsset: MediaAsset = {
+      ...existingAsset,
+      ...body,
+      id, // Ensure ID doesn't change
+      created_at: existingAsset.created_at, // Preserve creation time
+      updated_at: now
+    };
+
+    await saveMediaAsset(id, updatedAsset);
+
+    console.log(`[media-assets] Updated asset: ${id} (${updatedAsset.media_type})`);
+
+    return NextResponse.json({
+      success: true,
+      asset: updatedAsset,
+      message: 'Asset updated successfully'
+    });
+
+  } catch (error) {
+    console.error('[media-assets] Error updating asset:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to update asset',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/media-assets/[id] - Delete a specific media asset
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Asset ID is required' }, { status: 400 });
+    }
+
+    const deleted = await deleteMediaAsset(id);
+
+    if (!deleted) {
+      return NextResponse.json({ success: false, error: 'Asset not found' }, { status: 404 });
+    }
+
+    console.log(`[media-assets] Deleted asset: ${id}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Asset deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('[media-assets] Error deleting asset:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to delete asset',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

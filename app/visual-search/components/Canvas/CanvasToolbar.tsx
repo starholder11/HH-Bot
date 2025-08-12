@@ -16,6 +16,7 @@ export default function CanvasToolbar({
   loraTraining,
   trainCanvasLora,
   canvasLoras,
+  exportAsLayout,
 }: {
   isEditingName: boolean;
   setIsEditingName: (v: boolean) => void;
@@ -31,6 +32,7 @@ export default function CanvasToolbar({
   loraTraining: null | { status: string; requestId?: string };
   trainCanvasLora: () => Promise<void>;
   canvasLoras: any[];
+  exportAsLayout: () => Promise<void>;
 }) {
   return (
     <>
@@ -87,9 +89,21 @@ export default function CanvasToolbar({
           )}
         </div>
 
-        <button onClick={() => void saveCanvas()} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
-        <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
-        <button onClick={clearCanvas} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Clear</button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => void saveCanvas()} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
+          <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => void exportAsLayout()} 
+            className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-green-600 hover:bg-green-700 text-white"
+            title="Export canvas as layout asset"
+          >
+            Export Layout
+          </button>
+          <button onClick={clearCanvas} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Clear</button>
+        </div>
       </div>
 
       {/* Freeform toggle removed - only RGL canvas now */}

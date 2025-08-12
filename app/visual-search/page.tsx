@@ -862,6 +862,7 @@ function RightPane({
   setAllLoras,
   saveStatus,
   setSaveStatus,
+  exportAsLayout,
 }: {
   results: UnifiedSearchResult[];
   loading: boolean;
@@ -928,6 +929,7 @@ function RightPane({
   setAllLoras: (updater: (prev: any[]) => any[]) => void;
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
+  exportAsLayout: () => Promise<void>;
 }) {
   return (
     <div className="w-full overflow-hidden">
@@ -1032,6 +1034,7 @@ function RightPane({
             loraTraining={loraTraining}
             trainCanvasLora={trainCanvasLora}
             canvasLoras={canvasLoras}
+            exportAsLayout={exportAsLayout}
           />
           {/* Only RGL canvas now - no grid/freeform toggle */}
           <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 h-[640px]">
@@ -1922,6 +1925,145 @@ export default function VisualSearchPage() {
     }
   }
 
+  const exportAsLayout = async () => {
+    try {
+      if (pinned.length === 0) {
+        alert('Canvas is empty. Add some items to export as layout.');
+        return;
+      }
+
+      // Calculate design size based on canvas items
+      const maxX = Math.max(...pinned.map(p => p.x + p.width));
+      const maxY = Math.max(...pinned.map(p => p.y + p.height));
+      const designSize = { width: Math.max(1200, maxX + 100), height: Math.max(800, maxY + 100) };
+      const cellSize = 20; // RGL cell size
+
+      // Generate layout asset
+      const layoutId = `layout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+      
+      const layoutAsset = {
+        id: layoutId,
+        filename: `${canvasName || 'canvas'}_layout.json`,
+        title: `${canvasName || 'Untitled Canvas'} Layout`,
+        description: `Layout exported from canvas: ${canvasName || 'Untitled Canvas'}`,
+        projectId: canvasProjectId || null,
+        media_type: 'layout' as const,
+        layout_type: 'canvas_export' as const,
+        s3_url: `layouts/${layoutId}.json`, // Will be set by API
+        cloudflare_url: '',
+        metadata: {
+          file_size: 0, // Will be calculated
+          width: designSize.width,
+          height: designSize.height,
+          cell_size: cellSize,
+          item_count: pinned.length,
+          has_inline_content: false,
+          has_transforms: false
+        },
+        layout_data: {
+          designSize,
+          cellSize,
+          styling: {
+            theme: 'dark' as const,
+            colors: {
+              background: '#0a0a0a',
+              text: '#ffffff',
+              primary: '#3b82f6',
+              secondary: '#6b7280'
+            },
+            typography: {
+              fontFamily: 'Inter, sans-serif'
+            }
+          },
+          items: pinned.map(p => {
+            // Convert pixel coordinates to grid and normalized coordinates
+            const gridX = Math.round(p.x / cellSize);
+            const gridY = Math.round(p.y / cellSize);
+            const gridW = Math.round(p.width / cellSize);
+            const gridH = Math.round(p.height / cellSize);
+
+            // Normalized coordinates (0-1 based)
+            const nx = p.x / designSize.width;
+            const ny = p.y / designSize.height;
+            const nw = p.width / designSize.width;
+            const nh = p.height / designSize.height;
+
+            return {
+              id: p.id,
+              type: 'content_ref' as const,
+              x: gridX, y: gridY, w: gridW, h: gridH,
+              nx, ny, nw, nh,
+              z: p.z,
+              refId: p.result.id,
+              contentType: p.result.content_type,
+              mediaUrl: p.result.url || p.result.s3_url || p.result.cloudflare_url,
+              snippet: p.result.description || p.result.title
+            };
+          })
+        },
+        ai_labels: {
+          scenes: [],
+          objects: [],
+          style: ['layout', 'canvas_export'],
+          mood: [],
+          themes: [`canvas:${canvasName || 'untitled'}`],
+          confidence_scores: {}
+        },
+        manual_labels: {
+          scenes: [],
+          objects: [],
+          style: [],
+          mood: [],
+          themes: [],
+          custom_tags: [`canvas-export-${canvasId || 'new'}`]
+        },
+        processing_status: {
+          upload: 'completed' as const,
+          metadata_extraction: 'completed' as const,
+          ai_labeling: 'not_started' as const,
+          manual_review: 'pending' as const,
+          html_generation: 'pending' as const
+        },
+        timestamps: {
+          uploaded: now,
+          metadata_extracted: now,
+          labeled_ai: null,
+          labeled_reviewed: null,
+          html_generated: null
+        },
+        labeling_complete: false,
+        project_id: canvasProjectId || null,
+        created_at: now,
+        updated_at: now
+      };
+
+      // Save layout asset via API
+      console.log('Exporting canvas as layout asset...', layoutAsset);
+      
+      const response = await fetch('/api/media-assets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(layoutAsset)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to export layout');
+      }
+
+      const result = await response.json();
+      console.log('Layout export successful:', result);
+
+      // Show success message
+      alert(`Successfully exported canvas as layout: "${layoutAsset.title}"\n\nLayout ID: ${layoutId}\nItems: ${pinned.length}`);
+
+    } catch (e) {
+      console.error('Layout export failed:', e);
+      alert(`Failed to export layout: ${(e as Error).message}`);
+    }
+  };
+
   const deleteCanvas = async (id: string) => {
     try {
       const res = await fetch(`/api/canvas?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
@@ -2186,6 +2328,7 @@ export default function VisualSearchPage() {
             setAllLoras={setAllLoras}
             saveStatus={saveStatus}
             setSaveStatus={setSaveStatus}
+            exportAsLayout={exportAsLayout}
           />
         </div>
       </div>
@@ -2206,20 +2349,20 @@ export default function VisualSearchPage() {
       />
 
       {showCanvasManager && (
-        <CanvasManagerModal 
-          onClose={() => setShowCanvasManager(false)} 
+        <CanvasManagerModal
+          onClose={() => setShowCanvasManager(false)}
           onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }}
-          onDelete={(id) => { 
+          onDelete={(id) => {
             void deleteCanvas(id).then(() => {
               void refreshCanvases()
             })
           }}
-          onRename={(id, newName) => { 
+          onRename={(id, newName) => {
             void renameCanvas(id, newName).then(() => {
               void refreshCanvases()
             })
           }}
-          onTrainLora={(id) => { 
+          onTrainLora={(id) => {
             // Load the canvas first, then train LoRA
             void loadCanvas(id).then(() => {
               void trainCanvasLora()

@@ -243,7 +243,94 @@ export interface KeyframeAsset extends BaseMediaAsset {
   };
 }
 
-export type MediaAsset = ImageAsset | VideoAsset | AudioAsset | KeyframeAsset;
+export interface LayoutAsset extends BaseMediaAsset {
+  media_type: 'layout';
+  layout_type: 'canvas_export' | 'blueprint_composer' | 'imported';
+  metadata: {
+    file_size: number;
+    width: number;
+    height: number;
+    cell_size: number;
+    item_count: number;
+    has_inline_content: boolean;
+    has_transforms: boolean;
+  };
+  layout_data: {
+    designSize: { width: number; height: number };
+    cellSize: number;
+    styling: {
+      theme?: 'light' | 'dark' | 'custom';
+      colors?: {
+        primary?: string;
+        secondary?: string;
+        background?: string;
+        text?: string;
+        accent?: string;
+      };
+      typography?: {
+        fontFamily?: string;
+        headingFont?: string;
+        bodyFont?: string;
+      };
+      customCSS?: string;
+      cssFileUrl?: string;
+    };
+    items: Array<{
+      id: string;
+      type: 'content_ref' | 'inline_text' | 'inline_image' | 'block';
+      x: number; y: number; w: number; h: number;
+      nx: number; ny: number; nw: number; nh: number;
+      z?: number;
+      refId?: string;
+      contentType?: 'video' | 'image' | 'audio' | 'text' | 'layout' | '3d_object' | 'shader' | 'playlist';
+      mediaUrl?: string;
+      snippet?: string;
+      inlineContent?: {
+        text?: string;
+        html?: string;
+        imageData?: string;
+        imageUrl?: string;
+      };
+      transform?: {
+        component: string;
+        props?: Record<string, any>;
+        animation?: {
+          type: 'scroll' | 'fade' | 'slide' | 'rotate' | 'scale' | 'custom';
+          duration?: number;
+          direction?: 'up' | 'down' | 'left' | 'right';
+          loop?: boolean;
+          customCSS?: string;
+        };
+        container?: {
+          overflow: 'visible' | 'hidden' | 'scroll' | 'auto';
+          background?: string;
+          border?: string;
+          borderRadius?: string;
+        };
+      };
+      blockType?: 'hero' | 'media_grid' | 'text_section' | 'cta' | 'footer' | 'spacer';
+      config?: Record<string, any>;
+    }>;
+  };
+  html_snapshot?: string;
+  css_snapshot?: string;
+  processing_status: {
+    upload: 'pending' | 'completed' | 'error';
+    metadata_extraction: 'pending' | 'completed' | 'error';
+    ai_labeling: 'not_started' | 'triggering' | 'pending' | 'processing' | 'completed' | 'failed' | 'error';
+    manual_review: 'pending' | 'completed' | 'error';
+    html_generation: 'pending' | 'completed' | 'error';
+  };
+  timestamps: {
+    uploaded: string;
+    metadata_extracted: string | null;
+    labeled_ai: string | null;
+    labeled_reviewed: string | null;
+    html_generated: string | null;
+  };
+}
+
+export type MediaAsset = ImageAsset | VideoAsset | AudioAsset | KeyframeAsset | LayoutAsset;
 
 
 /**
@@ -327,7 +414,7 @@ function isMediaTypeMatch(asset: MediaAsset, targetType: string): boolean {
  * List all media assets, optionally filtered by type
  */
 export async function listMediaAssets(
-  mediaType?: 'image' | 'video' | 'audio',
+  mediaType?: 'image' | 'video' | 'audio' | 'layout',
   options?: {
     page?: number;
     limit?: number;
@@ -829,7 +916,7 @@ export async function deleteMediaAsset(assetId: string): Promise<boolean> {
  */
 export async function searchMediaAssets(
   query: string,
-  mediaType?: 'image' | 'video' | 'audio'
+  mediaType?: 'image' | 'video' | 'audio' | 'layout'
 ): Promise<MediaAsset[]> {
   const result = await listMediaAssets(mediaType, { loadAll: true }); // Load all for search
   const lowerQuery = query.toLowerCase();
@@ -856,6 +943,23 @@ export async function searchMediaAssets(
         (audioAsset.metadata.album && audioAsset.metadata.album.toLowerCase().includes(lowerQuery));
 
       return standardMatch || audioMatch;
+    }
+
+    // Layout-specific search fields
+    if (asset.media_type === 'layout') {
+      const layoutAsset = asset as LayoutAsset;
+      const layoutMatch =
+        layoutAsset.layout_type.toLowerCase().includes(lowerQuery) ||
+        (layoutAsset.layout_data.items || []).some(item => 
+          item.refId?.toLowerCase().includes(lowerQuery) ||
+          item.contentType?.toLowerCase().includes(lowerQuery) ||
+          item.inlineContent?.text?.toLowerCase().includes(lowerQuery) ||
+          item.inlineContent?.html?.toLowerCase().includes(lowerQuery)
+        ) ||
+        (layoutAsset.layout_data.styling.customCSS && layoutAsset.layout_data.styling.customCSS.toLowerCase().includes(lowerQuery)) ||
+        (layoutAsset.html_snapshot && layoutAsset.html_snapshot.toLowerCase().includes(lowerQuery));
+
+      return standardMatch || layoutMatch;
     }
 
     return standardMatch;
