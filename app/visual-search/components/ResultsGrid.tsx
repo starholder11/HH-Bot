@@ -66,7 +66,8 @@ export default function ResultsGrid({ results, renderCard }: Props) {
       <Grid
         columnCount={columnCount}
         columnWidth={columnWidth}
-        height={Math.min(GRID_CONSTANTS.MAX_HEIGHT, rowHeight * Math.min(rowCount, GRID_CONSTANTS.MAX_VISIBLE_ROWS))}
+        // Use full content height so the page scrolls instead of the inner grid
+        height={rowHeight * Math.max(rowCount, 1)}
         rowCount={rowCount}
         rowHeight={rowHeight}
         width={width}
