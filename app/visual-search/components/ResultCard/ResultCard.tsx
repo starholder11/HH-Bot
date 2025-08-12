@@ -68,8 +68,8 @@ function ResultCardComponent({
       const base = r.preview ?? r.description ?? '';
       const raw = typeof base === 'string' ? base : JSON.stringify(base);
       const cleaned = stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
-      // Enforce a reasonable character limit for card consistency (approximately 2-3 lines)
-      return cleaned.length > 150 ? cleaned.substring(0, 147) + '...' : cleaned;
+      // Enforce a strict character limit for card consistency (approximately 2 lines max)
+      return cleaned.length > 100 ? cleaned.substring(0, 97) + '...' : cleaned;
     } catch {
       return '';
     }
@@ -139,25 +139,25 @@ function ResultCardComponent({
       <div className="px-3">
         <MediaPreview r={r} />
       </div>
-      <div className="p-3">
-        {snippet && <p className="text-sm text-neutral-300 line-clamp-3">{snippet}</p>}
-        {labels.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {labels.map((l, idx) => (
-              <button
-                key={`${l}-${idx}`}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLabelClick?.(l);
-                }}
-                className="text-[10px] px-2 py-0.5 rounded-full border border-neutral-800 bg-neutral-950 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 transition-colors"
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="p-3 h-24 flex flex-col justify-between">
+        <div className="flex-1">
+          {snippet && <p className="text-sm text-neutral-300 line-clamp-2">{snippet}</p>}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {labels.slice(0, 4).map((l, idx) => (
+            <button
+              key={`${l}-${idx}`}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onLabelClick?.(l);
+              }}
+              className="text-[10px] px-2 py-0.5 rounded-full border border-neutral-800 bg-neutral-950 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 transition-colors"
+            >
+              {l}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
