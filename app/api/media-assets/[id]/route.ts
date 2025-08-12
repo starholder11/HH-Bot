@@ -22,10 +22,39 @@ export async function GET(
       const urlHint = new URL(request.url).searchParams.get('url');
       if (urlHint) {
         try {
-          // Load a reasonably sized page of assets and try to match by URL
-          const { assets } = await listMediaAssets(undefined, { page: 1, limit: 1000, excludeKeyframes: false });
-          asset = assets.find((a: any) => a?.s3_url === urlHint || a?.cloudflare_url === urlHint) || null;
-        } catch {}
+          const normalize = (u?: string) => {
+            if (!u) return '';
+            try {
+              const url = new URL(u);
+              return url.pathname.split('/').pop() || u; // filename portion
+            } catch {
+              // not a URL, return last segment
+              const parts = u.split('?')[0].split('/');
+              return parts[parts.length - 1] || u;
+            }
+          };
+
+          const hintFilename = normalize(urlHint);
+
+          // Load all audio assets to improve hit rate while keeping scope tight
+          const { assets } = await listMediaAssets('audio', { loadAll: true, excludeKeyframes: false });
+
+          asset = assets.find((a: any) => {
+            const aS3 = a?.s3_url as string | undefined;
+            const aCdn = a?.cloudflare_url as string | undefined;
+            if (aS3 === urlHint || aCdn === urlHint) return true;
+            const aS3File = normalize(aS3);
+            const aCdnFile = normalize(aCdn);
+            const aFilename = (a?.filename as string | undefined) || '';
+            return (
+              aS3File === hintFilename ||
+              aCdnFile === hintFilename ||
+              aFilename === hintFilename
+            );
+          }) || null;
+        } catch (fallbackErr) {
+          console.warn('[media-assets] URL fallback failed:', fallbackErr);
+        }
       }
     }
 
