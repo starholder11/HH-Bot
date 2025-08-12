@@ -11,17 +11,20 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
 
   // Lock background scroll while the overlay is open to avoid double scrollbars
   useEffect(() => {
-    // Preserve original values to restore on unmount
-    const originalOverflow = document.body.style.overflow;
+    // Preserve original values to restore on unmount (body and html)
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
     const originalPaddingRight = document.body.style.paddingRight;
     // Calculate native scrollbar width to prevent layout shift
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
     return () => {
-      document.body.style.overflow = originalOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
       document.body.style.paddingRight = originalPaddingRight;
     };
   }, []);

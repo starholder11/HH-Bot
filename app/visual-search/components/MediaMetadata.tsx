@@ -24,7 +24,32 @@ interface MediaMetadataProps {
 }
 
 export default function MediaMetadata({ result: r }: MediaMetadataProps) {
-  if (!r.metadata) return null;
+  const m: any = r.metadata || {};
+
+  const pick = (...keys: Array<string>): any => {
+    for (const k of keys) {
+      const parts = k.split('.');
+      let cur: any = m;
+      let ok = true;
+      for (const p of parts) {
+        if (cur && typeof cur === 'object' && p in cur) cur = cur[p];
+        else { ok = false; break; }
+      }
+      if (ok && cur != null) return cur;
+    }
+    return undefined;
+  };
+
+  const meta = {
+    width: m.width ?? pick('image.width', 'video.width', 'dimensions.width'),
+    height: m.height ?? pick('image.height', 'video.height', 'dimensions.height'),
+    duration: m.duration ?? pick('audio.duration', 'video.duration', 'length', 'meta.duration'),
+    format: m.format ?? m.mime ?? m.ext ?? m.file_type ?? pick('container.format'),
+    fileSize: m.file_size ?? m.size ?? m.bytes ?? pick('file.size'),
+    aspectRatio: m.aspect_ratio ?? (m.width && m.height ? `${m.width}:${m.height}` : undefined),
+    bitrate: m.bitrate ?? pick('audio.bitrate', 'meta.bitrate', 'kbps'),
+    artist: m.artist ?? pick('audio.artist', 'meta.artist'),
+  } as const;
 
   return (
     <div className="space-y-4">
@@ -38,72 +63,72 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* Dimensions for images/videos */}
-          {(r.content_type === 'image' || r.content_type === 'video') && r.metadata.width && r.metadata.height && (
+          {(r.content_type === 'image' || r.content_type === 'video') && meta.width && meta.height && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
               <div className="text-xs text-neutral-400 font-medium">Dimensions</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
-                {r.metadata.width}×{r.metadata.height}
+                {meta.width}×{meta.height}
               </div>
             </div>
           )}
           
           {/* Duration for video/audio */}
-          {(r.content_type === 'video' || r.content_type === 'audio') && r.metadata.duration && (
+          {(r.content_type === 'video' || r.content_type === 'audio') && meta.duration && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
               <div className="text-xs text-neutral-400 font-medium">Duration</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
-                {Math.floor(r.metadata.duration / 60)}:{String(Math.floor(r.metadata.duration % 60)).padStart(2, '0')}
+                {Math.floor(Number(meta.duration) / 60)}:{String(Math.floor(Number(meta.duration) % 60)).padStart(2, '0')}
               </div>
             </div>
           )}
           
           {/* Format */}
-          {r.metadata.format && (
+          {meta.format && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
               <div className="text-xs text-neutral-400 font-medium">Format</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
-                {r.metadata.format.toString().toUpperCase()}
+                {String(meta.format).toUpperCase()}
               </div>
             </div>
           )}
           
           {/* File Size */}
-          {r.metadata.file_size && (
+          {meta.fileSize && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
               <div className="text-xs text-neutral-400 font-medium">File Size</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
-                {r.metadata.file_size > 1024 * 1024 
-                  ? `${(r.metadata.file_size / (1024 * 1024)).toFixed(1)} MB`
-                  : `${Math.round(r.metadata.file_size / 1024)} KB`}
+                {Number(meta.fileSize) > 1024 * 1024 
+                  ? `${(Number(meta.fileSize) / (1024 * 1024)).toFixed(1)} MB`
+                  : `${Math.round(Number(meta.fileSize) / 1024)} KB`}
               </div>
             </div>
           )}
 
           {/* Aspect Ratio for images/videos */}
-          {(r.content_type === 'image' || r.content_type === 'video') && r.metadata.aspect_ratio && (
+          {(r.content_type === 'image' || r.content_type === 'video') && meta.aspectRatio && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
               <div className="text-xs text-neutral-400 font-medium">Ratio</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
-                {r.metadata.aspect_ratio}
+                {meta.aspectRatio}
               </div>
             </div>
           )}
 
           {/* Audio-specific metadata */}
-          {r.content_type === 'audio' && r.metadata.bitrate && (
+          {r.content_type === 'audio' && meta.bitrate && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
               <div className="text-xs text-neutral-400 font-medium">Bitrate</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
-                {r.metadata.bitrate}
+                {meta.bitrate}
               </div>
             </div>
           )}
 
-          {r.content_type === 'audio' && r.metadata.artist && (
+          {r.content_type === 'audio' && meta.artist && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
               <div className="text-xs text-neutral-400 font-medium">Artist</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
-                {toDisplayText(r.metadata.artist, 'Unknown')}
+                {toDisplayText(meta.artist, 'Unknown')}
               </div>
             </div>
           )}
