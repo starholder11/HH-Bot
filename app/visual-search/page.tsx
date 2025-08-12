@@ -815,7 +815,7 @@ function RightPane({
   removePinned,
   resizePinned,
   setPinned,
-  setShowFreeformModal,
+  setShowCanvasModal,
   tab,
   setTab,
   genLoading,
@@ -874,7 +874,7 @@ function RightPane({
   removePinned: (id: string) => void;
   resizePinned: (id: string, width: number, height: number) => void;
   setPinned: (updater: (prev: PinnedItem[]) => PinnedItem[]) => void;
-  setShowFreeformModal: (show: boolean) => void;
+  setShowCanvasModal: (show: boolean) => void;
   tab: 'results' | 'canvas' | 'output' | 'generate';
   setTab: (t: 'results' | 'canvas' | 'output' | 'generate') => void;
   genLoading: boolean;
@@ -1029,7 +1029,6 @@ function RightPane({
             setShowCanvasManager={setShowCanvasManager}
             clearCanvas={clearCanvas}
             // canvasLayout removed
-            setCanvasLayout={setCanvasLayout}
             loraTraining={loraTraining}
             trainCanvasLora={trainCanvasLora}
             canvasLoras={canvasLoras}
@@ -1042,11 +1041,11 @@ function RightPane({
               <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
             )}
           </div>
-          
+
           {/* RGL Canvas Modal Button */}
           <div className="mt-3 text-center">
             <button
-              onClick={() => setShowFreeformModal(true)}
+              onClick={() => setShowCanvasModal(true)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               disabled={pinned.length === 0}
             >
@@ -1202,7 +1201,7 @@ export default function VisualSearchPage() {
   };
   // page/total/multiSelect/selectedIds now from stores
   // canvasLayout removed - only RGL canvas now
-  const [showFreeformModal, setShowFreeformModal] = useState(false);
+  const [showCanvasModal, setShowCanvasModal] = useState(false);
   const [canvasId, setCanvasId] = useState<string | null>(null);
   const [canvases, setCanvases] = useState<Array<{ id: string; name: string; key: string; updatedAt?: string }>>([])
   const [showCanvasManager, setShowCanvasManager] = useState(false)
@@ -2075,7 +2074,7 @@ export default function VisualSearchPage() {
             removePinned={removePin}
             resizePinned={resizePin}
             setPinned={setPinnedInStore}
-            setShowFreeformModal={setShowFreeformModal}
+            setShowCanvasModal={setShowCanvasModal}
             tab={rightTab}
             setTab={setRightTab}
             genLoading={genLoading}
@@ -2147,7 +2146,7 @@ export default function VisualSearchPage() {
             setShowCanvasManager={setShowCanvasManager}
             clearCanvas={clearCanvas}
             // canvasLayout removed
-            setCanvasLayout={setCanvasLayout}
+            // setCanvasLayout removed
             reorderPinned={reorderPinned}
             canvasNote={canvasNote}
             setCanvasNote={setCanvasNote}
@@ -2210,7 +2209,7 @@ export default function VisualSearchPage() {
         <CanvasManagerModal onClose={() => setShowCanvasManager(false)} onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }} />
       )}
 
-      {showFreeformModal && (
+      {showCanvasModal && (
         <CanvasBoard
           items={pinned}
           onMove={movePin}
@@ -2233,7 +2232,7 @@ export default function VisualSearchPage() {
             );
           }}
           isModal={true}
-          onClose={() => setShowFreeformModal(false)}
+          onClose={() => setShowCanvasModal(false)}
         />
       )}
     </div>
