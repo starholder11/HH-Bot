@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from 'next/dynamic';
-import type { UnifiedSearchResult, UnifiedSearchResponse, ContentType, PinnedItem } from './types';
+import type { UnifiedSearchResult, UnifiedSearchResponse, ContentType, PinnedItem, LayoutAsset } from './types';
 import { getResultMediaUrl } from './utils/mediaUrl';
 import { stripCircularDescription } from './utils/textCleanup';
 import * as searchService from './services/searchService';
@@ -31,6 +31,10 @@ import { useCanvasStore } from './store/canvasStore';
 
 // Dynamically import AgentChat to avoid SSR issues
 const AgentChat = dynamic(() => import('../../components/AgentChat'), { ssr: false });
+
+// Dynamically import Layout components
+const LayoutsBrowser = dynamic(() => import('./components/Layout/LayoutsBrowser'), { ssr: false });
+const LayoutEditor = dynamic(() => import('./components/Layout/LayoutEditor'), { ssr: false });
 
 // Moved types to ./types
 
@@ -183,6 +187,44 @@ function FieldRenderer({
   );
 }
 
+// LayoutsTab component for managing and viewing layouts
+function LayoutsTab() {
+  const [selectedLayout, setSelectedLayout] = useState<LayoutAsset | null>(null);
+
+  const handleSelectLayout = (layout: LayoutAsset) => {
+    setSelectedLayout(layout);
+  };
+
+  const handleCloseEditor = () => {
+    setSelectedLayout(null);
+  };
+
+  const handleSaveLayout = (updatedLayout: LayoutAsset) => {
+    setSelectedLayout(updatedLayout);
+    // Optionally refresh the browser list here
+  };
+
+  if (selectedLayout) {
+    return (
+      <LayoutEditor
+        layout={selectedLayout}
+        onClose={handleCloseEditor}
+        onSave={handleSaveLayout}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <div className="text-sm text-neutral-400 mb-3">Layouts</div>
+      <LayoutsBrowser
+        onSelectLayout={handleSelectLayout}
+        selectedLayoutId={selectedLayout ? (selectedLayout as LayoutAsset).id : null}
+      />
+    </div>
+  );
+}
+
 // Move GenerationPanel outside the main component to avoid scope conflicts
 function GenerationPanel({
   pinned,
@@ -214,7 +256,7 @@ function GenerationPanel({
   }>;
   onUpdateAllLoras?: (updater: (prev: any[]) => any[]) => void;
   canvasLabel?: string;
-  setRightTab?: (tab: 'results' | 'canvas' | 'output' | 'generate') => void;
+  setRightTab?: (tab: 'results' | 'canvas' | 'layouts' | 'output' | 'generate') => void;
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
 }) {
@@ -876,8 +918,8 @@ function RightPane({
   resizePinned: (id: string, width: number, height: number) => void;
   setPinned: (updater: (prev: PinnedItem[]) => PinnedItem[]) => void;
   setShowCanvasModal: (show: boolean) => void;
-  tab: 'results' | 'canvas' | 'output' | 'generate';
-  setTab: (t: 'results' | 'canvas' | 'output' | 'generate') => void;
+  tab: 'results' | 'canvas' | 'layouts' | 'output' | 'generate';
+  setTab: (t: 'results' | 'canvas' | 'layouts' | 'output' | 'generate') => void;
   genLoading: boolean;
   genUrl: string | null;
   genMode: 'image' | 'video' | 'audio' | 'text' | null;
@@ -953,6 +995,15 @@ function RightPane({
             )}
           >
             Canvas
+          </button>
+          <button
+            onClick={() => setTab('layouts')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'layouts' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Layouts
           </button>
           <button
             onClick={() => setTab('output')}
@@ -1073,6 +1124,10 @@ function RightPane({
               </button>
             </div>
           </div>
+        </div>
+      ) : tab === 'layouts' ? (
+        <div className="mt-3">
+          <LayoutsTab />
         </div>
       ) : tab === 'output' ? (
         <div className="mt-3 space-y-3">

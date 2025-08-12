@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type RightTab = 'results' | 'canvas' | 'output' | 'generate';
+type RightTab = 'results' | 'canvas' | 'layouts' | 'output' | 'generate';
 
 type UiState = {
   rightTab: RightTab;
