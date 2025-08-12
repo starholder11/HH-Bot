@@ -130,7 +130,7 @@ export default function LayoutEditorModal({
     }
   }
 
-  const { addTextBlock, duplicateSelected, deleteSelected } = useCommands(
+  const { addTextBlock, addImageBlock, duplicateSelected, deleteSelected } = useCommands(
     edited, 
     setEdited, 
     selectedId,
@@ -216,6 +216,7 @@ export default function LayoutEditorModal({
             <div className="text-sm text-neutral-300 font-medium">Inspector</div>
             <div className="flex gap-1">
               <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addTextBlock();}} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Text</button>
+              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addImageBlock();}} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Image</button>
               <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 disabled:opacity-50">Duplicate</button>
               <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-red-700 hover:bg-red-800 text-red-200 disabled:opacity-50">Delete</button>
             </div>
@@ -377,51 +378,7 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function ItemInspector({ item, cellSize, onChange, onZ }: { item: Item; cellSize: number; onChange: (up: Partial<Item>) => void; onZ: (dir: 'front' | 'back' | 'up' | 'down') => void }) {
-  const fields: Array<{ k: keyof Item; label: string; type?: 'number' | 'text' }>
-    = [
-      { k: 'x', label: 'x', type: 'number' },
-      { k: 'y', label: 'y', type: 'number' },
-      { k: 'w', label: 'w', type: 'number' },
-      { k: 'h', label: 'h', type: 'number' },
-    ];
-  return (
-    <div className="space-y-2 text-sm">
-      <div className="text-neutral-400 text-xs">{item.id}</div>
-      <div className="grid grid-cols-2 gap-2">
-        {fields.map(f => (
-          <label key={String(f.k)} className="flex flex-col gap-1">
-            <span className="text-xs text-neutral-400">{f.label}</span>
-            <input
-              type="number"
-              className="px-2 py-1 rounded border border-neutral-700 bg-neutral-900 text-neutral-100"
-              value={Number(item[f.k] as any)}
-              onChange={(e) => onChange({ [f.k]: Number(e.target.value) } as Partial<Item>)}
-            />
-          </label>
-        ))}
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-neutral-400">z</span>
-        <button onClick={() => onZ('back')} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Back</button>
-        <button onClick={() => onZ('down')} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Down</button>
-        <button onClick={() => onZ('up')} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Up</button>
-        <button onClick={() => onZ('front')} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Front</button>
-      </div>
-      {item.type === 'inline_text' && (
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-400">Text</span>
-          <textarea
-            rows={4}
-            className="px-2 py-1 rounded border border-neutral-700 bg-neutral-900 text-neutral-100"
-            value={item.inlineContent?.text || ''}
-            onChange={(e) => onChange({ inlineContent: { ...(item.inlineContent || {}), text: e.target.value } as any })}
-          />
-        </label>
-      )}
-    </div>
-  );
-}
+
 
 // Commands wired to state using closures
 function useCommands(
@@ -441,6 +398,19 @@ function useCommands(
       x: 0, y: 0, w: Math.max(6, Math.round(400 / cellSize)), h: Math.max(3, Math.round(120 / cellSize)),
       nx: 0, ny: 0, nw: 0.33, nh: 0.15,
       inlineContent: { text: 'Edit me' },
+    } as any;
+    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, newItem] }, updated_at: new Date().toISOString() } as LayoutAsset));
+  }
+  
+  function addImageBlock() {
+    const id = `inline_img_${Date.now().toString(36)}`;
+    const cellSize = edited.layout_data.cellSize || 20;
+    const newItem: Item = {
+      id,
+      type: 'inline_image',
+      x: 0, y: 0, w: Math.max(4, Math.round(300 / cellSize)), h: Math.max(4, Math.round(200 / cellSize)),
+      nx: 0, ny: 0, nw: 0.25, nh: 0.25,
+      inlineContent: { imageUrl: '', alt: 'Image' },
     } as any;
     setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, newItem] }, updated_at: new Date().toISOString() } as LayoutAsset));
   }
@@ -471,7 +441,119 @@ function useCommands(
       updated_at: new Date().toISOString() 
     } as LayoutAsset));
   }
-  return { addTextBlock, duplicateSelected, deleteSelected };
+  return { addTextBlock, addImageBlock, duplicateSelected, deleteSelected };
 }
 
+// Inspector for selected item properties
+function ItemInspector({
+  item,
+  cellSize,
+  onChange,
+  onZ,
+}: {
+  item: Item;
+  cellSize: number;
+  onChange: (updates: Partial<Item>) => void;
+  onZ: (dir: 'front' | 'back' | 'up' | 'down') => void;
+}) {
+  const [localImageUrl, setLocalImageUrl] = useState(item.inlineContent?.imageUrl || '');
+
+  const handleImageUrlChange = (url: string) => {
+    setLocalImageUrl(url);
+    onChange({
+      inlineContent: { ...(item.inlineContent || {}), imageUrl: url }
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <div className="text-xs text-neutral-400 mb-1">Position & Size</div>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label className="text-neutral-400">X</label>
+            <input
+              type="number"
+              value={item.x || 0}
+              onChange={(e) => onChange({ x: parseInt(e.target.value) || 0 })}
+              className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+            />
+          </div>
+          <div>
+            <label className="text-neutral-400">Y</label>
+            <input
+              type="number"
+              value={item.y || 0}
+              onChange={(e) => onChange({ y: parseInt(e.target.value) || 0 })}
+              className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+            />
+          </div>
+          <div>
+            <label className="text-neutral-400">W</label>
+            <input
+              type="number"
+              value={item.w || 1}
+              onChange={(e) => onChange({ w: Math.max(1, parseInt(e.target.value) || 1) })}
+              className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+            />
+          </div>
+          <div>
+            <label className="text-neutral-400">H</label>
+            <input
+              type="number"
+              value={item.h || 1}
+              onChange={(e) => onChange({ h: Math.max(1, parseInt(e.target.value) || 1) })}
+              className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="text-xs text-neutral-400 mb-1">Z-Index</div>
+        <div className="flex gap-1">
+          <button onClick={() => onZ('front')} className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded">Front</button>
+          <button onClick={() => onZ('up')} className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded">Up</button>
+          <button onClick={() => onZ('down')} className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded">Down</button>
+          <button onClick={() => onZ('back')} className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded">Back</button>
+        </div>
+      </div>
+
+      {item.type === 'inline_image' && (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">Image URL</div>
+          <input
+            type="url"
+            value={localImageUrl}
+            onChange={(e) => handleImageUrlChange(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200 text-xs"
+          />
+          <div className="text-xs text-neutral-500 mt-1">
+            Paste an image URL or upload to S3
+          </div>
+        </div>
+      )}
+
+      {item.type === 'content_ref' && (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">Content Reference</div>
+          <div className="text-xs text-neutral-300">
+            Type: {item.contentType}<br/>
+            ID: {item.refId}<br/>
+            {item.mediaUrl && <>URL: {item.mediaUrl.slice(0, 40)}...</>}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="text-xs text-neutral-400 mb-1">Item Info</div>
+        <div className="text-xs text-neutral-300">
+          Type: {item.type}<br/>
+          ID: {item.id}
+        </div>
+      </div>
+    </div>
+  );
+}
 
