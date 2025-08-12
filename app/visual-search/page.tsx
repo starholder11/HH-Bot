@@ -1578,14 +1578,29 @@ export default function VisualSearchPage() {
       try {
         setLoading(true);
         setError(null);
-        await executeSearch(query);
+        
+        // Convert types array to search type parameter
+        let searchType: string | undefined;
+        if (types.includes("all")) {
+          searchType = undefined; // No filter
+        } else if (types.length === 1) {
+          searchType = types[0]; // Single type
+        } else if (types.includes("media")) {
+          // "media" means all media types (image, video, audio) but not text
+          searchType = "media";
+        } else {
+          // Multiple specific types - join them
+          searchType = types.filter(t => t !== "all" && t !== "media").join(",");
+        }
+        
+        await executeSearch(query, undefined, searchType);
       } catch (err: any) {
         setError(err.message || 'Search failed');
       } finally {
         setLoading(false);
       }
     },
-    [executeSearch, query]
+    [executeSearch, query, types]
   );
 
   const toggleType = (t: ContentType | "media" | "all") => {
