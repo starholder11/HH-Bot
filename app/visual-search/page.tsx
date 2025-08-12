@@ -175,6 +175,7 @@ function FieldRenderer({
   );
 }
 
+// Move GenerationPanel outside the main component to avoid scope conflicts
 function GenerationPanel({
   pinned,
   onPinResult,
@@ -2101,7 +2102,17 @@ export default function VisualSearchPage() {
             loading={loading}
             totalResults={total}
             onPin={pinResult}
-            onOpen={setSelected}
+            onOpen={(result) => {
+              try {
+                if (result && typeof result === 'object' && result.id) {
+                  setSelected(result);
+                } else {
+                  console.warn('Invalid result passed to onOpen:', result);
+                }
+              } catch (error) {
+                console.error('Error setting selected result:', error);
+              }
+            }}
             canvasRef={canvasRef}
             pinned={pinned}
             movePinned={movePin}
