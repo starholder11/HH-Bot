@@ -13,8 +13,6 @@ export default function CanvasToolbar({
   saveCanvas,
   setShowCanvasManager,
   clearCanvas,
-  canvasLayout,
-  setCanvasLayout,
   loraTraining,
   trainCanvasLora,
   canvasLoras,
@@ -30,7 +28,6 @@ export default function CanvasToolbar({
   saveCanvas: () => Promise<void> | void;
   setShowCanvasManager: (v: boolean) => void;
   clearCanvas: () => void;
-  // canvasLayout removed - only RGL canvas now
   loraTraining: null | { status: string; requestId?: string };
   trainCanvasLora: () => Promise<void>;
   canvasLoras: any[];
