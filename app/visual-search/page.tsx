@@ -11,7 +11,15 @@ import { cacheStore } from './services/cacheStore';
 import ResultsGrid from './components/ResultsGrid';
 import VSResultCard from './components/ResultCard/ResultCard';
 import DetailsOverlay from './components/DetailsOverlay';
-import CanvasBoard from './components/Canvas/CanvasBoard';
+// Dynamically import CanvasBoard to avoid SSR issues with @shopify/draggable
+const CanvasBoard = dynamic(() => import('./components/Canvas/CanvasBoard'), { 
+  ssr: false,
+  loading: () => (
+    <div className="relative w-full h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden flex items-center justify-center">
+      <div className="text-neutral-400">Loading canvas...</div>
+    </div>
+  )
+});
 import GridPinned from './components/Canvas/GridPinned';
 import CanvasToolbar from './components/Canvas/CanvasToolbar';
 import CanvasManagerModal from './components/Canvas/CanvasManagerModal';

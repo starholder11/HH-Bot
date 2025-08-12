@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Draggable } from '@shopify/draggable';
 import type { PinnedItem, UnifiedSearchResult } from '../../types';
 import { getResultMediaUrl } from '../../utils/mediaUrl';
@@ -215,6 +215,12 @@ export default function CanvasBoard({
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const draggableRef = useRef<Draggable | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Calculate dynamic height for modal
   const canvasHeight = React.useMemo(() => {
@@ -240,7 +246,7 @@ export default function CanvasBoard({
 
   // Initialize draggable
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !isClient) return;
 
     // Initialize Shopify Draggable
     draggableRef.current = new Draggable(canvasRef.current, {
@@ -318,7 +324,7 @@ export default function CanvasBoard({
         draggableRef.current.destroy();
       }
     };
-  }, [items, onMove]);
+  }, [items, onMove, isClient]);
 
   const findSnapPosition = (movingId: string, x: number, y: number, width: number, height: number) => {
     const GAP = 12;
@@ -373,6 +379,15 @@ export default function CanvasBoard({
 
     return bestPosition;
   };
+
+  // Show loading state during SSR
+  if (!isClient) {
+    return (
+      <div className="relative w-full h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden flex items-center justify-center">
+        <div className="text-neutral-400">Loading canvas...</div>
+      </div>
+    );
+  }
 
   if (isModal) {
     return (
