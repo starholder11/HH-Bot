@@ -26,7 +26,7 @@ export async function GET(
           // Convert KeyframeStill to MediaAsset-like structure for consistency
           asset = {
             ...keyframeAsset,
-            manual_labels: keyframeAsset.manual_labels || {
+            manual_labels: {
               scenes: [],
               objects: [],
               style: [],
@@ -34,8 +34,8 @@ export async function GET(
               themes: [],
               custom_tags: []
             },
-            created_at: keyframeAsset.created_at || new Date().toISOString(),
-            updated_at: keyframeAsset.updated_at || new Date().toISOString()
+            created_at: keyframeAsset.timestamps?.extracted || new Date().toISOString(),
+            updated_at: keyframeAsset.timestamps?.labeled_reviewed || keyframeAsset.timestamps?.extracted || new Date().toISOString()
           } as any;
           console.log(`[media-assets] Found as keyframe asset: ${asset?.title}`);
         }
