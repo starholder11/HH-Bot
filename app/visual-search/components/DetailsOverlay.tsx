@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { UnifiedSearchResult } from '../types';
 import { getResultMediaUrl } from '../utils/mediaUrl';
+import MediaMetadata from './MediaMetadata';
 
 export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult | null; onClose: () => void }) {
   const [fullText, setFullText] = useState<string | null>(null);
@@ -122,6 +123,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
             </div>
           ) : (
             <>
+              {/* Media Display */}
               {mediaUrl && (r.content_type === 'image' ? (
                 <img src={mediaUrl} alt={r.title} className="w-full rounded-md border border-neutral-800 bg-black" />
               ) : r.content_type === 'video' ? (
@@ -129,8 +131,16 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
               ) : r.content_type === 'audio' ? (
                 <div className="p-2"><audio src={mediaUrl} controls className="w-full" /></div>
               ) : null)}
-              <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
-                {toDisplayText(r.preview, toDisplayText(r.description, 'No additional preview available.'))}
+
+              {/* Rich Metadata Display */}
+              <MediaMetadata result={r} />
+
+              {/* Description/Preview */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
+                <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
+                  {toDisplayText(r.preview, toDisplayText(r.description, 'No additional preview available.'))}
+                </div>
               </div>
             </>
           )}
