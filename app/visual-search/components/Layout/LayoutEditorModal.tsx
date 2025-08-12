@@ -21,6 +21,8 @@ export default function LayoutEditorModal({
   const [edited, setEdited] = useState<LayoutAsset>(layout);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isEditingText, setIsEditingText] = useState(false);
 
   const cellSize = edited.layout_data.cellSize || 20;
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
@@ -101,6 +103,8 @@ export default function LayoutEditorModal({
     }
   }
 
+  const { addTextBlock, duplicateSelected, deleteSelected } = useCommands(edited, setEdited, selectedId);
+
   return (
     <div className="fixed inset-0 z-[100] bg-black/70 flex">
       <div className="relative m-0 w-full h-full bg-neutral-950 text-neutral-100">
@@ -138,18 +142,57 @@ export default function LayoutEditorModal({
               containerPadding={[0, 0]}
               isDraggable
               isResizable
+              draggableCancel={'.content-editable'}
               preventCollision={true}
               compactType={null}
               onDragStop={handleDragStop}
               onResizeStop={handleResizeStop}
             >
               {edited.layout_data.items.map((it) => (
-                <div key={it.id} className="border border-blue-500/50 bg-neutral-900 overflow-hidden">
-                  {renderItem(it, previewUrls[it.id], loadingMap[it.id])}
+                <div
+                  key={it.id}
+                  className={`border bg-neutral-900 overflow-hidden ${selectedId === it.id ? 'border-blue-500' : 'border-blue-500/30'}`}
+                  onMouseDown={() => { setSelectedId(it.id); setIsEditingText(false); }}
+                  onDoubleClick={() => {
+                    if (it.type === 'inline_text') {
+                      setSelectedId(it.id);
+                      setIsEditingText(true);
+                    }
+                  }}
+                  style={{ zIndex: it.z || 1 }}
+                >
+                  {renderItem(it, previewUrls[it.id], loadingMap[it.id], {
+                    isSelected: selectedId === it.id,
+                    isEditing: isEditingText && selectedId === it.id,
+                    onChangeText: (txt: string) => updateInlineText(it.id, txt, setEdited),
+                    onBlur: () => setIsEditingText(false),
+                  })}
                 </div>
               ))}
             </ReactGridLayout>
           </div>
+        </div>
+
+        {/* Right inspector */}
+        <div className="absolute right-0 top-14 bottom-0 w-72 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-neutral-300 font-medium">Inspector</div>
+            <div className="flex gap-1">
+              <button onClick={addTextBlock} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Text</button>
+              <button onClick={duplicateSelected} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 disabled:opacity-50">Duplicate</button>
+              <button onClick={deleteSelected} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-red-700 hover:bg-red-800 text-red-200 disabled:opacity-50">Delete</button>
+            </div>
+          </div>
+          {selectedId ? (
+            <ItemInspector
+              item={edited.layout_data.items.find(i => i.id === selectedId)!}
+              cellSize={cellSize}
+              onChange={(up) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: prev.layout_data.items.map(i => i.id === selectedId ? { ...i, ...up } as Item : i) } }))}
+              onZ={(dir) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: bringZ(prev.layout_data.items, selectedId, dir) } }))}
+            />
+          ) : (
+            <div className="text-xs text-neutral-500">Select an item to edit.</div>
+          )}
         </div>
       </div>
     </div>
@@ -189,13 +232,29 @@ function clamp(v: number) {
   return Math.max(0, Math.min(1, v));
 }
 
-function renderItem(it: Item, url?: string, loading?: boolean) {
+function renderItem(
+  it: Item,
+  url?: string,
+  loading?: boolean,
+  opts?: { isSelected?: boolean; isEditing?: boolean; onChangeText?: (t: string) => void; onBlur?: () => void }
+) {
   const label = `${it.type}${it.contentType ? ` • ${it.contentType}` : ''}`;
   if (it.type === 'inline_text' && it.inlineContent?.text) {
     return (
       <div className="h-full w-full p-2 text-neutral-200 overflow-auto">
         <div className="text-xs text-neutral-400 mb-1">{label}</div>
-        <div className="whitespace-pre-wrap leading-snug text-sm">{it.inlineContent.text}</div>
+        {opts?.isEditing ? (
+          <div
+            className="content-editable whitespace-pre-wrap leading-snug text-sm bg-neutral-800/50 rounded p-2 outline-none"
+            contentEditable
+            suppressContentEditableWarning
+            onInput={(e) => opts?.onChangeText?.((e.currentTarget as HTMLDivElement).innerText)}
+            onBlur={() => opts?.onBlur?.()}
+            dangerouslySetInnerHTML={{ __html: escapeHtml(it.inlineContent?.text || '') }}
+          />
+        ) : (
+          <div className="whitespace-pre-wrap leading-snug text-sm">{it.inlineContent.text}</div>
+        )}
       </div>
     );
   }
@@ -240,6 +299,115 @@ function renderItem(it: Item, url?: string, loading?: boolean) {
       {label}
     </div>
   );
+}
+
+function updateInlineText(id: string, text: string, setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>>) {
+  setEdited(prev => ({
+    ...prev,
+    layout_data: {
+      ...prev.layout_data,
+      items: prev.layout_data.items.map(i => i.id === id ? ({ ...i, inlineContent: { ...(i.inlineContent || {}), text } }) as Item : i)
+    },
+    updated_at: new Date().toISOString(),
+  } as LayoutAsset));
+}
+
+function bringZ(items: Item[], id: string, dir: 'front' | 'back' | 'up' | 'down'): Item[] {
+  const current = items.find(i => i.id === id);
+  if (!current) return items;
+  const maxZ = Math.max(1, ...items.map(i => i.z || 1));
+  const minZ = Math.min(1, ...items.map(i => i.z || 1));
+  const delta = dir === 'up' ? 1 : dir === 'down' ? -1 : 0;
+  return items.map(i => {
+    if (i.id !== id) return i;
+    if (dir === 'front') return { ...i, z: maxZ + 1 } as Item;
+    if (dir === 'back') return { ...i, z: Math.max(1, minZ - 1) } as Item;
+    return { ...i, z: Math.max(1, (i.z || 1) + delta) } as Item;
+  });
+}
+
+function escapeHtml(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function ItemInspector({ item, cellSize, onChange, onZ }: { item: Item; cellSize: number; onChange: (up: Partial<Item>) => void; onZ: (dir: 'front' | 'back' | 'up' | 'down') => void }) {
+  const fields: Array<{ k: keyof Item; label: string; type?: 'number' | 'text' }>
+    = [
+      { k: 'x', label: 'x', type: 'number' },
+      { k: 'y', label: 'y', type: 'number' },
+      { k: 'w', label: 'w', type: 'number' },
+      { k: 'h', label: 'h', type: 'number' },
+    ];
+  return (
+    <div className="space-y-2 text-sm">
+      <div className="text-neutral-400 text-xs">{item.id}</div>
+      <div className="grid grid-cols-2 gap-2">
+        {fields.map(f => (
+          <label key={String(f.k)} className="flex flex-col gap-1">
+            <span className="text-xs text-neutral-400">{f.label}</span>
+            <input
+              type="number"
+              className="px-2 py-1 rounded border border-neutral-700 bg-neutral-900 text-neutral-100"
+              value={Number(item[f.k] as any)}
+              onChange={(e) => onChange({ [f.k]: Number(e.target.value) } as Partial<Item>)}
+            />
+          </label>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-neutral-400">z</span>
+        <button onClick={() => onZ('back')} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Back</button>
+        <button onClick={() => onZ('down')} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Down</button>
+        <button onClick={() => onZ('up')} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Up</button>
+        <button onClick={() => onZ('front')} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Front</button>
+      </div>
+      {item.type === 'inline_text' && (
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-neutral-400">Text</span>
+          <textarea
+            rows={4}
+            className="px-2 py-1 rounded border border-neutral-700 bg-neutral-900 text-neutral-100"
+            value={item.inlineContent?.text || ''}
+            onChange={(e) => onChange({ inlineContent: { ...(item.inlineContent || {}), text: e.target.value } as any })}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+// Commands wired to state using closures
+function useCommands(
+  edited: LayoutAsset,
+  setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>>,
+  selectedId: string | null,
+) {
+  function addTextBlock() {
+    const id = `inline_${Date.now().toString(36)}`;
+    const cellSize = edited.layout_data.cellSize || 20;
+    const newItem: Item = {
+      id,
+      type: 'inline_text',
+      x: 0, y: 0, w: Math.max(6, Math.round(400 / cellSize)), h: Math.max(3, Math.round(120 / cellSize)),
+      nx: 0, ny: 0, nw: 0.33, nh: 0.15,
+      inlineContent: { text: 'Edit me' },
+    } as any;
+    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, newItem] }, updated_at: new Date().toISOString() } as LayoutAsset));
+  }
+  function duplicateSelected() {
+    if (!selectedId) return;
+    setEdited(prev => {
+      const it = prev.layout_data.items.find(i => i.id === selectedId);
+      if (!it) return prev;
+      const copy = { ...it, id: `${it.id}_copy_${Math.random().toString(36).slice(2,6)}`, x: (it.x || 0) + 1, y: (it.y || 0) + 1 } as Item;
+      return { ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, copy] }, updated_at: new Date().toISOString() } as LayoutAsset;
+    });
+  }
+  function deleteSelected() {
+    if (!selectedId) return;
+    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: prev.layout_data.items.filter(i => i.id !== selectedId) }, updated_at: new Date().toISOString() } as LayoutAsset));
+  }
+  return { addTextBlock, duplicateSelected, deleteSelected };
 }
 
 
