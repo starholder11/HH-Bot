@@ -14,11 +14,8 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   try {
 
   const mediaUrl = getResultMediaUrl(r);
-  console.log('DetailsOverlay debug - mediaUrl:', mediaUrl, 'for result:', r.id);
-  
   const sourceUrlRaw: unknown = (r.metadata?.source_url as unknown) ?? mediaUrl ?? r.url;
   const sourceUrl: string | undefined = typeof sourceUrlRaw === 'string' && sourceUrlRaw.length > 0 ? sourceUrlRaw : undefined;
-  console.log('DetailsOverlay debug - sourceUrl:', sourceUrl);
 
   // Ensure we never try to render objects/arrays directly in JSX
   const toDisplayText = (value: unknown, fallback: string = ''): string => {
@@ -55,24 +52,45 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   };
 
   useEffect(() => {
+    let cancelled = false;
+    
     setFullText(null);
     setTextError(null);
     setIsLoadingText(false);
+    
     if (r && r.content_type === 'text') {
       const slug = extractSlugFromResult(r);
       if (!slug) return;
+      
       setIsLoadingText(true);
       fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`)
         .then(async (res) => {
+          if (cancelled) return; // Don't update state if component unmounted
+          
           const json = await res.json();
           if (!res.ok || !json?.success) {
             throw new Error(json?.error || 'Failed to load content');
           }
-          setFullText(json.content as string);
+          
+          if (!cancelled) {
+            setFullText(json.content as string);
+          }
         })
-        .catch((e) => setTextError((e as Error).message))
-        .finally(() => setIsLoadingText(false));
+        .catch((e) => {
+          if (!cancelled) {
+            setTextError((e as Error).message);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoadingText(false);
+          }
+        });
     }
+    
+    return () => {
+      cancelled = true;
+    };
   }, [r?.id]);
 
   return (
