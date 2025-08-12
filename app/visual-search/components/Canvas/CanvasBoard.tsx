@@ -36,11 +36,19 @@ function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expande
     );
   }
   if (r.content_type === 'text') {
-    const content = r.preview || r.description || '';
+    const content = r.preview || r.description || r.title || '';
     const text = typeof content === 'string' ? content : JSON.stringify(content);
+    const cleanedText = stripCircularDescription(text, {
+      id: r.id,
+      title: String(r.title ?? ''),
+      type: r.content_type
+    });
+    
     return (
       <div className={`w-full ${heightClass} p-3 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 text-sm overflow-y-auto`}>
-        {text}
+        <div className="whitespace-pre-wrap leading-relaxed">
+          {cleanedText || 'No content available'}
+        </div>
       </div>
     );
   }
@@ -54,6 +62,8 @@ export default function CanvasBoard({
   onOpen,
   onResize,
   onToggleView,
+  isModal = false,
+  onClose,
 }: {
   items: PinnedItem[];
   onMove: (id: string, x: number, y: number) => void;
@@ -61,7 +71,78 @@ export default function CanvasBoard({
   onOpen: (r: UnifiedSearchResult) => void;
   onResize?: (id: string, width: number, height: number) => void;
   onToggleView?: (id: string, expanded: boolean) => void;
+  isModal?: boolean;
+  onClose?: () => void;
 }) {
+  // Calculate dynamic height based on item positions
+  const canvasHeight = React.useMemo(() => {
+    if (!isModal) return 640;
+    
+    const minHeight = 800;
+    let maxY = minHeight;
+    
+    items.forEach(item => {
+      const itemBottom = item.y + item.height + 100; // Add 100px padding
+      if (itemBottom > maxY) {
+        maxY = itemBottom;
+      }
+    });
+    
+    return Math.max(minHeight, maxY);
+  }, [items, isModal]);
+
+  if (isModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 backdrop-blur-sm">
+        <div className="w-full max-w-7xl mx-auto mt-8 mb-8 bg-neutral-950 rounded-xl border border-neutral-800 shadow-2xl overflow-hidden">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-900/50">
+            <h2 className="text-lg font-semibold text-neutral-100">Freeform Canvas</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
+              title="Close canvas"
+            >
+              ❌
+            </button>
+          </div>
+          
+          {/* Canvas Area */}
+          <div 
+            className="relative w-full bg-neutral-950 overflow-auto"
+            style={{ height: `${canvasHeight}px` }}
+          >
+            {items.map((item) => (
+              <Pinned 
+                key={item.id} 
+                item={item} 
+                items={items}
+                onMove={onMove} 
+                onRemove={onRemove} 
+                onOpen={onOpen}
+                onResize={onResize}
+                onToggleView={onToggleView}
+              />
+            ))}
+            
+            {/* Grid overlay for visual reference */}
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-10"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, #374151 1px, transparent 1px),
+                  linear-gradient(to bottom, #374151 1px, transparent 1px)
+                `,
+                backgroundSize: '50px 50px'
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Non-modal version (fallback)
   return (
     <div className="relative w-full h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden">
       {items.map((item) => (
@@ -107,20 +188,40 @@ function Pinned({
   const SNAP_DISTANCE = 20;
   const SNAP_TOLERANCE = 10;
 
-  // Find nearby cards for snapping
+  // Find nearby cards and borders for snapping
   const findSnapPosition = (newX: number, newY: number) => {
     let snapX = newX;
     let snapY = newY;
+    
+    const parentRect = ref.current?.parentElement?.getBoundingClientRect();
+    const canvasWidth = parentRect?.width || 800;
+    const canvasHeight = parentRect?.height || 600;
 
+    const currentRight = newX + item.width;
+    const currentBottom = newY + item.height;
+
+    // Snap to canvas borders
+    if (Math.abs(newX) < SNAP_DISTANCE) {
+      snapX = 0; // Left border
+    }
+    if (Math.abs(newY) < SNAP_DISTANCE) {
+      snapY = 0; // Top border
+    }
+    if (Math.abs(currentRight - canvasWidth) < SNAP_DISTANCE) {
+      snapX = canvasWidth - item.width; // Right border
+    }
+    if (Math.abs(currentBottom - canvasHeight) < SNAP_DISTANCE) {
+      snapY = canvasHeight - item.height; // Bottom border
+    }
+
+    // Snap to other cards
     for (const otherItem of items) {
       if (otherItem.id === item.id) continue;
 
       const otherRight = otherItem.x + otherItem.width;
       const otherBottom = otherItem.y + otherItem.height;
-      const currentRight = newX + item.width;
-      const currentBottom = newY + item.height;
 
-      // Horizontal snapping
+      // Horizontal snapping to other cards
       if (Math.abs(newY - otherItem.y) < SNAP_TOLERANCE || 
           Math.abs(currentBottom - otherBottom) < SNAP_TOLERANCE ||
           (newY < otherBottom && currentBottom > otherItem.y)) {
@@ -135,7 +236,7 @@ function Pinned({
         }
       }
 
-      // Vertical snapping
+      // Vertical snapping to other cards
       if (Math.abs(newX - otherItem.x) < SNAP_TOLERANCE ||
           Math.abs(currentRight - otherRight) < SNAP_TOLERANCE ||
           (newX < otherRight && currentRight > otherItem.x)) {

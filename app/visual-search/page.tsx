@@ -807,6 +807,7 @@ function RightPane({
   removePinned,
   resizePinned,
   setPinned,
+  setShowFreeformModal,
   tab,
   setTab,
   genLoading,
@@ -865,6 +866,7 @@ function RightPane({
   removePinned: (id: string) => void;
   resizePinned: (id: string, width: number, height: number) => void;
   setPinned: (updater: (prev: PinnedItem[]) => PinnedItem[]) => void;
+  setShowFreeformModal: (show: boolean) => void;
   tab: 'results' | 'canvas' | 'output' | 'generate';
   setTab: (t: 'results' | 'canvas' | 'output' | 'generate') => void;
   genLoading: boolean;
@@ -1034,21 +1036,17 @@ function RightPane({
               )}
             </div>
           ) : (
-            <div ref={canvasRef}>
-              <CanvasBoard
-                items={pinned}
-                onMove={movePinned}
-                onRemove={removePinned}
-                onOpen={onOpen}
-                onResize={resizePinned}
-                onToggleView={(id, expanded) => {
-                  setPinned((prev: PinnedItem[]) => 
-                    prev.map((p: PinnedItem) => 
-                      p.id === id ? { ...p, expanded } : p
-                    )
-                  );
-                }}
-              />
+            <div className="rounded-xl border border-neutral-800 p-6 bg-neutral-950 h-[640px] flex items-center justify-center">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-neutral-200 mb-2">Freeform Canvas</h3>
+                <p className="text-neutral-400 mb-4">Create layouts with draggable, resizable cards</p>
+                <button
+                  onClick={() => setShowFreeformModal(true)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  Open Freeform Canvas ({pinned.length} items)
+                </button>
+              </div>
             </div>
           )}
           <div className="mt-3">
@@ -1200,6 +1198,7 @@ export default function VisualSearchPage() {
   };
   // page/total/multiSelect/selectedIds now from stores
   const [canvasLayout, setCanvasLayout] = useState<'grid' | 'freeform'>('grid');
+  const [showFreeformModal, setShowFreeformModal] = useState(false);
   const [canvasId, setCanvasId] = useState<string | null>(null);
   const [canvases, setCanvases] = useState<Array<{ id: string; name: string; key: string; updatedAt?: string }>>([])
   const [showCanvasManager, setShowCanvasManager] = useState(false)
@@ -2072,6 +2071,7 @@ export default function VisualSearchPage() {
             removePinned={removePin}
             resizePinned={resizePin}
             setPinned={setPinnedInStore}
+            setShowFreeformModal={setShowFreeformModal}
             tab={rightTab}
             setTab={setRightTab}
             genLoading={genLoading}
@@ -2204,6 +2204,33 @@ export default function VisualSearchPage() {
 
       {showCanvasManager && (
         <CanvasManagerModal onClose={() => setShowCanvasManager(false)} onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }} />
+      )}
+
+      {showFreeformModal && (
+        <CanvasBoard 
+          items={pinned} 
+          onMove={movePin} 
+          onRemove={removePin} 
+          onOpen={(r: UnifiedSearchResult) => {
+            try {
+              if (r && typeof r === 'object' && (r as any).id) {
+                setSelected(r);
+              }
+            } catch (e) {
+              console.error('Modal expand error:', e);
+            }
+          }}
+          onResize={resizePin}
+          onToggleView={(id, expanded) => {
+            setPinnedInStore((prev: PinnedItem[]) => 
+              prev.map((p: PinnedItem) => 
+                p.id === id ? { ...p, expanded } : p
+              )
+            );
+          }}
+          isModal={true}
+          onClose={() => setShowFreeformModal(false)}
+        />
       )}
     </div>
   );
