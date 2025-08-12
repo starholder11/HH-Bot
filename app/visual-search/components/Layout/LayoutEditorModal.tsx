@@ -124,7 +124,7 @@ export default function LayoutEditorModal({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleSave}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); void handleSave(); }}
               disabled={working}
               className="px-3 py-1.5 rounded border border-green-600 bg-green-700 hover:bg-green-600 text-white disabled:opacity-50"
             >
@@ -188,9 +188,9 @@ export default function LayoutEditorModal({
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-300 font-medium">Inspector</div>
             <div className="flex gap-1">
-              <button onClick={addTextBlock} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Text</button>
-              <button onClick={duplicateSelected} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 disabled:opacity-50">Duplicate</button>
-              <button onClick={deleteSelected} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-red-700 hover:bg-red-800 text-red-200 disabled:opacity-50">Delete</button>
+              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addTextBlock();}} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Text</button>
+              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 disabled:opacity-50">Duplicate</button>
+              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-red-700 hover:bg-red-800 text-red-200 disabled:opacity-50">Delete</button>
             </div>
           </div>
           {selectedId ? (
