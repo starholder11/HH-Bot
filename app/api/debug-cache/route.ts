@@ -1,32 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clearS3KeysCache, getCacheStatus } from '@/lib/media-storage';
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const cacheStatus = getCacheStatus();
+    console.log('[debug-cache] Clearing S3 keys cache...');
+    clearS3KeysCache();
+    
     return NextResponse.json({
-      cacheStatus,
-      message: 'Cache status retrieved'
+      success: true,
+      message: 'S3 keys cache cleared successfully'
     });
   } catch (error) {
+    console.error('[debug-cache] Error clearing cache:', error);
     return NextResponse.json(
-      { error: 'Failed to get cache status', details: error instanceof Error ? error.message : String(error) },
+      {
+        success: false,
+        error: 'Failed to clear cache',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    clearS3KeysCache();
+    const status = getCacheStatus();
+    
     return NextResponse.json({
       success: true,
-      message: 'All caches cleared',
-      timestamp: new Date().toISOString()
+      cache_status: status
     });
   } catch (error) {
+    console.error('[debug-cache] Error getting cache status:', error);
     return NextResponse.json(
-      { error: 'Failed to clear cache', details: error instanceof Error ? error.message : String(error) },
+      {
+        success: false,
+        error: 'Failed to get cache status',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

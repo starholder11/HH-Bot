@@ -838,7 +838,10 @@ export async function saveMediaAsset(assetId: string, assetData: MediaAsset): Pr
           CacheControl: 'max-age=31536000',
         })
       );
-              return;
+      
+      // Clear cache after successful save to ensure immediate visibility
+      clearS3KeysCache();
+      return;
     } catch (err) {
       console.error('saveMediaAsset: S3 write failed', err);
       if (isProd) {
@@ -854,6 +857,9 @@ export async function saveMediaAsset(assetId: string, assetData: MediaAsset): Pr
     await fs.mkdir(dataDir, { recursive: true });
   } catch {}
   await fs.writeFile(path.join(dataDir, `${assetId}.json`), JSON.stringify(assetData, null, 2));
+  
+  // Clear cache after successful local save too
+  clearS3KeysCache();
 }
 
 /**
