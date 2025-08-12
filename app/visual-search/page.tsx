@@ -2206,7 +2206,26 @@ export default function VisualSearchPage() {
       />
 
       {showCanvasManager && (
-        <CanvasManagerModal onClose={() => setShowCanvasManager(false)} onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }} />
+        <CanvasManagerModal 
+          onClose={() => setShowCanvasManager(false)} 
+          onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }}
+          onDelete={(id) => { 
+            void deleteCanvas(id).then(() => {
+              void refreshCanvases()
+            })
+          }}
+          onRename={(id, newName) => { 
+            void renameCanvas(id, newName).then(() => {
+              void refreshCanvases()
+            })
+          }}
+          onTrainLora={(id) => { 
+            // Load the canvas first, then train LoRA
+            void loadCanvas(id).then(() => {
+              void trainCanvasLora()
+            })
+          }}
+        />
       )}
 
       {showCanvasModal && (
