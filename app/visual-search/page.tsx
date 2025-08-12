@@ -2114,9 +2114,9 @@ export default function VisualSearchPage() {
         </div>
       </div>
 
-      <DetailsOverlay 
-        r={selected} 
-        onClose={() => setSelected(null)} 
+      <DetailsOverlay
+        r={selected}
+        onClose={() => setSelected(null)}
         onSearch={(query) => {
           setQuery(query);
           setSelected(null); // Close overlay

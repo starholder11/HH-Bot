@@ -25,7 +25,11 @@ interface MediaMetadataProps {
 }
 
 export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProps) {
+  // The metadata comes from parsed references JSON in the search results
   const m: any = r.metadata || {};
+  
+  // Debug: Log the actual metadata structure
+  console.log('MediaMetadata received:', { id: r.id, content_type: r.content_type, metadata: m });
 
   const pick = (...keys: Array<string>): any => {
     for (const k of keys) {
@@ -41,15 +45,16 @@ export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProp
     return undefined;
   };
 
+  // Extract technical metadata with correct field paths
   const meta = {
-    width: m.width ?? pick('image.width', 'video.width', 'dimensions.width'),
-    height: m.height ?? pick('image.height', 'video.height', 'dimensions.height'),
-    duration: m.duration ?? pick('audio.duration', 'video.duration', 'length', 'meta.duration'),
-    format: m.format ?? m.mime ?? m.ext ?? m.file_type ?? pick('container.format'),
-    fileSize: m.file_size ?? m.size ?? m.bytes ?? pick('file.size'),
-    aspectRatio: m.aspect_ratio ?? (m.width && m.height ? `${m.width}:${m.height}` : undefined),
-    bitrate: m.bitrate ?? pick('audio.bitrate', 'meta.bitrate', 'kbps'),
-    artist: m.artist ?? pick('audio.artist', 'meta.artist'),
+    width: m.width ?? m.metadata?.width ?? pick('metadata.width', 'metadata.resolution.width'),
+    height: m.height ?? m.metadata?.height ?? pick('metadata.height', 'metadata.resolution.height'),
+    duration: m.duration ?? m.metadata?.duration ?? pick('metadata.duration'),
+    format: m.format ?? m.metadata?.format ?? m.file_type,
+    fileSize: m.file_size ?? m.metadata?.file_size ?? pick('metadata.file_size'),
+    aspectRatio: m.aspect_ratio ?? m.metadata?.aspect_ratio ?? pick('metadata.aspect_ratio'),
+    bitrate: m.bitrate ?? m.metadata?.bitrate ?? pick('metadata.bitrate'),
+    artist: m.artist ?? m.metadata?.artist ?? pick('metadata.artist'),
   } as const;
 
   // Helper to create clickable labels
@@ -156,9 +161,9 @@ export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProp
         </div>
       </div>
 
-      {/* AI Labels - check both metadata.ai_labels and direct ai_labels */}
-      {(r.metadata?.ai_labels || (r as any).ai_labels) && (() => {
-        const aiLabels = r.metadata?.ai_labels || (r as any).ai_labels;
+      {/* AI Labels - check metadata.ai_labels (from parsed references) */}
+      {m.ai_labels && (() => {
+        const aiLabels = m.ai_labels;
         return (
         <div>
           <h3 className="text-lg font-semibold text-neutral-200 mb-3">AI Analysis</h3>
@@ -247,16 +252,16 @@ export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProp
       })()}
 
       {/* Manual Labels */}
-      {r.metadata.manual_labels && (
+      {m.manual_labels && (
         <div>
           <h3 className="text-lg font-semibold text-neutral-200 mb-3">Manual Labels</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {r.metadata.manual_labels.custom_tags?.length > 0 && (
+            {m.manual_labels.custom_tags?.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Custom Tags</h4>
                 <div className="flex flex-wrap gap-1">
-                  {r.metadata.manual_labels.custom_tags.map((tag: string, index: number) => 
+                  {m.manual_labels.custom_tags.map((tag: string, index: number) => 
                     createClickableLabel(
                       tag,
                       "px-3 py-1 text-xs bg-neutral-700 text-neutral-200 rounded-full border border-neutral-600",
@@ -268,13 +273,13 @@ export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProp
             )}
 
             {/* Audio-specific manual labels */}
-            {r.content_type === 'audio' && r.metadata.manual_labels.primary_genre && (
+            {r.content_type === 'audio' && m.manual_labels.primary_genre && (
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Genre</h4>
                 {createClickableLabel(
-                  r.metadata.manual_labels.primary_genre,
+                  m.manual_labels.primary_genre,
                   "px-3 py-1 text-xs bg-purple-900/40 text-purple-300 rounded-full border border-purple-800",
-                  r.metadata.manual_labels.primary_genre
+                  m.manual_labels.primary_genre
                 )}
               </div>
             )}
@@ -283,38 +288,38 @@ export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProp
           {/* Audio-specific metrics */}
           {r.content_type === 'audio' && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-              {typeof r.metadata.manual_labels.energy_level === 'number' && (
+              {typeof m.manual_labels.energy_level === 'number' && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Energy</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
-                    {r.metadata.manual_labels.energy_level}/10
+                    {m.manual_labels.energy_level}/10
                   </div>
                 </div>
               )}
               
-              {typeof r.metadata.manual_labels.emotional_intensity === 'number' && (
+              {typeof m.manual_labels.emotional_intensity === 'number' && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Intensity</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
-                    {r.metadata.manual_labels.emotional_intensity}/10
+                    {m.manual_labels.emotional_intensity}/10
                   </div>
                 </div>
               )}
               
-              {typeof r.metadata.manual_labels.tempo === 'number' && (
+              {typeof m.manual_labels.tempo === 'number' && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Tempo</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
-                    {r.metadata.manual_labels.tempo} BPM
+                    {m.manual_labels.tempo} BPM
                   </div>
                 </div>
               )}
 
-              {r.metadata.manual_labels.vocals && (
+              {m.manual_labels.vocals && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Vocals</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
-                    {toDisplayText(r.metadata.manual_labels.vocals)}
+                    {toDisplayText(m.manual_labels.vocals)}
                   </div>
                 </div>
               )}
@@ -324,11 +329,11 @@ export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProp
       )}
 
       {/* Lyrics for audio - full height, no scroll constraint */}
-      {r.content_type === 'audio' && (r.metadata.lyrics || (r as any).lyrics) && (
+      {r.content_type === 'audio' && (m.lyrics || m.manual_labels?.lyrics) && (
         <div>
           <h3 className="text-lg font-semibold text-neutral-200 mb-3">Lyrics</h3>
           <div className="text-sm text-neutral-300 bg-blue-950/40 p-6 rounded-lg border-l-4 border-blue-400 whitespace-pre-wrap leading-relaxed">
-            {toDisplayText(r.metadata.lyrics || (r as any).lyrics)}
+            {toDisplayText(m.lyrics || m.manual_labels?.lyrics)}
           </div>
         </div>
       )}
