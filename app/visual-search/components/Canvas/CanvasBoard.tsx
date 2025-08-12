@@ -242,10 +242,91 @@ export default function CanvasBoard({
   }, [items, isModal]);
 
   const handleUpdate = (id: string, x: number, y: number, width: number, height: number) => {
-    onMove(id, x, y);
-    if (onResize && (width !== items.find(i => i.id === id)?.width || height !== items.find(i => i.id === id)?.height)) {
+    // Find the current item being moved
+    const currentItem = items.find(i => i.id === id);
+    if (!currentItem) return;
+
+    // Check for collisions with other cards and snap to adjacent positions
+    const adjustedPosition = findNonOverlappingPosition(id, x, y, width, height);
+    
+    onMove(id, adjustedPosition.x, adjustedPosition.y);
+    if (onResize && (width !== currentItem.width || height !== currentItem.height)) {
       onResize(id, width, height);
     }
+  };
+
+  // Function to find a position that doesn't overlap with other cards
+  const findNonOverlappingPosition = (movingId: string, x: number, y: number, width: number, height: number) => {
+    const SNAP_DISTANCE = 20;
+    const GAP = 8; // Small gap between cards
+    
+    // Check if position overlaps with any other card
+    const wouldOverlap = (testX: number, testY: number) => {
+      for (const item of items) {
+        if (item.id === movingId) continue;
+        
+        const otherRight = item.x + item.width;
+        const otherBottom = item.y + item.height;
+        const testRight = testX + width;
+        const testBottom = testY + height;
+        
+        // Check for overlap
+        const horizontalOverlap = !(testRight <= item.x || testX >= otherRight);
+        const verticalOverlap = !(testBottom <= item.y || testY >= otherBottom);
+        
+        if (horizontalOverlap && verticalOverlap) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // If no overlap, use the position as-is
+    if (!wouldOverlap(x, y)) {
+      return { x, y };
+    }
+
+    // Find the best snap position to avoid overlap
+    let bestPosition = { x, y };
+    let minDistance = Infinity;
+
+    for (const item of items) {
+      if (item.id === movingId) continue;
+      
+      const otherRight = item.x + item.width;
+      const otherBottom = item.y + item.height;
+      
+      // Try snapping to the 4 sides of this card
+      const snapPositions = [
+        // Snap to left of card
+        { x: item.x - width - GAP, y },
+        // Snap to right of card  
+        { x: otherRight + GAP, y },
+        // Snap to top of card
+        { x, y: item.y - height - GAP },
+        // Snap to bottom of card
+        { x, y: otherBottom + GAP },
+      ];
+
+      for (const snapPos of snapPositions) {
+        // Ensure position is within canvas bounds (use a reasonable canvas size)
+        const canvasWidth = isModal ? 1400 : 800;
+        const maxCanvasHeight = isModal ? canvasHeight : 640;
+        const boundedX = Math.max(0, Math.min(snapPos.x, canvasWidth - width));
+        const boundedY = Math.max(0, Math.min(snapPos.y, maxCanvasHeight - height));
+        
+        // Check if this position would cause overlap
+        if (!wouldOverlap(boundedX, boundedY)) {
+          const distance = Math.sqrt(Math.pow(boundedX - x, 2) + Math.pow(boundedY - y, 2));
+          if (distance < minDistance) {
+            minDistance = distance;
+            bestPosition = { x: boundedX, y: boundedY };
+          }
+        }
+      }
+    }
+
+    return bestPosition;
   };
 
   if (isModal) {
