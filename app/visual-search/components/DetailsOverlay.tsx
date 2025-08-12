@@ -30,8 +30,12 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
 
     if (r && ['image', 'video', 'audio'].includes(r.content_type)) {
       setIsLoadingAsset(true);
-
-      fetch(`/api/media-assets/${r.id}`)
+      // Try resolving by ID first; pass media URL as a fallback hint for the API
+      const hintUrl = (() => {
+        try { return getResultMediaUrl(r) || undefined; } catch { return undefined; }
+      })();
+      const qs = hintUrl ? `?url=${encodeURIComponent(hintUrl)}` : '';
+      fetch(`/api/media-assets/${r.id}${qs}`)
         .then(async (res) => {
           if (cancelled) return;
 
@@ -196,14 +200,10 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
               )}
               {assetError && (
                 <div className="text-center py-4">
-                  <div className="text-yellow-400 text-sm">
-                    {assetError.includes('Asset not found') 
-                      ? 'Full metadata not available - showing basic info' 
-                      : `Failed to load metadata: ${assetError}`}
-                  </div>
+                  <div className="text-red-400">Failed to load metadata: {assetError}</div>
                 </div>
               )}
-              {!isLoadingAsset && (
+              {!isLoadingAsset && !assetError && (
                 <MediaMetadata
                   result={r}
                   fullAsset={fullAsset}
@@ -211,7 +211,7 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
                 />
               )}
 
-              {/* Description is now shown directly under each media type above */}
+              {/* Description intentionally omitted per latest requirements */}
             </>
           )}
           {sourceUrl && (

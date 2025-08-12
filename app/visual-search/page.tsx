@@ -981,18 +981,18 @@ function RightPane({
               results={results}
               renderCard={(r) => (
                 <VSResultCard
-                  r={r}
-                  onPin={onPin}
-                  onOpen={onOpen}
-                  onLabelClick={(label) => {
-                    setQuery(label);
-                    executeSearch(label, 1);
-                    setTab('results');
-                  }}
-                  selectionEnabled={multiSelect}
-                  selected={selectedIds.has(r.id)}
-                  onToggleSelect={toggleSelect}
-                />
+                r={r}
+                onPin={onPin}
+                onOpen={onOpen}
+                onLabelClick={(label) => {
+                  setQuery(label);
+                  executeSearch(label, 1);
+                  setTab('results');
+                }}
+                selectionEnabled={multiSelect}
+                selected={selectedIds.has(r.id)}
+                onToggleSelect={toggleSelect}
+              />
               )}
             />
             {!loading && results.length === 0 && (
@@ -1178,7 +1178,7 @@ export default function VisualSearchPage() {
   };
 
   const setGlobalCache = (cache: Map<string, UnifiedSearchResult>) => {
-    const data = Object.fromEntries(cache.entries());
+      const data = Object.fromEntries(cache.entries());
     cacheStore.set('globalResultsCache', data);
   };
   // page/total/multiSelect/selectedIds now from stores
@@ -1598,7 +1598,7 @@ export default function VisualSearchPage() {
   };
 
   const toggleSelect = (r: UnifiedSearchResult, shiftKey: boolean = false) => {
-    if (shiftKey) {
+      if (shiftKey) {
       toggleMultiSelect(true);
     }
     toggleSelectedId(r.id);
@@ -1637,8 +1637,8 @@ export default function VisualSearchPage() {
     if (!canvasId) return
     try {
       const j = await (await import('./services/canvasService')).getCanvasLoras(canvasId)
-      setCanvasLoras(Array.isArray(j.loras) ? j.loras : [])
-      await fetchAllLoras()
+        setCanvasLoras(Array.isArray(j.loras) ? j.loras : [])
+        await fetchAllLoras()
     } catch (e) {
       console.error('Canvas refresh failed:', e)
     }
@@ -1708,7 +1708,7 @@ export default function VisualSearchPage() {
   const fetchAllLoras = async () => {
     try {
       const loras = await (await import('./services/canvasService')).listAllLoras()
-      setAllLoras(loras)
+        setAllLoras(loras)
     } catch (error) {
       console.error('Failed to fetch all LoRAs:', error)
     }
@@ -1978,7 +1978,7 @@ export default function VisualSearchPage() {
 
           {/* Right main area with tabs (now includes Generate) */}
           <div className="lg:col-span-3">
-            <RightPane
+          <RightPane
             results={results}
             loading={loading}
             totalResults={total}
@@ -2110,9 +2110,9 @@ export default function VisualSearchPage() {
             saveStatus={saveStatus}
             setSaveStatus={setSaveStatus}
           />
-          </div>
         </div>
       </div>
+              </div>
 
       <DetailsOverlay
         r={selected}
