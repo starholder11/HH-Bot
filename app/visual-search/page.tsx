@@ -2039,7 +2039,7 @@ export default function VisualSearchPage() {
 
   return (
     <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100">
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto max-w-7xl px-6 py-6">
 
         <form onSubmit={handleSubmit} className="mt-2 flex flex-col sm:flex-row gap-3">
           <div className="flex-1 flex items-center gap-2">
