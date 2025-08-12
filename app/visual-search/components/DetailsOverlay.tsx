@@ -10,6 +10,9 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
 
   if (!r) return null;
 
+  // Extra safety: wrap entire component in try-catch
+  try {
+
   const mediaUrl = getResultMediaUrl(r);
   const sourceUrlRaw: unknown = (r.metadata?.source_url as unknown) ?? mediaUrl ?? r.url;
   const sourceUrl: string | undefined = typeof sourceUrlRaw === 'string' && sourceUrlRaw.length > 0 ? sourceUrlRaw : undefined;
@@ -119,6 +122,19 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
       </div>
     </div>
   );
+
+  } catch (error) {
+    console.error('DetailsOverlay render error:', error);
+    return (
+      <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center">
+        <div className="bg-red-900 text-white p-4 rounded-lg max-w-md">
+          <h3>Error loading details</h3>
+          <p className="text-sm mt-2">Failed to render overlay for: {r?.id || 'unknown'}</p>
+          <button onClick={onClose} className="bg-red-700 px-3 py-1 rounded mt-3">Close</button>
+        </div>
+      </div>
+    );
+  }
 }
 
 

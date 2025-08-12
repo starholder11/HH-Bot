@@ -2114,14 +2114,7 @@ export default function VisualSearchPage() {
         </div>
       </div>
 
-      {selected && (
-        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-4 rounded-lg max-w-md">
-            <h3 className="text-black">Debug: {selected.id}</h3>
-            <button onClick={() => setSelected(null)} className="bg-gray-200 px-3 py-1 rounded mt-2">Close</button>
-          </div>
-        </div>
-      )}
+      <DetailsOverlay r={selected} onClose={() => setSelected(null)} />
 
       {showCanvasManager && (
         <CanvasManagerModal onClose={() => setShowCanvasManager(false)} onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }} />
