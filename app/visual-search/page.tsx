@@ -2114,7 +2114,19 @@ export default function VisualSearchPage() {
         </div>
       </div>
 
-      <DetailsOverlay r={selected} onClose={() => setSelected(null)} />
+      <DetailsOverlay 
+        r={selected} 
+        onClose={() => setSelected(null)} 
+        onSearch={(query) => {
+          setQuery(query);
+          setSelected(null); // Close overlay
+          // Trigger search by updating the form
+          const form = document.querySelector('form') as HTMLFormElement;
+          if (form) {
+            form.requestSubmit();
+          }
+        }}
+      />
 
       {showCanvasManager && (
         <CanvasManagerModal onClose={() => setShowCanvasManager(false)} onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }} />

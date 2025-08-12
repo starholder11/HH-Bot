@@ -21,9 +21,10 @@ const toDisplayText = (value: unknown, fallback: string = ''): string => {
 
 interface MediaMetadataProps {
   result: UnifiedSearchResult;
+  onSearch?: (query: string) => void;
 }
 
-export default function MediaMetadata({ result: r }: MediaMetadataProps) {
+export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProps) {
   const m: any = r.metadata || {};
 
   const pick = (...keys: Array<string>): any => {
@@ -50,6 +51,26 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
     bitrate: m.bitrate ?? pick('audio.bitrate', 'meta.bitrate', 'kbps'),
     artist: m.artist ?? pick('audio.artist', 'meta.artist'),
   } as const;
+
+  // Helper to create clickable labels
+  const createClickableLabel = (text: string, className: string, searchQuery?: string) => {
+    const handleClick = () => {
+      if (onSearch && searchQuery) {
+        onSearch(searchQuery);
+      }
+    };
+
+    return (
+      <span 
+        key={text} 
+        className={`${className} ${onSearch ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+        onClick={handleClick}
+        title={onSearch ? `Search for "${searchQuery || text}"` : undefined}
+      >
+        {text}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -160,11 +181,13 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Objects</h4>
                 <div className="flex flex-wrap gap-1">
-                  {aiLabels.objects.slice(0, 8).map((object: string, index: number) => (
-                    <span key={index} className="px-3 py-1 text-xs bg-blue-900/40 text-blue-300 rounded-full border border-blue-800">
-                      {object}
-                    </span>
-                  ))}
+                  {aiLabels.objects.slice(0, 8).map((object: string, index: number) => 
+                    createClickableLabel(
+                      object,
+                      "px-3 py-1 text-xs bg-blue-900/40 text-blue-300 rounded-full border border-blue-800",
+                      object
+                    )
+                  )}
                   {aiLabels.objects.length > 8 && (
                     <span className="px-3 py-1 text-xs bg-neutral-800 text-neutral-400 rounded-full">
                       +{aiLabels.objects.length - 8} more
@@ -178,11 +201,13 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Style</h4>
                 <div className="flex flex-wrap gap-1">
-                  {aiLabels.style.map((style: string, index: number) => (
-                    <span key={index} className="px-3 py-1 text-xs bg-green-900/40 text-green-300 rounded-full border border-green-800">
-                      {style}
-                    </span>
-                  ))}
+                  {aiLabels.style.map((style: string, index: number) => 
+                    createClickableLabel(
+                      style,
+                      "px-3 py-1 text-xs bg-green-900/40 text-green-300 rounded-full border border-green-800",
+                      style
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -191,11 +216,13 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Mood</h4>
                 <div className="flex flex-wrap gap-1">
-                  {aiLabels.mood.map((mood: string, index: number) => (
-                    <span key={index} className="px-3 py-1 text-xs bg-yellow-900/40 text-yellow-300 rounded-full border border-yellow-800">
-                      {mood}
-                    </span>
-                  ))}
+                  {aiLabels.mood.map((mood: string, index: number) => 
+                    createClickableLabel(
+                      mood,
+                      "px-3 py-1 text-xs bg-yellow-900/40 text-yellow-300 rounded-full border border-yellow-800",
+                      mood
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -204,11 +231,13 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Themes</h4>
                 <div className="flex flex-wrap gap-1">
-                  {aiLabels.themes.map((theme: string, index: number) => (
-                    <span key={index} className="px-3 py-1 text-xs bg-orange-900/40 text-orange-300 rounded-full border border-orange-800">
-                      {theme}
-                    </span>
-                  ))}
+                  {aiLabels.themes.map((theme: string, index: number) => 
+                    createClickableLabel(
+                      theme,
+                      "px-3 py-1 text-xs bg-orange-900/40 text-orange-300 rounded-full border border-orange-800",
+                      theme
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -227,11 +256,13 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Custom Tags</h4>
                 <div className="flex flex-wrap gap-1">
-                  {r.metadata.manual_labels.custom_tags.map((tag: string, index: number) => (
-                    <span key={index} className="px-3 py-1 text-xs bg-neutral-700 text-neutral-200 rounded-full border border-neutral-600">
-                      {tag}
-                    </span>
-                  ))}
+                  {r.metadata.manual_labels.custom_tags.map((tag: string, index: number) => 
+                    createClickableLabel(
+                      tag,
+                      "px-3 py-1 text-xs bg-neutral-700 text-neutral-200 rounded-full border border-neutral-600",
+                      tag
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -240,9 +271,11 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
             {r.content_type === 'audio' && r.metadata.manual_labels.primary_genre && (
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Genre</h4>
-                <span className="px-3 py-1 text-xs bg-purple-900/40 text-purple-300 rounded-full border border-purple-800">
-                  {r.metadata.manual_labels.primary_genre}
-                </span>
+                {createClickableLabel(
+                  r.metadata.manual_labels.primary_genre,
+                  "px-3 py-1 text-xs bg-purple-900/40 text-purple-300 rounded-full border border-purple-800",
+                  r.metadata.manual_labels.primary_genre
+                )}
               </div>
             )}
           </div>
@@ -290,11 +323,11 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
         </div>
       )}
 
-      {/* Lyrics for audio */}
+      {/* Lyrics for audio - full height, no scroll constraint */}
       {r.content_type === 'audio' && (r.metadata.lyrics || (r as any).lyrics) && (
         <div>
-          <h3 className="text-lg font-semibold text-neutral-200 mb-2">Lyrics</h3>
-          <div className="text-sm text-neutral-300 bg-blue-950/40 p-4 rounded-lg border-l-4 border-blue-400 max-h-32 overflow-y-auto whitespace-pre-wrap">
+          <h3 className="text-lg font-semibold text-neutral-200 mb-3">Lyrics</h3>
+          <div className="text-sm text-neutral-300 bg-blue-950/40 p-6 rounded-lg border-l-4 border-blue-400 whitespace-pre-wrap leading-relaxed">
             {toDisplayText(r.metadata.lyrics || (r as any).lyrics)}
           </div>
         </div>

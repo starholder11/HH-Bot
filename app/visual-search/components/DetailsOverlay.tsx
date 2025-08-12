@@ -4,7 +4,11 @@ import type { UnifiedSearchResult } from '../types';
 import { getResultMediaUrl } from '../utils/mediaUrl';
 import MediaMetadata from './MediaMetadata';
 
-export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult | null; onClose: () => void }) {
+export default function DetailsOverlay({ r, onClose, onSearch }: { 
+  r: UnifiedSearchResult | null; 
+  onClose: () => void;
+  onSearch?: (query: string) => void;
+}) {
   const [fullText, setFullText] = useState<string | null>(null);
   const [isLoadingText, setIsLoadingText] = useState<boolean>(false);
   const [textError, setTextError] = useState<string | null>(null);
@@ -148,7 +152,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
               ) : null)}
 
               {/* Rich Metadata Display */}
-              <MediaMetadata result={r} />
+              <MediaMetadata result={r} onSearch={onSearch} />
 
               {/* Description/Preview for non-video content */}
               {r.content_type !== 'video' && (
