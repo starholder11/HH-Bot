@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { LayoutAsset } from '@/app/visual-search/types';
 
 const ReactGridLayout = dynamic(() => import('react-grid-layout'), { ssr: false }) as any;
@@ -19,6 +19,8 @@ export default function LayoutEditorModal({
 }) {
   const [working, setWorking] = useState(false);
   const [edited, setEdited] = useState<LayoutAsset>(layout);
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
 
   const cellSize = edited.layout_data.cellSize || 20;
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
@@ -36,6 +38,42 @@ export default function LayoutEditorModal({
       })),
     [edited.layout_data.items]
   );
+
+  // Load content preview URLs
+  useEffect(() => {
+    let cancelled = false;
+    async function hydratePreviews() {
+      const next: Record<string, string> = {};
+      const loading: Record<string, boolean> = {};
+      await Promise.all(
+        edited.layout_data.items.map(async (it) => {
+          if (it.mediaUrl) {
+            next[it.id] = it.mediaUrl;
+            return;
+          }
+          if (it.refId) {
+            try {
+              loading[it.id] = true;
+              const res = await fetch(`/api/media-assets/${it.refId}`);
+              if (!res.ok) return;
+              const data = await res.json();
+              const a = data.asset || {};
+              const url = a.url || a.s3_url || a.cloudflare_url || '';
+              if (url) next[it.id] = url;
+            } catch {}
+          }
+        })
+      );
+      if (!cancelled) {
+        setPreviewUrls(next);
+        setLoadingMap(loading);
+      }
+    }
+    hydratePreviews();
+    return () => {
+      cancelled = true;
+    };
+  }, [edited.layout_data.items]);
 
   function handleDragStop(_: any, item: any) {
     setEdited((prev) => updateItemGrid(prev, item.i, item.x, item.y, item.w, item.h));
@@ -106,10 +144,8 @@ export default function LayoutEditorModal({
               onResizeStop={handleResizeStop}
             >
               {edited.layout_data.items.map((it) => (
-                <div key={it.id} className="border border-blue-500/50 bg-blue-500/10 overflow-hidden">
-                  <div className="h-full w-full flex items-center justify-center text-xs text-neutral-300">
-                    {it.type}{it.contentType ? ` • ${it.contentType}` : ''}
-                  </div>
+                <div key={it.id} className="border border-blue-500/50 bg-neutral-900 overflow-hidden">
+                  {renderItem(it, previewUrls[it.id], loadingMap[it.id])}
                 </div>
               ))}
             </ReactGridLayout>
@@ -151,6 +187,59 @@ function updateItemGrid(layout: LayoutAsset, id: string, x: number, y: number, w
 function clamp(v: number) {
   if (Number.isNaN(v)) return 0;
   return Math.max(0, Math.min(1, v));
+}
+
+function renderItem(it: Item, url?: string, loading?: boolean) {
+  const label = `${it.type}${it.contentType ? ` • ${it.contentType}` : ''}`;
+  if (it.type === 'inline_text' && it.inlineContent?.text) {
+    return (
+      <div className="h-full w-full p-2 text-neutral-200 overflow-auto">
+        <div className="text-xs text-neutral-400 mb-1">{label}</div>
+        <div className="whitespace-pre-wrap leading-snug text-sm">{it.inlineContent.text}</div>
+      </div>
+    );
+  }
+  if (it.type === 'inline_image' && (it.inlineContent?.imageUrl || it.inlineContent?.imageData || url)) {
+    const src = it.inlineContent?.imageUrl || it.inlineContent?.imageData || url || '';
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-black/50">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="inline" className="max-w-full max-h-full object-contain" />
+      </div>
+    );
+  }
+  if (it.type === 'content_ref') {
+    if (loading) {
+      return (
+        <div className="h-full w-full flex items-center justify-center text-neutral-400 text-xs">Loading…</div>
+      );
+    }
+    if (it.contentType === 'image' && url) {
+      return (
+        <div className="h-full w-full flex items-center justify-center bg-black/50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="image" className="max-w-full max-h-full object-contain" />
+        </div>
+      );
+    }
+    if (it.contentType === 'video' && url) {
+      return (
+        <video src={url} controls className="h-full w-full object-contain bg-black" />
+      );
+    }
+    if (it.contentType === 'audio' && url) {
+      return (
+        <div className="h-full w-full flex items-center justify-center p-2 bg-black/30">
+          <audio src={url} controls className="w-full" />
+        </div>
+      );
+    }
+  }
+  return (
+    <div className="h-full w-full flex items-center justify-center text-xs text-neutral-300 bg-blue-500/10">
+      {label}
+    </div>
+  );
 }
 
 
