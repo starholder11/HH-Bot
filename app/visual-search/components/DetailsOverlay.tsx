@@ -14,8 +14,11 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   try {
 
   const mediaUrl = getResultMediaUrl(r);
+  console.log('DetailsOverlay debug - mediaUrl:', mediaUrl, 'for result:', r.id);
+  
   const sourceUrlRaw: unknown = (r.metadata?.source_url as unknown) ?? mediaUrl ?? r.url;
   const sourceUrl: string | undefined = typeof sourceUrlRaw === 'string' && sourceUrlRaw.length > 0 ? sourceUrlRaw : undefined;
+  console.log('DetailsOverlay debug - sourceUrl:', sourceUrl);
 
   // Ensure we never try to render objects/arrays directly in JSX
   const toDisplayText = (value: unknown, fallback: string = ''): string => {
