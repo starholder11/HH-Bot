@@ -4,7 +4,7 @@ import type { UnifiedSearchResult } from '../types';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { GRID_CONSTANTS } from '../constants';
 
-function useContainerSize(containerRef: React.RefObject<HTMLDivElement>) {
+function useContainerSize(containerRef: React.RefObject<HTMLDivElement | null>) {
   const [w, setW] = React.useState<number>(GRID_CONSTANTS.MAX_WIDTH);
   
   React.useEffect(() => {
