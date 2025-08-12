@@ -42,6 +42,10 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
   const isAudioSong = r.content_type === 'audio' && fullAsset && 'manual_labels' in fullAsset;
   const audioData = isAudioSong ? fullAsset : null;
 
+  // Handle keyframe data structure (keyframes appear as content_type 'image' but have special metadata)
+  const isKeyframe = fullAsset && fullAsset.media_type === 'keyframe_still';
+  const keyframeData = isKeyframe ? fullAsset : null;
+
   // Prevent errors if data is malformed
   if (!m || typeof m !== 'object') {
     console.warn('MediaMetadata: Invalid metadata object for', r.id);
@@ -76,6 +80,10 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
     aspectRatio: m.aspect_ratio ?? m.metadata?.aspect_ratio ?? pick('metadata.aspect_ratio'),
     bitrate: m.bitrate ?? m.metadata?.bitrate ?? pick('metadata.bitrate') ?? audioData?.metadata?.bitrate,
     artist: m.artist ?? m.metadata?.artist ?? pick('metadata.artist') ?? audioData?.metadata?.artist,
+    // Keyframe-specific metadata
+    parentVideoId: keyframeData?.parent_video_id,
+    frameNumber: keyframeData?.frame_number || keyframeData?.source_info?.frame_number,
+    timestamp: keyframeData?.timestamp || keyframeData?.source_info?.timestamp,
   } as const;
 
   // Helper to create clickable labels
@@ -176,6 +184,25 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               <div className="text-xs text-neutral-400 font-medium">Artist</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
                 {toDisplayText(meta.artist, 'Unknown')}
+              </div>
+            </div>
+          )}
+
+          {/* Keyframe-specific technical metadata */}
+          {isKeyframe && meta.frameNumber && (
+            <div className="text-center p-3 bg-blue-900/40 rounded-lg border border-blue-800">
+              <div className="text-xs text-blue-300 font-medium">Frame #</div>
+              <div className="text-sm font-bold text-blue-100 mt-1 font-mono">
+                {meta.frameNumber}
+              </div>
+            </div>
+          )}
+
+          {isKeyframe && meta.timestamp && (
+            <div className="text-center p-3 bg-green-900/40 rounded-lg border border-green-800">
+              <div className="text-xs text-green-300 font-medium">Timestamp</div>
+              <div className="text-sm font-bold text-green-100 mt-1 font-mono">
+                {meta.timestamp}
               </div>
             </div>
           )}
@@ -347,6 +374,83 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Keyframe-specific metadata */}
+      {isKeyframe && keyframeData && (
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-200 mb-3">Keyframe Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Source Video Info */}
+            {keyframeData.source_info && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Source Video</h4>
+                <div className="space-y-2 text-sm text-neutral-300">
+                  <div>
+                    <span className="text-neutral-400">Video:</span>{' '}
+                    <span className="font-medium">{keyframeData.source_info.video_filename}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400">Timestamp:</span>{' '}
+                    <span className="font-mono bg-neutral-800 px-2 py-1 rounded text-green-300">
+                      {keyframeData.source_info.timestamp}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400">Frame:</span>{' '}
+                    <span className="font-mono bg-neutral-800 px-2 py-1 rounded text-blue-300">
+                      #{keyframeData.source_info.frame_number}
+                    </span>
+                  </div>
+                  {keyframeData.source_info.extraction_method && (
+                    <div>
+                      <span className="text-neutral-400">Method:</span>{' '}
+                      <span className="text-purple-300">{keyframeData.source_info.extraction_method}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Usage Tracking */}
+            {keyframeData.usage_tracking && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Usage</h4>
+                <div className="space-y-2 text-sm text-neutral-300">
+                  <div>
+                    <span className="text-neutral-400">Times Reused:</span>{' '}
+                    <span className="font-medium text-yellow-300">{keyframeData.usage_tracking.times_reused}</span>
+                  </div>
+                  {keyframeData.usage_tracking.projects_used_in?.length > 0 && (
+                    <div>
+                      <span className="text-neutral-400">Projects:</span>{' '}
+                      <span className="text-blue-300">{keyframeData.usage_tracking.projects_used_in.length}</span>
+                    </div>
+                  )}
+                  {keyframeData.usage_tracking.last_used && (
+                    <div>
+                      <span className="text-neutral-400">Last Used:</span>{' '}
+                      <span className="text-neutral-300">{new Date(keyframeData.usage_tracking.last_used).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Reusability */}
+            {typeof keyframeData.reusable_as_image === 'boolean' && (
+              <div className="md:col-span-2">
+                <div className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium ${
+                  keyframeData.reusable_as_image 
+                    ? 'bg-green-900/40 text-green-300 border border-green-800'
+                    : 'bg-orange-900/40 text-orange-300 border border-orange-800'
+                }`}>
+                  {keyframeData.reusable_as_image ? '✓ Reusable as Image' : '⚠ Video Context Required'}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
