@@ -805,6 +805,8 @@ function RightPane({
   pinned,
   movePinned,
   removePinned,
+  resizePinned,
+  setPinned,
   tab,
   setTab,
   genLoading,
@@ -861,6 +863,8 @@ function RightPane({
   pinned: PinnedItem[];
   movePinned: (id: string, x: number, y: number) => void;
   removePinned: (id: string) => void;
+  resizePinned: (id: string, width: number, height: number) => void;
+  setPinned: (updater: (prev: PinnedItem[]) => PinnedItem[]) => void;
   tab: 'results' | 'canvas' | 'output' | 'generate';
   setTab: (t: 'results' | 'canvas' | 'output' | 'generate') => void;
   genLoading: boolean;
@@ -1031,20 +1035,18 @@ function RightPane({
             </div>
           ) : (
             <div ref={canvasRef}>
-              <CanvasBoard 
-                items={pinned} 
-                onMove={movePinned} 
-                onRemove={removePinned} 
+              <CanvasBoard
+                items={pinned}
+                onMove={movePinned}
+                onRemove={removePinned}
                 onOpen={onOpen}
-                onResize={(id, width, height) => {
-                  // For now, we'll maintain position and just update size
-                  // In future, this could be enhanced with proper resize handling
-                  console.log(`Resize request: ${id} to ${width}x${height}`);
-                }}
+                onResize={resizePinned}
                 onToggleView={(id, expanded) => {
-                  // For now, just log the toggle request
-                  // In future, this could update the pinned item state
-                  console.log(`Toggle view: ${id} to ${expanded ? 'expanded' : 'thumbnail'}`);
+                  setPinned((prev: PinnedItem[]) => 
+                    prev.map((p: PinnedItem) => 
+                      p.id === id ? { ...p, expanded } : p
+                    )
+                  );
                 }}
               />
             </div>
@@ -1241,7 +1243,7 @@ export default function VisualSearchPage() {
   const [isEditingName, setIsEditingName] = useState<boolean>(false)
   const [projectsList, setProjectsList] = useState<Array<{ project_id: string; name: string }>>([])
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
-  const { pinned, addPin, movePin, removePin, reorderPinned, setPinned: setPinnedInStore } = useCanvasStore();
+  const { pinned, addPin, movePin, removePin, resizePin, reorderPinned, setPinned: setPinnedInStore } = useCanvasStore();
   const pinnedRef = useRef<PinnedItem[]>([]);
 
   // Keep ref in sync with state
@@ -2068,6 +2070,8 @@ export default function VisualSearchPage() {
             pinned={pinned}
             movePinned={movePin}
             removePinned={removePin}
+            resizePinned={resizePin}
+            setPinned={setPinnedInStore}
             tab={rightTab}
             setTab={setRightTab}
             genLoading={genLoading}

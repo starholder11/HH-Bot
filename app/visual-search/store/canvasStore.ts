@@ -17,6 +17,7 @@ type CanvasState = {
   setPinned: (updater: (prev: PinnedItem[]) => PinnedItem[]) => void;
   addPin: (r: UnifiedSearchResult, baseX: number, baseY: number) => void;
   movePin: (id: string, x: number, y: number) => void;
+  resizePin: (id: string, width: number, height: number) => void;
   removePin: (id: string) => void;
   reorderPinned: (fromIndex: number, toIndex: number) => void;
   setCanvasName: (v: string) => void;
@@ -59,6 +60,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   })),
   movePin: (id, x, y) => set((s) => ({
     pinned: s.pinned.map((p) => (p.id === id ? { ...p, x, y, z: s.zCounter + 1 } : p)),
+    zCounter: s.zCounter + 1,
+  })),
+  resizePin: (id, width, height) => set((s) => ({
+    pinned: s.pinned.map((p) => (p.id === id ? { ...p, width, height, z: s.zCounter + 1 } : p)),
     zCounter: s.zCounter + 1,
   })),
   removePin: (id) => set((s) => ({ pinned: s.pinned.filter((p) => p.id !== id) })),

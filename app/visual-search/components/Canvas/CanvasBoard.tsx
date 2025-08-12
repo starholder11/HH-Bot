@@ -4,14 +4,16 @@ import type { PinnedItem, UnifiedSearchResult } from '../../types';
 import { getResultMediaUrl } from '../../utils/mediaUrl';
 import { stripCircularDescription } from '../../utils/textCleanup';
 
-function MediaPreview({ r }: { r: UnifiedSearchResult }) {
+function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expanded?: boolean }) {
   const mediaUrl = getResultMediaUrl(r);
+  const heightClass = expanded ? "h-full" : "h-32";
+  
   if (r.content_type === 'image' && mediaUrl) {
     return (
       <img
         src={mediaUrl}
         alt={r.title}
-        className="w-full h-32 object-cover rounded-md border border-neutral-800"
+        className={`w-full ${heightClass} object-cover rounded-md border border-neutral-800`}
         draggable={false}
         loading="lazy"
       />
@@ -19,13 +21,26 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
   }
   if (r.content_type === 'video' && mediaUrl) {
     return (
-      <video src={mediaUrl} controls className="w-full h-32 object-cover rounded-md border border-neutral-800 bg-black" />
+      <video 
+        src={mediaUrl} 
+        controls 
+        className={`w-full ${heightClass} object-cover rounded-md border border-neutral-800 bg-black`} 
+      />
     );
   }
   if (r.content_type === 'audio' && mediaUrl) {
     return (
-      <div className="w-full h-32 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-950">
+      <div className={`w-full ${heightClass} flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-950`}>
         <audio src={mediaUrl} controls className="w-full px-2" />
+      </div>
+    );
+  }
+  if (r.content_type === 'text') {
+    const content = r.preview || r.description || '';
+    const text = typeof content === 'string' ? content : JSON.stringify(content);
+    return (
+      <div className={`w-full ${heightClass} p-3 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 text-sm overflow-y-auto`}>
+        {text}
       </div>
     );
   }
@@ -203,7 +218,7 @@ function Pinned({
         onClick={toggleExpanded}
       >
         <div className="w-full h-full relative">
-          <MediaPreview r={item.result} />
+          <MediaPreview r={item.result} expanded={false} />
           <div className="absolute top-1 left-1 text-[8px] px-1 py-0.5 bg-black/70 text-white rounded">
             {item.result.content_type}
           </div>
@@ -254,18 +269,32 @@ function Pinned({
           </button>
           <button
             onClick={() => {
+              // Instead of opening overlay, expand the card to show more content
+              if (onResize) {
+                const newWidth = Math.min(item.width * 1.5, 500);
+                const newHeight = Math.min(item.height * 1.5, 400);
+                onResize(item.id, newWidth, newHeight);
+              }
+            }}
+            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-[10px]"
+            title="Expand card size"
+          >
+            ➕
+          </button>
+          <button
+            onClick={() => {
               try {
                 if (item?.result && typeof item.result === 'object' && (item.result as any).id) {
                   onOpen(item.result);
                 }
               } catch (e) {
-                console.error('Canvas expand error:', e);
+                console.error('Canvas detail view error:', e);
               }
             }}
             className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-[10px]"
-            title="Full expand"
+            title="View details"
           >
-            ➕
+            🔍
           </button>
           <button 
             onClick={() => onRemove(item.id)} 
@@ -280,7 +309,7 @@ function Pinned({
       {/* Media Content */}
       <div className="p-2" style={{ height: 'calc(100% - 80px)' }}>
         <div className="w-full h-full">
-          <MediaPreview r={item.result} />
+          <MediaPreview r={item.result} expanded={true} />
         </div>
       </div>
 
