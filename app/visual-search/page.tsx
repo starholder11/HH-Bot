@@ -1345,9 +1345,25 @@ export default function VisualSearchPage() {
 
           debug('vs:agent:results', 'extracted', all.length);
 
+          // Check if agent applied a media type filter
+          const appliedFilter = resp?.appliedFilter;
+
           if (Array.isArray(all) && all.length > 0) {
             setResults(all, all.length);
             setRightTab('results');
+
+            // Update the UI filter state if agent applied a filter
+            if (appliedFilter) {
+              debug('vs:agent:filter', 'applied filter:', appliedFilter);
+              // Update the types state to reflect the filter
+              if (appliedFilter === 'media') {
+                setTypes(['media']);
+              } else if (['image', 'video', 'audio', 'text'].includes(appliedFilter)) {
+                setTypes([appliedFilter as ContentType]);
+              }
+              // Show feedback to user about the applied filter
+              console.log(`🔍 Agent automatically filtered results to show only: ${appliedFilter}`);
+            }
 
             // Cache all results globally for pin lookup using persistent storage
             const existingCache = getGlobalCache();
@@ -1578,7 +1594,7 @@ export default function VisualSearchPage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Convert types array to search type parameter
         let searchType: string | undefined;
         if (types.includes("all")) {
@@ -1592,7 +1608,7 @@ export default function VisualSearchPage() {
           // Multiple specific types - join them
           searchType = types.filter(t => t !== "all" && t !== "media").join(",");
         }
-        
+
         await executeSearch(query, undefined, searchType);
       } catch (err: any) {
         setError(err.message || 'Search failed');

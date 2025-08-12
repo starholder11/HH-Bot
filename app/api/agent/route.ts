@@ -6,20 +6,54 @@ import { z } from 'zod';
 // Comprehensive UI Control Tools
 const tools = {
   searchUnified: tool({
-    description: 'Search and display content in Results section - use for ANY content request (images, videos, audio, "show me", "find", "pull up")',
+    description: 'Search and display content in Results section - use for ANY content request (images, videos, audio, "show me", "find", "pull up"). Automatically detects media type requests.',
     parameters: z.object({
       query: z.string(),
+      requestedMediaType: z.enum(['image', 'video', 'audio', 'text', 'media', 'all']).optional().describe('Override media type if detected from query'),
     }),
-    execute: async ({ query }) => {
+    execute: async ({ query, requestedMediaType }) => {
       try {
+        // Smart media type detection from query
+        let detectedType = requestedMediaType;
+        
+        if (!detectedType) {
+          const queryLower = query.toLowerCase();
+          
+          // Media type detection patterns
+          if (/\b(video|videos|movie|movies|clip|clips|film|films|footage|animation|animations)\b/.test(queryLower)) {
+            detectedType = 'video';
+          } else if (/\b(image|images|picture|pictures|photo|photos|pic|pics|artwork|artworks|visual|visuals)\b/.test(queryLower)) {
+            detectedType = 'image';
+          } else if (/\b(audio|song|songs|music|track|tracks|sound|sounds|vocal|vocals|recording|recordings)\b/.test(queryLower)) {
+            detectedType = 'audio';
+          } else if (/\b(text|document|documents|article|articles|post|posts|writing|writings|story|stories)\b/.test(queryLower)) {
+            detectedType = 'text';
+          } else if (/\b(media|content|file|files|asset|assets)\b/.test(queryLower)) {
+            detectedType = 'media'; // All media types (image, video, audio)
+          }
+          // If no specific type detected, search all content
+        }
+
         const baseUrl = process.env.PUBLIC_API_BASE_URL || `http://localhost:3000`;
-        const url = `${baseUrl}/api/unified-search?q=${encodeURIComponent(query)}&limit=100`;
+        let url = `${baseUrl}/api/unified-search?q=${encodeURIComponent(query)}&limit=100`;
+        
+        // Add type filter if detected
+        if (detectedType && detectedType !== 'all') {
+          url += `&type=${encodeURIComponent(detectedType)}`;
+        }
+
         const res = await fetch(url, { method: 'GET' });
         if (!res.ok) throw new Error(`Unified search failed: ${res.status}`);
         const json = await res.json();
         if (!json.success) {
           return `Search unavailable: ${json.error || 'Unknown error'}. Try again later.`;
         }
+
+        // Add filter info to the response for user feedback
+        if (detectedType && detectedType !== 'all') {
+          json.appliedFilter = detectedType;
+        }
+
         return { action: 'showResults', payload: json };
       } catch (error) {
         return `Search temporarily unavailable. ${error instanceof Error ? error.message : 'Please try again later.'}`;
@@ -298,7 +332,7 @@ export async function POST(req: NextRequest) {
     ? [...messages].reverse().find((m: any) => m?.role === 'user')?.content ?? ''
     : '';
   const lastText = typeof lastUserMessage === 'string' ? lastUserMessage : '';
-  const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|audio|look.*up|gimme|give me)\b/i;
+  const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|videos|audio|songs?|music|look.*up|gimme|give me|some|any|all|the)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?|documents?|articles?|posts?|writings?|stories?|text)\b|\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?)\s+(of|about|with|for|from|like|that|related|containing)\b/i;
   const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
   const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft)\s+.*(picture|image|photo|video|audio|song|track|music|movie|clip|animation)\b/i;
   const videoGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+.*(video|movie|clip|animation)\b/i;
@@ -345,7 +379,7 @@ export async function POST(req: NextRequest) {
     system:
       'You are a tool-calling agent. Call exactly ONE tool and stop. ' +
       'For generation requests (make/create X): call prepareGenerate with userRequest parameter containing the full user message. ' +
-      'For search requests: call searchUnified with the query. ' +
+      'For search requests: call searchUnified with the query. The tool automatically detects media types (videos, images, audio, etc.) from your query and filters accordingly. ' +
       'For pin requests (pin X to canvas): call pinToCanvas with contentId (extract the ID from user message like "2068-odyssey") and userRequest. ' +
       'For name/save requests (save as filename, name as X): call nameImage with userRequest parameter to extract the filename. ' +
       'For other canvas operations: call openCanvas, saveImage, or useCanvasLora as appropriate. ' +
