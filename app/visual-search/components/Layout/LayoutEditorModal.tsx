@@ -34,10 +34,11 @@ export default function LayoutEditorModal({
     () =>
       edited.layout_data.items.map((it) => ({
         i: it.id,
-        x: it.x,
-        y: it.y,
+        x: Math.max(0, it.x),
+        y: Math.max(0, it.y),
         w: Math.max(1, it.w),
         h: Math.max(1, it.h),
+        static: false,
       })),
     [edited.layout_data.items]
   );
@@ -85,6 +86,14 @@ export default function LayoutEditorModal({
     setEdited((prev) => updateItemGrid(prev, item.i, item.x, item.y, item.w, item.h));
   }
 
+  // Keep layout controlled during interactions to avoid jump-back
+  function handleDrag(_: any, item: any) {
+    setEdited((prev) => updateItemGrid(prev, item.i, item.x, item.y, item.w, item.h));
+  }
+  function handleResize(_: any, item: any) {
+    setEdited((prev) => updateItemGrid(prev, item.i, item.x, item.y, item.w, item.h));
+  }
+
   async function handleSave() {
     try {
       setWorking(true);
@@ -96,6 +105,8 @@ export default function LayoutEditorModal({
         console.log('[LayoutEditor] Committing current text edit');
         toSave = commitCurrentText(toSave, selectedId, draftText);
       }
+      // Ensure normalized coords are consistent before persisting
+      toSave = normalizeAllItems(toSave);
       
       console.log('[LayoutEditor] Saving layout:', toSave.id);
       const res = await fetch(`/api/media-assets/${toSave.id}`, {
@@ -176,10 +187,14 @@ export default function LayoutEditorModal({
               containerPadding={[0, 0]}
               isDraggable
               isResizable
-              draggableCancel={'.content-editable'}
+              draggableCancel={'.content-editable, input, textarea, select, button'}
+              isBounded
+              verticalCompact={false}
               preventCollision={true}
               compactType={null}
+              onDrag={handleDrag}
               onDragStop={handleDragStop}
+              onResize={handleResize}
               onResizeStop={handleResizeStop}
             >
               {edited.layout_data.items.map((it) => (
@@ -240,16 +255,21 @@ export default function LayoutEditorModal({
 function updateItemGrid(layout: LayoutAsset, id: string, x: number, y: number, w: number, h: number): LayoutAsset {
   const cellSize = layout.layout_data.cellSize || 20;
   const design = layout.layout_data.designSize || { width: 1200, height: 800 };
+  // Clamp to bounds to keep items inside canvas
+  const maxX = Math.max(0, Math.floor(design.width / cellSize) - w);
+  const maxY = Math.max(0, Math.floor(design.height / cellSize) - h);
+  const clampedX = Math.max(0, Math.min(x, maxX));
+  const clampedY = Math.max(0, Math.min(y, maxY));
   const pxW = w * cellSize;
   const pxH = h * cellSize;
-  const pxX = x * cellSize;
-  const pxY = y * cellSize;
+  const pxX = clampedX * cellSize;
+  const pxY = clampedY * cellSize;
 
   const items = layout.layout_data.items.map((it) =>
     it.id === id
       ? ({
           ...it,
-          x, y, w, h,
+          x: clampedX, y: clampedY, w, h,
           nx: clamp(pxX / design.width),
           ny: clamp(pxY / design.height),
           nw: clamp(pxW / design.width),
@@ -263,6 +283,26 @@ function updateItemGrid(layout: LayoutAsset, id: string, x: number, y: number, w
     layout_data: { ...layout.layout_data, items },
     updated_at: new Date().toISOString(),
   } as LayoutAsset;
+}
+
+// Normalize all items' normalized coords to match grid before persisting
+function normalizeAllItems(layout: LayoutAsset): LayoutAsset {
+  const cellSize = layout.layout_data.cellSize || 20;
+  const design = layout.layout_data.designSize || { width: 1200, height: 800 };
+  const items = layout.layout_data.items.map(it => {
+    const pxW = (it.w || 1) * cellSize;
+    const pxH = (it.h || 1) * cellSize;
+    const pxX = (it.x || 0) * cellSize;
+    const pxY = (it.y || 0) * cellSize;
+    return {
+      ...it,
+      nx: clamp(pxX / design.width),
+      ny: clamp(pxY / design.height),
+      nw: clamp(pxW / design.width),
+      nh: clamp(pxH / design.height),
+    } as Item;
+  });
+  return { ...layout, layout_data: { ...layout.layout_data, items }, updated_at: new Date().toISOString() } as LayoutAsset;
 }
 
 function clamp(v: number) {
