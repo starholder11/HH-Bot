@@ -4,6 +4,31 @@ import type { PinnedItem, UnifiedSearchResult } from '../../types';
 import { getResultMediaUrl } from '../../utils/mediaUrl';
 import { stripCircularDescription } from '../../utils/textCleanup';
 
+function buildSnippet(r: UnifiedSearchResult, opts?: { wordLimit?: number; charLimit?: number }) {
+  const wordLimit = opts?.wordLimit ?? 70;
+  const charLimit = opts?.charLimit ?? 100;
+  try {
+    // Prefer same sources as ResultCard, but fall back to metadata for text
+    let base: any = r.preview ?? r.description;
+    if (!base && r.content_type === 'text') {
+      base = (r as any).metadata?.content_text
+        ?? (r as any).metadata?.content
+        ?? (r as any).metadata?.description
+        ?? (r as any).metadata?.summary;
+    }
+    const raw = typeof base === 'string' ? base : (base ? JSON.stringify(base) : '');
+    const cleaned = stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
+
+    if (r.content_type === 'text') {
+      const words = cleaned.split(/\s+/);
+      return words.length > wordLimit ? words.slice(0, wordLimit).join(' ') + '...' : cleaned;
+    }
+    return cleaned.length > charLimit ? cleaned.slice(0, charLimit - 3) + '...' : cleaned;
+  } catch {
+    return '';
+  }
+}
+
 function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expanded?: boolean }) {
   const mediaUrl = getResultMediaUrl(r);
   const heightClass = expanded ? "h-full" : "h-32";
@@ -36,82 +61,10 @@ function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expande
     );
   }
   if (r.content_type === 'text') {
-    // Debug: Log the entire result object to see what we're working with
-    console.log('DEBUG: Text card result object:', r);
-    
-    // Try multiple sources for text content with extensive debugging
-    let content = '';
-    let debugInfo = [];
-    
-    // Check every possible property including metadata
-    const possibleSources = ['preview', 'description', 'content', 'text', 'body', 'summary', 'excerpt'];
-    
-    for (const prop of possibleSources) {
-      const value = (r as any)[prop];
-      debugInfo.push(`${prop}: ${typeof value} - ${value ? String(value).substring(0, 50) : 'null/undefined'}`);
-      
-      if (value && typeof value === 'string' && value.trim()) {
-        content = value;
-        console.log(`DEBUG: Found text content in ${prop}:`, value.substring(0, 100));
-        break;
-      } else if (value && typeof value === 'object') {
-        for (const subProp of ['content', 'text', 'body', 'value']) {
-          if (value[subProp] && typeof value[subProp] === 'string' && value[subProp].trim()) {
-            content = value[subProp];
-            console.log(`DEBUG: Found text content in ${prop}.${subProp}:`, content.substring(0, 100));
-            break;
-          }
-        }
-        if (content) break;
-      }
-    }
-    
-    // Check metadata object specifically
-    if (!content && r.metadata && typeof r.metadata === 'object') {
-      const metadata = r.metadata as any;
-      console.log('DEBUG: Checking metadata object:', metadata);
-      
-      const metadataSources = ['content', 'text', 'body', 'description', 'summary', 'excerpt', 'content_html', 'content_text'];
-      for (const metaProp of metadataSources) {
-        if (metadata[metaProp] && typeof metadata[metaProp] === 'string' && metadata[metaProp].trim()) {
-          content = metadata[metaProp];
-          console.log(`DEBUG: Found text content in metadata.${metaProp}:`, content.substring(0, 100));
-          debugInfo.push(`Found in metadata.${metaProp}`);
-          break;
-        }
-      }
-    }
-    
-    // Fallback to title
-    if (!content && r.title && typeof r.title === 'string' && r.title.trim()) {
-      content = r.title;
-      debugInfo.push('Used title as fallback');
-    }
-    
-    console.log('DEBUG: Text extraction info:', debugInfo);
-    
-    // Clean the text
-    const cleanedText = content ? stripCircularDescription(content, {
-      id: r.id,
-      title: String(r.title ?? ''),
-      type: r.content_type
-    }) : '';
-    
+    const snippet = buildSnippet(r, { wordLimit: expanded ? 100 : 70 });
     return (
       <div className={`w-full ${heightClass} p-3 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 text-sm overflow-y-auto`}>
-        <div className="whitespace-pre-wrap leading-relaxed">
-          {cleanedText || (
-            <div>
-              <div>DEBUG: No text content found</div>
-              <div className="text-xs mt-2 opacity-50">
-                {debugInfo.join('; ')}
-              </div>
-              <div className="text-xs mt-1 opacity-50">
-                Title: {r.title || 'none'}
-              </div>
-            </div>
-          )}
-        </div>
+        <p className="whitespace-pre-wrap leading-relaxed">{snippet}</p>
       </div>
     );
   }
@@ -249,6 +202,7 @@ function Pinned({
 
   // Snap settings
   const SNAP_DISTANCE = 40; // Increased for better UX
+  const CARD_GUTTER = 12; // space to keep between cards
 
   // Find nearby cards and borders for snapping
   const findSnapPosition = (newX: number, newY: number) => {
@@ -314,14 +268,14 @@ function Pinned({
         if (leftEdgeDist < SNAP_DISTANCE) {
           const verticalOverlap = !(currentBottom <= otherItem.y || newY >= otherBottom);
           if (verticalOverlap) {
-            snapX = otherItem.x - item.width; // Place to the left
+            snapX = otherItem.x - item.width - CARD_GUTTER; // Place to the left
           }
         }
         
         if (rightEdgeDist < SNAP_DISTANCE) {
           const verticalOverlap = !(currentBottom <= otherItem.y || newY >= otherBottom);
           if (verticalOverlap) {
-            snapX = otherRight; // Place to the right
+            snapX = otherRight + CARD_GUTTER; // Place to the right
           }
         }
 
@@ -332,14 +286,14 @@ function Pinned({
         if (topEdgeDist < SNAP_DISTANCE) {
           const horizontalOverlap = !(currentRight <= otherItem.x || newX >= otherRight);
           if (horizontalOverlap) {
-            snapY = otherItem.y - item.height; // Place above
+            snapY = otherItem.y - item.height - CARD_GUTTER; // Place above
           }
         }
         
         if (bottomEdgeDist < SNAP_DISTANCE) {
           const horizontalOverlap = !(currentRight <= otherItem.x || newX >= otherRight);
           if (horizontalOverlap) {
-            snapY = otherBottom; // Place below
+            snapY = otherBottom + CARD_GUTTER; // Place below
           }
         }
       }
@@ -347,6 +301,50 @@ function Pinned({
 
     return { x: snapX, y: snapY };
   };
+
+  // After snapping, resolve any residual overlaps deterministically
+  function resolveCollisions(pos: { x: number; y: number }) {
+    const canvasElement = ref.current?.parentElement;
+    const canvasRect = canvasElement?.getBoundingClientRect();
+    const canvasWidth = canvasRect?.width ?? Number.MAX_SAFE_INTEGER;
+    const canvasHeight = canvasRect?.height ?? Number.MAX_SAFE_INTEGER;
+
+    let { x, y } = pos;
+    let changed = true;
+    let safety = 0;
+    while (changed && safety < 5) { // iterate a few times max
+      changed = false;
+      const right = x + item.width;
+      const bottom = y + item.height;
+      for (const other of items) {
+        if (other.id === item.id) continue;
+        const oRight = other.x + other.width;
+        const oBottom = other.y + other.height;
+        const overlap = !(right + CARD_GUTTER <= other.x || x >= oRight + CARD_GUTTER || bottom + CARD_GUTTER <= other.y || y >= oBottom + CARD_GUTTER);
+        if (overlap) {
+          // Compute minimal push either to the right or below
+          const pushRight = oRight + CARD_GUTTER - x;
+          const pushDown = oBottom + CARD_GUTTER - y;
+          if (pushRight < pushDown) {
+            x = oRight + CARD_GUTTER;
+            if (x + item.width > canvasWidth) {
+              x = Math.max(0, canvasWidth - item.width);
+              y = oBottom + CARD_GUTTER; // move down instead if overflow
+            }
+          } else {
+            y = oBottom + CARD_GUTTER;
+            if (y + item.height > canvasHeight) {
+              y = Math.max(0, canvasHeight - item.height);
+              x = oRight + CARD_GUTTER; // move right instead if overflow
+            }
+          }
+          changed = true;
+        }
+      }
+      safety += 1;
+    }
+    return { x, y };
+  }
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!ref.current || resizing.current) return;
@@ -383,7 +381,8 @@ function Pinned({
       const newY = e.clientY - offset.current.y - parentRect.top;
       
       const snappedPos = findSnapPosition(Math.max(0, newX), Math.max(0, newY));
-      onMove(item.id, snappedPos.x, snappedPos.y);
+      const resolved = resolveCollisions(snappedPos);
+      onMove(item.id, resolved.x, resolved.y);
     }
   };
 
