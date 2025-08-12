@@ -88,23 +88,43 @@ export default function LayoutEditorModal({
   async function handleSave() {
     try {
       setWorking(true);
+      console.log('[LayoutEditor] Starting save...');
+      
       // Ensure inline text edits are committed to state before save
       let toSave = edited;
       if (isEditingText && selectedId) {
+        console.log('[LayoutEditor] Committing current text edit');
         toSave = commitCurrentText(toSave, selectedId, draftText);
       }
+      
+      console.log('[LayoutEditor] Saving layout:', toSave.id);
       const res = await fetch(`/api/media-assets/${toSave.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(toSave),
       });
-      if (!res.ok) throw new Error('Failed to save layout');
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[LayoutEditor] Save failed:', res.status, errorText);
+        throw new Error(`Failed to save layout: ${res.status} ${errorText}`);
+      }
+      
       const data = await res.json();
+      console.log('[LayoutEditor] Save successful');
+      
+      // Update the edited state to reflect the saved version
+      setEdited(data.asset as LayoutAsset);
+      
+      // Trigger refresh and notify parent
       try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
       onSaved?.(data.asset as LayoutAsset);
       setIsEditingText(false);
+      
+      console.log('[LayoutEditor] Save complete - modal should stay open');
     } catch (e) {
-      alert((e as Error).message);
+      console.error('[LayoutEditor] Save error:', e);
+      alert(`Save failed: ${(e as Error).message}`);
     } finally {
       setWorking(false);
     }
