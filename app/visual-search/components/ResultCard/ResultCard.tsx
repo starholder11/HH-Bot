@@ -67,7 +67,9 @@ function ResultCardComponent({
     try {
       const base = r.preview ?? r.description ?? '';
       const raw = typeof base === 'string' ? base : JSON.stringify(base);
-      return stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
+      const cleaned = stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
+      // Enforce a reasonable character limit for card consistency (approximately 2-3 lines)
+      return cleaned.length > 150 ? cleaned.substring(0, 147) + '...' : cleaned;
     } catch {
       return '';
     }
@@ -138,7 +140,7 @@ function ResultCardComponent({
         <MediaPreview r={r} />
       </div>
       <div className="p-3">
-        {snippet && <p className="text-sm text-neutral-300 line-clamp-6">{snippet}</p>}
+        {snippet && <p className="text-sm text-neutral-300 line-clamp-3">{snippet}</p>}
         {labels.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {labels.map((l, idx) => (
