@@ -720,25 +720,25 @@ function GenerationPanel({
           </div>
 
           {/* Preview */}
-          {genPreviewUrl && selectedModel.category === 'image' && (
+          {selectedModel && genPreviewUrl && selectedModel.category === 'image' && (
             <div className="mt-2">
               <img src={genPreviewUrl} className="w-full h-48 object-cover rounded-md border border-neutral-800" alt="generated" />
             </div>
           )}
-          {genPreviewUrl && selectedModel.category === 'audio' && (
+          {selectedModel && genPreviewUrl && selectedModel.category === 'audio' && (
             <div className="mt-2 border border-neutral-800 rounded-md p-2 bg-neutral-950">
               <audio src={genPreviewUrl} controls className="w-full" />
             </div>
           )}
-          {genPreviewUrl && selectedModel.category === 'video' && (
+          {selectedModel && genPreviewUrl && selectedModel.category === 'video' && (
             <div className="mt-2 border border-neutral-800 rounded-md p-2 bg-black">
               <video src={genPreviewUrl} controls className="w-full" />
             </div>
           )}
-          {genText && selectedModel.category === 'text' && (
+          {genText && selectedModel && selectedModel.category === 'text' && (
             <pre className="mt-2 max-h-48 overflow-auto text-xs border border-neutral-800 rounded-md p-2 bg-neutral-950 text-neutral-200">{genText}</pre>
           )}
-          {genText && selectedModel.category !== 'text' && !genPreviewUrl && (
+          {genText && selectedModel && selectedModel.category !== 'text' && !genPreviewUrl && (
             <details className="mt-2">
               <summary className="text-xs text-neutral-400 cursor-pointer">Show raw result</summary>
               <pre className="mt-2 max-h-48 overflow-auto text-xs border border-neutral-800 rounded-md p-2 bg-neutral-950 text-neutral-200">{genText}</pre>
