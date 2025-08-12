@@ -8,49 +8,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   const [isLoadingText, setIsLoadingText] = useState<boolean>(false);
   const [textError, setTextError] = useState<string | null>(null);
 
-  if (!r) return null;
-
-  // Extra safety: wrap entire component in try-catch
-  try {
-
-  const mediaUrl = getResultMediaUrl(r);
-  const sourceUrlRaw: unknown = (r.metadata?.source_url as unknown) ?? mediaUrl ?? r.url;
-  const sourceUrl: string | undefined = typeof sourceUrlRaw === 'string' && sourceUrlRaw.length > 0 ? sourceUrlRaw : undefined;
-
-  // Ensure we never try to render objects/arrays directly in JSX
-  const toDisplayText = (value: unknown, fallback: string = ''): string => {
-    try {
-      if (value == null) return fallback;
-      if (typeof value === 'string') return value;
-      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-      if (typeof value === 'object') {
-        // Avoid huge dumps; provide compact, readable info
-        const json = JSON.stringify(value, null, 2);
-        return json?.slice(0, 4000) || fallback; // hard cap to avoid huge renders
-      }
-      return String(value);
-    } catch {
-      return fallback;
-    }
-  };
-
-  const extractSlugFromResult = (res: UnifiedSearchResult): string | null => {
-    try {
-      const parentUnknown: unknown = (res as any)?.metadata?.parent_slug;
-      if (typeof parentUnknown === 'string' && parentUnknown.length > 0) {
-        const parts = parentUnknown.split('/');
-        return parts.length > 0 ? parts[parts.length - 1] : parentUnknown;
-      }
-      if (typeof res.id === 'string' && res.id.startsWith('text_')) {
-        const after = res.id.split('text_')[1] ?? '';
-        const beforeHash = after.split('#')[0] ?? '';
-        const subParts = beforeHash.split('/');
-        return subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || null;
-      }
-    } catch {}
-    return null;
-  };
-
+  // Move hooks BEFORE any early returns to follow Rules of Hooks
   useEffect(() => {
     let cancelled = false;
     
@@ -59,6 +17,23 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
     setIsLoadingText(false);
     
     if (r && r.content_type === 'text') {
+      const extractSlugFromResult = (res: UnifiedSearchResult): string | null => {
+        try {
+          const parentUnknown: unknown = (res as any)?.metadata?.parent_slug;
+          if (typeof parentUnknown === 'string' && parentUnknown.length > 0) {
+            const parts = parentUnknown.split('/');
+            return parts.length > 0 ? parts[parts.length - 1] : parentUnknown;
+          }
+          if (typeof res.id === 'string' && res.id.startsWith('text_')) {
+            const after = res.id.split('text_')[1] ?? '';
+            const beforeHash = after.split('#')[0] ?? '';
+            const subParts = beforeHash.split('/');
+            return subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || null;
+          }
+        } catch {}
+        return null;
+      };
+
       const slug = extractSlugFromResult(r);
       if (!slug) return;
       
@@ -92,6 +67,34 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
       cancelled = true;
     };
   }, [r?.id]);
+
+  if (!r) return null;
+
+  // Extra safety: wrap entire component in try-catch
+  try {
+
+  const mediaUrl = getResultMediaUrl(r);
+  const sourceUrlRaw: unknown = (r.metadata?.source_url as unknown) ?? mediaUrl ?? r.url;
+  const sourceUrl: string | undefined = typeof sourceUrlRaw === 'string' && sourceUrlRaw.length > 0 ? sourceUrlRaw : undefined;
+
+  // Ensure we never try to render objects/arrays directly in JSX
+  const toDisplayText = (value: unknown, fallback: string = ''): string => {
+    try {
+      if (value == null) return fallback;
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      if (typeof value === 'object') {
+        // Avoid huge dumps; provide compact, readable info
+        const json = JSON.stringify(value, null, 2);
+        return json?.slice(0, 4000) || fallback; // hard cap to avoid huge renders
+      }
+      return String(value);
+    } catch {
+      return fallback;
+    }
+  };
+
+  // Removed duplicate extractSlugFromResult and useEffect - moved above
 
   return (
     <div className="fixed inset-0 z-[100]">
