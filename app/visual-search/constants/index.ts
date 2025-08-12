@@ -9,13 +9,13 @@ export const CANVAS_DEFAULTS = {
 export const GRID_CONSTANTS = {
   GUTTER: 12,
   ROW_HEIGHT: 360,
-  MAX_WIDTH: 1200,
-  MAX_HEIGHT: 1200,
-  MAX_VISIBLE_ROWS: 10,
+  MAX_WIDTH: 800,  // Reduced from 1200 to prevent overflow
+  MAX_HEIGHT: 1000, // Reduced from 1200
+  MAX_VISIBLE_ROWS: 8, // Reduced from 10
   BREAKPOINTS: [
-    { min: 1280, cols: 4 },
-    { min: 1024, cols: 3 },
+    { min: 1200, cols: 3 }, // Reduced from 4 cols at 1280
     { min: 768, cols: 2 },
+    { min: 480, cols: 1 }, // Added smaller breakpoint
     { min: 0, cols: 1 },
   ],
 } as const;

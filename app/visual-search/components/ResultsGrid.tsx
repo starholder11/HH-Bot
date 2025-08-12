@@ -4,13 +4,23 @@ import type { UnifiedSearchResult } from '../types';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { GRID_CONSTANTS } from '../constants';
 
-function useContainerSize() {
-  const [w, setW] = React.useState<number>(typeof window !== 'undefined' ? window.innerWidth : GRID_CONSTANTS.MAX_WIDTH);
+function useContainerSize(containerRef: React.RefObject<HTMLDivElement>) {
+  const [w, setW] = React.useState<number>(GRID_CONSTANTS.MAX_WIDTH);
+  
   React.useEffect(() => {
-    const onResize = () => setW(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    const updateSize = () => {
+      if (containerRef.current) {
+        // Use the container's actual width, constrained by our max
+        const containerWidth = containerRef.current.getBoundingClientRect().width;
+        setW(Math.min(containerWidth - 32, GRID_CONSTANTS.MAX_WIDTH)); // Subtract padding
+      }
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [containerRef]);
+  
   return w;
 }
 
@@ -20,10 +30,13 @@ type Props = {
 };
 
 export default function ResultsGrid({ results, renderCard }: Props) {
-  const width = useContainerSize();
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const width = useContainerSize(containerRef);
+  
   const { columnCount, columnWidth, rowHeight, rowCount } = useMemo(() => {
     const cols = GRID_CONSTANTS.BREAKPOINTS.find((b) => width >= b.min)?.cols || 1;
-    const cw = Math.floor((Math.min(width, GRID_CONSTANTS.MAX_WIDTH) - GRID_CONSTANTS.GUTTER * (cols - 1)) / cols);
+    const availableWidth = width - (GRID_CONSTANTS.GUTTER * (cols - 1));
+    const cw = Math.floor(availableWidth / cols);
     const rc = Math.ceil(results.length / cols);
     return {
       columnCount: cols,
@@ -38,23 +51,29 @@ export default function ResultsGrid({ results, renderCard }: Props) {
     if (idx >= results.length) return null;
     const r = results[idx];
     return (
-      <div style={{ ...style, left: (style.left as number) + (columnIndex > 0 ? GRID_CONSTANTS.GUTTER * columnIndex : 0), width: (style.width as number) - GRID_CONSTANTS.GUTTER }}>
+      <div style={{ 
+        ...style, 
+        left: (style.left as number) + (columnIndex * GRID_CONSTANTS.GUTTER), 
+        width: (style.width as number) - GRID_CONSTANTS.GUTTER 
+      }}>
         {renderCard(r, idx)}
       </div>
     );
   };
 
   return (
-    <Grid
-      columnCount={columnCount}
-      columnWidth={columnWidth}
-      height={Math.min(GRID_CONSTANTS.MAX_HEIGHT, rowHeight * Math.min(rowCount, GRID_CONSTANTS.MAX_VISIBLE_ROWS))}
-      rowCount={rowCount}
-      rowHeight={rowHeight}
-      width={Math.min(GRID_CONSTANTS.MAX_WIDTH, width)}
-    >
-      {Cell}
-    </Grid>
+    <div ref={containerRef} className="w-full">
+      <Grid
+        columnCount={columnCount}
+        columnWidth={columnWidth}
+        height={Math.min(GRID_CONSTANTS.MAX_HEIGHT, rowHeight * Math.min(rowCount, GRID_CONSTANTS.MAX_VISIBLE_ROWS))}
+        rowCount={rowCount}
+        rowHeight={rowHeight}
+        width={width}
+      >
+        {Cell}
+      </Grid>
+    </div>
   );
 }
 

@@ -1035,7 +1035,7 @@ function RightPane({
   setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
 }) {
   return (
-    <div className="lg:col-span-8">
+    <div className="w-full overflow-hidden">
       <div className="flex items-center justify-between">
         <div className="text-sm text-neutral-400">{totalResults ? `${totalResults} raw hits` : ''}</div>
         <div className="flex gap-2">
@@ -2039,7 +2039,7 @@ export default function VisualSearchPage() {
 
   return (
     <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100">
-      <div className="mx-auto max-w-7xl px-4 py-6">
+      <div className="mx-auto max-w-6xl px-4 py-6">
 
         <form onSubmit={handleSubmit} className="mt-2 flex flex-col sm:flex-row gap-3">
           <div className="flex-1 flex items-center gap-2">
@@ -2085,9 +2085,9 @@ export default function VisualSearchPage() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: Agent full-height */}
-          <div className="lg:col-span-4">
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-4">
+          {/* Left: Agent */}
+          <div className="lg:col-span-2">
             <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3">
               <div className="text-sm text-neutral-400 mb-2">Agent</div>
               <AgentChat />
@@ -2095,7 +2095,8 @@ export default function VisualSearchPage() {
           </div>
 
           {/* Right main area with tabs (now includes Generate) */}
-          <RightPane
+          <div className="lg:col-span-3">
+            <RightPane
             results={results}
             loading={loading}
             totalResults={total}
@@ -2217,6 +2218,7 @@ export default function VisualSearchPage() {
             saveStatus={saveStatus}
             setSaveStatus={setSaveStatus}
           />
+          </div>
         </div>
       </div>
 
