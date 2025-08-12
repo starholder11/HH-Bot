@@ -181,7 +181,28 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
             <>
               {/* Media Display */}
               {mediaUrl && (r.content_type === 'image' ? (
-                <img src={mediaUrl} alt={r.title} className="w-full rounded-lg border border-neutral-800 bg-black" />
+                <>
+                  <img src={mediaUrl} alt={r.title} className="w-full rounded-lg border border-neutral-800 bg-black" />
+                  {/* Image description right after image */}
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
+                    <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
+                      {toDisplayText(
+                        fullAsset?.title || r.title, 
+                        'No title available'
+                      )}
+                      {(fullAsset?.description || r.description || r.preview) && (
+                        <>
+                          <br /><br />
+                          {toDisplayText(
+                            fullAsset?.description || r.description || r.preview, 
+                            'No description available'
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </>
               ) : r.content_type === 'video' ? (
                 <>
                   <video src={mediaUrl} controls className="w-full rounded-lg border border-neutral-800 bg-black" />
@@ -189,7 +210,10 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
                   <div className="space-y-2">
                     <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
                     <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
-                      {toDisplayText(r.preview, toDisplayText(r.description, 'No additional preview available.'))}
+                      {toDisplayText(
+                        fullAsset?.description || r.description || r.preview, 
+                        'No description available'
+                      )}
                     </div>
                   </div>
                 </>
@@ -216,12 +240,15 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
                 />
               )}
 
-              {/* Description/Preview for non-video content */}
-              {r.content_type !== 'video' && (
+              {/* Description only for audio (images and videos now show description directly after media) */}
+              {r.content_type === 'audio' && (
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
                   <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
-                    {toDisplayText(r.preview, toDisplayText(r.description, 'No additional preview available.'))}
+                    {toDisplayText(
+                      fullAsset?.description || r.description || r.preview, 
+                      'No description available'
+                    )}
                   </div>
                 </div>
               )}

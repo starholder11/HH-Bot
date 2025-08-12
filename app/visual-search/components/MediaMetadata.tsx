@@ -292,9 +292,9 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
           </div>
 
           {/* Audio-specific metrics */}
-          {r.content_type === 'audio' && (
+          {r.content_type === 'audio' && m.manual_labels && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-              {typeof m.manual_labels.energy_level === 'number' && (
+              {typeof m.manual_labels?.energy_level === 'number' && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Energy</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
@@ -303,7 +303,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
                 </div>
               )}
               
-              {typeof m.manual_labels.emotional_intensity === 'number' && (
+              {typeof m.manual_labels?.emotional_intensity === 'number' && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Intensity</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
@@ -312,7 +312,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
                 </div>
               )}
               
-              {typeof m.manual_labels.tempo === 'number' && (
+              {typeof m.manual_labels?.tempo === 'number' && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Tempo</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
@@ -321,7 +321,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
                 </div>
               )}
 
-              {m.manual_labels.vocals && (
+              {m.manual_labels?.vocals && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Vocals</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
