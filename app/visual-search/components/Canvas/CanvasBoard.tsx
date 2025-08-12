@@ -36,18 +36,39 @@ function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expande
     );
   }
   if (r.content_type === 'text') {
-    const content = r.preview || r.description || r.title || '';
-    const text = typeof content === 'string' ? content : JSON.stringify(content);
-    const cleanedText = stripCircularDescription(text, {
+    // Try multiple sources for text content
+    let content = '';
+    
+    // First try preview/description
+    if (r.preview && typeof r.preview === 'string' && r.preview.trim()) {
+      content = r.preview;
+    } else if (r.description && typeof r.description === 'string' && r.description.trim()) {
+      content = r.description;
+    } 
+    // Check if preview/description is an object with text content
+    else if (r.preview && typeof r.preview === 'object') {
+      const previewObj = r.preview as any;
+      content = previewObj.content || previewObj.text || previewObj.body || '';
+    } else if (r.description && typeof r.description === 'object') {
+      const descObj = r.description as any;
+      content = descObj.content || descObj.text || descObj.body || '';
+    }
+    // Fallback to title
+    else if (r.title && typeof r.title === 'string' && r.title.trim()) {
+      content = r.title;
+    }
+    
+    // Clean the text
+    const cleanedText = content ? stripCircularDescription(content, {
       id: r.id,
       title: String(r.title ?? ''),
       type: r.content_type
-    });
+    }) : '';
     
     return (
       <div className={`w-full ${heightClass} p-3 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 text-sm overflow-y-auto`}>
         <div className="whitespace-pre-wrap leading-relaxed">
-          {cleanedText || 'No content available'}
+          {cleanedText || `No text content found for: ${r.title || r.id}`}
         </div>
       </div>
     );
@@ -193,18 +214,18 @@ function Pinned({
     let snapX = newX;
     let snapY = newY;
     
-    const parentRect = ref.current?.parentElement?.getBoundingClientRect();
-    const canvasWidth = parentRect?.width || 800;
-    const canvasHeight = parentRect?.height || 600;
+    const parentElement = ref.current?.parentElement;
+    const canvasWidth = parentElement?.clientWidth || 800;
+    const canvasHeight = parentElement?.clientHeight || 600;
 
     const currentRight = newX + item.width;
     const currentBottom = newY + item.height;
 
-    // Snap to canvas borders
-    if (Math.abs(newX) < SNAP_DISTANCE) {
+    // Snap to canvas borders (higher priority)
+    if (Math.abs(newX - 0) < SNAP_DISTANCE) {
       snapX = 0; // Left border
     }
-    if (Math.abs(newY) < SNAP_DISTANCE) {
+    if (Math.abs(newY - 0) < SNAP_DISTANCE) {
       snapY = 0; // Top border
     }
     if (Math.abs(currentRight - canvasWidth) < SNAP_DISTANCE) {
@@ -214,41 +235,57 @@ function Pinned({
       snapY = canvasHeight - item.height; // Bottom border
     }
 
-    // Snap to other cards
+    // Snap to other cards (only if not already snapped to border)
     for (const otherItem of items) {
       if (otherItem.id === item.id) continue;
 
       const otherRight = otherItem.x + otherItem.width;
       const otherBottom = otherItem.y + otherItem.height;
 
-      // Horizontal snapping to other cards
-      if (Math.abs(newY - otherItem.y) < SNAP_TOLERANCE || 
-          Math.abs(currentBottom - otherBottom) < SNAP_TOLERANCE ||
-          (newY < otherBottom && currentBottom > otherItem.y)) {
-        
-        // Snap to left edge
-        if (Math.abs(newX - otherRight) < SNAP_DISTANCE) {
-          snapX = otherRight;
-        }
-        // Snap to right edge  
-        else if (Math.abs(currentRight - otherItem.x) < SNAP_DISTANCE) {
+      // Check if cards would overlap vertically (for horizontal snapping)
+      const verticalOverlap = !(currentBottom <= otherItem.y || newY >= otherBottom);
+      
+      if (verticalOverlap) {
+        // Snap to left edge of other card (place this card to the left)
+        if (Math.abs(currentRight - otherItem.x) < SNAP_DISTANCE && snapX === newX) {
           snapX = otherItem.x - item.width;
+        }
+        // Snap to right edge of other card (place this card to the right)
+        else if (Math.abs(newX - otherRight) < SNAP_DISTANCE && snapX === newX) {
+          snapX = otherRight;
         }
       }
 
-      // Vertical snapping to other cards
-      if (Math.abs(newX - otherItem.x) < SNAP_TOLERANCE ||
-          Math.abs(currentRight - otherRight) < SNAP_TOLERANCE ||
-          (newX < otherRight && currentRight > otherItem.x)) {
-        
-        // Snap to top edge
-        if (Math.abs(newY - otherBottom) < SNAP_DISTANCE) {
-          snapY = otherBottom;
-        }
-        // Snap to bottom edge
-        else if (Math.abs(currentBottom - otherItem.y) < SNAP_DISTANCE) {
+      // Check if cards would overlap horizontally (for vertical snapping)
+      const horizontalOverlap = !(currentRight <= otherItem.x || newX >= otherRight);
+      
+      if (horizontalOverlap) {
+        // Snap to top edge of other card (place this card above)
+        if (Math.abs(currentBottom - otherItem.y) < SNAP_DISTANCE && snapY === newY) {
           snapY = otherItem.y - item.height;
         }
+        // Snap to bottom edge of other card (place this card below)
+        else if (Math.abs(newY - otherBottom) < SNAP_DISTANCE && snapY === newY) {
+          snapY = otherBottom;
+        }
+      }
+
+      // Edge alignment (align edges when cards are adjacent)
+      // Align left edges
+      if (Math.abs(newX - otherItem.x) < SNAP_DISTANCE && snapX === newX) {
+        snapX = otherItem.x;
+      }
+      // Align right edges
+      if (Math.abs(currentRight - otherRight) < SNAP_DISTANCE && snapX === newX) {
+        snapX = otherRight - item.width;
+      }
+      // Align top edges
+      if (Math.abs(newY - otherItem.y) < SNAP_DISTANCE && snapY === newY) {
+        snapY = otherItem.y;
+      }
+      // Align bottom edges
+      if (Math.abs(currentBottom - otherBottom) < SNAP_DISTANCE && snapY === newY) {
+        snapY = otherBottom - item.height;
       }
     }
 
@@ -312,7 +349,7 @@ function Pinned({
       <div
         ref={ref}
         className="absolute rounded-lg border border-neutral-700 bg-neutral-900/60 shadow-md overflow-hidden cursor-pointer hover:border-neutral-600 transition-colors"
-        style={{ left: item.x, top: item.y, width: 120, height: 100, zIndex: item.z }}
+        style={{ left: item.x, top: item.y, width: 200, height: 160, zIndex: item.z }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -351,71 +388,72 @@ function Pinned({
       onPointerUp={handlePointerUp}
     >
       {/* Header */}
-      <div className="p-2 border-b border-neutral-800 flex items-center justify-between gap-2 bg-neutral-900/50">
-        <div className="flex items-center gap-2">
-          <div className="text-[10px] px-1.5 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
+      <div className="p-3 border-b border-neutral-800 bg-neutral-900/50">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="text-xs px-2 py-1 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
             {item.result.content_type}
           </div>
-          <div className="text-xs text-neutral-300 truncate" title={item.result.title}>
-            {item.result.title}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleExpanded}
+              className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
+              title="Minimize to thumbnail"
+            >
+              📐
+            </button>
+            <button
+              onClick={() => {
+                // Expand the card to show more content
+                if (onResize) {
+                  const newWidth = Math.min(item.width * 1.5, 800);
+                  const newHeight = Math.min(item.height * 1.5, 600);
+                  onResize(item.id, newWidth, newHeight);
+                }
+              }}
+              className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
+              title="Expand card size"
+            >
+              ➕
+            </button>
+            <button
+              onClick={() => {
+                try {
+                  if (item?.result && typeof item.result === 'object' && (item.result as any).id) {
+                    onOpen(item.result);
+                  }
+                } catch (e) {
+                  console.error('Canvas detail view error:', e);
+                }
+              }}
+              className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
+              title="View details"
+            >
+              🔍
+            </button>
+            <button 
+              onClick={() => onRemove(item.id)} 
+              className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
+              title="Remove"
+            >
+              ❌
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={toggleExpanded}
-            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-[10px]"
-            title="Minimize to thumbnail"
-          >
-            📐
-          </button>
-          <button
-            onClick={() => {
-              // Instead of opening overlay, expand the card to show more content
-              if (onResize) {
-                const newWidth = Math.min(item.width * 1.5, 500);
-                const newHeight = Math.min(item.height * 1.5, 400);
-                onResize(item.id, newWidth, newHeight);
-              }
-            }}
-            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-[10px]"
-            title="Expand card size"
-          >
-            ➕
-          </button>
-          <button
-            onClick={() => {
-              try {
-                if (item?.result && typeof item.result === 'object' && (item.result as any).id) {
-                  onOpen(item.result);
-                }
-              } catch (e) {
-                console.error('Canvas detail view error:', e);
-              }
-            }}
-            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-[10px]"
-            title="View details"
-          >
-            🔍
-          </button>
-          <button 
-            onClick={() => onRemove(item.id)} 
-            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-[10px]"
-            title="Remove"
-          >
-            ❌
-          </button>
+        {/* Title */}
+        <div className="text-sm font-medium text-neutral-100 line-clamp-2" title={item.result.title}>
+          {item.result.title || 'Untitled'}
         </div>
       </div>
 
       {/* Media Content */}
-      <div className="p-2" style={{ height: 'calc(100% - 80px)' }}>
+      <div className="p-3" style={{ height: 'calc(100% - 120px)' }}>
         <div className="w-full h-full">
           <MediaPreview r={item.result} expanded={true} />
         </div>
       </div>
 
       {/* Description */}
-      <div className="p-2 pt-0 h-12 overflow-hidden">
+      <div className="p-3 pt-0 h-16 overflow-hidden">
         {(() => {
           const base = item.result.preview ?? item.result.description ?? '';
           const raw = typeof base === 'string' ? base : JSON.stringify(base);

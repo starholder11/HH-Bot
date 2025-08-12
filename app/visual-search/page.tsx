@@ -2207,10 +2207,10 @@ export default function VisualSearchPage() {
       )}
 
       {showFreeformModal && (
-        <CanvasBoard 
-          items={pinned} 
-          onMove={movePin} 
-          onRemove={removePin} 
+        <CanvasBoard
+          items={pinned}
+          onMove={movePin}
+          onRemove={removePin}
           onOpen={(r: UnifiedSearchResult) => {
             try {
               if (r && typeof r === 'object' && (r as any).id) {
@@ -2222,8 +2222,8 @@ export default function VisualSearchPage() {
           }}
           onResize={resizePin}
           onToggleView={(id, expanded) => {
-            setPinnedInStore((prev: PinnedItem[]) => 
-              prev.map((p: PinnedItem) => 
+            setPinnedInStore((prev: PinnedItem[]) =>
+              prev.map((p: PinnedItem) =>
                 p.id === id ? { ...p, expanded } : p
               )
             );

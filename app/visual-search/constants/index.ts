@@ -1,7 +1,7 @@
 // Canvas constants
 export const CANVAS_DEFAULTS = {
-  PIN_WIDTH: 280,
-  PIN_HEIGHT: 220,
+  PIN_WIDTH: 560,  // Doubled from 280
+  PIN_HEIGHT: 440, // Doubled from 220
   Z_COUNTER_START: 10,
 } as const;
 
