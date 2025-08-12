@@ -2,6 +2,7 @@
 import React from 'react';
 import type { PinnedItem, UnifiedSearchResult } from '../../types';
 import { getResultMediaUrl } from '../../utils/mediaUrl';
+import { stripCircularDescription } from '../../utils/textCleanup';
 
 function MediaPreview({ r }: { r: UnifiedSearchResult }) {
   const mediaUrl = getResultMediaUrl(r);
@@ -71,31 +72,69 @@ export default function GridPinned({
             if (Number.isFinite(from) && from !== to) onReorder(from as number, to);
             dragFrom.current = null;
           }}
-          className="rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden"
-        {
-          ...{}}
+          className="rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 transition-colors overflow-hidden"
         >
-          <div className="p-2 border-b border-neutral-800 flex items-center justify-between gap-2 bg-neutral-900/50">
-            <div className="text-xs text-neutral-300 truncate" title={p.result.title}>
+          {/* Header with title and controls */}
+          <div className="p-3 pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="text-xs px-2 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
+                  {p.result.content_type}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onOpen(p.result)}
+                  className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-neutral-200 transition-colors"
+                  title="Expand"
+                  aria-label="Expand"
+                >
+                  ➕
+                </button>
+                <button
+                  onClick={() => onRemove(p.id)}
+                  className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-neutral-200 transition-colors"
+                  title="Remove from canvas"
+                  aria-label="Remove from canvas"
+                >
+                  ❌
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 font-medium text-neutral-100 line-clamp-1" title={p.result.title}>
               {p.result.title}
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => onOpen(p.result)}
-                className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-              >
-                Expand
-              </button>
-              <button
-                onClick={() => onRemove(p.id)}
-                className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
-              >
-                Remove
-              </button>
-            </div>
           </div>
-          <div className="p-2">
+
+          {/* Media Preview */}
+          <div className="px-3">
             <MediaPreview r={p.result} />
+          </div>
+
+          {/* Description */}
+          <div className="p-3">
+            {(() => {
+              const base = p.result.preview ?? p.result.description ?? '';
+              const raw = typeof base === 'string' ? base : JSON.stringify(base);
+              const cleaned = stripCircularDescription(raw, { 
+                id: p.result.id, 
+                title: String(p.result.title ?? ''), 
+                type: p.result.content_type 
+              });
+              
+              // Different limits for different content types
+              const snippet = p.result.content_type === 'text' 
+                ? (cleaned.split(/\s+/).length > 70 ? cleaned.split(/\s+/).slice(0, 70).join(' ') + '...' : cleaned)
+                : (cleaned.length > 100 ? cleaned.substring(0, 97) + '...' : cleaned);
+                
+              return snippet ? (
+                <p className={`text-sm text-neutral-300 ${
+                  p.result.content_type === 'text' ? 'line-clamp-4' : 'line-clamp-2'
+                }`}>
+                  {snippet}
+                </p>
+              ) : null;
+            })()}
           </div>
         </div>
       ))}

@@ -1,6 +1,36 @@
 "use client";
 import React, { useRef } from 'react';
 import type { PinnedItem, UnifiedSearchResult } from '../../types';
+import { getResultMediaUrl } from '../../utils/mediaUrl';
+import { stripCircularDescription } from '../../utils/textCleanup';
+
+function MediaPreview({ r }: { r: UnifiedSearchResult }) {
+  const mediaUrl = getResultMediaUrl(r);
+  if (r.content_type === 'image' && mediaUrl) {
+    return (
+      <img
+        src={mediaUrl}
+        alt={r.title}
+        className="w-full h-32 object-cover rounded-md border border-neutral-800"
+        draggable={false}
+        loading="lazy"
+      />
+    );
+  }
+  if (r.content_type === 'video' && mediaUrl) {
+    return (
+      <video src={mediaUrl} controls className="w-full h-32 object-cover rounded-md border border-neutral-800 bg-black" />
+    );
+  }
+  if (r.content_type === 'audio' && mediaUrl) {
+    return (
+      <div className="w-full h-32 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-950">
+        <audio src={mediaUrl} controls className="w-full px-2" />
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function CanvasBoard({
   items,
@@ -59,15 +89,21 @@ function Pinned({
   return (
     <div
       ref={ref}
-      className="absolute rounded-xl border border-neutral-800 bg-neutral-950 shadow-lg overflow-hidden"
+      className="absolute rounded-xl border border-neutral-800 bg-neutral-900/40 shadow-lg overflow-hidden"
       style={{ left: item.x, top: item.y, width: item.width, height: item.height, zIndex: item.z }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
+      {/* Header */}
       <div className="p-2 border-b border-neutral-800 flex items-center justify-between gap-2 bg-neutral-900/50">
-        <div className="text-xs text-neutral-300 truncate" title={item.result.title}>
-          {item.result.title}
+        <div className="flex items-center gap-2">
+          <div className="text-[10px] px-1.5 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
+            {item.result.content_type}
+          </div>
+          <div className="text-xs text-neutral-300 truncate" title={item.result.title}>
+            {item.result.title}
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -80,12 +116,47 @@ function Pinned({
                 console.error('Canvas expand error:', e);
               }
             }}
-            className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-[10px]"
+            title="Expand"
           >
-            Expand
+            ➕
           </button>
-          <button onClick={() => onRemove(item.id)} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Remove</button>
+          <button 
+            onClick={() => onRemove(item.id)} 
+            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-[10px]"
+            title="Remove"
+          >
+            ❌
+          </button>
         </div>
+      </div>
+
+      {/* Media Content */}
+      <div className="p-2">
+        <MediaPreview r={item.result} />
+      </div>
+
+      {/* Description */}
+      <div className="p-2 pt-0">
+        {(() => {
+          const base = item.result.preview ?? item.result.description ?? '';
+          const raw = typeof base === 'string' ? base : JSON.stringify(base);
+          const cleaned = stripCircularDescription(raw, { 
+            id: item.result.id, 
+            title: String(item.result.title ?? ''), 
+            type: item.result.content_type 
+          });
+          
+          const snippet = item.result.content_type === 'text' 
+            ? (cleaned.split(/\s+/).length > 40 ? cleaned.split(/\s+/).slice(0, 40).join(' ') + '...' : cleaned)
+            : (cleaned.length > 80 ? cleaned.substring(0, 77) + '...' : cleaned);
+            
+          return snippet ? (
+            <p className="text-xs text-neutral-300 line-clamp-3">
+              {snippet}
+            </p>
+          ) : null;
+        })()}
       </div>
     </div>
   );

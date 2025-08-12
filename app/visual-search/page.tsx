@@ -1627,7 +1627,7 @@ export default function VisualSearchPage() {
         if (withoutAll.includes(t)) return withoutAll.filter((x) => x !== t);
         return [...withoutAll, t];
       })();
-      
+
       // Auto-search if there's already a query and types changed
       if (query.trim() && JSON.stringify(newTypes) !== JSON.stringify(prev)) {
         setTimeout(() => {
@@ -1645,7 +1645,7 @@ export default function VisualSearchPage() {
           executeSearch(query, undefined, searchType);
         }, 100);
       }
-      
+
       return newTypes;
     });
   };
