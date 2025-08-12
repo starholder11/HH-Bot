@@ -126,32 +126,35 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
           const { searchMediaAssets } = await import('../../../lib/media-storage');
           const layouts = await searchMediaAssets(query, 'layout');
           
-          layoutResults = layouts.map(layout => ({
-            id: layout.id,
-            content_type: 'layout' as const,
-            title: layout.title,
-            description: layout.ai_labels?.themes?.join(', ') || layout.filename,
-            score: 0.8, // Default high relevance for layout matches
-            metadata: {
-              ...layout,
+          layoutResults = layouts.map(layout => {
+            const layoutAsset = layout as any; // Type assertion for layout-specific properties
+            return {
+              id: layout.id,
+              content_type: 'layout' as const,
+              title: layout.title,
+              description: layout.ai_labels?.themes?.join(', ') || layout.filename,
+              score: 0.8, // Default high relevance for layout matches
+              metadata: {
+                ...layout,
+                s3_url: layout.s3_url,
+                cloudflare_url: layout.cloudflare_url,
+                layout_type: layoutAsset.layout_type,
+                item_count: layout.metadata?.item_count || 0,
+                has_inline_content: layout.metadata?.has_inline_content || false,
+              },
+              url: layout.s3_url,
               s3_url: layout.s3_url,
               cloudflare_url: layout.cloudflare_url,
-              layout_type: layout.layout_type,
-              item_count: layout.metadata?.item_count || 0,
-              has_inline_content: layout.metadata?.has_inline_content || false,
-            },
-            url: layout.s3_url,
-            s3_url: layout.s3_url,
-            cloudflare_url: layout.cloudflare_url,
-            preview: `Layout: ${layout.title} (${layout.metadata?.item_count || 0} items)`,
-            searchable_text: [
-              layout.title,
-              layout.description || '',
-              layout.ai_labels?.themes?.join(' ') || '',
-              layout.manual_labels?.custom_tags?.join(' ') || '',
-              layout.layout_data?.items?.map(item => item.snippet || '').join(' ') || ''
-            ].filter(Boolean).join(' ')
-          }));
+              preview: `Layout: ${layout.title} (${layout.metadata?.item_count || 0} items)`,
+              searchable_text: [
+                layout.title,
+                layout.description || '',
+                layout.ai_labels?.themes?.join(' ') || '',
+                layout.manual_labels?.custom_tags?.join(' ') || '',
+                layoutAsset.layout_data?.items?.map((item: any) => item.snippet || '').join(' ') || ''
+              ].filter(Boolean).join(' ')
+            };
+          });
 
           console.log(`🎨 Found ${layoutResults.length} layout assets`);
         }
