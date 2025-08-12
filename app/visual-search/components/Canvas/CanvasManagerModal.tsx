@@ -57,7 +57,7 @@ export default function CanvasManagerModal({
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
                       onBlur={() => {
-                        if (editingName.trim() && editingName !== c.name) {
+                        if (editingName.trim() && editingName !== c.name && c.id) {
                           onRename?.(c.id, editingName.trim());
                           setTimeout(() => void refreshCanvases(), 500);
                         }
@@ -65,7 +65,7 @@ export default function CanvasManagerModal({
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          if (editingName.trim() && editingName !== c.name) {
+                          if (editingName.trim() && editingName !== c.name && c.id) {
                             onRename?.(c.id, editingName.trim());
                             setTimeout(() => void refreshCanvases(), 500);
                           }
@@ -82,8 +82,10 @@ export default function CanvasManagerModal({
                     <div 
                       className="cursor-pointer"
                       onDoubleClick={() => {
-                        setEditingId(c.id);
-                        setEditingName(c.name || c.id);
+                        if (c.id) {
+                          setEditingId(c.id);
+                          setEditingName(c.name || c.id);
+                        }
                       }}
                     >
                       <div className="text-neutral-200 truncate">{c.name || c.id}</div>
@@ -118,8 +120,10 @@ export default function CanvasManagerModal({
                   
                   <button 
                     onClick={() => {
-                      setEditingId(c.id);
-                      setEditingName(c.name || c.id);
+                      if (c.id) {
+                        setEditingId(c.id);
+                        setEditingName(c.name || c.id);
+                      }
                     }}
                     className="px-2.5 py-1 text-sm rounded border border-neutral-700 bg-neutral-700 hover:bg-neutral-600 text-neutral-100"
                     title="Rename canvas"
@@ -130,7 +134,7 @@ export default function CanvasManagerModal({
                   {onDelete && (
                     <button 
                       onClick={() => {
-                        if (confirm(`Delete canvas "${c.name || c.id}"? This cannot be undone.`)) {
+                        if (c.id && confirm(`Delete canvas "${c.name || c.id}"? This cannot be undone.`)) {
                           onDelete(c.id);
                           setTimeout(() => void refreshCanvases(), 500);
                         }
