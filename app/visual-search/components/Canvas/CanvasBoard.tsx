@@ -36,27 +36,43 @@ function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expande
     );
   }
   if (r.content_type === 'text') {
-    // Try multiple sources for text content
-    let content = '';
+    // Debug: Log the entire result object to see what we're working with
+    console.log('DEBUG: Text card result object:', r);
     
-    // First try preview/description
-    if (r.preview && typeof r.preview === 'string' && r.preview.trim()) {
-      content = r.preview;
-    } else if (r.description && typeof r.description === 'string' && r.description.trim()) {
-      content = r.description;
-    } 
-    // Check if preview/description is an object with text content
-    else if (r.preview && typeof r.preview === 'object') {
-      const previewObj = r.preview as any;
-      content = previewObj.content || previewObj.text || previewObj.body || '';
-    } else if (r.description && typeof r.description === 'object') {
-      const descObj = r.description as any;
-      content = descObj.content || descObj.text || descObj.body || '';
+    // Try multiple sources for text content with extensive debugging
+    let content = '';
+    let debugInfo = [];
+    
+    // Check every possible property
+    const possibleSources = ['preview', 'description', 'content', 'text', 'body', 'summary', 'excerpt'];
+    
+    for (const prop of possibleSources) {
+      const value = (r as any)[prop];
+      debugInfo.push(`${prop}: ${typeof value} - ${value ? String(value).substring(0, 50) : 'null/undefined'}`);
+      
+      if (value && typeof value === 'string' && value.trim()) {
+        content = value;
+        console.log(`DEBUG: Found text content in ${prop}:`, value.substring(0, 100));
+        break;
+      } else if (value && typeof value === 'object') {
+        for (const subProp of ['content', 'text', 'body', 'value']) {
+          if (value[subProp] && typeof value[subProp] === 'string' && value[subProp].trim()) {
+            content = value[subProp];
+            console.log(`DEBUG: Found text content in ${prop}.${subProp}:`, content.substring(0, 100));
+            break;
+          }
+        }
+        if (content) break;
+      }
     }
+    
     // Fallback to title
-    else if (r.title && typeof r.title === 'string' && r.title.trim()) {
+    if (!content && r.title && typeof r.title === 'string' && r.title.trim()) {
       content = r.title;
+      debugInfo.push('Used title as fallback');
     }
+    
+    console.log('DEBUG: Text extraction info:', debugInfo);
     
     // Clean the text
     const cleanedText = content ? stripCircularDescription(content, {
@@ -68,7 +84,17 @@ function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expande
     return (
       <div className={`w-full ${heightClass} p-3 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 text-sm overflow-y-auto`}>
         <div className="whitespace-pre-wrap leading-relaxed">
-          {cleanedText || `No text content found for: ${r.title || r.id}`}
+          {cleanedText || (
+            <div>
+              <div>DEBUG: No text content found</div>
+              <div className="text-xs mt-2 opacity-50">
+                {debugInfo.join('; ')}
+              </div>
+              <div className="text-xs mt-1 opacity-50">
+                Title: {r.title || 'none'}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -206,89 +232,110 @@ function Pinned({
   const [isExpanded, setIsExpanded] = useState((item as any).expanded || false);
 
   // Snap settings
-  const SNAP_DISTANCE = 20;
-  const SNAP_TOLERANCE = 10;
+  const SNAP_DISTANCE = 25;
 
   // Find nearby cards and borders for snapping
   const findSnapPosition = (newX: number, newY: number) => {
+    console.log(`DEBUG: findSnapPosition called with newX=${newX}, newY=${newY}`);
+    
     let snapX = newX;
     let snapY = newY;
     
-    const parentElement = ref.current?.parentElement;
-    const canvasWidth = parentElement?.clientWidth || 800;
-    const canvasHeight = parentElement?.clientHeight || 600;
+    // Get canvas dimensions
+    const canvasElement = ref.current?.parentElement;
+    if (!canvasElement) {
+      console.log('DEBUG: No canvas element found');
+      return { x: snapX, y: snapY };
+    }
+    
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const canvasWidth = canvasRect.width;
+    const canvasHeight = canvasRect.height;
+    
+    console.log(`DEBUG: Canvas dimensions: ${canvasWidth}x${canvasHeight}`);
 
     const currentRight = newX + item.width;
     const currentBottom = newY + item.height;
 
-    // Snap to canvas borders (higher priority)
-    if (Math.abs(newX - 0) < SNAP_DISTANCE) {
-      snapX = 0; // Left border
+    // Snap to canvas borders
+    const leftDist = Math.abs(newX - 0);
+    const rightDist = Math.abs(currentRight - canvasWidth);
+    const topDist = Math.abs(newY - 0);
+    const bottomDist = Math.abs(currentBottom - canvasHeight);
+    
+    console.log(`DEBUG: Border distances - left:${leftDist}, right:${rightDist}, top:${topDist}, bottom:${bottomDist}`);
+
+    if (leftDist < SNAP_DISTANCE) {
+      snapX = 0;
+      console.log('DEBUG: Snapped to left border');
     }
-    if (Math.abs(newY - 0) < SNAP_DISTANCE) {
-      snapY = 0; // Top border
+    if (rightDist < SNAP_DISTANCE) {
+      snapX = canvasWidth - item.width;
+      console.log('DEBUG: Snapped to right border');
     }
-    if (Math.abs(currentRight - canvasWidth) < SNAP_DISTANCE) {
-      snapX = canvasWidth - item.width; // Right border
+    if (topDist < SNAP_DISTANCE) {
+      snapY = 0;
+      console.log('DEBUG: Snapped to top border');
     }
-    if (Math.abs(currentBottom - canvasHeight) < SNAP_DISTANCE) {
-      snapY = canvasHeight - item.height; // Bottom border
+    if (bottomDist < SNAP_DISTANCE) {
+      snapY = canvasHeight - item.height;
+      console.log('DEBUG: Snapped to bottom border');
     }
 
-    // Snap to other cards (only if not already snapped to border)
-    for (const otherItem of items) {
-      if (otherItem.id === item.id) continue;
+    // Snap to other cards - ONLY if no border snap occurred
+    if (snapX === newX && snapY === newY) {
+      for (const otherItem of items) {
+        if (otherItem.id === item.id) continue;
 
-      const otherRight = otherItem.x + otherItem.width;
-      const otherBottom = otherItem.y + otherItem.height;
+        const otherRight = otherItem.x + otherItem.width;
+        const otherBottom = otherItem.y + otherItem.height;
 
-      // Check if cards would overlap vertically (for horizontal snapping)
-      const verticalOverlap = !(currentBottom <= otherItem.y || newY >= otherBottom);
-      
-      if (verticalOverlap) {
-        // Snap to left edge of other card (place this card to the left)
-        if (Math.abs(currentRight - otherItem.x) < SNAP_DISTANCE && snapX === newX) {
-          snapX = otherItem.x - item.width;
+        // Simple adjacent snapping - place cards next to each other
+        
+        // Horizontal snapping (left/right of other card)
+        const leftEdgeDist = Math.abs(currentRight - otherItem.x);
+        const rightEdgeDist = Math.abs(newX - otherRight);
+        
+        if (leftEdgeDist < SNAP_DISTANCE) {
+          // Check if there's vertical overlap that would make this placement valid
+          const verticalOverlap = !(currentBottom <= otherItem.y || newY >= otherBottom);
+          if (verticalOverlap) {
+            snapX = otherItem.x - item.width; // Place to the left
+            console.log(`DEBUG: Snapped to left of card ${otherItem.id}`);
+          }
         }
-        // Snap to right edge of other card (place this card to the right)
-        else if (Math.abs(newX - otherRight) < SNAP_DISTANCE && snapX === newX) {
-          snapX = otherRight;
+        
+        if (rightEdgeDist < SNAP_DISTANCE) {
+          const verticalOverlap = !(currentBottom <= otherItem.y || newY >= otherBottom);
+          if (verticalOverlap) {
+            snapX = otherRight; // Place to the right
+            console.log(`DEBUG: Snapped to right of card ${otherItem.id}`);
+          }
         }
-      }
 
-      // Check if cards would overlap horizontally (for vertical snapping)
-      const horizontalOverlap = !(currentRight <= otherItem.x || newX >= otherRight);
-      
-      if (horizontalOverlap) {
-        // Snap to top edge of other card (place this card above)
-        if (Math.abs(currentBottom - otherItem.y) < SNAP_DISTANCE && snapY === newY) {
-          snapY = otherItem.y - item.height;
+        // Vertical snapping (above/below other card)
+        const topEdgeDist = Math.abs(currentBottom - otherItem.y);
+        const bottomEdgeDist = Math.abs(newY - otherBottom);
+        
+        if (topEdgeDist < SNAP_DISTANCE) {
+          const horizontalOverlap = !(currentRight <= otherItem.x || newX >= otherRight);
+          if (horizontalOverlap) {
+            snapY = otherItem.y - item.height; // Place above
+            console.log(`DEBUG: Snapped above card ${otherItem.id}`);
+          }
         }
-        // Snap to bottom edge of other card (place this card below)
-        else if (Math.abs(newY - otherBottom) < SNAP_DISTANCE && snapY === newY) {
-          snapY = otherBottom;
+        
+        if (bottomEdgeDist < SNAP_DISTANCE) {
+          const horizontalOverlap = !(currentRight <= otherItem.x || newX >= otherRight);
+          if (horizontalOverlap) {
+            snapY = otherBottom; // Place below
+            console.log(`DEBUG: Snapped below card ${otherItem.id}`);
+          }
         }
-      }
-
-      // Edge alignment (align edges when cards are adjacent)
-      // Align left edges
-      if (Math.abs(newX - otherItem.x) < SNAP_DISTANCE && snapX === newX) {
-        snapX = otherItem.x;
-      }
-      // Align right edges
-      if (Math.abs(currentRight - otherRight) < SNAP_DISTANCE && snapX === newX) {
-        snapX = otherRight - item.width;
-      }
-      // Align top edges
-      if (Math.abs(newY - otherItem.y) < SNAP_DISTANCE && snapY === newY) {
-        snapY = otherItem.y;
-      }
-      // Align bottom edges
-      if (Math.abs(currentBottom - otherBottom) < SNAP_DISTANCE && snapY === newY) {
-        snapY = otherBottom - item.height;
       }
     }
 
+    console.log(`DEBUG: Final snap position: ${snapX}, ${snapY}`);
     return { x: snapX, y: snapY };
   };
 
@@ -298,12 +345,16 @@ function Pinned({
     const rect = ref.current.getBoundingClientRect();
     const isResizeHandle = (e.target as Element).classList.contains('resize-handle');
     
+    console.log(`DEBUG: PointerDown - isResizeHandle: ${isResizeHandle}`);
+    
     if (isResizeHandle) {
       resizing.current = true;
       offset.current = { x: e.clientX, y: e.clientY };
+      console.log('DEBUG: Set resizing mode');
     } else {
       dragging.current = true;
       offset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      console.log('DEBUG: Set dragging mode');
     }
     
     (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -314,6 +365,7 @@ function Pinned({
     if (!parentRect) return;
 
     if (resizing.current && onResize) {
+      console.log('DEBUG: Resizing...');
       const deltaX = e.clientX - offset.current.x;
       const deltaY = e.clientY - offset.current.y;
       const newWidth = Math.max(200, item.width + deltaX);
@@ -323,10 +375,13 @@ function Pinned({
       offset.current = { x: e.clientX, y: e.clientY };
     } 
     else if (dragging.current) {
+      console.log('DEBUG: Dragging detected...');
       const newX = e.clientX - offset.current.x - parentRect.left;
       const newY = e.clientY - offset.current.y - parentRect.top;
       
+      console.log(`DEBUG: Raw position: ${newX}, ${newY}`);
       const snappedPos = findSnapPosition(Math.max(0, newX), Math.max(0, newY));
+      console.log(`DEBUG: Calling onMove with: ${snappedPos.x}, ${snappedPos.y}`);
       onMove(item.id, snappedPos.x, snappedPos.y);
     }
   };
