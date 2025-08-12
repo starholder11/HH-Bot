@@ -23,6 +23,7 @@ export default function LayoutEditorModal({
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isEditingText, setIsEditingText] = useState(false);
+  const [draftText, setDraftText] = useState('');
 
   const cellSize = edited.layout_data.cellSize || 20;
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
@@ -87,15 +88,21 @@ export default function LayoutEditorModal({
   async function handleSave() {
     try {
       setWorking(true);
-      const res = await fetch(`/api/media-assets/${edited.id}`, {
+      // Ensure inline text edits are committed to state before save
+      let toSave = edited;
+      if (isEditingText && selectedId) {
+        toSave = commitCurrentText(toSave, selectedId, draftText);
+      }
+      const res = await fetch(`/api/media-assets/${toSave.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edited),
+        body: JSON.stringify(toSave),
       });
       if (!res.ok) throw new Error('Failed to save layout');
       const data = await res.json();
       try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
       onSaved?.(data.asset as LayoutAsset);
+      setIsEditingText(false);
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -156,6 +163,7 @@ export default function LayoutEditorModal({
                   onDoubleClick={() => {
                     if (it.type === 'inline_text') {
                       setSelectedId(it.id);
+                      setDraftText(it.inlineContent?.text || '');
                       setIsEditingText(true);
                     }
                   }}
@@ -164,8 +172,10 @@ export default function LayoutEditorModal({
                   {renderItem(it, previewUrls[it.id], loadingMap[it.id], {
                     isSelected: selectedId === it.id,
                     isEditing: isEditingText && selectedId === it.id,
-                    onChangeText: (txt: string) => updateInlineText(it.id, txt, setEdited),
-                    onBlur: () => setIsEditingText(false),
+                    draftText,
+                    setDraftText,
+                    onCommitText: (txt: string) => { updateInlineText(it.id, txt, setEdited); setIsEditingText(false); },
+                    onCancelEdit: () => setIsEditingText(false),
                   })}
                 </div>
               ))}
@@ -236,7 +246,7 @@ function renderItem(
   it: Item,
   url?: string,
   loading?: boolean,
-  opts?: { isSelected?: boolean; isEditing?: boolean; onChangeText?: (t: string) => void; onBlur?: () => void }
+  opts?: { isSelected?: boolean; isEditing?: boolean; draftText?: string; setDraftText?: (t: string) => void; onCommitText?: (t: string) => void; onCancelEdit?: () => void }
 ) {
   const label = `${it.type}${it.contentType ? ` • ${it.contentType}` : ''}`;
   if (it.type === 'inline_text' && it.inlineContent?.text) {
@@ -244,13 +254,12 @@ function renderItem(
       <div className="h-full w-full p-2 text-neutral-200 overflow-auto">
         <div className="text-xs text-neutral-400 mb-1">{label}</div>
         {opts?.isEditing ? (
-          <div
-            className="content-editable whitespace-pre-wrap leading-snug text-sm bg-neutral-800/50 rounded p-2 outline-none"
-            contentEditable
-            suppressContentEditableWarning
-            onInput={(e) => opts?.onChangeText?.((e.currentTarget as HTMLDivElement).innerText)}
-            onBlur={() => opts?.onBlur?.()}
-            dangerouslySetInnerHTML={{ __html: escapeHtml(it.inlineContent?.text || '') }}
+          <textarea
+            className="content-editable whitespace-pre-wrap leading-snug text-sm bg-neutral-800/50 rounded p-2 outline-none w-full h-full"
+            value={opts?.draftText ?? it.inlineContent?.text ?? ''}
+            onChange={(e) => opts?.setDraftText?.(e.target.value)}
+            onBlur={() => opts?.onCommitText?.(opts?.draftText ?? '')}
+            autoFocus
           />
         ) : (
           <div className="whitespace-pre-wrap leading-snug text-sm">{it.inlineContent.text}</div>
@@ -310,6 +319,17 @@ function updateInlineText(id: string, text: string, setEdited: React.Dispatch<Re
     },
     updated_at: new Date().toISOString(),
   } as LayoutAsset));
+}
+
+function commitCurrentText(layout: LayoutAsset, id: string, text: string): LayoutAsset {
+  return {
+    ...layout,
+    layout_data: {
+      ...layout.layout_data,
+      items: layout.layout_data.items.map(i => i.id === id ? ({ ...i, inlineContent: { ...(i.inlineContent || {}), text } }) as Item : i)
+    },
+    updated_at: new Date().toISOString(),
+  } as LayoutAsset;
 }
 
 function bringZ(items: Item[], id: string, dir: 'front' | 'back' | 'up' | 'down'): Item[] {
