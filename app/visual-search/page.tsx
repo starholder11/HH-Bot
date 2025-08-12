@@ -2112,6 +2112,9 @@ export default function VisualSearchPage() {
       // Show success message
       alert(`Successfully exported canvas as layout: "${layoutAsset.title}"\n\nLayout ID: ${layoutId}\nItems: ${pinned.length}`);
 
+      // Trigger layouts browser to refresh
+      try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
+
     } catch (e) {
       console.error('Layout export failed:', e);
       alert(`Failed to export layout: ${(e as Error).message}`);

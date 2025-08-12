@@ -46,6 +46,13 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
     loadLayouts();
   }, []);
 
+  // Expose a manual refresh method via a custom event to allow other parts to trigger reload after export
+  useEffect(() => {
+    const handler = () => loadLayouts();
+    window.addEventListener('layouts:refresh', handler);
+    return () => window.removeEventListener('layouts:refresh', handler);
+  }, []);
+
   // Delete layout
   const deleteLayout = async (layoutId: string) => {
     if (!confirm('Are you sure you want to delete this layout?')) return;

@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     if (!body.id || !body.media_type) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields: id, media_type' },
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date().toISOString();
-    
+
     // Create the asset with proper defaults
     const asset: MediaAsset = {
       ...body,
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     if (!body.id) {
       return NextResponse.json(
         { success: false, error: 'Missing required field: id' },
@@ -175,7 +175,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const now = new Date().toISOString();
-    
+
     // Update the asset with new timestamp
     const asset: MediaAsset = {
       ...body,
@@ -210,7 +210,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json(
         { success: false, error: 'Missing required parameter: id' },
