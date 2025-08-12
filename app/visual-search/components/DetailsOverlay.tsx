@@ -100,7 +100,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   return (
     <div className="fixed inset-0 z-[100]">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute right-0 top-0 h-full w-full sm:w-[560px] bg-neutral-950 border-l border-neutral-800 shadow-xl flex flex-col">
+      <div className="absolute right-0 top-0 min-h-full w-full sm:w-[560px] bg-neutral-950 border-l border-neutral-800 shadow-xl flex flex-col">
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
           <div>
             <div className="text-xs text-neutral-400">{r.content_type}</div>
@@ -110,7 +110,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
             Close
           </button>
         </div>
-        <div className="p-4 space-y-4 overflow-auto">
+        <div className="p-4 space-y-4">
           {r.content_type === 'text' ? (
             <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
               {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
@@ -127,7 +127,16 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
               {mediaUrl && (r.content_type === 'image' ? (
                 <img src={mediaUrl} alt={r.title} className="w-full rounded-md border border-neutral-800 bg-black" />
               ) : r.content_type === 'video' ? (
-                <video src={mediaUrl} controls className="w-full rounded-md border border-neutral-800 bg-black" />
+                <>
+                  <video src={mediaUrl} controls className="w-full rounded-md border border-neutral-800 bg-black" />
+                  {/* Video description right after video */}
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
+                    <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
+                      {toDisplayText(r.preview, toDisplayText(r.description, 'No additional preview available.'))}
+                    </div>
+                  </div>
+                </>
               ) : r.content_type === 'audio' ? (
                 <div className="p-2"><audio src={mediaUrl} controls className="w-full" /></div>
               ) : null)}
@@ -135,13 +144,15 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
               {/* Rich Metadata Display */}
               <MediaMetadata result={r} />
 
-              {/* Description/Preview */}
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
-                <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
-                  {toDisplayText(r.preview, toDisplayText(r.description, 'No additional preview available.'))}
+              {/* Description/Preview for non-video content */}
+              {r.content_type !== 'video' && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
+                  <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
+                    {toDisplayText(r.preview, toDisplayText(r.description, 'No additional preview available.'))}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
           {sourceUrl && (

@@ -110,18 +110,20 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
         </div>
       </div>
 
-      {/* AI Labels */}
-      {r.metadata.ai_labels && (
+      {/* AI Labels - check both metadata.ai_labels and direct ai_labels */}
+      {(r.metadata?.ai_labels || (r as any).ai_labels) && (() => {
+        const aiLabels = r.metadata?.ai_labels || (r as any).ai_labels;
+        return (
         <div>
           <h3 className="text-lg font-semibold text-neutral-200 mb-3">AI Analysis</h3>
           
           {/* Scene Description */}
-          {r.metadata.ai_labels.scenes?.length > 0 && (
+          {aiLabels.scenes?.length > 0 && (
             <div className="mb-4">
               <h4 className="text-sm font-semibold text-neutral-300 mb-2">Scene Description</h4>
               <div className="bg-purple-950/40 border-l-4 border-purple-400 p-4 rounded-r-lg">
                 <p className="text-neutral-200 leading-relaxed text-sm">
-                  {r.metadata.ai_labels.scenes[0]}
+                  {aiLabels.scenes[0]}
                 </p>
               </div>
             </div>
@@ -129,29 +131,29 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
 
           {/* Label Categories */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {r.metadata.ai_labels.objects?.length > 0 && (
+            {aiLabels.objects?.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Objects</h4>
                 <div className="flex flex-wrap gap-1">
-                  {r.metadata.ai_labels.objects.slice(0, 8).map((object: string, index: number) => (
+                  {aiLabels.objects.slice(0, 8).map((object: string, index: number) => (
                     <span key={index} className="px-3 py-1 text-xs bg-blue-900/40 text-blue-300 rounded-full border border-blue-800">
                       {object}
                     </span>
                   ))}
-                  {r.metadata.ai_labels.objects.length > 8 && (
+                  {aiLabels.objects.length > 8 && (
                     <span className="px-3 py-1 text-xs bg-neutral-800 text-neutral-400 rounded-full">
-                      +{r.metadata.ai_labels.objects.length - 8} more
+                      +{aiLabels.objects.length - 8} more
                     </span>
                   )}
                 </div>
               </div>
             )}
 
-            {r.metadata.ai_labels.style?.length > 0 && (
+            {aiLabels.style?.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Style</h4>
                 <div className="flex flex-wrap gap-1">
-                  {r.metadata.ai_labels.style.map((style: string, index: number) => (
+                  {aiLabels.style.map((style: string, index: number) => (
                     <span key={index} className="px-3 py-1 text-xs bg-green-900/40 text-green-300 rounded-full border border-green-800">
                       {style}
                     </span>
@@ -160,11 +162,11 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
               </div>
             )}
 
-            {r.metadata.ai_labels.mood?.length > 0 && (
+            {aiLabels.mood?.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Mood</h4>
                 <div className="flex flex-wrap gap-1">
-                  {r.metadata.ai_labels.mood.map((mood: string, index: number) => (
+                  {aiLabels.mood.map((mood: string, index: number) => (
                     <span key={index} className="px-3 py-1 text-xs bg-yellow-900/40 text-yellow-300 rounded-full border border-yellow-800">
                       {mood}
                     </span>
@@ -173,11 +175,11 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
               </div>
             )}
 
-            {r.metadata.ai_labels.themes?.length > 0 && (
+            {aiLabels.themes?.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Themes</h4>
                 <div className="flex flex-wrap gap-1">
-                  {r.metadata.ai_labels.themes.map((theme: string, index: number) => (
+                  {aiLabels.themes.map((theme: string, index: number) => (
                     <span key={index} className="px-3 py-1 text-xs bg-orange-900/40 text-orange-300 rounded-full border border-orange-800">
                       {theme}
                     </span>
@@ -187,7 +189,8 @@ export default function MediaMetadata({ result: r }: MediaMetadataProps) {
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Manual Labels */}
       {r.metadata.manual_labels && (
