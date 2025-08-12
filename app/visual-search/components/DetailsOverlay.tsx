@@ -4,8 +4,8 @@ import type { UnifiedSearchResult } from '../types';
 import { getResultMediaUrl } from '../utils/mediaUrl';
 import MediaMetadata from './MediaMetadata';
 
-export default function DetailsOverlay({ r, onClose, onSearch }: { 
-  r: UnifiedSearchResult | null; 
+export default function DetailsOverlay({ r, onClose, onSearch }: {
+  r: UnifiedSearchResult | null;
   onClose: () => void;
   onSearch?: (query: string) => void;
 }) {
@@ -19,7 +19,7 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
   // Removed scroll locking - let main page scroll naturally
 
     // Move hooks BEFORE any early returns to follow Rules of Hooks
-  
+
   // Fetch full asset metadata for media types
   useEffect(() => {
     let cancelled = false;
@@ -30,11 +30,11 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
 
     if (r && ['image', 'video', 'audio'].includes(r.content_type)) {
       setIsLoadingAsset(true);
-      
+
       fetch(`/api/media-assets/${r.id}`)
         .then(async (res) => {
           if (cancelled) return;
-          
+
           const json = await res.json();
           if (!res.ok || !json?.success) {
             throw new Error(json?.error || 'Failed to load asset metadata');
@@ -89,17 +89,17 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
 
       const slug = extractSlugFromResult(r);
       if (!slug) return;
-      
+
       setIsLoadingText(true);
       fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`)
         .then(async (res) => {
           if (cancelled) return; // Don't update state if component unmounted
-          
+
           const json = await res.json();
           if (!res.ok || !json?.success) {
             throw new Error(json?.error || 'Failed to load content');
           }
-          
+
           if (!cancelled) {
             setFullText(json.content as string);
           }
@@ -115,7 +115,7 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
           }
         });
     }
-    
+
     return () => {
       cancelled = true;
     };
@@ -187,33 +187,20 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
                   <div className="space-y-2">
                     <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
                     <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
-                      {toDisplayText(
-                        fullAsset?.title || r.title, 
-                        'No title available'
-                      )}
-                      {(fullAsset?.description || r.description || r.preview) && (
-                        <>
-                          <br /><br />
-                          {toDisplayText(
-                            fullAsset?.description || r.description || r.preview, 
-                            'No description available'
-                          )}
-                        </>
-                      )}
+                      {fullAsset?.title && fullAsset.title !== r.title ? fullAsset.title : 
+                       toDisplayText(r.description, 'No description available.')}
                     </div>
                   </div>
                 </>
               ) : r.content_type === 'video' ? (
                 <>
                   <video src={mediaUrl} controls className="w-full rounded-lg border border-neutral-800 bg-black" />
-                  {/* Video description right after video */}
+                  {/* Video description right after video - use full description */}
                   <div className="space-y-2">
                     <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
                     <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
-                      {toDisplayText(
-                        fullAsset?.description || r.description || r.preview, 
-                        'No description available'
-                      )}
+                      {fullAsset?.title && fullAsset.title !== r.title ? fullAsset.title : 
+                       toDisplayText(r.description, 'No description available.')}
                     </div>
                   </div>
                 </>
@@ -233,25 +220,14 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
                 </div>
               )}
               {!isLoadingAsset && !assetError && (
-                <MediaMetadata 
-                  result={r} 
-                  fullAsset={fullAsset} 
-                  onSearch={onSearch} 
+                <MediaMetadata
+                  result={r}
+                  fullAsset={fullAsset}
+                  onSearch={onSearch}
                 />
               )}
 
-              {/* Description only for audio (images and videos now show description directly after media) */}
-              {r.content_type === 'audio' && (
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
-                  <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
-                    {toDisplayText(
-                      fullAsset?.description || r.description || r.preview, 
-                      'No description available'
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Description is now shown directly under each media type above */}
             </>
           )}
           {sourceUrl && (

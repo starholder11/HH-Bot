@@ -28,14 +28,25 @@ interface MediaMetadataProps {
 export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaMetadataProps) {
   // Use full asset data if available, otherwise fall back to search result metadata
   const m: any = fullAsset || r.metadata || {};
-  
-  // Debug: Log the actual metadata structure
+
+    // Debug: Log the actual metadata structure
   console.log('MediaMetadata received:', { 
     id: r.id, 
     content_type: r.content_type, 
     hasFullAsset: !!fullAsset,
+    fullAsset: fullAsset,
     metadata: m 
   });
+
+  // Prevent errors if data is malformed
+  if (!m || typeof m !== 'object') {
+    console.warn('MediaMetadata: Invalid metadata object for', r.id);
+    return (
+      <div className="text-center py-4">
+        <div className="text-yellow-400">No metadata available for this asset</div>
+      </div>
+    );
+  }
 
   const pick = (...keys: Array<string>): any => {
     for (const k of keys) {
@@ -72,8 +83,8 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
     };
 
     return (
-      <span 
-        key={text} 
+      <span
+        key={text}
         className={`${className} ${onSearch ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
         onClick={handleClick}
         title={onSearch ? `Search for "${searchQuery || text}"` : undefined}
@@ -88,11 +99,11 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
       {/* Technical Metadata */}
       <div>
         <h3 className="text-lg font-semibold text-neutral-200 mb-3">
-          {r.content_type === 'image' ? 'Image Details' : 
-           r.content_type === 'video' ? 'Video Details' : 
+          {r.content_type === 'image' ? 'Image Details' :
+           r.content_type === 'video' ? 'Video Details' :
            'Audio Details'}
         </h3>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* Dimensions for images/videos */}
           {(r.content_type === 'image' || r.content_type === 'video') && meta.width && meta.height && (
@@ -103,7 +114,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               </div>
             </div>
           )}
-          
+
           {/* Duration for video/audio */}
           {(r.content_type === 'video' || r.content_type === 'audio') && meta.duration && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
@@ -113,7 +124,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               </div>
             </div>
           )}
-          
+
           {/* Format */}
           {meta.format && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
@@ -123,13 +134,13 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               </div>
             </div>
           )}
-          
+
           {/* File Size */}
           {meta.fileSize && (
             <div className="text-center p-3 bg-neutral-800 rounded-lg">
               <div className="text-xs text-neutral-400 font-medium">File Size</div>
               <div className="text-sm font-bold text-neutral-100 mt-1">
-                {Number(meta.fileSize) > 1024 * 1024 
+                {Number(meta.fileSize) > 1024 * 1024
                   ? `${(Number(meta.fileSize) / (1024 * 1024)).toFixed(1)} MB`
                   : `${Math.round(Number(meta.fileSize) / 1024)} KB`}
               </div>
@@ -173,7 +184,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
         return (
         <div>
           <h3 className="text-lg font-semibold text-neutral-200 mb-3">AI Analysis</h3>
-          
+
           {/* Scene Description */}
           {aiLabels.scenes?.length > 0 && (
             <div className="mb-4">
@@ -192,7 +203,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Objects</h4>
                 <div className="flex flex-wrap gap-1">
-                  {aiLabels.objects.slice(0, 8).map((object: string, index: number) => 
+                  {aiLabels.objects.slice(0, 8).map((object: string, index: number) =>
                     createClickableLabel(
                       object,
                       "px-3 py-1 text-xs bg-blue-900/40 text-blue-300 rounded-full border border-blue-800",
@@ -212,7 +223,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Style</h4>
                 <div className="flex flex-wrap gap-1">
-                  {aiLabels.style.map((style: string, index: number) => 
+                  {aiLabels.style.map((style: string, index: number) =>
                     createClickableLabel(
                       style,
                       "px-3 py-1 text-xs bg-green-900/40 text-green-300 rounded-full border border-green-800",
@@ -227,7 +238,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Mood</h4>
                 <div className="flex flex-wrap gap-1">
-                  {aiLabels.mood.map((mood: string, index: number) => 
+                  {aiLabels.mood.map((mood: string, index: number) =>
                     createClickableLabel(
                       mood,
                       "px-3 py-1 text-xs bg-yellow-900/40 text-yellow-300 rounded-full border border-yellow-800",
@@ -242,7 +253,7 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Themes</h4>
                 <div className="flex flex-wrap gap-1">
-                  {aiLabels.themes.map((theme: string, index: number) => 
+                  {aiLabels.themes.map((theme: string, index: number) =>
                     createClickableLabel(
                       theme,
                       "px-3 py-1 text-xs bg-orange-900/40 text-orange-300 rounded-full border border-orange-800",
@@ -261,13 +272,13 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
       {m.manual_labels && (
         <div>
           <h3 className="text-lg font-semibold text-neutral-200 mb-3">Manual Labels</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {m.manual_labels.custom_tags?.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-neutral-300 mb-2">Custom Tags</h4>
                 <div className="flex flex-wrap gap-1">
-                  {m.manual_labels.custom_tags.map((tag: string, index: number) => 
+                  {m.manual_labels.custom_tags.map((tag: string, index: number) =>
                     createClickableLabel(
                       tag,
                       "px-3 py-1 text-xs bg-neutral-700 text-neutral-200 rounded-full border border-neutral-600",
@@ -302,8 +313,8 @@ export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaM
                   </div>
                 </div>
               )}
-              
-              {typeof m.manual_labels?.emotional_intensity === 'number' && (
+
+                            {typeof m.manual_labels?.emotional_intensity === 'number' && (
                 <div className="text-center p-3 bg-neutral-800 rounded-lg">
                   <div className="text-xs text-neutral-400 font-medium">Intensity</div>
                   <div className="text-sm font-bold text-neutral-100 mt-1">
