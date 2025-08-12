@@ -68,8 +68,16 @@ function ResultCardComponent({
       const base = r.preview ?? r.description ?? '';
       const raw = typeof base === 'string' ? base : JSON.stringify(base);
       const cleaned = stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
-      // Enforce a strict character limit for card consistency (approximately 2 lines max)
-      return cleaned.length > 100 ? cleaned.substring(0, 97) + '...' : cleaned;
+      
+      // Different limits for different content types
+      if (r.content_type === 'text') {
+        // For text content, allow up to 70 words
+        const words = cleaned.split(/\s+/);
+        return words.length > 70 ? words.slice(0, 70).join(' ') + '...' : cleaned;
+      } else {
+        // For media (video/image/audio), enforce strict character limit for card consistency
+        return cleaned.length > 100 ? cleaned.substring(0, 97) + '...' : cleaned;
+      }
     } catch {
       return '';
     }
@@ -139,9 +147,15 @@ function ResultCardComponent({
       <div className="px-3">
         <MediaPreview r={r} />
       </div>
-      <div className="p-3 h-24 flex flex-col justify-between">
+      <div className={classNames(
+        "p-3 flex flex-col justify-between",
+        r.content_type === 'text' ? "min-h-32" : "h-24"
+      )}>
         <div className="flex-1">
-          {snippet && <p className="text-sm text-neutral-300 line-clamp-2">{snippet}</p>}
+          {snippet && <p className={classNames(
+            "text-sm text-neutral-300",
+            r.content_type === 'text' ? "line-clamp-6" : "line-clamp-2"
+          )}>{snippet}</p>}
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
           {labels.slice(0, 4).map((l, idx) => (

@@ -1621,10 +1621,32 @@ export default function VisualSearchPage() {
 
   const toggleType = (t: ContentType | "media" | "all") => {
     setTypes((prev) => {
-      if (t === "all") return ["all"]; // reset
-      const withoutAll = prev.filter((x) => x !== "all");
-      if (withoutAll.includes(t)) return withoutAll.filter((x) => x !== t);
-      return [...withoutAll, t];
+      const newTypes: Array<ContentType | "media" | "all"> = (() => {
+        if (t === "all") return ["all"];
+        const withoutAll = prev.filter((x) => x !== "all");
+        if (withoutAll.includes(t)) return withoutAll.filter((x) => x !== t);
+        return [...withoutAll, t];
+      })();
+      
+      // Auto-search if there's already a query and types changed
+      if (query.trim() && JSON.stringify(newTypes) !== JSON.stringify(prev)) {
+        setTimeout(() => {
+          // Convert new types to search type parameter
+          let searchType: string | undefined;
+          if (newTypes.includes("all")) {
+            searchType = undefined;
+          } else if (newTypes.length === 1) {
+            searchType = newTypes[0];
+          } else if (newTypes.includes("media")) {
+            searchType = "media";
+          } else {
+            searchType = newTypes.filter(t => t !== "all" && t !== "media").join(",");
+          }
+          executeSearch(query, undefined, searchType);
+        }, 100);
+      }
+      
+      return newTypes;
     });
   };
 
