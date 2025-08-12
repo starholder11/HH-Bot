@@ -211,7 +211,7 @@ function GenerationPanel({
 }) {
   const { models, loading } = useFalModels();
   const [filter, setFilter] = useState('');
-  const [selected, setSelected] = useState<FalModel | null>(null);
+  const [selectedModel, setSelectedModel] = useState<FalModel | null>(null);
   const [values, setValues] = useState<Record<string, any>>({});
   const [useRefs, setUseRefs] = useState(true);
   const [uploadedRefs, setUploadedRefs] = useState<string[]>([]);
@@ -233,32 +233,32 @@ function GenerationPanel({
 
   useEffect(() => {
     // Clear selection if it doesn't match current category
-    if (selected && category && selected.category !== category) {
-      setSelected(null);
+    if (selectedModel && category && selectedModel.category !== category) {
+      setSelectedModel(null);
       setValues({});
       setGenPreviewUrl(null);
       setGenText(null);
     }
-  }, [category, selected]);
+  }, [category, selectedModel]);
 
   useEffect(() => {
-    if (selected) {
-      const init: Record<string, any> = { ...(selected.defaults || {}) };
-      Object.entries(selected.inputSchema.properties || {}).forEach(([k, def]) => {
+    if (selectedModel) {
+      const init: Record<string, any> = { ...(selectedModel.defaults || {}) };
+      Object.entries(selectedModel.inputSchema.properties || {}).forEach(([k, def]) => {
         if (init[k] == null && def.default != null) init[k] = def.default;
       });
       setValues(init);
-      setAdvancedModelId(selected.id);
+      setAdvancedModelId(selectedModel.id);
 
       // If user has a completed canvas LoRA and selected an image model that includes 'flux', auto-switch model id to 'fal-ai/flux-lora'
       try {
         const hasCompleted = (canvasLoras || []).some((l: any) => l.status === 'completed' && (l.artifactUrl || l.path))
-        if (hasCompleted && selected.category === 'image' && /flux/i.test(selected.id)) {
+        if (hasCompleted && selectedModel.category === 'image' && /flux/i.test(selectedModel.id)) {
           setAdvancedModelId('fal-ai/flux-lora');
         }
       } catch {}
     }
-  }, [selected, canvasLoras]);
+  }, [selectedModel, canvasLoras]);
 
   // Sync selectedLoras from all available LoRAs
   useEffect(() => {
@@ -317,12 +317,12 @@ function GenerationPanel({
           if (payload?.options && typeof payload.options === 'object') setValues((prev) => ({ ...prev, ...payload.options }));
           // Try to select a model by id if present in loaded list
           const match = (models || []).find((m) => m.id === payload?.model);
-          if (match) setSelected(match);
+          if (match) setSelectedModel(match);
           // Auto-run only after a model is selected and prompt exists
           if (payload?.autoRun) {
             const waitAndRun = () => {
               const hasPrompt = !!(values.prompt || values.text || payload?.prompt);
-              if (hasPrompt && (match || selected)) {
+              if (hasPrompt && (match || selectedModel)) {
                 setTimeout(() => { void handleGenerate(); }, 50);
               } else {
                 setTimeout(waitAndRun, 50);
@@ -334,10 +334,10 @@ function GenerationPanel({
       },
     };
     return () => { try { delete (window as any).__genPanel; } catch {} };
-  }, [models, selected, values.prompt, values.text]);
+  }, [models, selectedModel, values.prompt, values.text]);
 
   async function handleGenerate() {
-    if (!selected) return;
+    if (!selectedModel) return;
     const prompt = values.prompt || values.text || '';
     if (!prompt || busy) return;
     // Notify parent to show Output tab with spinner
@@ -354,10 +354,10 @@ function GenerationPanel({
         : [];
       const refs = [...uploadedRefs, ...pinnedRefs] as string[];
 
-      const mode = categoryToMode(selected.category);
+      const mode = categoryToMode(selectedModel.category);
       const body: any = {
         mode,
-        model: advancedModelId || selected.id,
+        model: advancedModelId || selectedModel.id,
         prompt,
         refs,
         options: Object.fromEntries(Object.entries(values).filter(([k]) => k !== 'prompt')),
@@ -412,15 +412,15 @@ function GenerationPanel({
   }
 
   async function handleSaveToLibrary() {
-    if (!selected) return;
-    const mode = categoryToMode(selected.category);
+    if (!selectedModel) return;
+    const mode = categoryToMode(selectedModel.category);
     const url = genPreviewUrl;
     if (!url) return;
 
     setSaveStatus('saving');
 
     try {
-      const filename = `${selected.category}-generated-${Date.now()}`;
+      const filename = `${selectedModel.category}-generated-${Date.now()}`;
       const resp = await fetch('/api/import/url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -449,9 +449,9 @@ function GenerationPanel({
   }
 
   function handlePinGenerated() {
-    if (!selected) return;
+    if (!selectedModel) return;
     if (!genPreviewUrl) return;
-    const mode = categoryToMode(selected.category);
+    const mode = categoryToMode(selectedModel.category);
     const r: UnifiedSearchResult = {
       id: `generated-${Date.now()}`,
       content_type: mode as any,
@@ -507,10 +507,10 @@ function GenerationPanel({
             filtered.map((m) => (
               <button
                 key={m.id}
-                onClick={() => setSelected(m)}
+                onClick={() => setSelectedModel(m)}
                 className={classNames(
                   'w-full text-left px-3 py-2 text-sm border-b border-neutral-800 hover:bg-neutral-800',
-                  selected?.id === m.id && 'bg-neutral-800'
+                  selectedModel?.id === m.id && 'bg-neutral-800'
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -545,10 +545,10 @@ function GenerationPanel({
                       setValues((prev) => ({ ...prev, loras: [{ path: chosen.path, scale: chosen.scale }] }))
                       const m = models.find((m) => m.id === 'fal-ai/flux-lora')
                       if (m) {
-                        setSelected(m)
+                        setSelectedModel(m)
                       } else {
                         // If model not found, create a temporary one to enable the prompt UI
-                        setSelected({
+                        setSelectedModel({
                           id: 'fal-ai/flux-lora',
                           name: 'FLUX LoRA',
                           provider: 'fal' as const,
@@ -625,7 +625,7 @@ function GenerationPanel({
       )}
 
       {/* Input fields appear only after model selection */}
-      {selected && (
+      {selectedModel && (
         <div className="mt-4 space-y-3">
           {/* Reference images */}
           <div className="space-y-2">
@@ -675,7 +675,7 @@ function GenerationPanel({
               placeholder="fal-ai/fast-sdxl"
             />
           </div>
-          <FieldRenderer schema={selected.inputSchema} values={values} setValues={setValues} />
+          <FieldRenderer schema={selectedModel.inputSchema} values={values} setValues={setValues} />
           <div className="flex gap-2">
             <button
               onClick={handleGenerate}
@@ -720,25 +720,25 @@ function GenerationPanel({
           </div>
 
           {/* Preview */}
-          {genPreviewUrl && selected.category === 'image' && (
+          {genPreviewUrl && selectedModel.category === 'image' && (
             <div className="mt-2">
               <img src={genPreviewUrl} className="w-full h-48 object-cover rounded-md border border-neutral-800" alt="generated" />
             </div>
           )}
-          {genPreviewUrl && selected.category === 'audio' && (
+          {genPreviewUrl && selectedModel.category === 'audio' && (
             <div className="mt-2 border border-neutral-800 rounded-md p-2 bg-neutral-950">
               <audio src={genPreviewUrl} controls className="w-full" />
             </div>
           )}
-          {genPreviewUrl && selected.category === 'video' && (
+          {genPreviewUrl && selectedModel.category === 'video' && (
             <div className="mt-2 border border-neutral-800 rounded-md p-2 bg-black">
               <video src={genPreviewUrl} controls className="w-full" />
             </div>
           )}
-          {genText && selected.category === 'text' && (
+          {genText && selectedModel.category === 'text' && (
             <pre className="mt-2 max-h-48 overflow-auto text-xs border border-neutral-800 rounded-md p-2 bg-neutral-950 text-neutral-200">{genText}</pre>
           )}
-          {genText && selected.category !== 'text' && !genPreviewUrl && (
+          {genText && selectedModel.category !== 'text' && !genPreviewUrl && (
             <details className="mt-2">
               <summary className="text-xs text-neutral-400 cursor-pointer">Show raw result</summary>
               <pre className="mt-2 max-h-48 overflow-auto text-xs border border-neutral-800 rounded-md p-2 bg-neutral-950 text-neutral-200">{genText}</pre>
