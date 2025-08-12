@@ -116,17 +116,17 @@ export default function GridPinned({
             {(() => {
               const base = p.result.preview ?? p.result.description ?? '';
               const raw = typeof base === 'string' ? base : JSON.stringify(base);
-              const cleaned = stripCircularDescription(raw, { 
-                id: p.result.id, 
-                title: String(p.result.title ?? ''), 
-                type: p.result.content_type 
+              const cleaned = stripCircularDescription(raw, {
+                id: p.result.id,
+                title: String(p.result.title ?? ''),
+                type: p.result.content_type
               });
-              
+
               // Different limits for different content types
-              const snippet = p.result.content_type === 'text' 
+              const snippet = p.result.content_type === 'text'
                 ? (cleaned.split(/\s+/).length > 70 ? cleaned.split(/\s+/).slice(0, 70).join(' ') + '...' : cleaned)
                 : (cleaned.length > 100 ? cleaned.substring(0, 97) + '...' : cleaned);
-                
+
               return snippet ? (
                 <p className={`text-sm text-neutral-300 ${
                   p.result.content_type === 'text' ? 'line-clamp-4' : 'line-clamp-2'

@@ -1031,7 +1031,22 @@ function RightPane({
             </div>
           ) : (
             <div ref={canvasRef}>
-              <CanvasBoard items={pinned} onMove={movePinned} onRemove={removePinned} onOpen={onOpen} />
+              <CanvasBoard 
+                items={pinned} 
+                onMove={movePinned} 
+                onRemove={removePinned} 
+                onOpen={onOpen}
+                onResize={(id, width, height) => {
+                  // For now, we'll maintain position and just update size
+                  // In future, this could be enhanced with proper resize handling
+                  console.log(`Resize request: ${id} to ${width}x${height}`);
+                }}
+                onToggleView={(id, expanded) => {
+                  // For now, just log the toggle request
+                  // In future, this could update the pinned item state
+                  console.log(`Toggle view: ${id} to ${expanded ? 'expanded' : 'thumbnail'}`);
+                }}
+              />
             </div>
           )}
           <div className="mt-3">
@@ -1672,6 +1687,8 @@ export default function VisualSearchPage() {
     const baseY = Math.max(0, (rect?.height || 500) * 0.05 + Math.random() * 60);
     addPin(r, baseX, baseY);
   };
+
+
 
   // movePinned from store
 
