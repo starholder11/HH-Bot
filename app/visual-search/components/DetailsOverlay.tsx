@@ -5,7 +5,7 @@ import { getResultMediaUrl } from '../utils/mediaUrl';
 import MediaMetadata from './MediaMetadata';
 import dynamic from 'next/dynamic';
 
-const LayoutViewer = dynamic(() => import('../Layout/LayoutViewer'), {
+const LayoutViewer = dynamic(() => import('./Layout/LayoutViewer'), {
   ssr: false,
   loading: () => <div className="w-full h-64 bg-neutral-900 rounded border border-neutral-800 flex items-center justify-center text-neutral-400">Loading layout...</div>
 });
