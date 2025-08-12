@@ -9,25 +9,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   const [isLoadingText, setIsLoadingText] = useState<boolean>(false);
   const [textError, setTextError] = useState<string | null>(null);
 
-  // Lock background scroll while the overlay is open to avoid double scrollbars
-  useEffect(() => {
-    // Preserve original values to restore on unmount (body and html)
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalHtmlOverflow = document.documentElement.style.overflow;
-    const originalPaddingRight = document.body.style.paddingRight;
-    // Calculate native scrollbar width to prevent layout shift
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-    return () => {
-      document.body.style.overflow = originalBodyOverflow;
-      document.documentElement.style.overflow = originalHtmlOverflow;
-      document.body.style.paddingRight = originalPaddingRight;
-    };
-  }, []);
+  // Removed scroll locking - let main page scroll naturally
 
   // Move hooks BEFORE any early returns to follow Rules of Hooks
   useEffect(() => {
@@ -120,8 +102,9 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      {/* Centered, responsive sheet that becomes wide on desktop and full-width on mobile */}
-      <div className="absolute right-0 top-0 h-full w-full sm:w-[640px] md:w-[720px] lg:w-[800px] bg-neutral-950 border-l border-neutral-800 shadow-xl flex flex-col">
+      {/* Full-width overlay that centers content */}
+      <div className="absolute inset-0 flex items-start justify-center pt-8 pb-8">
+        <div className="w-full max-w-4xl mx-4 bg-neutral-950 border border-neutral-800 rounded-lg shadow-xl flex flex-col max-h-full">
         {/* Fixed Header */}
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between flex-shrink-0">
           <div>
@@ -186,6 +169,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
               </a>
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>
