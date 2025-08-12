@@ -30,22 +30,35 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
 
     if (r && ['image', 'video', 'audio'].includes(r.content_type)) {
       setIsLoadingAsset(true);
-      // Try resolving by ID first; pass media URL as a fallback hint for the API
-      const hintUrl = (() => {
-        try { return getResultMediaUrl(r) || undefined; } catch { return undefined; }
-      })();
-      const qs = hintUrl ? `?url=${encodeURIComponent(hintUrl)}` : '';
-      fetch(`/api/media-assets/${r.id}${qs}`)
+      
+      // Audio uses a different API endpoint structure
+      const apiEndpoint = r.content_type === 'audio' 
+        ? `/api/audio-labeling/songs/${r.id}`
+        : `/api/media-assets/${r.id}`;
+      
+      fetch(apiEndpoint)
         .then(async (res) => {
           if (cancelled) return;
 
           const json = await res.json();
-          if (!res.ok || !json?.success) {
-            throw new Error(json?.error || 'Failed to load asset metadata');
-          }
-
-          if (!cancelled) {
-            setFullAsset(json.asset);
+          
+          // Handle different response formats
+          if (r.content_type === 'audio') {
+            // Audio API returns song data directly
+            if (!res.ok || !json) {
+              throw new Error('Failed to load audio metadata');
+            }
+            if (!cancelled) {
+              setFullAsset(json);
+            }
+          } else {
+            // Media assets API returns { success, asset }
+            if (!res.ok || !json?.success) {
+              throw new Error(json?.error || 'Failed to load asset metadata');
+            }
+            if (!cancelled) {
+              setFullAsset(json.asset);
+            }
           }
         })
         .catch((e) => {
