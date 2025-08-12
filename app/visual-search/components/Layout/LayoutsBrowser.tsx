@@ -19,37 +19,21 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
       setLoading(true);
       setError(null);
       
-      // Search for layout assets using unified search
-      const response = await fetch('/api/unified-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: '',
-          content_types: ['layout'],
-          limit: 100
-        })
-      });
+      // Fetch layouts directly from layouts API
+      const response = await fetch('/api/layouts');
 
       if (!response.ok) {
-        throw new Error('Failed to load layouts');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to load layouts');
       }
 
       const data = await response.json();
       
-      // Extract layout assets from search results
-      const layoutAssets: LayoutAsset[] = [];
-      for (const result of data.results || []) {
-        if (result.content_type === 'layout' && result.metadata) {
-          // Fetch full layout data
-          const layoutResponse = await fetch(`/api/media-assets/${result.id}`);
-          if (layoutResponse.ok) {
-            const layoutData = await layoutResponse.json();
-            layoutAssets.push(layoutData.asset);
-          }
-        }
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load layouts');
       }
 
-      setLayouts(layoutAssets);
+      setLayouts(data.layouts || []);
     } catch (err) {
       console.error('Failed to load layouts:', err);
       setError(err instanceof Error ? err.message : 'Failed to load layouts');
