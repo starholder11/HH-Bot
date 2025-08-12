@@ -209,7 +209,7 @@ function LayoutsTab() {
         <LayoutEditorModal
           layout={selectedLayout}
           onClose={() => setShowModal(false)}
-          onSaved={(l) => { setSelectedLayout(l); setShowModal(false); }}
+          onSaved={(l) => { setSelectedLayout(l); }}
         />
       )}
     </div>

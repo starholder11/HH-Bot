@@ -110,7 +110,14 @@ export default function LayoutEditorModal({
     }
   }
 
-  const { addTextBlock, duplicateSelected, deleteSelected } = useCommands(edited, setEdited, selectedId);
+  const { addTextBlock, duplicateSelected, deleteSelected } = useCommands(
+    edited, 
+    setEdited, 
+    selectedId,
+    setSelectedId,
+    setIsEditingText,
+    setDraftText
+  );
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/70 flex">
@@ -401,6 +408,9 @@ function useCommands(
   edited: LayoutAsset,
   setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>>,
   selectedId: string | null,
+  setSelectedId: React.Dispatch<React.SetStateAction<string | null>>,
+  setIsEditingText: React.Dispatch<React.SetStateAction<boolean>>,
+  setDraftText: React.Dispatch<React.SetStateAction<string>>,
 ) {
   function addTextBlock() {
     const id = `inline_${Date.now().toString(36)}`;
@@ -425,7 +435,21 @@ function useCommands(
   }
   function deleteSelected() {
     if (!selectedId) return;
-    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: prev.layout_data.items.filter(i => i.id !== selectedId) }, updated_at: new Date().toISOString() } as LayoutAsset));
+    
+    // Clear selection first to avoid referencing deleted item
+    setSelectedId(null);
+    setIsEditingText(false);
+    setDraftText('');
+    
+    // Then update the layout
+    setEdited(prev => ({ 
+      ...prev, 
+      layout_data: { 
+        ...prev.layout_data, 
+        items: prev.layout_data.items.filter(i => i.id !== selectedId) 
+      }, 
+      updated_at: new Date().toISOString() 
+    } as LayoutAsset));
   }
   return { addTextBlock, duplicateSelected, deleteSelected };
 }
