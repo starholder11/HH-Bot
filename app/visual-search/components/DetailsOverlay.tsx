@@ -11,7 +11,8 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   if (!r) return null;
 
   const mediaUrl = getResultMediaUrl(r);
-  const sourceUrl: string | undefined = (r.metadata?.source_url as string | undefined) || mediaUrl || r.url;
+  const sourceUrlRaw: unknown = (r.metadata?.source_url as unknown) ?? mediaUrl ?? r.url;
+  const sourceUrl: string | undefined = typeof sourceUrlRaw === 'string' && sourceUrlRaw.length > 0 ? sourceUrlRaw : undefined;
 
   // Ensure we never try to render objects/arrays directly in JSX
   const toDisplayText = (value: unknown, fallback: string = ''): string => {
@@ -31,19 +32,19 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   };
 
   const extractSlugFromResult = (res: UnifiedSearchResult): string | null => {
-    const parent = (res as any)?.metadata?.parent_slug as string | undefined;
-    if (parent) {
-      const parts = parent.split('/');
-      return parts.length > 0 ? parts[parts.length - 1] : parent;
-    }
-    if (typeof res.id === 'string' && res.id.startsWith('text_')) {
-      try {
-        const after = res.id.split('text_')[1];
-        const beforeHash = after.split('#')[0];
+    try {
+      const parentUnknown: unknown = (res as any)?.metadata?.parent_slug;
+      if (typeof parentUnknown === 'string' && parentUnknown.length > 0) {
+        const parts = parentUnknown.split('/');
+        return parts.length > 0 ? parts[parts.length - 1] : parentUnknown;
+      }
+      if (typeof res.id === 'string' && res.id.startsWith('text_')) {
+        const after = res.id.split('text_')[1] ?? '';
+        const beforeHash = after.split('#')[0] ?? '';
         const subParts = beforeHash.split('/');
-        return subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash;
-      } catch {}
-    }
+        return subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || null;
+      }
+    } catch {}
     return null;
   };
 
@@ -75,7 +76,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
           <div>
             <div className="text-xs text-neutral-400">{r.content_type}</div>
-            <div className="text-lg font-semibold text-neutral-100">{r.title}</div>
+            <div className="text-lg font-semibold text-neutral-100">{toDisplayText(r.title, 'Untitled')}</div>
           </div>
           <button onClick={onClose} className="px-3 py-1.5 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">
             Close
