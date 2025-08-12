@@ -9,6 +9,23 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   const [isLoadingText, setIsLoadingText] = useState<boolean>(false);
   const [textError, setTextError] = useState<string | null>(null);
 
+  // Lock background scroll while the overlay is open to avoid double scrollbars
+  useEffect(() => {
+    // Preserve original values to restore on unmount
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+    // Calculate native scrollbar width to prevent layout shift
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
+    };
+  }, []);
+
   // Move hooks BEFORE any early returns to follow Rules of Hooks
   useEffect(() => {
     let cancelled = false;
@@ -98,9 +115,10 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   // Removed duplicate extractSlugFromResult and useEffect - moved above
 
   return (
-    <div className="fixed inset-0 z-[100]">
+    <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute right-0 top-0 h-full w-full sm:w-[560px] bg-neutral-950 border-l border-neutral-800 shadow-xl flex flex-col">
+      {/* Centered, responsive sheet that becomes wide on desktop and full-width on mobile */}
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[640px] md:w-[720px] lg:w-[800px] bg-neutral-950 border-l border-neutral-800 shadow-xl flex flex-col">
         {/* Fixed Header */}
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between flex-shrink-0">
           <div>
@@ -111,8 +129,8 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
             Close
           </button>
         </div>
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Scrollable Content with momentum scrolling */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 [scrollbar-width:thin] [scrollbar-color:#3f3f46_transparent]" style={{ WebkitOverflowScrolling: 'touch' }}>
           {r.content_type === 'text' ? (
             <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
               {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
@@ -127,10 +145,10 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
             <>
               {/* Media Display */}
               {mediaUrl && (r.content_type === 'image' ? (
-                <img src={mediaUrl} alt={r.title} className="w-full rounded-md border border-neutral-800 bg-black" />
+                <img src={mediaUrl} alt={r.title} className="w-full rounded-lg border border-neutral-800 bg-black" />
               ) : r.content_type === 'video' ? (
                 <>
-                  <video src={mediaUrl} controls className="w-full rounded-md border border-neutral-800 bg-black" />
+                  <video src={mediaUrl} controls className="w-full rounded-lg border border-neutral-800 bg-black" />
                   {/* Video description right after video */}
                   <div className="space-y-2">
                     <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
@@ -140,7 +158,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
                   </div>
                 </>
               ) : r.content_type === 'audio' ? (
-                <div className="p-2"><audio src={mediaUrl} controls className="w-full" /></div>
+                <div className="p-2 rounded-lg border border-neutral-800 bg-black"><audio src={mediaUrl} controls className="w-full" /></div>
               ) : null)}
 
               {/* Rich Metadata Display */}
