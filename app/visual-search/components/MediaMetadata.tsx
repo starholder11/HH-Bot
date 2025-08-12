@@ -21,15 +21,21 @@ const toDisplayText = (value: unknown, fallback: string = ''): string => {
 
 interface MediaMetadataProps {
   result: UnifiedSearchResult;
+  fullAsset?: any; // Complete asset data from S3
   onSearch?: (query: string) => void;
 }
 
-export default function MediaMetadata({ result: r, onSearch }: MediaMetadataProps) {
-  // The metadata comes from parsed references JSON in the search results
-  const m: any = r.metadata || {};
+export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaMetadataProps) {
+  // Use full asset data if available, otherwise fall back to search result metadata
+  const m: any = fullAsset || r.metadata || {};
   
   // Debug: Log the actual metadata structure
-  console.log('MediaMetadata received:', { id: r.id, content_type: r.content_type, metadata: m });
+  console.log('MediaMetadata received:', { 
+    id: r.id, 
+    content_type: r.content_type, 
+    hasFullAsset: !!fullAsset,
+    metadata: m 
+  });
 
   const pick = (...keys: Array<string>): any => {
     for (const k of keys) {

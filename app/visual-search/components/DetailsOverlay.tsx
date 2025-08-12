@@ -12,17 +12,63 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
   const [fullText, setFullText] = useState<string | null>(null);
   const [isLoadingText, setIsLoadingText] = useState<boolean>(false);
   const [textError, setTextError] = useState<string | null>(null);
+  const [fullAsset, setFullAsset] = useState<any | null>(null);
+  const [isLoadingAsset, setIsLoadingAsset] = useState<boolean>(false);
+  const [assetError, setAssetError] = useState<string | null>(null);
 
   // Removed scroll locking - let main page scroll naturally
 
-  // Move hooks BEFORE any early returns to follow Rules of Hooks
+    // Move hooks BEFORE any early returns to follow Rules of Hooks
+  
+  // Fetch full asset metadata for media types
   useEffect(() => {
     let cancelled = false;
-    
+
+    setFullAsset(null);
+    setAssetError(null);
+    setIsLoadingAsset(false);
+
+    if (r && ['image', 'video', 'audio'].includes(r.content_type)) {
+      setIsLoadingAsset(true);
+      
+      fetch(`/api/media-assets/${r.id}`)
+        .then(async (res) => {
+          if (cancelled) return;
+          
+          const json = await res.json();
+          if (!res.ok || !json?.success) {
+            throw new Error(json?.error || 'Failed to load asset metadata');
+          }
+
+          if (!cancelled) {
+            setFullAsset(json.asset);
+          }
+        })
+        .catch((e) => {
+          if (!cancelled) {
+            setAssetError((e as Error).message);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoadingAsset(false);
+          }
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [r?.id]);
+
+  // Fetch full text content for text types
+  useEffect(() => {
+    let cancelled = false;
+
     setFullText(null);
     setTextError(null);
     setIsLoadingText(false);
-    
+
     if (r && r.content_type === 'text') {
       const extractSlugFromResult = (res: UnifiedSearchResult): string | null => {
         try {
@@ -152,7 +198,23 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
               ) : null)}
 
               {/* Rich Metadata Display */}
-              <MediaMetadata result={r} onSearch={onSearch} />
+              {isLoadingAsset && (
+                <div className="text-center py-8">
+                  <div className="text-neutral-400">Loading full metadata...</div>
+                </div>
+              )}
+              {assetError && (
+                <div className="text-center py-4">
+                  <div className="text-red-400">Failed to load metadata: {assetError}</div>
+                </div>
+              )}
+              {!isLoadingAsset && !assetError && (
+                <MediaMetadata 
+                  result={r} 
+                  fullAsset={fullAsset} 
+                  onSearch={onSearch} 
+                />
+              )}
 
               {/* Description/Preview for non-video content */}
               {r.content_type !== 'video' && (
