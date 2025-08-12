@@ -30,8 +30,7 @@ export default function CanvasToolbar({
   saveCanvas: () => Promise<void> | void;
   setShowCanvasManager: (v: boolean) => void;
   clearCanvas: () => void;
-  canvasLayout: 'grid' | 'freeform';
-  setCanvasLayout: (v: 'grid' | 'freeform') => void;
+  // canvasLayout removed - only RGL canvas now
   loraTraining: null | { status: string; requestId?: string };
   trainCanvasLora: () => Promise<void>;
   canvasLoras: any[];
@@ -96,30 +95,7 @@ export default function CanvasToolbar({
         <button onClick={clearCanvas} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Clear</button>
       </div>
 
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
-            <input
-              type="radio"
-              name="canvas-layout"
-              checked={canvasLayout === 'grid'}
-              onChange={() => setCanvasLayout('grid')}
-              className="accent-neutral-400"
-            />
-            Grid
-          </label>
-          <label className="inline-flex items-center gap-2 text-xs text-neutral-300">
-            <input
-              type="radio"
-              name="canvas-layout"
-              checked={canvasLayout === 'freeform'}
-              onChange={() => setCanvasLayout('freeform')}
-              className="accent-neutral-400"
-            />
-            Freeform
-          </label>
-        </div>
-      </div>
+      {/* Freeform toggle removed - only RGL canvas now */}
     </>
   );
 }

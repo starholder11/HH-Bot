@@ -844,8 +844,8 @@ function RightPane({
   saveCanvas,
   setShowCanvasManager,
   clearCanvas,
-  canvasLayout,
-  setCanvasLayout,
+  // canvasLayout removed
+  // setCanvasLayout removed
   reorderPinned,
   canvasNote,
   setCanvasNote,
@@ -902,8 +902,7 @@ function RightPane({
   saveCanvas: () => Promise<void> | void;
   setShowCanvasManager: (v: boolean) => void;
   clearCanvas: () => void;
-  canvasLayout: 'grid' | 'freeform';
-  setCanvasLayout: (v: 'grid' | 'freeform') => void;
+  // canvasLayout removed - only RGL canvas now
   reorderPinned: (fromIndex: number, toIndex: number) => void;
   canvasNote: string;
   setCanvasNote: (v: string) => void;
@@ -1029,34 +1028,31 @@ function RightPane({
             saveCanvas={saveCanvas}
             setShowCanvasManager={setShowCanvasManager}
             clearCanvas={clearCanvas}
-            canvasLayout={canvasLayout}
+            // canvasLayout removed
             setCanvasLayout={setCanvasLayout}
             loraTraining={loraTraining}
             trainCanvasLora={trainCanvasLora}
             canvasLoras={canvasLoras}
           />
-          {canvasLayout === 'grid' ? (
-            <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 h-[640px]">
-              {pinned.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-neutral-500 text-sm">Pin results here to build a visual board.</div>
-              ) : (
-                <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
-              )}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-neutral-800 p-6 bg-neutral-950 h-[640px] flex items-center justify-center">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-neutral-200 mb-2">Freeform Canvas</h3>
-                <p className="text-neutral-400 mb-4">Create layouts with draggable, resizable cards</p>
-                <button
-                  onClick={() => setShowFreeformModal(true)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Open Freeform Canvas ({pinned.length} items)
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Only RGL canvas now - no grid/freeform toggle */}
+          <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 h-[640px]">
+            {pinned.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-neutral-500 text-sm">Pin results here to build a visual board.</div>
+            ) : (
+              <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
+            )}
+          </div>
+          
+          {/* RGL Canvas Modal Button */}
+          <div className="mt-3 text-center">
+            <button
+              onClick={() => setShowFreeformModal(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              disabled={pinned.length === 0}
+            >
+              Open Canvas ({pinned.length} items)
+            </button>
+          </div>
           <div className="mt-3">
             <label className="text-xs text-neutral-400 block mb-1">Notes</label>
             <textarea
@@ -1205,7 +1201,7 @@ export default function VisualSearchPage() {
     cacheStore.set('globalResultsCache', data);
   };
   // page/total/multiSelect/selectedIds now from stores
-  const [canvasLayout, setCanvasLayout] = useState<'grid' | 'freeform'>('grid');
+  // canvasLayout removed - only RGL canvas now
   const [showFreeformModal, setShowFreeformModal] = useState(false);
   const [canvasId, setCanvasId] = useState<string | null>(null);
   const [canvases, setCanvases] = useState<Array<{ id: string; name: string; key: string; updatedAt?: string }>>([])
@@ -2150,7 +2146,7 @@ export default function VisualSearchPage() {
             saveCanvas={() => saveCanvas()}
             setShowCanvasManager={setShowCanvasManager}
             clearCanvas={clearCanvas}
-            canvasLayout={canvasLayout}
+            // canvasLayout removed
             setCanvasLayout={setCanvasLayout}
             reorderPinned={reorderPinned}
             canvasNote={canvasNote}

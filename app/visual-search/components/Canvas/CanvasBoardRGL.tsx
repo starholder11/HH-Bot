@@ -256,7 +256,7 @@ export default function CanvasBoardRGL({
         <div className="w-full max-w-7xl mx-auto mt-8 mb-8 bg-neutral-950 rounded-xl border border-neutral-800 shadow-2xl overflow-hidden">
           {/* Modal Header */}
           <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-900/50">
-            <h2 className="text-lg font-semibold text-neutral-100">Canvas (RGL)</h2>
+            <h2 className="text-lg font-semibold text-neutral-100">Canvas</h2>
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-lg border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors"
