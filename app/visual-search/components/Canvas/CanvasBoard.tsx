@@ -1,292 +1,207 @@
 "use client";
-import React, { useMemo } from 'react';
-import {
-  DndContext,
-  DragEndEvent,
-  DragStartEvent,
-  DragOverlay,
-  useDraggable,
-  useDroppable,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  restrictToParentElement,
-  restrictToWindowEdges,
-} from '@dnd-kit/modifiers';
+import React from 'react';
+import { Rnd } from 'react-rnd';
 import type { PinnedItem, UnifiedSearchResult } from '../../types';
 import { getResultMediaUrl } from '../../utils/mediaUrl';
 import { stripCircularDescription } from '../../utils/textCleanup';
 
-// Helper function to build snippet just like ResultCard does
-function buildSnippet(r: UnifiedSearchResult, opts?: { wordLimit?: number; charLimit?: number }) {
-  const wordLimit = opts?.wordLimit ?? 70;
-  const charLimit = opts?.charLimit ?? 100;
-
+// Reuse exact snippet logic from ResultCard
+function buildSnippet(r: UnifiedSearchResult): string {
   try {
-    // Use the same logic as ResultCard for consistency
-    let base = r.preview ?? r.description;
-
-    // For text content, also check searchable_text which contains the actual content
-    if (!base && r.content_type === 'text') {
-      // Check searchable_text first (main content), then metadata fields
-      base = (r as any).searchable_text
-        ?? (r as any).metadata?.content_text
-        ?? (r as any).metadata?.content
-        ?? (r as any).metadata?.description
-        ?? (r as any).metadata?.summary;
-    }
-
-    const raw = typeof base === 'string' ? base : (base ? JSON.stringify(base) : '');
+    const base = r.preview ?? r.description ?? '';
+    const raw = typeof base === 'string' ? base : JSON.stringify(base);
     const cleaned = stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
-
+    
+    // Different limits for different content types - EXACTLY like ResultCard
     if (r.content_type === 'text') {
       const words = cleaned.split(/\s+/);
-      return words.length > wordLimit ? words.slice(0, wordLimit).join(' ') + '...' : cleaned;
+      return words.length > 70 ? words.slice(0, 70).join(' ') + '...' : cleaned;
+    } else {
+      return cleaned.length > 100 ? cleaned.substring(0, 97) + '...' : cleaned;
     }
-    return cleaned.length > charLimit ? cleaned.slice(0, charLimit - 3) + '...' : cleaned;
   } catch {
     return '';
   }
 }
 
-function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expanded?: boolean }) {
-  const mediaUrl = getResultMediaUrl(r);
-  const heightClass = expanded ? "h-full" : "h-32";
-
-  if (r.content_type === 'image' && mediaUrl) {
-    return (
-      <img
-        src={mediaUrl}
-        alt={r.title}
-        className={`w-full ${heightClass} object-cover rounded-md border border-neutral-800`}
-        draggable={false}
-        loading="lazy"
-      />
-    );
-  }
-  if (r.content_type === 'video' && mediaUrl) {
-    return (
-      <video
-        src={mediaUrl}
-        controls
-        className={`w-full ${heightClass} object-cover rounded-md border border-neutral-800 bg-black`}
-      />
-    );
-  }
-  if (r.content_type === 'audio' && mediaUrl) {
-    return (
-      <div className={`w-full ${heightClass} flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-950`}>
-        <audio src={mediaUrl} controls className="w-full px-2" />
-      </div>
-    );
-  }
-
-  // For text content, don't show media preview - content goes in description section
-  return null;
-}
-
-function DraggableCard({
+function CanvasCard({
   item,
+  onUpdate,
   onRemove,
   onOpen,
-  onResize,
   onToggleView,
 }: {
   item: PinnedItem;
+  onUpdate: (id: string, x: number, y: number, width: number, height: number) => void;
   onRemove: (id: string) => void;
   onOpen: (r: UnifiedSearchResult) => void;
-  onResize?: (id: string, width: number, height: number) => void;
   onToggleView?: (id: string, expanded: boolean) => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging,
-  } = useDraggable({
-    id: item.id,
-  });
-
   const isExpanded = (item as any).expanded || false;
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
-
-  const toggleExpanded = () => {
-    const newExpanded = !isExpanded;
-    onToggleView?.(item.id, newExpanded);
-  };
+  const mediaUrl = getResultMediaUrl(item.result);
+  const snippet = buildSnippet(item.result);
 
   if (!isExpanded) {
-    // Thumbnail view
+    // Thumbnail mode - small, click to expand
     return (
-      <div
-        ref={setNodeRef}
-        style={{
-          ...style,
-          position: 'absolute',
-          left: item.x,
-          top: item.y,
-          width: 200,
-          height: 160,
-          zIndex: item.z,
-          opacity: isDragging ? 0.5 : 1,
+      <Rnd
+        size={{ width: 200, height: 160 }}
+        position={{ x: item.x, y: item.y }}
+        onDragStop={(e, d) => {
+          onUpdate(item.id, d.x, d.y, 200, 160);
         }}
-        {...listeners}
-        {...attributes}
-        className="rounded-lg border border-neutral-700 bg-neutral-900/60 shadow-md overflow-hidden cursor-pointer hover:border-neutral-600 transition-colors"
-        onClick={toggleExpanded}
+        enableResizing={false}
+        bounds="parent"
+        style={{ zIndex: item.z }}
       >
-        <div className="w-full h-full relative">
-          <MediaPreview r={item.result} expanded={false} />
-
-          {/* For text content, show snippet since no media */}
-          {item.result.content_type === 'text' && (
-            <div className="w-full h-full p-2 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 text-xs overflow-y-auto">
-              <p className="line-clamp-6">{buildSnippet(item.result, { wordLimit: 20 })}</p>
+        <div 
+          className="w-full h-full rounded-lg border border-neutral-700 bg-neutral-900/60 shadow-md overflow-hidden cursor-pointer hover:border-neutral-600 transition-colors"
+          onClick={() => onToggleView?.(item.id, true)}
+        >
+          {/* Content based on type - EXACTLY like ResultCard */}
+          <div className="p-2">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[8px] px-1 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
+                {item.result.content_type}
+              </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(item.id);
+                }}
+                className="w-4 h-4 flex items-center justify-center text-neutral-300 hover:text-white bg-black/70 rounded text-[8px]"
+                title="Remove"
+              >
+                ❌
+              </button>
             </div>
-          )}
-
-          <div className="absolute top-1 left-1 text-[8px] px-1 py-0.5 bg-black/70 text-white rounded">
-            {item.result.content_type}
-          </div>
-          <div className="absolute top-1 right-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(item.id);
-              }}
-              className="w-4 h-4 flex items-center justify-center text-neutral-300 hover:text-white bg-black/70 rounded text-[8px]"
-              title="Remove"
-            >
-              ❌
-            </button>
+            <div className="text-xs font-medium text-neutral-100 line-clamp-1 mb-1">
+              {item.result.title}
+            </div>
+            
+            {/* Media or text preview */}
+            {item.result.content_type === 'image' && mediaUrl && (
+              <img
+                src={mediaUrl}
+                alt={item.result.title}
+                className="w-full h-20 object-cover rounded border border-neutral-800"
+                draggable={false}
+              />
+            )}
+            {item.result.content_type === 'video' && mediaUrl && (
+              <video
+                src={mediaUrl}
+                className="w-full h-20 object-cover rounded border border-neutral-800 bg-black"
+                muted
+              />
+            )}
+            {item.result.content_type === 'audio' && (
+              <div className="w-full h-20 flex items-center justify-center rounded border border-neutral-800 bg-neutral-950">
+                <div className="text-xs text-neutral-400">🎵 Audio</div>
+              </div>
+            )}
+            {item.result.content_type === 'text' && (
+              <div className="w-full h-20 p-2 rounded border border-neutral-800 bg-neutral-900 text-neutral-200 text-[10px] overflow-hidden">
+                <p className="line-clamp-6">{snippet}</p>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </Rnd>
     );
   }
 
-  // Expanded view
+  // Expanded mode - full card with controls
   return (
-    <div
-      ref={setNodeRef}
-      style={{
-        ...style,
-        position: 'absolute',
-        left: item.x,
-        top: item.y,
-        width: item.width,
-        height: item.height,
-        zIndex: item.z,
-        opacity: isDragging ? 0.5 : 1,
+    <Rnd
+      size={{ width: item.width, height: item.height }}
+      position={{ x: item.x, y: item.y }}
+      onDragStop={(e, d) => {
+        onUpdate(item.id, d.x, d.y, item.width, item.height);
       }}
-      {...listeners}
-      {...attributes}
-      className="rounded-xl border border-neutral-800 bg-neutral-900/40 shadow-lg overflow-hidden"
+      onResizeStop={(e, direction, ref, delta, position) => {
+        onUpdate(
+          item.id,
+          position.x,
+          position.y,
+          ref.offsetWidth,
+          ref.offsetHeight
+        );
+      }}
+      bounds="parent"
+      minWidth={300}
+      minHeight={200}
+      style={{ zIndex: item.z }}
     >
-      {/* Header */}
-      <div className="p-3 border-b border-neutral-800 bg-neutral-900/50">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="text-xs px-2 py-1 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
-            {item.result.content_type}
+      <div className="w-full h-full rounded-xl border border-neutral-800 bg-neutral-900/40 shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="p-3 border-b border-neutral-800 bg-neutral-900/50">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="text-xs px-2 py-1 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
+              {item.result.content_type}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onToggleView?.(item.id, false)}
+                className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
+                title="Minimize"
+              >
+                📐
+              </button>
+              <button
+                onClick={() => onOpen(item.result)}
+                className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
+                title="View details"
+              >
+                🔍
+              </button>
+              <button 
+                onClick={() => onRemove(item.id)} 
+                className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
+                title="Remove"
+              >
+                ❌
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={toggleExpanded}
-              className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
-              title="Minimize to thumbnail"
-            >
-              📐
-            </button>
-            <button
-              onClick={() => {
-                if (onResize) {
-                  const newWidth = Math.min(item.width * 1.5, 800);
-                  const newHeight = Math.min(item.height * 1.5, 600);
-                  onResize(item.id, newWidth, newHeight);
-                }
-              }}
-              className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
-              title="Expand card size"
-            >
-              ➕
-            </button>
-            <button
-              onClick={() => {
-                try {
-                  if (item?.result && typeof item.result === 'object' && (item.result as any).id) {
-                    onOpen(item.result);
-                  }
-                } catch (e) {
-                  console.error('Canvas detail view error:', e);
-                }
-              }}
-              className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
-              title="View details"
-            >
-              🔍
-            </button>
-            <button
-              onClick={() => onRemove(item.id)}
-              className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-200 text-xs"
-              title="Remove"
-            >
-              ❌
-            </button>
+          <div className="text-sm font-medium text-neutral-100 line-clamp-2">
+            {item.result.title || 'Untitled'}
           </div>
         </div>
-        <div className="text-sm font-medium text-neutral-100 line-clamp-2" title={item.result.title}>
-          {item.result.title || 'Untitled'}
+
+        {/* Content area */}
+        <div className="p-3 h-full overflow-auto" style={{ height: 'calc(100% - 80px)' }}>
+          {/* Media content */}
+          {item.result.content_type === 'image' && mediaUrl && (
+            <img
+              src={mediaUrl}
+              alt={item.result.title}
+              className="w-full max-h-60 object-contain rounded border border-neutral-800 mb-3"
+              draggable={false}
+            />
+          )}
+          {item.result.content_type === 'video' && mediaUrl && (
+            <video
+              src={mediaUrl}
+              controls
+              className="w-full max-h-60 object-contain rounded border border-neutral-800 bg-black mb-3"
+            />
+          )}
+          {item.result.content_type === 'audio' && mediaUrl && (
+            <div className="w-full mb-3">
+              <audio src={mediaUrl} controls className="w-full" />
+            </div>
+          )}
+          
+          {/* Text content/description */}
+          {snippet && (
+            <div className="text-sm text-neutral-300">
+              <p className="whitespace-pre-wrap leading-relaxed">{snippet}</p>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Media Content (only for non-text) */}
-      {item.result.content_type !== 'text' && (
-        <div className="p-3" style={{ height: 'calc(100% - 180px)' }}>
-          <div className="w-full h-full">
-            <MediaPreview r={item.result} expanded={true} />
-          </div>
-        </div>
-      )}
-
-      {/* Description/Content */}
-      <div className={`p-3 ${item.result.content_type === 'text' ? 'pt-0' : ''} overflow-hidden ${item.result.content_type === 'text' ? 'flex-1' : 'h-16'}`}>
-        {(() => {
-          const snippet = buildSnippet(item.result, {
-            wordLimit: item.result.content_type === 'text' ? 200 : 30,
-            charLimit: 100
-          });
-
-          return snippet ? (
-            <p className={`text-xs text-neutral-300 ${item.result.content_type === 'text' ? 'line-clamp-12' : 'line-clamp-2'}`}>
-              {snippet}
-            </p>
-          ) : null;
-        })()}
-      </div>
-
-      {/* Resize Handle */}
-      {onResize && (
-        <div
-          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize bg-neutral-700 hover:bg-neutral-600 opacity-60 hover:opacity-100 transition-opacity"
-          style={{
-            clipPath: 'polygon(100% 0%, 0% 100%, 100% 100%)',
-          }}
-          title="Drag to resize"
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            // Implement resize logic if needed
-          }}
-        />
-      )}
-    </div>
+    </Rnd>
   );
 }
 
@@ -309,61 +224,29 @@ export default function CanvasBoard({
   isModal?: boolean;
   onClose?: () => void;
 }) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor)
-  );
-
-  // Calculate dynamic height based on item positions
-  const canvasHeight = useMemo(() => {
+  // Calculate dynamic height for modal
+  const canvasHeight = React.useMemo(() => {
     if (!isModal) return 640;
-
+    
     const minHeight = 800;
     let maxY = minHeight;
-
+    
     items.forEach(item => {
-      const itemBottom = item.y + item.height + 100; // Add 100px padding
+      const itemBottom = item.y + item.height + 100;
       if (itemBottom > maxY) {
         maxY = itemBottom;
       }
     });
-
+    
     return Math.max(minHeight, maxY);
   }, [items, isModal]);
 
-  const [activeId, setActiveId] = React.useState<string | null>(null);
-
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string);
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, delta } = event;
-
-    if (delta.x !== 0 || delta.y !== 0) {
-      const item = items.find(i => i.id === active.id);
-      if (item) {
-        // Calculate new position with bounds checking
-        const newX = Math.max(0, item.x + delta.x);
-        const newY = Math.max(0, item.y + delta.y);
-        onMove(item.id, newX, newY);
-      }
+  const handleUpdate = (id: string, x: number, y: number, width: number, height: number) => {
+    onMove(id, x, y);
+    if (onResize && (width !== items.find(i => i.id === id)?.width || height !== items.find(i => i.id === id)?.height)) {
+      onResize(id, width, height);
     }
-
-    setActiveId(null);
-  }
-
-  const {
-    setNodeRef: setDroppableRef,
-  } = useDroppable({
-    id: 'canvas-droppable',
-  });
-
-  const activeItem = activeId ? items.find(item => item.id === activeId) : null;
+  };
 
   if (isModal) {
     return (
@@ -380,54 +263,35 @@ export default function CanvasBoard({
               ❌
             </button>
           </div>
-
+          
           {/* Canvas Area */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            modifiers={[restrictToParentElement]}
+          <div 
+            className="relative w-full bg-neutral-950 overflow-auto"
+            style={{ height: `${canvasHeight}px` }}
           >
-            <div
-              ref={setDroppableRef}
-              className="relative w-full bg-neutral-950 overflow-auto"
-              style={{ height: `${canvasHeight}px` }}
-            >
-              {items.map((item) => (
-                <DraggableCard
-                  key={item.id}
-                  item={item}
-                  onRemove={onRemove}
-                  onOpen={onOpen}
-                  onResize={onResize}
-                  onToggleView={onToggleView}
-                />
-              ))}
-
-              {/* Grid overlay for visual reference */}
-              <div
-                className="absolute inset-0 pointer-events-none opacity-10"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(to right, #374151 1px, transparent 1px),
-                    linear-gradient(to bottom, #374151 1px, transparent 1px)
-                  `,
-                  backgroundSize: '50px 50px'
-                }}
+            {items.map((item) => (
+              <CanvasCard
+                key={item.id}
+                item={item}
+                onUpdate={handleUpdate}
+                onRemove={onRemove}
+                onOpen={onOpen}
+                onToggleView={onToggleView}
               />
-            </div>
-
-            <DragOverlay>
-              {activeItem ? (
-                <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 shadow-lg opacity-75">
-                  <div className="p-2 text-center text-neutral-300 text-sm">
-                    Moving {activeItem.result.title || 'Item'}...
-                  </div>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+            ))}
+            
+            {/* Grid overlay */}
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-10"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, #374151 1px, transparent 1px),
+                  linear-gradient(to bottom, #374151 1px, transparent 1px)
+                `,
+                backgroundSize: '50px 50px'
+              }}
+            />
+          </div>
         </div>
       </div>
     );
@@ -435,38 +299,29 @@ export default function CanvasBoard({
 
   // Non-modal version
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      modifiers={[restrictToParentElement]}
-    >
-      <div
-        ref={setDroppableRef}
-        className="relative w-full h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden"
-      >
-        {items.map((item) => (
-          <DraggableCard
-            key={item.id}
-            item={item}
-            onRemove={onRemove}
-            onOpen={onOpen}
-            onResize={onResize}
-            onToggleView={onToggleView}
-          />
-        ))}
-      </div>
-
-      <DragOverlay>
-        {activeItem ? (
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 shadow-lg opacity-75">
-            <div className="p-2 text-center text-neutral-300 text-sm">
-              Moving {activeItem.result.title || 'Item'}...
-            </div>
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+    <div className="relative w-full h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden">
+      {items.map((item) => (
+        <CanvasCard
+          key={item.id}
+          item={item}
+          onUpdate={handleUpdate}
+          onRemove={onRemove}
+          onOpen={onOpen}
+          onToggleView={onToggleView}
+        />
+      ))}
+      
+      {/* Grid overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-10"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, #374151 1px, transparent 1px),
+            linear-gradient(to bottom, #374151 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }}
+      />
+    </div>
   );
 }
