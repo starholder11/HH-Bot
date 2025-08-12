@@ -29,7 +29,7 @@ interface MediaAsset {
   title: string;
   s3_url: string;
   cloudflare_url: string;
-  media_type: 'image' | 'video' | 'audio' | 'keyframe_still';
+  media_type: 'image' | 'video' | 'audio' | 'keyframe_still' | 'layout';
   ai_labels: {
     scenes: string[];
     objects: string[];

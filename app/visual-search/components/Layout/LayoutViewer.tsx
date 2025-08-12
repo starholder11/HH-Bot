@@ -9,8 +9,8 @@ interface LayoutViewerProps {
 }
 
 export default function LayoutViewer({ layout, onClose, className = '' }: LayoutViewerProps) {
-  const { layout_data } = layout;
-  const { designSize, styling, items } = layout_data;
+  const layoutData = (layout as any).layout_data || {};
+  const { designSize = { width: 1200, height: 800 }, styling = {}, items = [] } = layoutData;
 
   // Calculate scale to fit viewport
   const maxViewportWidth = 1200;
@@ -68,12 +68,12 @@ export default function LayoutViewer({ layout, onClose, className = '' }: Layout
                 linear-gradient(to right, #374151 1px, transparent 1px),
                 linear-gradient(to bottom, #374151 1px, transparent 1px)
               `,
-              backgroundSize: `${(layout_data.cellSize || 20) * scale}px ${(layout_data.cellSize || 20) * scale}px`
+              backgroundSize: `${(layoutData.cellSize || 20) * scale}px ${(layoutData.cellSize || 20) * scale}px`
             }}
           />
 
           {/* Layout Items */}
-          {items.map((item) => {
+          {items.map((item: any) => {
             const itemX = item.nx * scaledWidth;
             const itemY = item.ny * scaledHeight;
             const itemW = item.nw * scaledWidth;
@@ -167,11 +167,11 @@ export default function LayoutViewer({ layout, onClose, className = '' }: Layout
           <div>
             <h4 className="font-medium text-neutral-100 mb-2">Details</h4>
             <div className="space-y-1 text-neutral-400">
-              <div>Type: {layout.layout_type}</div>
+              <div>Type: {(layout as any).layout_type || 'layout'}</div>
               <div>Items: {items.length}</div>
               <div>Size: {designSize.width}×{designSize.height}</div>
-              <div>Cell: {layout_data.cellSize || 20}px</div>
-              {layout.project_id && <div>Project: {layout.project_id}</div>}
+              <div>Cell: {layoutData.cellSize || 20}px</div>
+              {layout.projectId && <div>Project: {layout.projectId}</div>}
             </div>
           </div>
 
@@ -201,19 +201,19 @@ export default function LayoutViewer({ layout, onClose, className = '' }: Layout
             <h4 className="font-medium text-neutral-100 mb-2">Content</h4>
             <div className="space-y-1 text-neutral-400">
               {Object.entries(
-                items.reduce((acc, item) => {
+                items.reduce((acc: Record<string, number>, item: any) => {
                   const type = item.type === 'content_ref' ? item.contentType || 'ref' : item.type;
                   acc[type] = (acc[type] || 0) + 1;
                   return acc;
                 }, {} as Record<string, number>)
               ).map(([type, count]) => (
-                <div key={type}>{type}: {count}</div>
+                <div key={type}>{type}: {String(count)}</div>
               ))}
               
-              {layout.metadata?.has_inline_content && (
+              {(layout as any).metadata?.has_inline_content && (
                 <div className="text-green-400">✓ Inline content</div>
               )}
-              {layout.metadata?.has_transforms && (
+              {(layout as any).metadata?.has_transforms && (
                 <div className="text-yellow-400">✓ Transforms</div>
               )}
             </div>
