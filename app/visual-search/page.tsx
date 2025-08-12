@@ -676,7 +676,11 @@ function GenerationPanel({
               placeholder="fal-ai/fast-sdxl"
             />
           </div>
-          <FieldRenderer schema={selectedModel.inputSchema} values={values} setValues={setValues} />
+          {selectedModel ? (
+            <FieldRenderer schema={selectedModel.inputSchema} values={values} setValues={setValues} />
+          ) : (
+            <div className="text-xs text-neutral-400">Select a model to configure its options.</div>
+          )}
           <div className="flex gap-2">
             <button
               onClick={handleGenerate}

@@ -70,7 +70,20 @@ function Pinned({
           {item.result.title}
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => onOpen(item.result)} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Expand</button>
+          <button
+            onClick={() => {
+              try {
+                if (item?.result && typeof item.result === 'object' && (item.result as any).id) {
+                  onOpen(item.result);
+                }
+              } catch (e) {
+                console.error('Canvas expand error:', e);
+              }
+            }}
+            className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+          >
+            Expand
+          </button>
           <button onClick={() => onRemove(item.id)} className="px-2 py-1 text-xs rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Remove</button>
         </div>
       </div>

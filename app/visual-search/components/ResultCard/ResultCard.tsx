@@ -64,8 +64,13 @@ function ResultCardComponent({
   const labels = useLabels(r);
 
   const snippet: string = useMemo(() => {
-    const raw = (r.preview || r.description || '').toString();
-    return stripCircularDescription(raw, { id: r.id, title: r.title, type: r.content_type });
+    try {
+      const base = r.preview ?? r.description ?? '';
+      const raw = typeof base === 'string' ? base : JSON.stringify(base);
+      return stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
+    } catch {
+      return '';
+    }
   }, [r.preview, r.description, r.title, r.content_type, r.id]);
 
   return (
