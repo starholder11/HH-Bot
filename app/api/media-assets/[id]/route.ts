@@ -15,9 +15,21 @@ export async function GET(
     console.log(`[media-assets] Fetching full metadata for asset: ${id}`);
 
     // Get the complete asset data from S3 JSON storage
-    const asset = await getMediaAsset(id);
+    let asset = await getMediaAsset(id);
+    
+    // If not found as regular media asset, try as keyframe asset (for images that are keyframes)
+    if (!asset) {
+      try {
+        const { getKeyframeAsset } = await import('@/lib/media-storage');
+        asset = await getKeyframeAsset(id);
+        console.log(`[media-assets] Found as keyframe asset: ${asset?.title}`);
+      } catch (err) {
+        console.log(`[media-assets] Not found as keyframe asset either`);
+      }
+    }
     
     if (!asset) {
+      console.log(`[media-assets] Asset ${id} not found in any storage`);
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
 

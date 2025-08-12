@@ -181,29 +181,9 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
             <>
               {/* Media Display */}
               {mediaUrl && (r.content_type === 'image' ? (
-                <>
-                  <img src={mediaUrl} alt={r.title} className="w-full rounded-lg border border-neutral-800 bg-black" />
-                  {/* Image description right after image */}
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
-                    <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
-                      {fullAsset?.title && fullAsset.title !== r.title ? fullAsset.title : 
-                       toDisplayText(r.description, 'No description available.')}
-                    </div>
-                  </div>
-                </>
+                <img src={mediaUrl} alt={r.title} className="w-full rounded-lg border border-neutral-800 bg-black" />
               ) : r.content_type === 'video' ? (
-                <>
-                  <video src={mediaUrl} controls className="w-full rounded-lg border border-neutral-800 bg-black" />
-                  {/* Video description right after video - use full description */}
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-neutral-200">Description</h3>
-                    <div className="text-sm leading-6 text-neutral-300 whitespace-pre-wrap">
-                      {fullAsset?.title && fullAsset.title !== r.title ? fullAsset.title : 
-                       toDisplayText(r.description, 'No description available.')}
-                    </div>
-                  </div>
-                </>
+                <video src={mediaUrl} controls className="w-full rounded-lg border border-neutral-800 bg-black" />
               ) : r.content_type === 'audio' ? (
                 <div className="p-2 rounded-lg border border-neutral-800 bg-black"><audio src={mediaUrl} controls className="w-full" /></div>
               ) : null)}
@@ -216,10 +196,14 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
               )}
               {assetError && (
                 <div className="text-center py-4">
-                  <div className="text-red-400">Failed to load metadata: {assetError}</div>
+                  <div className="text-yellow-400 text-sm">
+                    {assetError.includes('Asset not found') 
+                      ? 'Full metadata not available - showing basic info' 
+                      : `Failed to load metadata: ${assetError}`}
+                  </div>
                 </div>
               )}
-              {!isLoadingAsset && !assetError && (
+              {!isLoadingAsset && (
                 <MediaMetadata
                   result={r}
                   fullAsset={fullAsset}
