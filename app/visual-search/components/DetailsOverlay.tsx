@@ -100,8 +100,9 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   return (
     <div className="fixed inset-0 z-[100]">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute right-0 top-0 min-h-full w-full sm:w-[560px] bg-neutral-950 border-l border-neutral-800 shadow-xl flex flex-col">
-        <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[560px] bg-neutral-950 border-l border-neutral-800 shadow-xl flex flex-col">
+        {/* Fixed Header */}
+        <div className="p-4 border-b border-neutral-800 flex items-center justify-between flex-shrink-0">
           <div>
             <div className="text-xs text-neutral-400">{r.content_type}</div>
             <div className="text-lg font-semibold text-neutral-100">{toDisplayText(r.title, 'Untitled')}</div>
@@ -110,7 +111,8 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
             Close
           </button>
         </div>
-        <div className="p-4 space-y-4">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {r.content_type === 'text' ? (
             <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
               {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
