@@ -13,6 +13,23 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
   const mediaUrl = getResultMediaUrl(r);
   const sourceUrl: string | undefined = (r.metadata?.source_url as string | undefined) || mediaUrl || r.url;
 
+  // Ensure we never try to render objects/arrays directly in JSX
+  const toDisplayText = (value: unknown, fallback: string = ''): string => {
+    try {
+      if (value == null) return fallback;
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      if (typeof value === 'object') {
+        // Avoid huge dumps; provide compact, readable info
+        const json = JSON.stringify(value, null, 2);
+        return json?.slice(0, 4000) || fallback; // hard cap to avoid huge renders
+      }
+      return String(value);
+    } catch {
+      return fallback;
+    }
+  };
+
   const extractSlugFromResult = (res: UnifiedSearchResult): string | null => {
     const parent = (res as any)?.metadata?.parent_slug as string | undefined;
     if (parent) {
@@ -69,7 +86,11 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
             <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
               {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
               {!isLoadingText && textError && <div className="text-red-400">{textError}</div>}
-              {!isLoadingText && !textError && <>{fullText || (r.preview || r.description || 'No content available.')}</>}
+              {!isLoadingText && !textError && (
+                <>
+                  {fullText || toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'))}
+                </>
+              )}
             </div>
           ) : (
             <>
@@ -81,7 +102,7 @@ export default function DetailsOverlay({ r, onClose }: { r: UnifiedSearchResult 
                 <div className="p-2"><audio src={mediaUrl} controls className="w-full" /></div>
               ) : null)}
               <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
-                {r.preview || r.description || 'No additional preview available.'}
+                {toDisplayText(r.preview, toDisplayText(r.description, 'No additional preview available.'))}
               </div>
             </>
           )}
