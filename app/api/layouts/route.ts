@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listMediaAssets } from '@/lib/media-storage';
+import { readJsonFromS3 } from '@/lib/s3-upload';
+import { getS3Client, getBucketName } from '@/lib/s3-config';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,12 +15,39 @@ export async function GET(request: NextRequest) {
     const limit = 500; // collect up to 500 layouts if present
     const result = await listMediaAssets('layout', { page, limit });
 
-    console.log(`[layouts] Found ${result.assets.length} layout assets (page=${page}, limit=${limit})`);
+    let layouts = result.assets;
+
+    // If none found, try layouts index as a fallback (fast path)
+    if (!layouts.length) {
+      try {
+        const idx = await readJsonFromS3('layouts/index.json');
+        if (idx && Array.isArray(idx.items) && idx.items.length) {
+          // Fetch by IDs listed in index
+          const s3 = getS3Client();
+          const bucket = getBucketName();
+          const ids = idx.items.slice(0, limit).map((i: any) => i.id);
+          const fetched: any[] = [];
+          for (const id of ids) {
+            try {
+              const key = `${process.env.MEDIA_DATA_PREFIX || 'media-labeling/assets/'}${id}.json`;
+              const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+              if (obj.Body) {
+                const text = await (obj.Body as any).transformToString?.() || '';
+                if (text) fetched.push(JSON.parse(text));
+              }
+            } catch {}
+          }
+          layouts = fetched.filter(a => a.media_type === 'layout');
+        }
+      } catch {}
+    }
+
+    console.log(`[layouts] Returning ${layouts.length} layout assets`);
 
     return NextResponse.json({
       success: true,
-      layouts: result.assets,
-      total: result.totalCount
+      layouts,
+      total: layouts.length
     });
 
   } catch (error) {
