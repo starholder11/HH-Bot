@@ -43,7 +43,7 @@ function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expande
     let content = '';
     let debugInfo = [];
     
-    // Check every possible property
+    // Check every possible property including metadata
     const possibleSources = ['preview', 'description', 'content', 'text', 'body', 'summary', 'excerpt'];
     
     for (const prop of possibleSources) {
@@ -63,6 +63,22 @@ function MediaPreview({ r, expanded = false }: { r: UnifiedSearchResult; expande
           }
         }
         if (content) break;
+      }
+    }
+    
+    // Check metadata object specifically
+    if (!content && r.metadata && typeof r.metadata === 'object') {
+      const metadata = r.metadata as any;
+      console.log('DEBUG: Checking metadata object:', metadata);
+      
+      const metadataSources = ['content', 'text', 'body', 'description', 'summary', 'excerpt', 'content_html', 'content_text'];
+      for (const metaProp of metadataSources) {
+        if (metadata[metaProp] && typeof metadata[metaProp] === 'string' && metadata[metaProp].trim()) {
+          content = metadata[metaProp];
+          console.log(`DEBUG: Found text content in metadata.${metaProp}:`, content.substring(0, 100));
+          debugInfo.push(`Found in metadata.${metaProp}`);
+          break;
+        }
       }
     }
     
@@ -232,27 +248,22 @@ function Pinned({
   const [isExpanded, setIsExpanded] = useState((item as any).expanded || false);
 
   // Snap settings
-  const SNAP_DISTANCE = 25;
+  const SNAP_DISTANCE = 40; // Increased for better UX
 
   // Find nearby cards and borders for snapping
   const findSnapPosition = (newX: number, newY: number) => {
-    console.log(`DEBUG: findSnapPosition called with newX=${newX}, newY=${newY}`);
-    
     let snapX = newX;
     let snapY = newY;
     
     // Get canvas dimensions
     const canvasElement = ref.current?.parentElement;
     if (!canvasElement) {
-      console.log('DEBUG: No canvas element found');
       return { x: snapX, y: snapY };
     }
     
     const canvasRect = canvasElement.getBoundingClientRect();
     const canvasWidth = canvasRect.width;
     const canvasHeight = canvasRect.height;
-    
-    console.log(`DEBUG: Canvas dimensions: ${canvasWidth}x${canvasHeight}`);
 
     const currentRight = newX + item.width;
     const currentBottom = newY + item.height;
@@ -262,23 +273,27 @@ function Pinned({
     const rightDist = Math.abs(currentRight - canvasWidth);
     const topDist = Math.abs(newY - 0);
     const bottomDist = Math.abs(currentBottom - canvasHeight);
-    
-    console.log(`DEBUG: Border distances - left:${leftDist}, right:${rightDist}, top:${topDist}, bottom:${bottomDist}`);
 
-    if (leftDist < SNAP_DISTANCE) {
+    // Border snapping with priority (closest border wins)
+    let borderSnapped = false;
+    
+    if (leftDist < SNAP_DISTANCE && leftDist <= Math.min(rightDist, topDist, bottomDist)) {
       snapX = 0;
+      borderSnapped = true;
       console.log('DEBUG: Snapped to left border');
-    }
-    if (rightDist < SNAP_DISTANCE) {
+    } else if (rightDist < SNAP_DISTANCE && rightDist <= Math.min(leftDist, topDist, bottomDist)) {
       snapX = canvasWidth - item.width;
+      borderSnapped = true;
       console.log('DEBUG: Snapped to right border');
     }
-    if (topDist < SNAP_DISTANCE) {
+    
+    if (topDist < SNAP_DISTANCE && topDist <= Math.min(leftDist, rightDist, bottomDist)) {
       snapY = 0;
+      borderSnapped = true;
       console.log('DEBUG: Snapped to top border');
-    }
-    if (bottomDist < SNAP_DISTANCE) {
+    } else if (bottomDist < SNAP_DISTANCE && bottomDist <= Math.min(leftDist, rightDist, topDist)) {
       snapY = canvasHeight - item.height;
+      borderSnapped = true;
       console.log('DEBUG: Snapped to bottom border');
     }
 
@@ -297,11 +312,9 @@ function Pinned({
         const rightEdgeDist = Math.abs(newX - otherRight);
         
         if (leftEdgeDist < SNAP_DISTANCE) {
-          // Check if there's vertical overlap that would make this placement valid
           const verticalOverlap = !(currentBottom <= otherItem.y || newY >= otherBottom);
           if (verticalOverlap) {
             snapX = otherItem.x - item.width; // Place to the left
-            console.log(`DEBUG: Snapped to left of card ${otherItem.id}`);
           }
         }
         
@@ -309,7 +322,6 @@ function Pinned({
           const verticalOverlap = !(currentBottom <= otherItem.y || newY >= otherBottom);
           if (verticalOverlap) {
             snapX = otherRight; // Place to the right
-            console.log(`DEBUG: Snapped to right of card ${otherItem.id}`);
           }
         }
 
@@ -321,7 +333,6 @@ function Pinned({
           const horizontalOverlap = !(currentRight <= otherItem.x || newX >= otherRight);
           if (horizontalOverlap) {
             snapY = otherItem.y - item.height; // Place above
-            console.log(`DEBUG: Snapped above card ${otherItem.id}`);
           }
         }
         
@@ -329,13 +340,11 @@ function Pinned({
           const horizontalOverlap = !(currentRight <= otherItem.x || newX >= otherRight);
           if (horizontalOverlap) {
             snapY = otherBottom; // Place below
-            console.log(`DEBUG: Snapped below card ${otherItem.id}`);
           }
         }
       }
     }
 
-    console.log(`DEBUG: Final snap position: ${snapX}, ${snapY}`);
     return { x: snapX, y: snapY };
   };
 
@@ -345,16 +354,12 @@ function Pinned({
     const rect = ref.current.getBoundingClientRect();
     const isResizeHandle = (e.target as Element).classList.contains('resize-handle');
     
-    console.log(`DEBUG: PointerDown - isResizeHandle: ${isResizeHandle}`);
-    
     if (isResizeHandle) {
       resizing.current = true;
       offset.current = { x: e.clientX, y: e.clientY };
-      console.log('DEBUG: Set resizing mode');
     } else {
       dragging.current = true;
       offset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      console.log('DEBUG: Set dragging mode');
     }
     
     (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -365,7 +370,6 @@ function Pinned({
     if (!parentRect) return;
 
     if (resizing.current && onResize) {
-      console.log('DEBUG: Resizing...');
       const deltaX = e.clientX - offset.current.x;
       const deltaY = e.clientY - offset.current.y;
       const newWidth = Math.max(200, item.width + deltaX);
@@ -375,13 +379,10 @@ function Pinned({
       offset.current = { x: e.clientX, y: e.clientY };
     } 
     else if (dragging.current) {
-      console.log('DEBUG: Dragging detected...');
       const newX = e.clientX - offset.current.x - parentRect.left;
       const newY = e.clientY - offset.current.y - parentRect.top;
       
-      console.log(`DEBUG: Raw position: ${newX}, ${newY}`);
       const snappedPos = findSnapPosition(Math.max(0, newX), Math.max(0, newY));
-      console.log(`DEBUG: Calling onMove with: ${snappedPos.x}, ${snappedPos.y}`);
       onMove(item.id, snappedPos.x, snappedPos.y);
     }
   };
