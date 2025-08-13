@@ -389,15 +389,15 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             style={{
               width: design.width,
               height: design.height,
-              backgroundColor: edited.layout_data.backgroundColor || '#171717',
-              color: edited.layout_data.textColor || '#ffffff',
-              fontFamily: edited.layout_data.fontFamily || 'inherit'
+              backgroundColor: edited.layout_data.styling?.colors?.background || '#171717',
+              color: edited.layout_data.styling?.colors?.text || '#ffffff',
+              fontFamily: edited.layout_data.styling?.typography?.fontFamily || 'inherit'
             }}
           >
             {/* Grid overlay */}
             {snapToGrid && (
               <div className="absolute inset-0 pointer-events-none" style={{
-                backgroundColor: edited.layout_data.backgroundColor || '#0b0b0b',
+                backgroundColor: edited.layout_data.styling?.colors?.background || '#0b0b0b',
                 backgroundImage: `linear-gradient(rgba(75, 85, 99, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(75, 85, 99, 0.3) 1px, transparent 1px)`,
                 backgroundSize: `${cellSize}px ${cellSize}px`
               }} />
@@ -420,7 +420,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               cols={{ lg: cols, md: cols, sm: cols, xs: cols, xxs: cols }}
               rowHeight={rowHeight}
               width={design.width}
-              style={{ height: design.height, backgroundColor: edited.layout_data.backgroundColor || '#0b0b0b' }}
+              style={{ height: design.height, backgroundColor: edited.layout_data.styling?.colors?.background || '#0b0b0b' }}
               autoSize={false}
               onLayoutChange={(currentLayout: any, allLayouts: any) => {
                 // Handle layout changes
@@ -1183,10 +1183,19 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
             ...prev,
             layout_data: {
               ...prev.layout_data,
-              theme: theme.id,
-              backgroundColor: theme.colors.background,
-              textColor: theme.colors.text,
-              fontFamily: theme.typography.fontFamily
+              styling: {
+                ...prev.layout_data.styling,
+                theme: theme.id,
+                colors: {
+                  ...prev.layout_data.styling?.colors,
+                  background: theme.colors.background,
+                  text: theme.colors.text
+                },
+                typography: {
+                  ...prev.layout_data.styling?.typography,
+                  fontFamily: theme.typography.fontFamily
+                }
+              }
             },
             updated_at: new Date().toISOString()
           } as LayoutAsset));
@@ -1202,10 +1211,19 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
           <label className="text-xs text-neutral-400">Background Color</label>
           <input
             type="color"
-            value={edited.layout_data.backgroundColor || '#171717'}
+            value={edited.layout_data.styling?.colors?.background || '#171717'}
             onChange={(e) => setEdited(prev => ({
               ...prev,
-              layout_data: { ...prev.layout_data, backgroundColor: e.target.value },
+              layout_data: { 
+                ...prev.layout_data, 
+                styling: {
+                  ...prev.layout_data.styling,
+                  colors: {
+                    ...prev.layout_data.styling?.colors,
+                    background: e.target.value
+                  }
+                }
+              },
               updated_at: new Date().toISOString()
             } as LayoutAsset))}
             className="w-full h-8 rounded border border-neutral-700"
@@ -1215,10 +1233,19 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
           <label className="text-xs text-neutral-400">Text Color</label>
           <input
             type="color"
-            value={edited.layout_data.textColor || '#ffffff'}
+            value={edited.layout_data.styling?.colors?.text || '#ffffff'}
             onChange={(e) => setEdited(prev => ({
               ...prev,
-              layout_data: { ...prev.layout_data, textColor: e.target.value },
+              layout_data: { 
+                ...prev.layout_data, 
+                styling: {
+                  ...prev.layout_data.styling,
+                  colors: {
+                    ...prev.layout_data.styling?.colors,
+                    text: e.target.value
+                  }
+                }
+              },
               updated_at: new Date().toISOString()
             } as LayoutAsset))}
             className="w-full h-8 rounded border border-neutral-700"
