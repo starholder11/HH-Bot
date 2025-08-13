@@ -24,7 +24,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [working, setWorking] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isShiftDown, setIsShiftDown] = useState<boolean>(false);
+
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
@@ -185,7 +185,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         {renderItem(item)}
       </div>
     ));
-  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, isShiftDown]);
+  }, [edited.layout_data.items, renderItem, selectedIds, selectedId]);
 
   // Helpers to update item fields safely
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -247,27 +247,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     });
   }, [selectedId]);
 
-  // Track Shift key globally to disable dragging while selecting ranges
-  React.useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Shift') {
-        console.log('[LayoutEditorRGL] Shift DOWN - disabling drag');
-        setIsShiftDown(true);
-      }
-    }
-    function onKeyUp(e: KeyboardEvent) {
-      if (e.key === 'Shift') {
-        console.log('[LayoutEditorRGL] Shift UP - enabling drag');
-        setIsShiftDown(false);
-      }
-    }
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-    };
-  }, []);
+
 
   // Multi-select functions
   const nudgeSelection = useCallback((dx: number, dy: number) => {
@@ -446,18 +426,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                                     <div
               className="mx-auto border border-neutral-800 rounded-lg"
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
-              onMouseDown={(e) => {
-                // COMPLETE EVENT DELEGATION - bypass RGL entirely
-                console.log('[LayoutEditorRGL] PARENT CONTAINER MOUSEDOWN', {
-                  target: e.target,
-                  currentTarget: e.currentTarget,
-                  targetClass: (e.target as HTMLElement).className,
-                  shiftKey: e.shiftKey,
-                  metaKey: e.metaKey,
-                  ctrlKey: e.ctrlKey,
-                  isShiftDown
-                });
-
+              onClick={(e) => {
+                // Handle selection ONLY on clicks that didn't start a drag
+                // This avoids conflicts with RGL's drag system
+                
                 // Find the item by traversing up the DOM
                 let element = e.target as HTMLElement;
                 let itemId: string | null = null;
@@ -473,32 +445,19 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   attempts++;
                 }
 
-                console.log('[LayoutEditorRGL] FOUND ITEM ID via traversal:', { 
+                console.log('[LayoutEditorRGL] CLEAN CLICK SELECTION', { 
                   itemId, 
                   attempts,
-                  finalElement: element?.className 
+                  shiftKey: e.shiftKey,
+                  metaKey: e.metaKey,
+                  ctrlKey: e.ctrlKey,
+                  selectedId,
+                  before: Array.from(selectedIds)
                 });
 
                 if (itemId) {
-                  // PREVENT RGL from handling this event
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (e.nativeEvent) {
-                    e.nativeEvent.preventDefault();
-                    e.nativeEvent.stopPropagation();
-                    e.nativeEvent.stopImmediatePropagation();
-                  }
-
                   const isToggle = e.metaKey || e.ctrlKey;
                   const isRange = e.shiftKey && !!selectedId;
-                  
-                  console.log('[LayoutEditorRGL] PARENT DELEGATION SELECTION', { 
-                    itemId, 
-                    isToggle, 
-                    isRange, 
-                    selectedId, 
-                    before: Array.from(selectedIds) 
-                  });
 
                   if (isToggle) {
                     setSelectedIds(prev => {
@@ -513,7 +472,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                         next.add(itemId);
                         setSelectedId(itemId);
                       }
-                      console.log('[LayoutEditorRGL] PARENT TOGGLE result:', Array.from(next));
+                      console.log('[LayoutEditorRGL] CLEAN TOGGLE result:', Array.from(next));
                       return next;
                     });
                   } else if (isRange) {
@@ -527,7 +486,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       setSelectedIds(prev => {
                         const next = new Set(prev);
                         rangeIds.forEach(id => next.add(id));
-                        console.log('[LayoutEditorRGL] PARENT RANGE result:', Array.from(next));
+                        console.log('[LayoutEditorRGL] CLEAN RANGE result:', Array.from(next));
                         return next;
                       });
                       setSelectedId(itemId);
@@ -536,7 +495,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     setSelectedId(itemId);
                     const next = new Set([itemId]);
                     setSelectedIds(next);
-                    console.log('[LayoutEditorRGL] PARENT SINGLE result:', Array.from(next));
+                    console.log('[LayoutEditorRGL] CLEAN SINGLE result:', Array.from(next));
                   }
                 } else if (e.target === e.currentTarget) {
                   // Clear selection when clicking background (empty space)
@@ -554,9 +513,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 rowHeight={cellSize}
                 width={design.width}
                 onLayoutChange={handleLayoutChange}
-                isDraggable={!isShiftDown}
+                isDraggable={true}
                 isResizable={true}
-                draggableCancel={isShiftDown ? '*' : 'input, textarea, select, button'}
+                draggableCancel={'input, textarea, select, button'}
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
@@ -570,9 +529,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     draggedItem: newItem?.i,
                     selectedIds: Array.from(selectedIds),
                     selectedIdsSize: selectedIds.size,
-                    isInSelection: newItem?.i ? selectedIds.has(newItem.i) : false,
-                    isDraggable: !isShiftDown,
-                    isShiftDown
+                    isInSelection: newItem?.i ? selectedIds.has(newItem.i) : false
                   });
 
                   // ONLY change selection if dragging an item that's NOT in the current selection
