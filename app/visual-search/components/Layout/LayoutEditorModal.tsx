@@ -264,8 +264,8 @@ export default function LayoutEditorModal({
               preventCollision={true}
               compactType={null}
               autoSize={false}
-              useCSSTransforms={false}
-              onLayoutChange={handleLayoutChange}
+              useCSSTransforms={true}
+              // Only sync state on drag/resize stop for smoother UX
               onDragStop={(layout: any[]) => {
                 console.log('[LayoutEditor] onDragStop called with:', layout.length, 'items');
                 console.log('[LayoutEditor] onDragStop positions:', layout.map(l => ({ id: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
@@ -278,9 +278,7 @@ export default function LayoutEditorModal({
               onDragStart={(layout: any[], oldItem: any, newItem: any) => {
                 console.log('[LayoutEditor] onDragStart - item:', newItem.i, 'from:', { x: oldItem.x, y: oldItem.y }, 'to:', { x: newItem.x, y: newItem.y });
               }}
-              onDrag={(layout: any[], oldItem: any, newItem: any) => {
-                console.log('[LayoutEditor] onDrag - item:', newItem.i, 'position:', { x: newItem.x, y: newItem.y });
-              }}
+              // Don't mutate state on every drag tick to avoid jank
               onResizeStart={(layout: any[], oldItem: any, newItem: any) => {
                 console.log('[LayoutEditor] onResizeStart - item:', newItem.i, 'from:', { w: oldItem.w, h: oldItem.h }, 'to:', { w: newItem.w, h: newItem.h });
               }}
@@ -300,7 +298,7 @@ export default function LayoutEditorModal({
                       setIsEditingText(true);
                     }
                   }}
-                  style={{ zIndex: it.z || 1, userSelect: 'none' }}
+                  style={{ zIndex: it.z || 1, userSelect: 'none', willChange: 'transform' }}
                 >
                   {/* Drag handle bar */}
                   <div className="drag-handle h-6 px-2 flex items-center justify-between text-xs bg-neutral-800/70 border-b border-neutral-800 select-none">
