@@ -232,14 +232,14 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     );
   }, []);
 
-      
+
 
   // Memoize children for performance - use mousedown for immediate selection
   const children = useMemo(() => {
     const group = activeGroupIdsRef.current;
     const delta = currentDragDeltaRef.current;
     const cellSize = edited.layout_data.cellSize || 20;
-    
+
     return edited.layout_data.items.map(item => {
       // Calculate transform for group members during drag
       let transform = '';
@@ -248,7 +248,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         const transformY = delta.deltaY * cellSize;
         transform = `translate(${transformX}px, ${transformY}px)`;
       }
-      
+
       return (
         <div
           key={item.id}
@@ -264,59 +264,55 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
             transform: transform,
             transition: isGroupDrag ? 'none' : 'transform 0.2s ease'
           }}
-        onMouseDown={(e) => {
-          // Use onMouseDown to ensure selection happens before any drag events
-          e.stopPropagation(); // Prevent canvas click
-          
+        onMouseDownCapture={(e) => {
+          // Capture selection before Draggable onStart runs
+          e.stopPropagation();
+
           const isToggle = e.metaKey || e.ctrlKey;
-          const isRange = e.shiftKey && !!selectedId;
+          const isRange = e.shiftKey && !!selectedIdRef.current;
+
+          let nextSelectedIds = new Set<string>(selectedIdsRef.current);
+          let nextSelectedId: string | null = selectedIdRef.current;
 
           if (isToggle) {
-            setSelectedIds(prev => {
-              const next = new Set(prev);
-              if (next.has(item.id)) {
-                next.delete(item.id);
-                if (selectedId === item.id) {
-                  const remaining = Array.from(next);
-                  setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-                  selectedIdRef.current = remaining.length > 0 ? remaining[remaining.length - 1] : null;
-                }
-              } else {
-                next.add(item.id);
-                setSelectedId(item.id);
-                selectedIdRef.current = item.id;
+            if (nextSelectedIds.has(item.id)) {
+              nextSelectedIds.delete(item.id);
+              if (nextSelectedId === item.id) {
+                const remaining = Array.from(nextSelectedIds);
+                nextSelectedId = remaining.length > 0 ? remaining[remaining.length - 1] : null;
               }
-              selectedIdsRef.current = next; // Update ref immediately
-              console.log('[LayoutEditorRGL] MOUSEDOWN TOGGLE', Array.from(next));
-              return next;
-            });
+            } else {
+              nextSelectedIds.add(item.id);
+              nextSelectedId = item.id;
+            }
+            console.log('[LayoutEditorRGL] MOUSEDOWN TOGGLE', Array.from(nextSelectedIds));
           } else if (isRange) {
-            if (selectedId === item.id) return;
-            const items = edited.layout_data.items;
-            const lastIndex = items.findIndex(it => it.id === selectedId);
-            const currentIndex = items.findIndex(it => it.id === item.id);
-            if (lastIndex !== -1 && currentIndex !== -1) {
-              const start = Math.min(lastIndex, currentIndex);
-              const end = Math.max(lastIndex, currentIndex);
-              const rangeIds = items.slice(start, end + 1).map(it => it.id);
-              setSelectedIds(prev => {
-                const next = new Set(prev);
-                rangeIds.forEach(id => next.add(id));
-                selectedIdsRef.current = next; // Update ref immediately
-                console.log('[LayoutEditorRGL] MOUSEDOWN RANGE (' + (next.size) + ')', Array.from(next));
-                return next;
-              });
-              setSelectedId(item.id);
-              selectedIdRef.current = item.id;
+            if (nextSelectedId !== item.id) {
+              const items = edited.layout_data.items;
+              const lastIndex = items.findIndex(it => it.id === nextSelectedId);
+              const currentIndex = items.findIndex(it => it.id === item.id);
+              if (lastIndex !== -1 && currentIndex !== -1) {
+                const start = Math.min(lastIndex, currentIndex);
+                const end = Math.max(lastIndex, currentIndex);
+                const rangeIds = items.slice(start, end + 1).map(it => it.id);
+                nextSelectedIds = new Set<string>(selectedIdsRef.current);
+                rangeIds.forEach(id => nextSelectedIds.add(id));
+                nextSelectedId = item.id;
+                console.log('[LayoutEditorRGL] MOUSEDOWN RANGE (' + (nextSelectedIds.size) + ')', Array.from(nextSelectedIds));
+              }
             }
           } else {
-            setSelectedId(item.id);
-            selectedIdRef.current = item.id;
-            const next = new Set([item.id]);
-            setSelectedIds(next);
-            selectedIdsRef.current = next; // Update ref immediately
-            console.log('[LayoutEditorRGL] MOUSEDOWN SINGLE', Array.from(next));
+            nextSelectedIds = new Set<string>([item.id]);
+            nextSelectedId = item.id;
+            console.log('[LayoutEditorRGL] MOUSEDOWN SINGLE', Array.from(nextSelectedIds));
           }
+
+          // Update refs immediately so onDragStart sees fresh selection
+          selectedIdsRef.current = nextSelectedIds;
+          selectedIdRef.current = nextSelectedId;
+          // Then update state (async)
+          setSelectedIds(nextSelectedIds);
+          setSelectedId(nextSelectedId);
         }}
       >
         {renderItem(item)}
@@ -470,7 +466,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     function onKey(e: KeyboardEvent) {
       const anySelected = selectedIds.size > 0 || !!selectedId;
       console.log('[LayoutEditorRGL] key', { key: e.key, size: selectedIds.size, ids: Array.from(selectedIds) });
-      
+
       // Escape to clear selection
       if (e.key === 'Escape' && anySelected) {
         e.preventDefault();
@@ -479,9 +475,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         console.log('[LayoutEditorRGL] Cleared selection via Escape key');
         return;
       }
-      
+
       if (!anySelected) return;
-      
+
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
       const step = 1;
       if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelection(-step, 0); }
@@ -607,19 +603,20 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                                     <div
               className="mx-auto border border-neutral-800 rounded-lg"
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
-              onMouseDown={(e) => {
+              onMouseDownCapture={(e) => {
                 // Clear selection when clicking empty canvas area
                 const target = e.target as HTMLElement;
                 // Check if click is on the canvas itself, not on any child elements
-                const isEmptyCanvas = target === e.currentTarget || 
+                const isEmptyCanvas = target === e.currentTarget ||
                                     target.classList.contains('react-grid-layout') ||
                                     target.classList.contains('layout');
-                
+
                 if (isEmptyCanvas) {
-                  setSelectedIds(new Set());
-                  setSelectedId(null);
-                  selectedIdsRef.current = new Set();
+                  const empty = new Set<string>();
+                  selectedIdsRef.current = empty;
                   selectedIdRef.current = null;
+                  setSelectedIds(empty);
+                  setSelectedId(null);
                   console.log('[LayoutEditorRGL] Cleared selection - clicked empty canvas');
                 }
               }}
@@ -638,7 +635,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
-                preventCollision={isGroupDrag}
+                preventCollision={true}
                 compactType={null}
                 verticalCompact={false}
                 isBounded={true}
@@ -646,7 +643,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                                 onDragStart={(currentLayout, oldItem, newItem) => {
                   const sel = selectedIdsRef.current;
                   const shiftHeld = isShiftHeldRef.current;
-                  
+
                   console.log('[LayoutEditorRGL] onDragStart', {
                     draggedItem: newItem?.i,
                     selectedIds: Array.from(sel),
@@ -676,10 +673,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     } else {
                       group = new Set([newItem.i]);
                     }
-                    
+
                     // Determine if this is a group drag (more than 1 item total)
                     const isGroup = group.size > 1;
-                    
+
                     if (isGroup) {
                       activeGroupIdsRef.current = group;
                       console.log('[LayoutEditorRGL] Group drag starting with items:', Array.from(group));
@@ -687,7 +684,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       activeGroupIdsRef.current = new Set([newItem.i]);
                       console.log('[LayoutEditorRGL] Single item drag starting:', newItem.i);
                     }
-                    
+
                     setIsGroupDrag(isGroup);
 
                     // Capture origin positions for all items in the group
@@ -698,7 +695,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       }
                     });
                     bulkDragOriginPositionsRef.current = positions;
-                    
+
                     console.log('[LayoutEditorRGL] Captured origin positions for:', Object.keys(positions));
                   }
                 }}
@@ -711,10 +708,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   const deltaY = (newItem.y || 0) - draggedOrigin.y;
 
                   const group = activeGroupIdsRef.current;
-                  
+
                   // Store current delta for CSS transforms
                   currentDragDeltaRef.current = { deltaX, deltaY };
-                  
+
                   console.log('[LayoutEditorRGL] onDrag', {
                     draggedItem: newItem.i,
                     groupSize: group?.size || 0,
@@ -734,7 +731,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   const group = activeGroupIdsRef.current;
                   const sel = selectedIdsRef.current;
                   const delta = currentDragDeltaRef.current;
-                  
+
                   console.log('[LayoutEditorRGL] onDragStop', {
                     draggedItem: newItem?.i,
                     oldPos: { x: oldItem?.x, y: oldItem?.y },
@@ -750,7 +747,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   if (group && group.size > 1 && newItem?.i) {
                     console.log('[LayoutEditorRGL] Finalizing group drag with delta:', delta);
                     const originPositions = bulkDragOriginPositionsRef.current;
-                    
+
                     // Create final layout with all group members moved by the delta
                     const finalLayout = currentLayout.map(layoutItem => {
                       if (group.has(layoutItem.i)) {
@@ -765,7 +762,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       }
                       return layoutItem;
                     });
-                    
+
                     handleLayoutChange(finalLayout, { lg: finalLayout });
                     console.log('[LayoutEditorRGL] Applied group drag with calculated positions');
                   } else {
