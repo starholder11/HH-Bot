@@ -99,9 +99,20 @@ export default function LayoutEditorModal({
     const parsed = parseInt(heightInput.trim(), 10);
     if (Number.isNaN(parsed)) return setHeightInput(String(canvasHeight));
     const h = Math.min(5000, Math.max(200, parsed));
+    console.log("commitHeight: setting height to", h);
     setCanvasHeight(h);
     setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], height: h } }));
-    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, designSize: { width: design.width, height: h } } }));
+    setEdited(prev => {
+      const updated = {
+        ...prev,
+        layout_data: {
+          ...prev.layout_data,
+          designSize: { width: design.width, height: h }
+        }
+      };
+      console.log("Updated layout with new height:", updated.layout_data.designSize);
+      return updated;
+    });
     setHeightInput(String(h));
   }
 
@@ -547,6 +558,12 @@ export default function LayoutEditorModal({
       setWorking(true);
       setIsSaving(true);
       console.log('[LayoutEditor] ===== SAVE START =====');
+      
+      // Force commit all pending input changes first
+      commitWidth();
+      commitHeight();
+      commitCellSize();
+      
       console.log('[LayoutEditor] Initial edited state:', JSON.stringify(edited, null, 2));
 
       // Ensure inline text edits are committed to state before save
