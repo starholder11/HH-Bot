@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMediaAsset, listMediaAssets, saveMediaAsset, deleteMediaAsset, type MediaAsset } from '@/lib/media-storage';
+import { getS3Client, getBucketName } from '@/lib/s3-config';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { readJsonFromS3 } from '@/lib/s3-upload';
 
 export async function GET(
   request: NextRequest,
@@ -147,10 +150,46 @@ export async function DELETE(
       return NextResponse.json({ error: 'Asset ID is required' }, { status: 400 });
     }
 
+    // Get the asset before deletion to check if it's a layout
+    const existingAsset = await getMediaAsset(id);
+    const isLayout = existingAsset?.media_type === 'layout';
+
     const deleted = await deleteMediaAsset(id);
 
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Asset not found' }, { status: 404 });
+    }
+
+    // Remove from layouts index if it was a layout
+    if (isLayout) {
+      try {
+        const s3 = getS3Client();
+        const bucket = getBucketName();
+        const indexKey = 'layouts/index.json';
+
+        let index: { items: Array<{ id: string; title: string; created_at: string }> } = { items: [] };
+        try {
+          const existing = await readJsonFromS3(indexKey);
+          if (existing && Array.isArray(existing.items)) index = existing;
+        } catch {}
+
+        // Remove the deleted layout from index
+        index.items = index.items.filter(item => item.id !== id);
+
+        // Update the index
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: bucket,
+            Key: indexKey,
+            Body: JSON.stringify(index, null, 2),
+            ContentType: 'application/json',
+          })
+        );
+        console.log(`[media-assets] Removed layout ${id} from layouts index`);
+      } catch (indexErr) {
+        console.warn('[media-assets] Failed to update layouts index after deletion:', indexErr);
+        // Don't fail the delete operation if index update fails
+      }
     }
 
     console.log(`[media-assets] Deleted asset: ${id}`);

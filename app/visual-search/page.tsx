@@ -197,22 +197,22 @@ function LayoutsTab() {
   const handleSelectLayout = async (layout: LayoutAsset) => {
     console.log('[LayoutsTab] Selecting layout:', layout.id, 'fetching fresh data...');
     setLoadingLayout(true);
-    
+
     try {
       // Always fetch fresh layout data from API to avoid cache issues
-      const response = await fetch(`/api/media-assets/${layout.id}?ts=${Date.now()}`, { 
-        cache: 'no-store' 
+      const response = await fetch(`/api/media-assets/${layout.id}?ts=${Date.now()}`, {
+        cache: 'no-store'
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to load layout: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (!data.success) {
         throw new Error(data.error || 'Failed to load layout');
       }
-      
+
       console.log('[LayoutsTab] Fresh layout data loaded:', data.asset.id, 'items:', data.asset.layout_data.items.length);
       setSelectedLayout(data.asset);
       setShowModal(true);

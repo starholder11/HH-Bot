@@ -897,6 +897,9 @@ export async function deleteMediaAsset(assetId: string): Promise<boolean> {
       const bucket = getBucketName();
       const key = `${PREFIX}${assetId}.json`;
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+      
+      // Clear cache after successful delete to ensure immediate removal from lists
+      clearS3KeysCache();
       return true;
     } catch (err) {
       console.error('deleteMediaAsset: S3 delete failed', err);
@@ -911,6 +914,9 @@ export async function deleteMediaAsset(assetId: string): Promise<boolean> {
   const filePath = path.join(process.cwd(), 'media-sources', 'assets', `${assetId}.json`);
   try {
     await fs.unlink(filePath);
+    
+    // Clear cache after successful local delete too
+    clearS3KeysCache();
     return true;
   } catch (err: any) {
     if (err.code === 'ENOENT') return false;
