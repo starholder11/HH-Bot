@@ -180,83 +180,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
-                onMouseDown={(e) => {
-          // AGGRESSIVE event stopping
-          e.preventDefault();
-          e.stopPropagation();
-          if (e.nativeEvent) {
-            e.nativeEvent.preventDefault();
-            e.nativeEvent.stopPropagation();
-            e.nativeEvent.stopImmediatePropagation();
-          }
-
-          const isToggle = e.metaKey || e.ctrlKey;
-          const isRange = e.shiftKey && !!selectedId;
-          console.log('[LayoutEditorRGL] CLICK ANYWHERE - AGGRESSIVE CAPTURE', { 
-            id: item.id, 
-            itemType: item.type,
-            isToggle, 
-            isRange, 
-            selectedId, 
-            before: Array.from(selectedIds),
-            shiftKey: e.shiftKey,
-            metaKey: e.metaKey,
-            ctrlKey: e.ctrlKey,
-            isShiftDown,
-            target: e.target,
-            currentTarget: e.currentTarget,
-            timestamp: Date.now()
-          });
-
-          if (isToggle) {
-            setSelectedIds(prev => {
-              const next = new Set(prev);
-              if (next.has(item.id)) {
-                next.delete(item.id);
-                if (selectedId === item.id) {
-                  const remaining = Array.from(next);
-                  setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-                }
-              } else {
-                next.add(item.id);
-                setSelectedId(item.id);
-              }
-              console.log('[LayoutEditorRGL] TOGGLE result:', Array.from(next));
-              return next;
-            });
-          } else if (isRange) {
-            const items = edited.layout_data.items;
-            const lastIndex = items.findIndex(it => it.id === selectedId);
-            const currentIndex = items.findIndex(it => it.id === item.id);
-            if (lastIndex !== -1 && currentIndex !== -1) {
-              const start = Math.min(lastIndex, currentIndex);
-              const end = Math.max(lastIndex, currentIndex);
-              const rangeIds = items.slice(start, end + 1).map(it => it.id);
-              setSelectedIds(prev => {
-                const next = new Set(prev);
-                rangeIds.forEach(id => next.add(id));
-                console.log('[LayoutEditorRGL] RANGE result:', Array.from(next));
-                return next;
-              });
-              setSelectedId(item.id);
-            }
-          } else {
-            setSelectedId(item.id);
-            const next = new Set([item.id]);
-            setSelectedIds(next);
-            console.log('[LayoutEditorRGL] SINGLE result:', Array.from(next));
-          }
-        }}
-        onClick={(e) => {
-          // Additional click handler as backup
-          console.log('[LayoutEditorRGL] CLICK EVENT as backup', {
-            id: item.id,
-            shiftKey: e.shiftKey,
-            metaKey: e.metaKey,
-            ctrlKey: e.ctrlKey,
-            target: e.target
-          });
-        }}
+        
       >
         {renderItem(item)}
       </div>
@@ -516,9 +440,100 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                                     <div
               className="mx-auto border border-neutral-800 rounded-lg"
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
-              onClick={(e) => {
-                // Clear selection when clicking background (empty space)
-                if (e.target === e.currentTarget) {
+              onMouseDown={(e) => {
+                // COMPLETE EVENT DELEGATION - bypass RGL entirely
+                console.log('[LayoutEditorRGL] PARENT CONTAINER MOUSEDOWN', {
+                  target: e.target,
+                  currentTarget: e.currentTarget,
+                  targetClass: (e.target as HTMLElement).className,
+                  shiftKey: e.shiftKey,
+                  metaKey: e.metaKey,
+                  ctrlKey: e.ctrlKey,
+                  isShiftDown
+                });
+
+                // Find the item by traversing up the DOM
+                let element = e.target as HTMLElement;
+                let itemId: string | null = null;
+                let attempts = 0;
+                
+                while (element && attempts < 10) {
+                  const dataItemId = element.getAttribute('data-item-id');
+                  if (dataItemId) {
+                    itemId = dataItemId;
+                    break;
+                  }
+                  element = element.parentElement as HTMLElement;
+                  attempts++;
+                }
+
+                console.log('[LayoutEditorRGL] FOUND ITEM ID via traversal:', { 
+                  itemId, 
+                  attempts,
+                  finalElement: element?.className 
+                });
+
+                if (itemId) {
+                  // PREVENT RGL from handling this event
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.nativeEvent) {
+                    e.nativeEvent.preventDefault();
+                    e.nativeEvent.stopPropagation();
+                    e.nativeEvent.stopImmediatePropagation();
+                  }
+
+                  const isToggle = e.metaKey || e.ctrlKey;
+                  const isRange = e.shiftKey && !!selectedId;
+                  
+                  console.log('[LayoutEditorRGL] PARENT DELEGATION SELECTION', { 
+                    itemId, 
+                    isToggle, 
+                    isRange, 
+                    selectedId, 
+                    before: Array.from(selectedIds) 
+                  });
+
+                  if (isToggle) {
+                    setSelectedIds(prev => {
+                      const next = new Set(prev);
+                      if (next.has(itemId)) {
+                        next.delete(itemId);
+                        if (selectedId === itemId) {
+                          const remaining = Array.from(next);
+                          setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+                        }
+                      } else {
+                        next.add(itemId);
+                        setSelectedId(itemId);
+                      }
+                      console.log('[LayoutEditorRGL] PARENT TOGGLE result:', Array.from(next));
+                      return next;
+                    });
+                  } else if (isRange) {
+                    const items = edited.layout_data.items;
+                    const lastIndex = items.findIndex(it => it.id === selectedId);
+                    const currentIndex = items.findIndex(it => it.id === itemId);
+                    if (lastIndex !== -1 && currentIndex !== -1) {
+                      const start = Math.min(lastIndex, currentIndex);
+                      const end = Math.max(lastIndex, currentIndex);
+                      const rangeIds = items.slice(start, end + 1).map(it => it.id);
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        rangeIds.forEach(id => next.add(id));
+                        console.log('[LayoutEditorRGL] PARENT RANGE result:', Array.from(next));
+                        return next;
+                      });
+                      setSelectedId(itemId);
+                    }
+                  } else {
+                    setSelectedId(itemId);
+                    const next = new Set([itemId]);
+                    setSelectedIds(next);
+                    console.log('[LayoutEditorRGL] PARENT SINGLE result:', Array.from(next));
+                  }
+                } else if (e.target === e.currentTarget) {
+                  // Clear selection when clicking background (empty space)
                   console.log('[LayoutEditorRGL] clicked background, clearing selection');
                   setSelectedIds(new Set());
                   setSelectedId(null);
@@ -535,7 +550,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 onLayoutChange={handleLayoutChange}
                 isDraggable={!isShiftDown}
                 isResizable={true}
-                draggableCancel={isShiftDown ? '.selection-zone' : 'input, textarea, select, button'}
+                draggableCancel={isShiftDown ? '*' : 'input, textarea, select, button'}
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
