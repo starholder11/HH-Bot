@@ -479,10 +479,28 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     const items = edited.layout_data.items;
                     const lastIndex = items.findIndex(it => it.id === selectedId);
                     const currentIndex = items.findIndex(it => it.id === itemId);
+                    
+                    console.log('[LayoutEditorRGL] RANGE DEBUG', {
+                      selectedId,
+                      itemId,
+                      lastIndex,
+                      currentIndex,
+                      totalItems: items.length,
+                      itemsOrder: items.map(it => it.id)
+                    });
+                    
                     if (lastIndex !== -1 && currentIndex !== -1) {
                       const start = Math.min(lastIndex, currentIndex);
                       const end = Math.max(lastIndex, currentIndex);
                       const rangeIds = items.slice(start, end + 1).map(it => it.id);
+                      
+                      console.log('[LayoutEditorRGL] RANGE CALCULATION', {
+                        start,
+                        end,
+                        rangeIds,
+                        slicedItems: items.slice(start, end + 1).map(it => ({ id: it.id, type: it.type }))
+                      });
+                      
                       setSelectedIds(prev => {
                         const next = new Set(prev);
                         rangeIds.forEach(id => next.add(id));
@@ -490,6 +508,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                         return next;
                       });
                       setSelectedId(itemId);
+                    } else {
+                      console.log('[LayoutEditorRGL] RANGE FAILED - invalid indices');
                     }
                   } else {
                     setSelectedId(itemId);
