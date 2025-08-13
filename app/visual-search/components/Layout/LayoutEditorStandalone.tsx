@@ -1017,7 +1017,7 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
   const controllerRef = React.useRef<AbortController | null>(null);
   const debounceRef = React.useRef<number | null>(null);
 
-  const searchAssets = async (query: string) => {
+    const searchAssets = async (query: string) => {
     const q = query.trim();
     if (!q) {
       setSearchResults([]);
@@ -1030,45 +1030,11 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
       controllerRef.current = controller;
       setIsLoading(true);
       try {
-        // Try unified search first, but fallback to direct media assets if it fails
-        let searchSucceeded = false;
-        try {
-          const json = await searchService.get(q, { type: 'media', limit: 50, signal: controller.signal });
-          const all = (json as any)?.results?.all || (json as any)?.results?.media || [];
-          if (Array.isArray(all) && all.length > 0) {
-            setSearchResults(all);
-            searchSucceeded = true;
-          }
-        } catch (searchError) {
-          console.warn('Unified search failed, falling back to media assets:', searchError);
-        }
-
-        if (!searchSucceeded) {
-          // Fallback to direct media assets API
-          const resp = await fetch('/api/media-assets?type=image&limit=100');
-          const data = await resp.json();
-          const t = q.toLowerCase();
-          const filtered = (data.assets || []).filter((a: any) => (
-            (a.title || '').toLowerCase().includes(t) ||
-            (a.filename || '').toLowerCase().includes(t) ||
-            ((a.manual_labels?.custom_tags || []).join(' ').toLowerCase().includes(t))
-          ));
-          const mapped: UnifiedSearchResult[] = filtered.map((a: any) => ({
-            id: a.id,
-            content_type: 'image',
-            title: a.title || a.filename || 'Untitled',
-            description: a.description || '',
-            score: 0,
-            metadata: { cloudflare_url: a.cloudflare_url, s3_url: a.s3_url },
-            url: a.url,
-            s3_url: a.s3_url,
-            cloudflare_url: a.cloudflare_url,
-            preview: a.preview,
-          }));
-          setSearchResults(mapped);
-        }
+        const json = await searchService.get(q, { type: 'media', limit: 50, signal: controller.signal });
+        const all = (json as any)?.results?.all || (json as any)?.results?.media || [];
+        setSearchResults(Array.isArray(all) ? all : []);
       } catch (error) {
-        console.error('Asset search failed completely:', error);
+        console.error('Asset search failed:', error);
         setSearchResults([]);
       } finally {
         setIsLoading(false);
@@ -1076,35 +1042,9 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
     }, 200);
   };
 
-  // Ensure portal target exists and load initial assets
-  useEffect(() => {
-    setMounted(true);
-    // Load initial assets when modal opens
-    const loadInitialAssets = async () => {
-      setIsLoading(true);
-      try {
-        const resp = await fetch('/api/media-assets?type=image&limit=50');
-        const data = await resp.json();
-        const mapped: UnifiedSearchResult[] = (data.assets || []).map((a: any) => ({
-          id: a.id,
-          content_type: 'image',
-          title: a.title || a.filename || 'Untitled',
-          description: a.description || '',
-          score: 0,
-          metadata: { cloudflare_url: a.cloudflare_url, s3_url: a.s3_url },
-          url: a.url,
-          s3_url: a.s3_url,
-          cloudflare_url: a.cloudflare_url,
-          preview: a.preview,
-        }));
-        setSearchResults(mapped);
-      } catch (error) {
-        console.error('Failed to load initial assets:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void loadInitialAssets();
+    // Ensure portal target exists
+  useEffect(() => { 
+    setMounted(true); 
   }, []);
 
   if (!mounted || typeof document === 'undefined') return null;
@@ -1214,8 +1154,8 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
             value={edited.layout_data.styling?.colors?.background || '#171717'}
             onChange={(e) => setEdited(prev => ({
               ...prev,
-              layout_data: { 
-                ...prev.layout_data, 
+              layout_data: {
+                ...prev.layout_data,
                 styling: {
                   ...prev.layout_data.styling,
                   colors: {
@@ -1236,8 +1176,8 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
             value={edited.layout_data.styling?.colors?.text || '#ffffff'}
             onChange={(e) => setEdited(prev => ({
               ...prev,
-              layout_data: { 
-                ...prev.layout_data, 
+              layout_data: {
+                ...prev.layout_data,
                 styling: {
                   ...prev.layout_data.styling,
                   colors: {
