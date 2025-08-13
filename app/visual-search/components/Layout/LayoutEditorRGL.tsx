@@ -28,6 +28,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [dragStartPos, setDragStartPos] = useState<{x: number, y: number} | null>(null); // reserved
   const [isDragging, setIsDragging] = useState<boolean>(false); // reserved
   const [isGroupDrag, setIsGroupDrag] = useState<boolean>(false);
+  const [dragRenderKey, setDragRenderKey] = useState<number>(0);
 
   // Dedicated layout state - single source of truth during drag operations
   const [layoutState, setLayoutState] = useState<Layout[]>(() => {
@@ -85,6 +86,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const bulkDragOriginPositionsRef = React.useRef<Record<string, { x: number; y: number }>>({});
   const draggedItemOriginRef = React.useRef<{ x: number; y: number } | null>(null);
   const activeGroupIdsRef = React.useRef<Set<string> | null>(null);
+  const currentDragDeltaRef = React.useRef<{ deltaX: number; deltaY: number }>({ deltaX: 0, deltaY: 0 });
   // Keep latest selection in refs so drag handlers don't read stale closures
   const selectedIdsRef = React.useRef<Set<string>>(selectedIds);
   const selectedIdRef = React.useRef<string | null>(selectedId);
@@ -232,19 +234,34 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
   // Memoize children for performance - use mousedown for immediate selection
   const children = useMemo(() => {
-    return edited.layout_data.items.map(item => (
-      <div
-        key={item.id}
-        data-item-id={item.id}
-        className={`rounded-sm overflow-hidden border selection-zone ${selectedIds.has(item.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
-        style={{
-          margin: 0,
-          padding: 0,
-          willChange: 'transform',
-          backfaceVisibility: 'hidden',
-          WebkitBackfaceVisibility: 'hidden',
-          cursor: isGroupDrag ? 'grabbing' : 'pointer'
-        }}
+    const group = activeGroupIdsRef.current;
+    const delta = currentDragDeltaRef.current;
+    const cellSize = edited.layout_data.cellSize || 20;
+    
+    return edited.layout_data.items.map(item => {
+      // Calculate transform for group members during drag
+      let transform = '';
+      if (isGroupDrag && group && group.size > 1 && group.has(item.id)) {
+        const transformX = delta.deltaX * cellSize;
+        const transformY = delta.deltaY * cellSize;
+        transform = `translate(${transformX}px, ${transformY}px)`;
+      }
+      
+      return (
+        <div
+          key={item.id}
+          data-item-id={item.id}
+          className={`rounded-sm overflow-hidden border selection-zone ${selectedIds.has(item.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
+          style={{
+            margin: 0,
+            padding: 0,
+            willChange: 'transform',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            cursor: isGroupDrag ? 'grabbing' : 'pointer',
+            transform: transform,
+            transition: isGroupDrag ? 'none' : 'transform 0.2s ease'
+          }}
         onClick={(e) => {
           const isToggle = e.metaKey || e.ctrlKey;
           const isRange = e.shiftKey && !!selectedId;
@@ -297,8 +314,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           </div>
         )}
       </div>
-    ));
-  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, isGroupDrag]);
+      );
+    });
+  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, isGroupDrag, dragRenderKey]);
 
   // Helpers to update item fields safely
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -579,7 +597,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
               onClick={(e) => {
                 // Clear selection when clicking empty canvas area
-                if (e.target === e.currentTarget) {
+                const target = e.target as HTMLElement;
+                const isCanvas = target.classList.contains('react-grid-layout') || target === e.currentTarget;
+                if (isCanvas) {
                   setSelectedIds(new Set());
                   setSelectedId(null);
                   console.log('[LayoutEditorRGL] Cleared selection - clicked empty canvas');
@@ -655,7 +675,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   }
                 }}
                 onDrag={(currentLayout, oldItem, newItem) => {
-                  // Live-update other selected items during drag
+                  // Track drag delta for group movement
                   if (!newItem?.i) return;
                   const draggedOrigin = draggedItemOriginRef.current;
                   if (!draggedOrigin) return;
@@ -664,46 +684,29 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
                   const group = activeGroupIdsRef.current;
                   
+                  // Store current delta for CSS transforms
+                  currentDragDeltaRef.current = { deltaX, deltaY };
+                  
                   console.log('[LayoutEditorRGL] onDrag', {
                     draggedItem: newItem.i,
                     groupSize: group?.size || 0,
                     groupItems: group ? Array.from(group) : [],
                     delta: { deltaX, deltaY },
-                    draggedPosition: { x: newItem.x, y: newItem.y },
-                    originPositions: Object.keys(bulkDragOriginPositionsRef.current)
+                    draggedPosition: { x: newItem.x, y: newItem.y }
                   });
 
-                  // For group drags, always update positions when we have a group and movement
+                  // For group drags, trigger re-render to apply CSS transforms
                   if (group && group.size > 1 && (deltaX !== 0 || deltaY !== 0)) {
-                    const originPositions = bulkDragOriginPositionsRef.current;
-                    console.log('[LayoutEditorRGL] Applying group movement: delta', { deltaX, deltaY });
-                    
-                    // Create complete updated layout with group movement
-                    const updatedLayout = currentLayout.map(layoutItem => {
-                      if (group.has(layoutItem.i)) {
-                        const origin = originPositions[layoutItem.i];
-                        if (origin) {
-                          const newPos = {
-                            x: Math.max(0, origin.x + deltaX),
-                            y: Math.max(0, origin.y + deltaY)
-                          };
-                          return {
-                            ...layoutItem,
-                            x: newPos.x,
-                            y: newPos.y
-                          };
-                        }
-                      }
-                      return layoutItem;
-                    });
-                    
-                    // Force immediate layout state update
-                    setLayoutState(updatedLayout);
+                    console.log('[LayoutEditorRGL] Applying group movement via CSS transforms: delta', { deltaX, deltaY });
+                    // Force a re-render to apply transforms
+                    setDragRenderKey(prev => prev + 1);
                   }
                 }}
                 onDragStop={(currentLayout, oldItem, newItem) => {
                   const group = activeGroupIdsRef.current;
                   const sel = selectedIdsRef.current;
+                  const delta = currentDragDeltaRef.current;
+                  
                   console.log('[LayoutEditorRGL] onDragStop', {
                     draggedItem: newItem?.i,
                     oldPos: { x: oldItem?.x, y: oldItem?.y },
@@ -711,15 +714,32 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     groupSize: group?.size || 0,
                     groupItems: group ? Array.from(group) : [],
                     selectedIds: Array.from(sel),
-                    wasGroupDrag: isGroupDrag
+                    wasGroupDrag: isGroupDrag,
+                    delta
                   });
 
-                  // For group drags, always use the current layout state since onDrag already updated positions
-                  if (group && group.size > 1) {
-                    console.log('[LayoutEditorRGL] Finalizing group drag - using current layout state');
-                    // Use the current layoutState since onDrag has been updating it
-                    handleLayoutChange(layoutState, { lg: layoutState });
-                    console.log('[LayoutEditorRGL] Applied group drag from layout state');
+                  // For group drags, create final layout with all group members moved
+                  if (group && group.size > 1 && newItem?.i) {
+                    console.log('[LayoutEditorRGL] Finalizing group drag with delta:', delta);
+                    const originPositions = bulkDragOriginPositionsRef.current;
+                    
+                    // Create final layout with all group members moved by the delta
+                    const finalLayout = currentLayout.map(layoutItem => {
+                      if (group.has(layoutItem.i)) {
+                        const origin = originPositions[layoutItem.i];
+                        if (origin) {
+                          return {
+                            ...layoutItem,
+                            x: Math.max(0, origin.x + delta.deltaX),
+                            y: Math.max(0, origin.y + delta.deltaY)
+                          };
+                        }
+                      }
+                      return layoutItem;
+                    });
+                    
+                    handleLayoutChange(finalLayout, { lg: finalLayout });
+                    console.log('[LayoutEditorRGL] Applied group drag with calculated positions');
                   } else {
                     // Normal single item drag
                     handleLayoutChange(currentLayout, { lg: currentLayout });
@@ -729,7 +749,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   // Reset bulk drag state
                   draggedItemOriginRef.current = null;
                   bulkDragOriginPositionsRef.current = {};
+                  currentDragDeltaRef.current = { deltaX: 0, deltaY: 0 };
                   setIsGroupDrag(false);
+                  setDragRenderKey(0);
                   activeGroupIdsRef.current = null;
                   console.log('[LayoutEditorRGL] Reset drag state');
                 }}
