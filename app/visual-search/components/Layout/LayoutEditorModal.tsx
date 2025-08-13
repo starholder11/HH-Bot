@@ -91,17 +91,17 @@ export default function LayoutEditorModal({
   function handleLayoutChange(newLayout: any[]) {
     console.log('[LayoutEditor] handleLayoutChange called with:', newLayout.length, 'items');
     console.log('[LayoutEditor] New layout positions:', newLayout.map(l => ({ id: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
-    
+
     // CRITICAL: Ignore layout changes during save to prevent overriding saved state
     if (isSaving) {
       console.log('[LayoutEditor] IGNORING handleLayoutChange - save in progress');
       return;
     }
-    
+
     // Apply layout changes to all items at once to maintain consistency
     setEdited((prev) => {
       console.log('[LayoutEditor] handleLayoutChange - prev state items:', prev.layout_data.items.length);
-      
+
       const updatedItems = prev.layout_data.items.map(item => {
         const layoutItem = newLayout.find(l => l.i === item.id);
         if (layoutItem) {
@@ -111,12 +111,12 @@ export default function LayoutEditorModal({
         }
         return item;
       });
-      
+
       // Enforce bounds again on the full set to avoid drift on right edge
       const normalized = normalizeAllItems({ ...prev, layout_data: { ...prev.layout_data, items: updatedItems } } as LayoutAsset);
-      
+
       console.log('[LayoutEditor] handleLayoutChange - final normalized items:', normalized.layout_data.items.length);
-      
+
       return {
         ...normalized,
         updated_at: new Date().toISOString()
@@ -264,6 +264,21 @@ export default function LayoutEditorModal({
               autoSize={false}
               useCSSTransforms={false}
               onLayoutChange={handleLayoutChange}
+              onDragStop={(layout: any[]) => {
+                console.log('[LayoutEditor] onDragStop called with:', layout.length, 'items');
+                console.log('[LayoutEditor] onDragStop positions:', layout.map(l => ({ id: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
+                handleLayoutChange(layout);
+              }}
+              onResizeStop={(layout: any[]) => {
+                console.log('[LayoutEditor] onResizeStop called with:', layout.length, 'items');
+                handleLayoutChange(layout);
+              }}
+              onDragStart={(layout: any[], oldItem: any, newItem: any) => {
+                console.log('[LayoutEditor] onDragStart - item:', newItem.i, 'from:', { x: oldItem.x, y: oldItem.y }, 'to:', { x: newItem.x, y: newItem.y });
+              }}
+              onDrag={(layout: any[], oldItem: any, newItem: any) => {
+                console.log('[LayoutEditor] onDrag - item:', newItem.i, 'position:', { x: newItem.x, y: newItem.y });
+              }}
             >
               {edited.layout_data.items.map((it) => (
                 <div
