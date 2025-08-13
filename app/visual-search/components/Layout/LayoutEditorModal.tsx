@@ -36,9 +36,9 @@ export default function LayoutEditorModal({
   const [designSizes, setDesignSizes] = useState(() => {
     const savedDesignSize = edited.layout_data.designSize;
     return {
-      desktop: { 
-        width: savedDesignSize?.width || 1200, 
-        height: savedDesignSize?.height || 800 
+      desktop: {
+        width: savedDesignSize?.width || 1200,
+        height: savedDesignSize?.height || 800
       },
       tablet: { width: 768, height: 1024 },
       mobile: { width: 375, height: 667 }
@@ -692,10 +692,10 @@ export default function LayoutEditorModal({
   );
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/70 flex">
-      <div className="relative m-0 w-full h-full bg-neutral-950 text-neutral-100">
+    <div className="fixed inset-0 z-[100] bg-neutral-950">
+      <div className="w-full min-h-screen bg-neutral-950 text-neutral-100">
         {/* Header */}
-        <div className="absolute top-0 inset-x-0 h-14 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur flex items-center justify-between px-4">
+        <div className="sticky top-0 z-50 h-14 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="px-2 py-1 rounded border border-neutral-700 hover:bg-neutral-800">Close</button>
             <div className="font-medium">{edited.title}</div>
@@ -860,7 +860,8 @@ export default function LayoutEditorModal({
         </div>
 
         {/* Canvas area */}
-        <div ref={scrollWrapRef} className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-y-auto">
+        <div className="flex">
+          <div ref={scrollWrapRef} className="flex-1 p-4">
           <div
             className={`mx-auto border border-neutral-800 bg-neutral-900 relative ${canvasClass}`}
             style={{
@@ -1051,8 +1052,10 @@ export default function LayoutEditorModal({
           </div>
         </div>
 
-        {/* Right inspector */}
-        <div className="absolute right-0 top-14 bottom-0 w-72 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-3 space-y-3">
+          </div>
+          
+          {/* Right inspector */}
+          <div className="w-72 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-3 space-y-3 min-h-screen">
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-300 font-medium">Inspector</div>
             <div className="flex gap-1">
@@ -2878,5 +2881,34 @@ async function getNextVersionNumber(baseTitle: string): Promise<number> {
   } catch {
     return 1;
   }
+}
+
+          {/* Image Library Modal */}
+          {showImageLibrary && (
+            <ImageLibraryModal
+              onClose={() => setShowImageLibrary(false)}
+              onSelect={(url) => {
+                if (pendingImageItemId) {
+                  setEdited(prev => ({
+                    ...prev,
+                    layout_data: {
+                      ...prev.layout_data,
+                      items: prev.layout_data.items.map(it =>
+                        it.id === pendingImageItemId
+                          ? { ...it, inlineContent: { ...it.inlineContent, imageUrl: url } }
+                          : it
+                      )
+                    }
+                  }));
+                  setPendingImageItemId(null);
+                }
+                setShowImageLibrary(false);
+              }}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
