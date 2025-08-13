@@ -33,22 +33,31 @@ export default function LayoutEditorModal({
   const cellSize = edited.layout_data.cellSize || 20;
 
   // Get and control breakpoint-specific design size (dynamic so canvas can extend)
-  const [designSizes, setDesignSizes] = useState({
-    desktop: { width: 1200, height: 800 },
-    tablet: { width: 768, height: 1024 },
-    mobile: { width: 375, height: 667 }
+  const [designSizes, setDesignSizes] = useState(() => {
+    const savedDesignSize = edited.layout_data.designSize;
+    return {
+      desktop: { 
+        width: savedDesignSize?.width || 1200, 
+        height: savedDesignSize?.height || 800 
+      },
+      tablet: { width: 768, height: 1024 },
+      mobile: { width: 375, height: 667 }
+    };
   });
 
   const design = designSizes[currentBreakpoint];
 
   // Track the actual rendered canvas height (can be larger than base design height)
-  const [canvasHeight, setCanvasHeight] = useState(design.height);
+  const [canvasHeight, setCanvasHeight] = useState(() => {
+    const savedDesignSize = edited.layout_data.designSize;
+    return savedDesignSize?.height || 800;
+  });
   const scrollWrapRef = useRef<HTMLDivElement | null>(null);
   const prevHeightRef = useRef<number>(design.height);
 
   // Text inputs for dimension controls (so user can freely type/erase)
   const [widthInput, setWidthInput] = useState<string>(String(design.width));
-  const [heightInput, setHeightInput] = useState<string>(String(design.height));
+  const [heightInput, setHeightInput] = useState<string>(String(canvasHeight));
   const [cellInput, setCellInput] = useState<string>(String(cellSize));
 
   // Reset canvas height when switching breakpoints
@@ -58,6 +67,22 @@ export default function LayoutEditorModal({
     setWidthInput(String(design.width));
     setHeightInput(String(design.height));
   }, [currentBreakpoint, design.height]);
+
+  // Sync with saved layout data when layout changes
+  useEffect(() => {
+    const savedDesignSize = edited.layout_data.designSize;
+    if (savedDesignSize && currentBreakpoint === 'desktop') {
+      const savedHeight = savedDesignSize.height || 800;
+      const savedWidth = savedDesignSize.width || 1200;
+      setDesignSizes(prev => ({
+        ...prev,
+        desktop: { width: savedWidth, height: savedHeight }
+      }));
+      setCanvasHeight(savedHeight);
+      setWidthInput(String(savedWidth));
+      setHeightInput(String(savedHeight));
+    }
+  }, [edited.layout_data.designSize, currentBreakpoint]);
 
   // Create dynamic CSS for canvas height to override any CSS conflicts
 
@@ -558,12 +583,12 @@ export default function LayoutEditorModal({
       setWorking(true);
       setIsSaving(true);
       console.log('[LayoutEditor] ===== SAVE START =====');
-      
+
       // Force commit all pending input changes first
       commitWidth();
       commitHeight();
       commitCellSize();
-      
+
       console.log('[LayoutEditor] Initial edited state:', JSON.stringify(edited, null, 2));
 
       // Ensure inline text edits are committed to state before save
