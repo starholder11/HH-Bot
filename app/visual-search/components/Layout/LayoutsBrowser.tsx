@@ -156,6 +156,7 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
               {category === 'Versions' && <span className="text-blue-500">🏷️</span>}
               {category === 'Copies' && <span className="text-green-500">📋</span>}
             </div>
+            <div className="grid grid-cols-1 gap-2">
               {organizedLayouts[category].map((layout) => {
                 const layoutData = (layout as any).layout_data || {};
                 const { items = [], designSize = { width: 1200, height: 800 } } = layoutData;
