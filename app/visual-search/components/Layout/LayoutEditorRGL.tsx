@@ -478,107 +478,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         <div className="flex-1 min-h-0 flex">
           {/* Canvas */}
           <div className="flex-1 p-4 overflow-auto">
-            <div
-              className="mx-auto border border-neutral-800 rounded-lg"
+                        <div 
+              className="mx-auto border border-neutral-800 rounded-lg" 
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
-              onMouseDown={(e) => {
-                                console.log('[LayoutEditorRGL] ANY CLICK DETECTED', { 
-                  target: e.target, 
-                  targetClass: (e.target as HTMLElement).className,
-                  currentTarget: e.currentTarget,
-                  button: e.button,
-                  metaKey: e.metaKey,
-                  ctrlKey: e.ctrlKey,
-                  shiftKey: e.shiftKey
-                });
-                
-                // Skip if clicking the drag handle
-                if ((e.target as HTMLElement).closest('.drag-handle')) {
-                  console.log('[LayoutEditorRGL] SKIP - clicked drag handle');
-                  return;
-                }
-                
-                // Find the closest item element - try multiple approaches
-                let itemEl = (e.target as HTMLElement).closest('[data-grid]') || 
-                            (e.target as HTMLElement).closest('.react-grid-item');
-                
-                // If not found, try to find our custom wrapper with item key
-                if (!itemEl) {
-                  const customWrapper = (e.target as HTMLElement).closest('[key]');
-                  if (customWrapper && customWrapper.getAttribute('key')) {
-                    itemEl = customWrapper;
-                  }
-                }
-                
-                console.log('[LayoutEditorRGL] closest item element:', itemEl);
-                console.log('[LayoutEditorRGL] element attributes:', itemEl ? {
-                  'data-item-id': itemEl.getAttribute('data-item-id'),
-                  'data-grid': itemEl.getAttribute('data-grid'),
-                  'className': itemEl.className,
-                  'data-key': itemEl.getAttribute('data-key'),
-                  'key': itemEl.getAttribute('key')
-                } : 'no element');
-
-                if (itemEl) {
-                  // Try our custom data-item-id first, then standard RGL attributes
-                  let itemId = itemEl.getAttribute('data-item-id') ||
-                              itemEl.getAttribute('data-grid') ||
-                              itemEl.getAttribute('data-key') ||
-                              itemEl.getAttribute('key');
-                  
-                  console.log('[LayoutEditorRGL] final itemId:', itemId);
-
-                  if (itemId) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    const isToggle = e.metaKey || e.ctrlKey;
-                    const isRange = e.shiftKey && !!selectedId;
-                    console.log('[LayoutEditorRGL] container onMouseDown', { itemId, isToggle, isRange, selectedId, before: Array.from(selectedIds) });
-
-                    if (isToggle) {
-                      setSelectedIds(prev => {
-                        const next = new Set(prev);
-                        if (next.has(itemId)) {
-                          next.delete(itemId);
-                          if (selectedId === itemId) {
-                            const remaining = Array.from(next);
-                            setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-                          }
-                        } else {
-                          next.add(itemId);
-                          setSelectedId(itemId);
-                        }
-                        console.log('[LayoutEditorRGL] toggle -> after', Array.from(next));
-                        return next;
-                      });
-                    } else if (isRange) {
-                      const items = edited.layout_data.items;
-                      const lastIndex = items.findIndex(it => it.id === selectedId);
-                      const currentIndex = items.findIndex(it => it.id === itemId);
-                      if (lastIndex !== -1 && currentIndex !== -1) {
-                        const start = Math.min(lastIndex, currentIndex);
-                        const end = Math.max(lastIndex, currentIndex);
-                        const rangeIds = items.slice(start, end + 1).map(it => it.id);
-                        setSelectedIds(prev => {
-                          const next = new Set(prev);
-                          rangeIds.forEach(id => next.add(id));
-                          console.log('[LayoutEditorRGL] range ->', { start, end, rangeIds, after: Array.from(next) });
-                          return next;
-                        });
-                        setSelectedId(itemId);
-                      }
-                    } else {
-                      setSelectedId(itemId);
-                      const next = new Set([itemId]);
-                      setSelectedIds(next);
-                      console.log('[LayoutEditorRGL] single -> after', Array.from(next));
-                    }
-                  }
-                } else {
-                  console.log('[LayoutEditorRGL] NO data-grid found, clicked background');
-                }
-              }}
             >
               <ResponsiveGridLayout
                 className="layout"
@@ -600,9 +502,59 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 isBounded={true}
                 transformScale={1}
                 onDragStart={(currentLayout, oldItem, newItem) => {
+                  console.log('[LayoutEditorRGL] onDragStart', { 
+                    draggedItem: newItem?.i, 
+                    selectedIds: Array.from(selectedIds),
+                    isInSelection: newItem?.i ? selectedIds.has(newItem.i) : false
+                  });
+                  
+                  // If dragging an item that's not in the current selection, select just this item
                   if (newItem?.i && !selectedIds.has(newItem.i)) {
                     setSelectedIds(new Set([newItem.i]));
                     setSelectedId(newItem.i);
+                    console.log('[LayoutEditorRGL] drag item not selected, selecting only:', newItem.i);
+                  }
+                  // If dragging an item that IS in selection, keep all selected items
+                  else if (newItem?.i && selectedIds.has(newItem.i)) {
+                    console.log('[LayoutEditorRGL] dragging selected item, will move all selected items');
+                  }
+                }}
+                onDragStop={(currentLayout, oldItem, newItem) => {
+                  console.log('[LayoutEditorRGL] onDragStop', { 
+                    draggedItem: newItem?.i,
+                    oldPos: { x: oldItem?.x, y: oldItem?.y },
+                    newPos: { x: newItem?.x, y: newItem?.y },
+                    selectedIds: Array.from(selectedIds)
+                  });
+                  
+                  // Calculate the drag delta
+                  const deltaX = (newItem?.x || 0) - (oldItem?.x || 0);
+                  const deltaY = (newItem?.y || 0) - (oldItem?.y || 0);
+                  
+                  console.log('[LayoutEditorRGL] drag delta:', { deltaX, deltaY });
+                  
+                  // If multiple items are selected and we dragged one of them, move all selected items
+                  if (selectedIds.size > 1 && newItem?.i && selectedIds.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
+                    console.log('[LayoutEditorRGL] moving all selected items by delta');
+                    
+                    const updatedLayout = currentLayout.map(layoutItem => {
+                      // If this item is selected (but not the one we dragged), apply the same delta
+                      if (selectedIds.has(layoutItem.i) && layoutItem.i !== newItem.i) {
+                        return {
+                          ...layoutItem,
+                          x: Math.max(0, layoutItem.x + deltaX),
+                          y: Math.max(0, layoutItem.y + deltaY)
+                        };
+                      }
+                      return layoutItem;
+                    });
+                    
+                    handleLayoutChange(updatedLayout, { lg: updatedLayout });
+                    console.log('[LayoutEditorRGL] applied bulk drag to selected items');
+                  } else {
+                    // Normal single item drag
+                    handleLayoutChange(currentLayout, { lg: currentLayout });
+                    console.log('[LayoutEditorRGL] normal single item drag');
                   }
                 }}
               >
