@@ -1032,10 +1032,61 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
       try {
         const json = await searchService.get(q, { type: 'media', limit: 50, signal: controller.signal });
         const all = (json as any)?.results?.all || (json as any)?.results?.media || [];
-        setSearchResults(Array.isArray(all) ? all : []);
+        if (Array.isArray(all) && all.length > 0) {
+          setSearchResults(all);
+        } else {
+          // Fallback to media assets API if unified search fails or returns no results
+          const resp = await fetch('/api/media-assets?type=image&limit=100');
+          const data = await resp.json();
+          const t = q.toLowerCase();
+          const filtered = (data.assets || []).filter((a: any) => (
+            (a.title || '').toLowerCase().includes(t) ||
+            (a.filename || '').toLowerCase().includes(t) ||
+            ((a.manual_labels?.custom_tags || []).join(' ').toLowerCase().includes(t))
+          ));
+          const mapped: UnifiedSearchResult[] = filtered.map((a: any) => ({
+            id: a.id,
+            content_type: 'image',
+            title: a.title || a.filename || 'Untitled',
+            description: a.description || '',
+            score: 0,
+            metadata: { cloudflare_url: a.cloudflare_url, s3_url: a.s3_url },
+            url: a.url,
+            s3_url: a.s3_url,
+            cloudflare_url: a.cloudflare_url,
+            preview: a.preview,
+          }));
+          setSearchResults(mapped);
+        }
       } catch (error) {
-        console.error('Asset search failed:', error);
-        setSearchResults([]);
+        console.error('Asset search failed, trying fallback:', error);
+        // Fallback to media assets API if unified search completely fails
+        try {
+          const resp = await fetch('/api/media-assets?type=image&limit=100');
+          const data = await resp.json();
+          const t = q.toLowerCase();
+          const filtered = (data.assets || []).filter((a: any) => (
+            (a.title || '').toLowerCase().includes(t) ||
+            (a.filename || '').toLowerCase().includes(t) ||
+            ((a.manual_labels?.custom_tags || []).join(' ').toLowerCase().includes(t))
+          ));
+          const mapped: UnifiedSearchResult[] = filtered.map((a: any) => ({
+            id: a.id,
+            content_type: 'image',
+            title: a.title || a.filename || 'Untitled',
+            description: a.description || '',
+            score: 0,
+            metadata: { cloudflare_url: a.cloudflare_url, s3_url: a.s3_url },
+            url: a.url,
+            s3_url: a.s3_url,
+            cloudflare_url: a.cloudflare_url,
+            preview: a.preview,
+          }));
+          setSearchResults(mapped);
+        } catch (fallbackError) {
+          console.error('Fallback search also failed:', fallbackError);
+          setSearchResults([]);
+        }
       } finally {
         setIsLoading(false);
       }
