@@ -224,6 +224,27 @@ function LayoutsTab() {
     }
   };
 
+  // If a layout is selected for editing, show the full editor
+  if (showModal && selectedLayout) {
+    return (
+      <div className="h-full">
+        <LayoutEditorModal
+          layout={selectedLayout}
+          onClose={() => {
+            setShowModal(false);
+            setSelectedLayout(null);
+          }}
+          onSaved={(l) => {
+            console.log('[LayoutsTab] onSaved called with layout:', l.id, 'items:', l.layout_data.items.length);
+            setSelectedLayout(l);
+            // Don't close modal after save - stay in editor
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Otherwise show the layouts browser
   return (
     <div>
       <div className="text-sm text-neutral-400 mb-3">Layouts</div>
@@ -236,18 +257,6 @@ function LayoutsTab() {
         onSelectLayout={handleSelectLayout}
         selectedLayoutId={selectedLayout ? (selectedLayout as LayoutAsset).id : null}
       />
-      {showModal && selectedLayout && (
-        <LayoutEditorModal
-          layout={selectedLayout}
-          onClose={() => setShowModal(false)}
-          onSaved={(l) => {
-            console.log('[LayoutsTab] onSaved called with layout:', l.id, 'items:', l.layout_data.items.length);
-            console.log('[LayoutsTab] Setting selectedLayout to saved asset');
-            setSelectedLayout(l);
-            console.log('[LayoutsTab] selectedLayout updated');
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -1153,7 +1162,7 @@ function RightPane({
           </div>
         </div>
       ) : tab === 'layouts' ? (
-        <div className="mt-3">
+        <div className="mt-3 h-full">
           <LayoutsTab />
         </div>
       ) : tab === 'output' ? (
