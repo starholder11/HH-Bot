@@ -21,6 +21,7 @@ interface Props {
 export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [edited, setEdited] = useState<LayoutAsset>(layout);
   const [working, setWorking] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
   const cellSize = edited.layout_data.cellSize || 20;
@@ -165,7 +166,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     return edited.layout_data.items.map(item => (
       <div 
         key={item.id} 
-        className="border border-blue-400/50 rounded-sm overflow-hidden"
+        className={`rounded-sm overflow-hidden border ${selectedId === item.id ? 'border-blue-500' : 'border-blue-400/40'}`}
         style={{ 
           margin: 0, 
           padding: 0,
@@ -173,11 +174,49 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
+        onMouseDown={() => setSelectedId(item.id)}
       >
         {renderItem(item)}
       </div>
     ));
-  }, [edited.layout_data.items, renderItem]);
+  }, [edited.layout_data.items, renderItem, selectedId]);
+
+  // Helpers to update item fields safely
+  const updateItem = useCallback((id: string, updates: Partial<Item>) => {
+    setEdited(prev => ({
+      ...prev,
+      layout_data: {
+        ...prev.layout_data,
+        items: prev.layout_data.items.map(it => it.id === id ? ({ ...it, ...updates }) as Item : it)
+      },
+      updated_at: new Date().toISOString(),
+    }));
+  }, []);
+
+  const deleteItem = useCallback((id: string) => {
+    setEdited(prev => ({
+      ...prev,
+      layout_data: {
+        ...prev.layout_data,
+        items: prev.layout_data.items.filter(it => it.id !== id)
+      },
+      updated_at: new Date().toISOString(),
+    }));
+    setSelectedId(prev => (prev === id ? null : prev));
+  }, []);
+
+  const duplicateItem = useCallback((id: string) => {
+    setEdited(prev => {
+      const it = prev.layout_data.items.find(x => x.id === id);
+      if (!it) return prev;
+      const copy: Item = { ...it, id: `${id}_copy_${Date.now().toString(36)}`, x: (it.x || 0) + 1, y: (it.y || 0) + 1 } as Item;
+      return {
+        ...prev,
+        layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, copy] },
+        updated_at: new Date().toISOString(),
+      } as LayoutAsset;
+    });
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex">
@@ -201,33 +240,118 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         </div>
       </div>
 
-      {/* Canvas area */}
-      <div className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
-        <div 
-          className="mx-auto border border-neutral-800 bg-neutral-900"
-          style={{ width: design.width, height: design.height }}
-        >
-          <ResponsiveGridLayout
-            className="layout"
-            layouts={layouts}
-            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-            cols={{ lg: Math.floor(design.width / cellSize), md: Math.floor(design.width / cellSize), sm: Math.floor(design.width / cellSize), xs: Math.floor(design.width / cellSize), xxs: Math.floor(design.width / cellSize) }}
-            rowHeight={cellSize}
-            width={design.width}
-            onLayoutChange={handleLayoutChange}
-            isDraggable={true}
-            isResizable={true}
-            margin={[1, 1]}
-            containerPadding={[2, 2]}
-            useCSSTransforms={true}
-            preventCollision={true}
-            compactType={null}
-            verticalCompact={false}
-            isBounded={true}
-            transformScale={1}
-          >
-            {children}
-          </ResponsiveGridLayout>
+      {/* Canvas + Inspector */}
+      <div className="absolute top-14 bottom-0 inset-x-0 p-4">
+        <div className="w-full h-full flex gap-4">
+          {/* Canvas area */}
+          <div className="flex-1 overflow-auto">
+            <div 
+              className="mx-auto border border-neutral-800 bg-neutral-900"
+              style={{ width: design.width, height: design.height }}
+            >
+              <ResponsiveGridLayout
+                className="layout"
+                layouts={layouts}
+                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                cols={{ lg: Math.floor(design.width / cellSize), md: Math.floor(design.width / cellSize), sm: Math.floor(design.width / cellSize), xs: Math.floor(design.width / cellSize), xxs: Math.floor(design.width / cellSize) }}
+                rowHeight={cellSize}
+                width={design.width}
+                onLayoutChange={handleLayoutChange}
+                isDraggable={true}
+                isResizable={true}
+                draggableCancel={'input, textarea, select, button'}
+                margin={[1, 1]}
+                containerPadding={[2, 2]}
+                useCSSTransforms={true}
+                preventCollision={true}
+                compactType={null}
+                verticalCompact={false}
+                isBounded={true}
+                transformScale={1}
+              >
+                {children}
+              </ResponsiveGridLayout>
+            </div>
+          </div>
+
+          {/* Inspector */}
+          <div className="w-80 shrink-0 border-l border-neutral-800 bg-neutral-900/70 backdrop-blur p-3 overflow-auto">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm text-neutral-300 font-medium">Inspector</div>
+              {selectedId && (
+                <div className="flex gap-1">
+                  <button onClick={() => duplicateItem(selectedId)} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Duplicate</button>
+                  <button onClick={() => deleteItem(selectedId)} className="px-2 py-1 text-xs rounded border border-red-700 text-red-300 hover:bg-red-900/30">Delete</button>
+                </div>
+              )}
+            </div>
+
+            {!selectedId ? (
+              <div className="text-xs text-neutral-400">Select an item to edit its properties.</div>
+            ) : (
+              (() => {
+                const it = edited.layout_data.items.find(x => x.id === selectedId)!;
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="text-xs text-neutral-400">X
+                        <input type="number" className="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                          value={it.x || 0}
+                          onChange={e => updateItem(it.id, { x: Number(e.target.value) })}
+                        />
+                      </label>
+                      <label className="text-xs text-neutral-400">Y
+                        <input type="number" className="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                          value={it.y || 0}
+                          onChange={e => updateItem(it.id, { y: Number(e.target.value) })}
+                        />
+                      </label>
+                      <label className="text-xs text-neutral-400">W
+                        <input type="number" className="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                          value={it.w || 1}
+                          onChange={e => updateItem(it.id, { w: Math.max(1, Number(e.target.value)) })}
+                        />
+                      </label>
+                      <label className="text-xs text-neutral-400">H
+                        <input type="number" className="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                          value={it.h || 1}
+                          onChange={e => updateItem(it.id, { h: Math.max(1, Number(e.target.value)) })}
+                        />
+                      </label>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-neutral-400 mb-1">Z-Index</div>
+                      <input type="number" className="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                        value={it.z || 1}
+                        onChange={e => updateItem(it.id, { z: Number(e.target.value) })}
+                      />
+                    </div>
+
+                    {it.type === 'inline_text' && (
+                      <div>
+                        <div className="text-xs text-neutral-400 mb-1">Text</div>
+                        <textarea className="w-full h-28 bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                          value={it.inlineContent?.text || ''}
+                          onChange={e => updateItem(it.id, { inlineContent: { ...(it.inlineContent || {}), text: e.target.value } as any })}
+                        />
+                      </div>
+                    )}
+
+                    {it.type === 'inline_image' && (
+                      <div>
+                        <div className="text-xs text-neutral-400 mb-1">Image URL</div>
+                        <input className="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                          value={it.inlineContent?.imageUrl || ''}
+                          onChange={e => updateItem(it.id, { inlineContent: { ...(it.inlineContent || {}), imageUrl: e.target.value } as any })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            )}
+          </div>
         </div>
       </div>
     </div>
