@@ -114,6 +114,26 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
     );
   }
 
+  // Organize layouts by category
+  const organizedLayouts = layouts.reduce((acc, layout) => {
+    const isTemplate = layout.title.toLowerCase().includes('template');
+    const isVersion = /v\d+$/.test(layout.title);
+    const isCopy = layout.title.toLowerCase().includes('copy');
+    
+    let category = 'Layouts';
+    if (isTemplate) category = 'Templates';
+    else if (isVersion) category = 'Versions';
+    else if (isCopy) category = 'Copies';
+    
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(layout);
+    return acc;
+  }, {} as Record<string, LayoutAsset[]>);
+
+  // Sort categories by priority
+  const categoryOrder = ['Layouts', 'Templates', 'Versions', 'Copies'];
+  const sortedCategories = categoryOrder.filter(cat => organizedLayouts[cat]);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -126,89 +146,115 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
-        {layouts.map((layout) => {
-          const layoutData = (layout as any).layout_data || {};
-          const { items = [], designSize = { width: 1200, height: 800 } } = layoutData;
-          const isSelected = selectedLayoutId === layout.id;
-
-          return (
-            <div
-              key={layout.id}
-              className={`
-                relative rounded-lg border p-3 cursor-pointer transition-all
-                ${isSelected
-                  ? 'border-blue-600 bg-blue-900/20'
-                  : 'border-neutral-700 bg-neutral-800/40 hover:bg-neutral-800/60'
-                }
-              `}
-              onClick={() => onSelectLayout(layout)}
-            >
-              {/* Layout Preview */}
-              <div className="flex items-start gap-3">
-                {/* Mini Grid Preview */}
-                <div
-                  className="flex-shrink-0 w-16 h-12 rounded border border-neutral-600 bg-neutral-900 relative overflow-hidden"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(to right, #374151 1px, transparent 1px),
-                      linear-gradient(to bottom, #374151 1px, transparent 1px)
-                    `,
-                    backgroundSize: '4px 4px'
-                  }}
-                >
-                  {/* Mini items */}
-                  {items.slice(0, 6).map((item: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="absolute bg-blue-500/60 rounded-sm"
-                      style={{
-                        left: `${(item.nx || 0) * 100}%`,
-                        top: `${(item.ny || 0) * 100}%`,
-                        width: `${Math.max(8, (item.nw || 0.1) * 100)}%`,
-                        height: `${Math.max(6, (item.nh || 0.1) * 100)}%`,
-                      }}
-                    />
-                  ))}
-                </div>
-
-                {/* Layout Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-neutral-100 truncate">
-                    {layout.title}
-                  </div>
-                  <div className="text-sm text-neutral-400 mt-1">
-                    {items.length} items • {designSize.width}×{designSize.height}
-                  </div>
-                  <div className="text-xs text-neutral-500 mt-1">
-                    {(layout as any).layout_type || 'layout'} • {new Date(layout.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex-shrink-0 flex items-center gap-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteLayout(layout.id);
-                    }}
-                    className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-900/20"
-                    title="Delete layout"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* Selected indicator */}
-              {isSelected && (
-                <div className="absolute inset-0 rounded-lg border-2 border-blue-500 pointer-events-none" />
-              )}
+      <div className="space-y-4 max-h-96 overflow-y-auto">
+        {sortedCategories.map(category => (
+          <div key={category}>
+            <div className="text-xs font-medium text-neutral-400 mb-2 flex items-center gap-2">
+              <span>{category}</span>
+              <span className="text-neutral-600">({organizedLayouts[category].length})</span>
+              {category === 'Templates' && <span className="text-yellow-500">📚</span>}
+              {category === 'Versions' && <span className="text-blue-500">🏷️</span>}
+              {category === 'Copies' && <span className="text-green-500">📋</span>}
             </div>
-          );
-        })}
+              {organizedLayouts[category].map((layout) => {
+                const layoutData = (layout as any).layout_data || {};
+                const { items = [], designSize = { width: 1200, height: 800 } } = layoutData;
+                const isSelected = selectedLayoutId === layout.id;
+
+                return (
+                  <div
+                    key={layout.id}
+                    className={`
+                      relative rounded-lg border p-3 cursor-pointer transition-all
+                      ${isSelected
+                        ? 'border-blue-600 bg-blue-900/20'
+                        : 'border-neutral-700 bg-neutral-800/40 hover:bg-neutral-800/60'
+                      }
+                    `}
+                    onClick={() => onSelectLayout(layout)}
+                  >
+                    {/* Layout Preview */}
+                    <div className="flex items-start gap-3">
+                      {/* Mini Grid Preview */}
+                      <div
+                        className="flex-shrink-0 w-16 h-12 rounded border border-neutral-600 bg-neutral-900 relative overflow-hidden"
+                        style={{
+                          backgroundImage: `
+                            linear-gradient(to right, #374151 1px, transparent 1px),
+                            linear-gradient(to bottom, #374151 1px, transparent 1px)
+                          `,
+                          backgroundSize: '4px 4px'
+                        }}
+                      >
+                        {/* Mini items */}
+                        {items.slice(0, 6).map((item: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="absolute bg-blue-500/60 rounded-sm"
+                            style={{
+                              left: `${(item.nx || 0) * 100}%`,
+                              top: `${(item.ny || 0) * 100}%`,
+                              width: `${Math.max(8, (item.nw || 0.1) * 100)}%`,
+                              height: `${Math.max(6, (item.nh || 0.1) * 100)}%`,
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Layout Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-neutral-100 truncate">
+                          {layout.title}
+                        </div>
+                        <div className="text-sm text-neutral-400 mt-1">
+                          {items.length} items • {designSize.width}×{designSize.height}
+                        </div>
+                        <div className="text-xs text-neutral-500 mt-1">
+                          {(layout as any).layout_type || 'layout'} • {new Date(layout.created_at).toLocaleDateString()}
+                        </div>
+                        {layout.description && (
+                          <div className="text-xs text-neutral-600 mt-1 truncate">
+                            {layout.description}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex-shrink-0 flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteLayout(layout.id);
+                          }}
+                          className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-900/20"
+                          title="Delete layout"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Category badge */}
+                    {category !== 'Layouts' && (
+                      <div className="absolute top-2 right-2 px-1 py-0.5 text-xs rounded bg-neutral-700 text-neutral-300">
+                        {category === 'Templates' && '📚'}
+                        {category === 'Versions' && '🏷️'}
+                        {category === 'Copies' && '📋'}
+                      </div>
+                    )}
+
+                    {/* Selected indicator */}
+                    {isSelected && (
+                      <div className="absolute inset-0 rounded-lg border-2 border-blue-500 pointer-events-none" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

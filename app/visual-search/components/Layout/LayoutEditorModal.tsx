@@ -549,6 +549,37 @@ export default function LayoutEditorModal({
             <button onClick={onClose} className="px-2 py-1 rounded border border-neutral-700 hover:bg-neutral-800">Close</button>
             <div className="font-medium">{edited.title}</div>
             <div className="text-xs text-neutral-400">{edited.layout_type} • {edited.layout_data.items.length} items</div>
+            <LayoutManagementDropdown
+              layout={edited}
+              onRename={(newTitle) => setEdited(prev => ({ ...prev, title: newTitle, updated_at: new Date().toISOString() }))}
+              onDuplicate={async () => {
+                try {
+                  const duplicated = await duplicateLayout(edited);
+                  window.dispatchEvent(new Event('layouts:refresh'));
+                  alert(`Layout duplicated: ${duplicated.title}`);
+                } catch (error) {
+                  alert(`Failed to duplicate: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+              }}
+              onSaveAsTemplate={async () => {
+                try {
+                  const template = await saveAsTemplate(edited);
+                  window.dispatchEvent(new Event('layouts:refresh'));
+                  alert(`Template saved: ${template.title}`);
+                } catch (error) {
+                  alert(`Failed to save template: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+              }}
+              onCreateVersion={async () => {
+                try {
+                  const version = await createVersion(edited);
+                  window.dispatchEvent(new Event('layouts:refresh'));
+                  alert(`Version created: ${version.title}`);
+                } catch (error) {
+                  alert(`Failed to create version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+              }}
+            />
           </div>
 
           {/* Alignment tools - shown when multiple items selected */}
@@ -2317,5 +2348,307 @@ function AlignmentGuides({
       ))}
     </div>
   );
+}
+
+// Layout Management Dropdown Component
+function LayoutManagementDropdown({
+  layout,
+  onRename,
+  onDuplicate,
+  onSaveAsTemplate,
+  onCreateVersion,
+}: {
+  layout: LayoutAsset;
+  onRename: (newTitle: string) => void;
+  onDuplicate: () => Promise<void>;
+  onSaveAsTemplate: () => Promise<void>;
+  onCreateVersion: () => Promise<void>;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newTitle, setNewTitle] = useState(layout.title);
+
+  const handleRename = () => {
+    if (newTitle.trim() && newTitle !== layout.title) {
+      onRename(newTitle.trim());
+    }
+    setIsRenaming(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 flex items-center gap-1"
+        title="Layout Management"
+      >
+        ⚙️ Manage
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 w-56 bg-neutral-800 border border-neutral-700 rounded-md shadow-lg z-50">
+          <div className="p-2 space-y-1">
+            {/* Rename */}
+            <div>
+              {isRenaming ? (
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRename();
+                      if (e.key === 'Escape') setIsRenaming(false);
+                    }}
+                    onBlur={handleRename}
+                    className="flex-1 px-2 py-1 text-xs bg-neutral-900 rounded border border-neutral-600 text-neutral-200"
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsRenaming(true);
+                    setNewTitle(layout.title);
+                  }}
+                  className="w-full px-2 py-1 text-xs text-left rounded hover:bg-neutral-700 text-neutral-300"
+                >
+                  ✏️ Rename Layout
+                </button>
+              )}
+            </div>
+
+            {/* Duplicate */}
+            <button
+              onClick={async () => {
+                setIsOpen(false);
+                await onDuplicate();
+              }}
+              className="w-full px-2 py-1 text-xs text-left rounded hover:bg-neutral-700 text-neutral-300"
+            >
+              📋 Duplicate Layout
+            </button>
+
+            {/* Create Version */}
+            <button
+              onClick={async () => {
+                setIsOpen(false);
+                await onCreateVersion();
+              }}
+              className="w-full px-2 py-1 text-xs text-left rounded hover:bg-neutral-700 text-neutral-300"
+            >
+              🏷️ Create Version
+            </button>
+
+            {/* Save as Template */}
+            <button
+              onClick={async () => {
+                setIsOpen(false);
+                await onSaveAsTemplate();
+              }}
+              className="w-full px-2 py-1 text-xs text-left rounded hover:bg-neutral-700 text-neutral-300"
+            >
+              📚 Save as Template
+            </button>
+
+            <div className="border-t border-neutral-700 pt-1 mt-1">
+              <div className="px-2 py-1 text-xs text-neutral-500">
+                Layout Info
+              </div>
+              <div className="px-2 py-1 text-xs text-neutral-400">
+                Created: {new Date(layout.created_at).toLocaleDateString()}<br/>
+                Updated: {new Date(layout.updated_at).toLocaleDateString()}<br/>
+                Type: {layout.layout_type}<br/>
+                Items: {layout.layout_data.items.length}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Click outside to close */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Layout Management API Functions
+async function duplicateLayout(originalLayout: LayoutAsset): Promise<LayoutAsset> {
+  const now = new Date().toISOString();
+  const duplicateId = `layout_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  
+  const duplicate: LayoutAsset = {
+    ...originalLayout,
+    id: duplicateId,
+    filename: `${duplicateId}.json`,
+    title: `${originalLayout.title} (Copy)`,
+    description: originalLayout.description ? `Copy of: ${originalLayout.description}` : `Copy of ${originalLayout.title}`,
+    created_at: now,
+    updated_at: now,
+    // Reset processing status for new asset
+    processing_status: {
+      created: 'completed',
+      html_generated: 'pending'
+    },
+    timestamps: {
+      created: now,
+      updated: now,
+      html_generated: undefined
+    },
+    // Generate new IDs for all layout items to avoid conflicts
+    layout_data: {
+      ...originalLayout.layout_data,
+      items: originalLayout.layout_data.items.map(item => ({
+        ...item,
+        id: `${item.type}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+      }))
+    }
+  };
+
+  const response = await fetch('/api/media-assets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(duplicate)
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to duplicate layout: ${error}`);
+  }
+
+  const result = await response.json();
+  return result.asset;
+}
+
+async function createVersion(originalLayout: LayoutAsset): Promise<LayoutAsset> {
+  const now = new Date().toISOString();
+  const versionNumber = await getNextVersionNumber(originalLayout.title);
+  const versionId = `layout_${Date.now().toString(36)}_v${versionNumber}`;
+  
+  const version: LayoutAsset = {
+    ...originalLayout,
+    id: versionId,
+    filename: `${versionId}.json`,
+    title: `${originalLayout.title} v${versionNumber}`,
+    description: `Version ${versionNumber} of ${originalLayout.title}`,
+    created_at: now,
+    updated_at: now,
+    processing_status: {
+      created: 'completed',
+      html_generated: 'pending'
+    },
+    timestamps: {
+      created: now,
+      updated: now,
+      html_generated: undefined
+    }
+  };
+
+  const response = await fetch('/api/media-assets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(version)
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to create version: ${error}`);
+  }
+
+  const result = await response.json();
+  return result.asset;
+}
+
+async function saveAsTemplate(originalLayout: LayoutAsset): Promise<LayoutAsset> {
+  const now = new Date().toISOString();
+  const templateId = `template_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  
+  const template: LayoutAsset = {
+    ...originalLayout,
+    id: templateId,
+    filename: `${templateId}.json`,
+    title: `${originalLayout.title} Template`,
+    description: `Template based on ${originalLayout.title}`,
+    layout_type: 'imported', // Use existing valid layout_type
+    created_at: now,
+    updated_at: now,
+    processing_status: {
+      created: 'completed',
+      html_generated: 'pending'
+    },
+    timestamps: {
+      created: now,
+      updated: now,
+      html_generated: undefined
+    },
+    // Clean up template data - remove specific content references
+    layout_data: {
+      ...originalLayout.layout_data,
+      items: originalLayout.layout_data.items.map(item => {
+        const cleanItem = { ...item };
+        // Reset IDs for template
+        cleanItem.id = `${item.type}_template_${Math.random().toString(36).slice(2, 6)}`;
+        // Remove specific media references for templates
+        if (cleanItem.type === 'content_ref') {
+          delete cleanItem.refId;
+          delete cleanItem.mediaUrl;
+          cleanItem.snippet = 'Template placeholder content';
+        }
+        // Keep inline content but make it generic
+        if (cleanItem.type === 'inline_text' && cleanItem.inlineContent?.text) {
+          cleanItem.inlineContent.text = cleanItem.inlineContent.text.includes('Template') 
+            ? cleanItem.inlineContent.text 
+            : 'Template text content';
+        }
+        if (cleanItem.type === 'inline_image' && cleanItem.inlineContent?.imageUrl) {
+          cleanItem.inlineContent.imageUrl = ''; // Clear specific images in templates
+        }
+        return cleanItem;
+      })
+    }
+  };
+
+  const response = await fetch('/api/media-assets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(template)
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to save template: ${error}`);
+  }
+
+  const result = await response.json();
+  return result.asset;
+}
+
+async function getNextVersionNumber(baseTitle: string): Promise<number> {
+  try {
+    // Search for existing versions
+    const response = await fetch('/api/media-assets?media_type=layout&limit=100');
+    if (!response.ok) return 1;
+    
+    const data = await response.json();
+    const layouts = data.assets || [];
+    
+    // Find existing versions of this layout
+    const versionPattern = new RegExp(`^${baseTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} v(\\d+)$`);
+    const versions = layouts
+      .map((layout: any) => {
+        const match = layout.title.match(versionPattern);
+        return match ? parseInt(match[1]) : 0;
+      })
+      .filter((v: number) => v > 0);
+    
+    return versions.length > 0 ? Math.max(...versions) + 1 : 1;
+  } catch {
+    return 1;
+  }
 }
 
