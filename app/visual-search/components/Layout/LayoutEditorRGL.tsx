@@ -473,7 +473,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 onLayoutChange={handleLayoutChange}
                 isDraggable={true}
                 isResizable={true}
-                draggableCancel={'input, textarea, select, button'}
+                draggableCancel={'input, textarea, select, button, .no-drag'}
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
