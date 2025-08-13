@@ -192,15 +192,46 @@ function FieldRenderer({
 function LayoutsTab() {
   const [selectedLayout, setSelectedLayout] = useState<LayoutAsset | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [loadingLayout, setLoadingLayout] = useState(false);
 
-  const handleSelectLayout = (layout: LayoutAsset) => {
-    setSelectedLayout(layout);
-    setShowModal(true);
+  const handleSelectLayout = async (layout: LayoutAsset) => {
+    console.log('[LayoutsTab] Selecting layout:', layout.id, 'fetching fresh data...');
+    setLoadingLayout(true);
+    
+    try {
+      // Always fetch fresh layout data from API to avoid cache issues
+      const response = await fetch(`/api/media-assets/${layout.id}?ts=${Date.now()}`, { 
+        cache: 'no-store' 
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load layout: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load layout');
+      }
+      
+      console.log('[LayoutsTab] Fresh layout data loaded:', data.asset.id, 'items:', data.asset.layout_data.items.length);
+      setSelectedLayout(data.asset);
+      setShowModal(true);
+    } catch (error) {
+      console.error('[LayoutsTab] Failed to load fresh layout:', error);
+      alert(`Failed to load layout: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoadingLayout(false);
+    }
   };
 
   return (
     <div>
       <div className="text-sm text-neutral-400 mb-3">Layouts</div>
+      {loadingLayout && (
+        <div className="text-center p-4 text-neutral-400 text-sm">
+          Loading fresh layout data...
+        </div>
+      )}
       <LayoutsBrowser
         onSelectLayout={handleSelectLayout}
         selectedLayoutId={selectedLayout ? (selectedLayout as LayoutAsset).id : null}
