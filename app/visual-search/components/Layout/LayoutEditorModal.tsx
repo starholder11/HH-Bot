@@ -779,11 +779,13 @@ export default function LayoutEditorModal({
               />
             )}
             <ReactGridLayout
+              key={`${currentBreakpoint}-${canvasHeight}`}
               className="layout"
               layout={rglLayout}
               cols={cols}
               rowHeight={rowHeight}
               width={design.width}
+              height={canvasHeight}
               margin={[0, 0]}
               containerPadding={[0, 0]}
               isDraggable
@@ -828,8 +830,8 @@ export default function LayoutEditorModal({
                   // If dragging near bottom, extend canvas immediately
                   if (maxBottomY >= currentRows - 2) {
                     const newHeight = Math.max(canvasHeight, (maxBottomY + 5) * rowHeight);
+                    console.log('[LayoutEditor] onDrag extending canvas from', canvasHeight, 'to:', newHeight, 'maxBottomY:', maxBottomY, 'currentRows:', currentRows);
                     setCanvasHeight(newHeight);
-                    console.log('[LayoutEditor] onDrag extending canvas to:', newHeight);
                   }
                 } catch (e) {
                   console.warn('[LayoutEditor] onDrag canvas extension error:', e);
