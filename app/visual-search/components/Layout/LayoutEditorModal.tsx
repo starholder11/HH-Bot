@@ -27,7 +27,7 @@ export default function LayoutEditorModal({
 
   const cellSize = edited.layout_data.cellSize || 20;
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
-  const cols = Math.max(12, Math.round(design.width / cellSize));
+  const cols = Math.floor(design.width / cellSize); // Use exact floor to match bounds
   const rowHeight = cellSize;
 
   const rglLayout = useMemo(
@@ -133,16 +133,20 @@ export default function LayoutEditorModal({
         throw new Error(`Failed to save layout: ${res.status} ${errorText}`);
       }
 
-      const data = await res.json();
+            const data = await res.json();
       console.log('[LayoutEditor] Save successful');
-
-      // Update the edited state to reflect the saved version
-      setEdited(data.asset as LayoutAsset);
-
-      // Trigger refresh and notify parent
-      try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
-      onSaved?.(data.asset as LayoutAsset);
+      
+      // CRITICAL: Update the edited state to reflect the saved version immediately
+      const savedAsset = data.asset as LayoutAsset;
+      setEdited(savedAsset);
+      
+      // Clear any editing states
       setIsEditingText(false);
+      setDraftText('');
+      
+      // Trigger refresh and notify parent with the saved asset
+      try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
+      onSaved?.(savedAsset);
 
       console.log('[LayoutEditor] Save complete - modal should stay open');
     } catch (e) {
@@ -200,13 +204,13 @@ export default function LayoutEditorModal({
               isDraggable
               isResizable
               draggableCancel={'.content-editable, input, textarea, select, button'}
-              isBounded
+              isBounded={true}
               verticalCompact={false}
               preventCollision={true}
               compactType={null}
+              autoSize={false}
+              useCSSTransforms={false}
               onLayoutChange={handleLayoutChange}
-              onDragStop={handleDragStop}
-              onResizeStop={handleResizeStop}
             >
               {edited.layout_data.items.map((it) => (
                 <div
@@ -267,9 +271,11 @@ function updateItemPosition(item: Item, x: number, y: number, w: number, h: numb
   const cellSize = layoutData.cellSize || 20;
   const design = layoutData.designSize || { width: 1200, height: 800 };
   
-  // Clamp to bounds to keep items inside canvas
-  const maxX = Math.max(0, Math.floor(design.width / cellSize) - w);
-  const maxY = Math.max(0, Math.floor(design.height / cellSize) - h);
+  // Clamp to bounds to keep items inside canvas - use exact grid calculation
+  const gridCols = Math.floor(design.width / cellSize);
+  const gridRows = Math.floor(design.height / cellSize);
+  const maxX = Math.max(0, gridCols - w);
+  const maxY = Math.max(0, gridRows - h);
   const clampedX = Math.max(0, Math.min(x, maxX));
   const clampedY = Math.max(0, Math.min(y, maxY));
   const pxW = w * cellSize;
@@ -290,9 +296,11 @@ function updateItemPosition(item: Item, x: number, y: number, w: number, h: numb
 function updateItemGrid(layout: LayoutAsset, id: string, x: number, y: number, w: number, h: number): LayoutAsset {
   const cellSize = layout.layout_data.cellSize || 20;
   const design = layout.layout_data.designSize || { width: 1200, height: 800 };
-  // Clamp to bounds to keep items inside canvas
-  const maxX = Math.max(0, Math.floor(design.width / cellSize) - w);
-  const maxY = Math.max(0, Math.floor(design.height / cellSize) - h);
+  // Clamp to bounds to keep items inside canvas - use exact grid calculation
+  const gridCols = Math.floor(design.width / cellSize);
+  const gridRows = Math.floor(design.height / cellSize);
+  const maxX = Math.max(0, gridCols - w);
+  const maxY = Math.max(0, gridRows - h);
   const clampedX = Math.max(0, Math.min(x, maxX));
   const clampedY = Math.max(0, Math.min(y, maxY));
   const pxW = w * cellSize;
@@ -324,13 +332,21 @@ function updateItemGrid(layout: LayoutAsset, id: string, x: number, y: number, w
 function normalizeAllItems(layout: LayoutAsset): LayoutAsset {
   const cellSize = layout.layout_data.cellSize || 20;
   const design = layout.layout_data.designSize || { width: 1200, height: 800 };
+  const gridCols = Math.floor(design.width / cellSize);
+  const gridRows = Math.floor(design.height / cellSize);
+  
   const items = layout.layout_data.items.map(it => {
+    // Ensure grid positions are within bounds
+    const clampedX = Math.max(0, Math.min(it.x || 0, gridCols - (it.w || 1)));
+    const clampedY = Math.max(0, Math.min(it.y || 0, gridRows - (it.h || 1)));
     const pxW = (it.w || 1) * cellSize;
     const pxH = (it.h || 1) * cellSize;
-    const pxX = (it.x || 0) * cellSize;
-    const pxY = (it.y || 0) * cellSize;
+    const pxX = clampedX * cellSize;
+    const pxY = clampedY * cellSize;
     return {
       ...it,
+      x: clampedX,
+      y: clampedY,
       nx: clamp(pxX / design.width),
       ny: clamp(pxY / design.height),
       nw: clamp(pxW / design.width),
