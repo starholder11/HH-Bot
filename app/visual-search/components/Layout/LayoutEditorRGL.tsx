@@ -650,22 +650,27 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
                   if (group && group.size > 1 && group.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
                     const originPositions = bulkDragOriginPositionsRef.current;
+                    // Create complete updated layout including the dragged item
                     const updatedLayout = currentLayout.map(layoutItem => {
-                      if (layoutItem.i !== newItem.i && group.has(layoutItem.i)) {
-                        const origin = originPositions[layoutItem.i];
-                        if (origin) {
-                          const newPos = {
-                            x: Math.max(0, origin.x + deltaX),
-                            y: Math.max(0, origin.y + deltaY)
-                          };
-                          return {
-                            ...layoutItem,
-                            ...newPos
-                          };
+                      if (group.has(layoutItem.i)) {
+                        if (layoutItem.i === newItem.i) {
+                          // Use the current position from RGL for the dragged item
+                          return newItem;
+                        } else {
+                          // Calculate new position for group members based on delta
+                          const origin = originPositions[layoutItem.i];
+                          if (origin) {
+                            return {
+                              ...layoutItem,
+                              x: Math.max(0, origin.x + deltaX),
+                              y: Math.max(0, origin.y + deltaY)
+                            };
+                          }
                         }
                       }
                       return layoutItem;
                     });
+                    
                     // Throttle updates to once per animation frame
                     pendingLayoutRef.current = updatedLayout;
                     if (dragRafRef.current == null) {
