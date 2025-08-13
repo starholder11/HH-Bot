@@ -209,10 +209,10 @@ function LayoutsTab() {
         <LayoutEditorModal
           layout={selectedLayout}
           onClose={() => setShowModal(false)}
-          onSaved={(l) => { 
+          onSaved={(l) => {
             console.log('[LayoutsTab] onSaved called with layout:', l.id, 'items:', l.layout_data.items.length);
             console.log('[LayoutsTab] Setting selectedLayout to saved asset');
-            setSelectedLayout(l); 
+            setSelectedLayout(l);
             console.log('[LayoutsTab] selectedLayout updated');
           }}
         />
