@@ -59,6 +59,8 @@ export default function LayoutEditorModal({
   const [widthInput, setWidthInput] = useState<string>(String(design.width));
   const [heightInput, setHeightInput] = useState<string>(String(canvasHeight));
   const [cellInput, setCellInput] = useState<string>(String(cellSize));
+  // Unique class to hard-force height with !important in case any CSS overrides exist
+  const canvasClass = useMemo(() => `layout-canvas-${edited.id}`, [edited.id]);
 
   // Reset canvas height when switching breakpoints
   useEffect(() => {
@@ -84,8 +86,17 @@ export default function LayoutEditorModal({
     }
   }, [edited.layout_data.designSize, currentBreakpoint]);
 
-  // Create dynamic CSS for canvas height to override any CSS conflicts
-
+  // Create dynamic CSS for canvas height to override any CSS conflicts (with !important)
+  useEffect(() => {
+    const styleId = `dynamic-height-${edited.id}`;
+    let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = styleId;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = `.${canvasClass} { height: ${canvasHeight}px !important; min-height: ${canvasHeight}px !important; }`;
+  }, [canvasHeight, canvasClass, edited.id]);
 
   // Auto-scroll the canvas wrapper when height increases so changes are visible
   useEffect(() => {
@@ -851,7 +862,7 @@ export default function LayoutEditorModal({
         {/* Canvas area */}
         <div ref={scrollWrapRef} className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-y-auto">
           <div
-            className="mx-auto border border-neutral-800 bg-neutral-900 relative"
+            className={`mx-auto border border-neutral-800 bg-neutral-900 relative ${canvasClass}`}
             style={{
               width: design.width,
               height: `${canvasHeight}px`,
