@@ -90,10 +90,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   // Keep latest selection in refs so drag handlers don't read stale closures
   const selectedIdsRef = React.useRef<Set<string>>(selectedIds);
   const selectedIdRef = React.useRef<string | null>(selectedId);
+  const isShiftHeldRef = React.useRef<boolean>(isShiftHeld);
 
   // Update refs immediately when state changes
   selectedIdsRef.current = selectedIds;
   selectedIdRef.current = selectedId;
+  isShiftHeldRef.current = isShiftHeld;
 
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
@@ -262,7 +264,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
             transform: transform,
             transition: isGroupDrag ? 'none' : 'transform 0.2s ease'
           }}
-        onClick={(e) => {
+        onMouseDown={(e) => {
+          // Use onMouseDown to ensure selection happens before any drag events
+          e.stopPropagation(); // Prevent canvas click
+          
           const isToggle = e.metaKey || e.ctrlKey;
           const isRange = e.shiftKey && !!selectedId;
 
@@ -274,12 +279,15 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 if (selectedId === item.id) {
                   const remaining = Array.from(next);
                   setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+                  selectedIdRef.current = remaining.length > 0 ? remaining[remaining.length - 1] : null;
                 }
               } else {
                 next.add(item.id);
                 setSelectedId(item.id);
+                selectedIdRef.current = item.id;
               }
-              console.log('[LayoutEditorRGL] CLICK TOGGLE', Array.from(next));
+              selectedIdsRef.current = next; // Update ref immediately
+              console.log('[LayoutEditorRGL] MOUSEDOWN TOGGLE', Array.from(next));
               return next;
             });
           } else if (isRange) {
@@ -294,16 +302,20 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               setSelectedIds(prev => {
                 const next = new Set(prev);
                 rangeIds.forEach(id => next.add(id));
-                console.log('[LayoutEditorRGL] CLICK RANGE (' + (next.size) + ')', Array.from(next));
+                selectedIdsRef.current = next; // Update ref immediately
+                console.log('[LayoutEditorRGL] MOUSEDOWN RANGE (' + (next.size) + ')', Array.from(next));
                 return next;
               });
               setSelectedId(item.id);
+              selectedIdRef.current = item.id;
             }
           } else {
             setSelectedId(item.id);
+            selectedIdRef.current = item.id;
             const next = new Set([item.id]);
             setSelectedIds(next);
-            console.log('[LayoutEditorRGL] CLICK SINGLE', Array.from(next));
+            selectedIdsRef.current = next; // Update ref immediately
+            console.log('[LayoutEditorRGL] MOUSEDOWN SINGLE', Array.from(next));
           }
         }}
       >
@@ -595,13 +607,19 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                                     <div
               className="mx-auto border border-neutral-800 rounded-lg"
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
-              onClick={(e) => {
+              onMouseDown={(e) => {
                 // Clear selection when clicking empty canvas area
                 const target = e.target as HTMLElement;
-                const isCanvas = target.classList.contains('react-grid-layout') || target === e.currentTarget;
-                if (isCanvas) {
+                // Check if click is on the canvas itself, not on any child elements
+                const isEmptyCanvas = target === e.currentTarget || 
+                                    target.classList.contains('react-grid-layout') ||
+                                    target.classList.contains('layout');
+                
+                if (isEmptyCanvas) {
                   setSelectedIds(new Set());
                   setSelectedId(null);
+                  selectedIdsRef.current = new Set();
+                  selectedIdRef.current = null;
                   console.log('[LayoutEditorRGL] Cleared selection - clicked empty canvas');
                 }
               }}
@@ -614,7 +632,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 rowHeight={cellSize}
                 width={design.width}
                 onLayoutChange={handleLayoutChange}
-                isDraggable={true}
+                isDraggable={!isShiftHeld}
                 isResizable={!isGroupDrag}
                 draggableCancel={'input, textarea, select, button'}
                 margin={[1, 1]}
@@ -627,13 +645,23 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 transformScale={1}
                                 onDragStart={(currentLayout, oldItem, newItem) => {
                   const sel = selectedIdsRef.current;
+                  const shiftHeld = isShiftHeldRef.current;
+                  
                   console.log('[LayoutEditorRGL] onDragStart', {
                     draggedItem: newItem?.i,
                     selectedIds: Array.from(sel),
                     selectedIdsSize: sel.size,
                     isInSelection: newItem?.i ? sel.has(newItem.i) : false,
-                    shiftHeld: isShiftHeld
+                    shiftHeld
                   });
+
+                  // Prevent drag during shift selection
+                  if (shiftHeld) {
+                    console.log('[LayoutEditorRGL] Shift held - preventing drag selection change, preserving for range select');
+                    activeGroupIdsRef.current = new Set();
+                    setIsGroupDrag(false);
+                    return;
+                  }
 
                   // Build stable group snapshot that always includes dragged item
                   if (newItem?.i) {
