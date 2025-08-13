@@ -180,14 +180,14 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         }}
         onMouseDown={(e) => {
           e.preventDefault();
-          
-          if (e.metaKey || e.ctrlKey) {
-            // Cmd/Ctrl+click: toggle selection
+          const isToggle = e.metaKey || e.ctrlKey;
+          const isRange = e.shiftKey && !!selectedId;
+          console.log('[LayoutEditorRGL] onMouseDown', { id: item.id, isToggle, isRange, selectedId, before: Array.from(selectedIds) });
+          if (isToggle) {
             setSelectedIds(prev => {
               const next = new Set(prev);
               if (next.has(item.id)) {
                 next.delete(item.id);
-                // If we removed the current selectedId, pick another one or clear
                 if (selectedId === item.id) {
                   const remaining = Array.from(next);
                   setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
@@ -196,30 +196,30 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 next.add(item.id);
                 setSelectedId(item.id);
               }
+              console.log('[LayoutEditorRGL] toggle -> after', Array.from(next));
               return next;
             });
-          } else if (e.shiftKey && selectedId) {
-            // Shift+click: select range from last selected to this item
+          } else if (isRange) {
             const items = edited.layout_data.items;
             const lastIndex = items.findIndex(it => it.id === selectedId);
             const currentIndex = items.findIndex(it => it.id === item.id);
-            
             if (lastIndex !== -1 && currentIndex !== -1) {
               const start = Math.min(lastIndex, currentIndex);
               const end = Math.max(lastIndex, currentIndex);
               const rangeIds = items.slice(start, end + 1).map(it => it.id);
-              
               setSelectedIds(prev => {
                 const next = new Set(prev);
                 rangeIds.forEach(id => next.add(id));
+                console.log('[LayoutEditorRGL] range ->', { start, end, rangeIds, after: Array.from(next) });
                 return next;
               });
               setSelectedId(item.id);
             }
           } else {
-            // Plain click: select only this item
             setSelectedId(item.id);
-            setSelectedIds(new Set([item.id]));
+            const next = new Set([item.id]);
+            setSelectedIds(next);
+            console.log('[LayoutEditorRGL] single -> after', Array.from(next));
           }
         }}
       >
@@ -344,6 +344,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     function onKey(e: KeyboardEvent) {
       const anySelected = selectedIds.size > 0 || !!selectedId;
       if (!anySelected) return;
+      console.log('[LayoutEditorRGL] key', { key: e.key, size: selectedIds.size, ids: Array.from(selectedIds) });
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
       const step = 1;
       if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelection(-step, 0); }

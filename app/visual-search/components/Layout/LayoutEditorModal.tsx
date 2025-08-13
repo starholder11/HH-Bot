@@ -50,6 +50,7 @@ export default function LayoutEditorModal({
     function onKey(e: KeyboardEvent) {
       if (selectedIds.size === 0) return;
       const isMeta = e.metaKey || e.ctrlKey;
+      console.log('[LayoutEditorModal] key', { key: e.key, size: selectedIds.size, ids: Array.from(selectedIds) });
       // Duplicate selection
       if (isMeta && e.key.toLowerCase() === 'd') {
         e.preventDefault();
@@ -396,14 +397,14 @@ export default function LayoutEditorModal({
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setIsEditingText(false);
-                    
-                    if (e.metaKey || e.ctrlKey) {
-                      // Cmd/Ctrl+click: toggle selection
+                    const isToggle = e.metaKey || e.ctrlKey;
+                    const isRange = e.shiftKey && !!selectedId;
+                    console.log('[LayoutEditorModal] onMouseDown', { id: it.id, isToggle, isRange, selectedId, before: Array.from(selectedIds) });
+                    if (isToggle) {
                       setSelectedIds(prev => {
                         const next = new Set(prev);
                         if (next.has(it.id)) {
                           next.delete(it.id);
-                          // If we removed the current selectedId, pick another one or clear
                           if (selectedId === it.id) {
                             const remaining = Array.from(next);
                             setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
@@ -412,30 +413,30 @@ export default function LayoutEditorModal({
                           next.add(it.id);
                           setSelectedId(it.id);
                         }
+                        console.log('[LayoutEditorModal] toggle -> after', Array.from(next));
                         return next;
                       });
-                    } else if (e.shiftKey && selectedId) {
-                      // Shift+click: select range from last selected to this item
+                    } else if (isRange) {
                       const items = edited.layout_data.items;
                       const lastIndex = items.findIndex(item => item.id === selectedId);
                       const currentIndex = items.findIndex(item => item.id === it.id);
-                      
                       if (lastIndex !== -1 && currentIndex !== -1) {
                         const start = Math.min(lastIndex, currentIndex);
                         const end = Math.max(lastIndex, currentIndex);
                         const rangeIds = items.slice(start, end + 1).map(item => item.id);
-                        
                         setSelectedIds(prev => {
                           const next = new Set(prev);
                           rangeIds.forEach(id => next.add(id));
+                          console.log('[LayoutEditorModal] range ->', { start, end, rangeIds, after: Array.from(next) });
                           return next;
                         });
                         setSelectedId(it.id);
                       }
                     } else {
-                      // Plain click: select only this item
                       setSelectedId(it.id);
-                      setSelectedIds(new Set([it.id]));
+                      const next = new Set([it.id]);
+                      setSelectedIds(next);
+                      console.log('[LayoutEditorModal] single -> after', Array.from(next));
                     }
                   }}
                   onDoubleClick={() => {
