@@ -256,7 +256,9 @@ export default function LayoutEditorModal({
               containerPadding={[0, 0]}
               isDraggable
               isResizable
-              draggableCancel={'.content-editable, input, textarea, select, button'}
+              // Use a dedicated drag handle to avoid drag/resize conflicts
+              draggableHandle={'.drag-handle'}
+              draggableCancel={'.content-editable, input, textarea, select, button, .no-drag'}
               isBounded={true}
               verticalCompact={false}
               preventCollision={true}
@@ -289,7 +291,7 @@ export default function LayoutEditorModal({
               {edited.layout_data.items.map((it) => (
                 <div
                   key={it.id}
-                  className={`border bg-neutral-900 overflow-hidden cursor-move ${selectedId === it.id ? 'border-blue-500' : 'border-blue-500/30'}`}
+                  className={`border bg-neutral-900 overflow-hidden ${selectedId === it.id ? 'border-blue-500' : 'border-blue-500/30'}`}
                   onMouseDown={() => { setSelectedId(it.id); setIsEditingText(false); }}
                   onDoubleClick={() => {
                     if (it.type === 'inline_text') {
@@ -300,6 +302,12 @@ export default function LayoutEditorModal({
                   }}
                   style={{ zIndex: it.z || 1, userSelect: 'none' }}
                 >
+                  {/* Drag handle bar */}
+                  <div className="drag-handle h-6 px-2 flex items-center justify-between text-xs bg-neutral-800/70 border-b border-neutral-800 select-none">
+                    <span className="text-neutral-300 truncate">{it.type === 'content_ref' ? it.contentType : it.type}</span>
+                    <span className="text-neutral-500">drag</span>
+                  </div>
+
                   {renderItem(it, previewUrls[it.id], loadingMap[it.id], {
                     isSelected: selectedId === it.id,
                     isEditing: isEditingText && selectedId === it.id,

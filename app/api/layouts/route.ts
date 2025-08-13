@@ -4,16 +4,15 @@ import { readJsonFromS3 } from '@/lib/s3-upload';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log('[layouts] Fetching all layout assets...');
 
-    // IMPORTANT: ask storage to scan across keys and collect layout assets
-    // DO NOT pass loadAll here, so the implementation progressively scans all keys
-    // until it has collected up to `limit` matching 'layout' assets.
-    const page = 1;
-    const limit = 500; // collect up to 500 layouts if present
-    const result = await listMediaAssets('layout', { page, limit });
+    // Load all layout assets to avoid pagination skipping new entries
+    // The underlying storage will iterate keys and filter by media_type: 'layout'
+    const result = await listMediaAssets('layout', { loadAll: true });
 
     let layouts = result.assets;
 
@@ -25,7 +24,7 @@ export async function GET(request: NextRequest) {
           // Fetch by IDs listed in index
           const s3 = getS3Client();
           const bucket = getBucketName();
-          const ids = idx.items.slice(0, limit).map((i: any) => i.id);
+          const ids = idx.items.map((i: any) => i.id);
           const fetched: any[] = [];
           for (const id of ids) {
             try {
