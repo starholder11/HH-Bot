@@ -750,7 +750,8 @@ export default function LayoutEditorModal({
               // Use a dedicated drag handle to avoid drag/resize conflicts
               draggableHandle={'.drag-handle'}
               draggableCancel={'.content-editable, input, textarea, select, button, .no-drag'}
-              isBounded={true}
+              // Disable internal RGL bounding so we can freely drag; we clamp to canvas bounds on drop
+              isBounded={false}
               verticalCompact={false}
               preventCollision={true}
               compactType={null}
