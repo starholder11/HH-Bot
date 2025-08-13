@@ -184,56 +184,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           <span className="text-neutral-400">drag</span>
         </div>
         
-        {/* Content area - selection happens here */}
-        <div
-          className="content-area relative"
-          style={{ minHeight: '40px' }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const isToggle = e.metaKey || e.ctrlKey;
-            const isRange = e.shiftKey && !!selectedId;
-            console.log('[LayoutEditorRGL] onMouseDown', { id: item.id, isToggle, isRange, selectedId, before: Array.from(selectedIds) });
-            if (isToggle) {
-              setSelectedIds(prev => {
-                const next = new Set(prev);
-                if (next.has(item.id)) {
-                  next.delete(item.id);
-                  if (selectedId === item.id) {
-                    const remaining = Array.from(next);
-                    setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-                  }
-                } else {
-                  next.add(item.id);
-                  setSelectedId(item.id);
-                }
-                console.log('[LayoutEditorRGL] toggle -> after', Array.from(next));
-                return next;
-              });
-            } else if (isRange) {
-              const items = edited.layout_data.items;
-              const lastIndex = items.findIndex(it => it.id === selectedId);
-              const currentIndex = items.findIndex(it => it.id === item.id);
-              if (lastIndex !== -1 && currentIndex !== -1) {
-                const start = Math.min(lastIndex, currentIndex);
-                const end = Math.max(lastIndex, currentIndex);
-                const rangeIds = items.slice(start, end + 1).map(it => it.id);
-                setSelectedIds(prev => {
-                  const next = new Set(prev);
-                  rangeIds.forEach(id => next.add(id));
-                  console.log('[LayoutEditorRGL] range ->', { start, end, rangeIds, after: Array.from(next) });
-                  return next;
-                });
-                setSelectedId(item.id);
-              }
-            } else {
-              setSelectedId(item.id);
-              const next = new Set([item.id]);
-              setSelectedIds(next);
-              console.log('[LayoutEditorRGL] single -> after', Array.from(next));
-            }
-          }}
-        >
+        {/* Content area - selection happens via event delegation */}
+        <div className="content-area relative" style={{ minHeight: '40px' }}>
           {renderItem(item)}
         </div>
       </div>
@@ -474,7 +426,64 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         <div className="flex-1 min-h-0 flex">
           {/* Canvas */}
           <div className="flex-1 p-4 overflow-auto">
-            <div className="mx-auto border border-neutral-800 rounded-lg" style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}>
+            <div 
+              className="mx-auto border border-neutral-800 rounded-lg" 
+              style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
+              onMouseDown={(e) => {
+                // Find the closest item element
+                const itemEl = (e.target as HTMLElement).closest('[data-grid]');
+                if (itemEl) {
+                  const itemId = itemEl.getAttribute('data-grid');
+                  if (itemId) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const isToggle = e.metaKey || e.ctrlKey;
+                    const isRange = e.shiftKey && !!selectedId;
+                    console.log('[LayoutEditorRGL] container onMouseDown', { itemId, isToggle, isRange, selectedId, before: Array.from(selectedIds) });
+                    
+                    if (isToggle) {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        if (next.has(itemId)) {
+                          next.delete(itemId);
+                          if (selectedId === itemId) {
+                            const remaining = Array.from(next);
+                            setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+                          }
+                        } else {
+                          next.add(itemId);
+                          setSelectedId(itemId);
+                        }
+                        console.log('[LayoutEditorRGL] toggle -> after', Array.from(next));
+                        return next;
+                      });
+                    } else if (isRange) {
+                      const items = edited.layout_data.items;
+                      const lastIndex = items.findIndex(it => it.id === selectedId);
+                      const currentIndex = items.findIndex(it => it.id === itemId);
+                      if (lastIndex !== -1 && currentIndex !== -1) {
+                        const start = Math.min(lastIndex, currentIndex);
+                        const end = Math.max(lastIndex, currentIndex);
+                        const rangeIds = items.slice(start, end + 1).map(it => it.id);
+                        setSelectedIds(prev => {
+                          const next = new Set(prev);
+                          rangeIds.forEach(id => next.add(id));
+                          console.log('[LayoutEditorRGL] range ->', { start, end, rangeIds, after: Array.from(next) });
+                          return next;
+                        });
+                        setSelectedId(itemId);
+                      }
+                    } else {
+                      setSelectedId(itemId);
+                      const next = new Set([itemId]);
+                      setSelectedIds(next);
+                      console.log('[LayoutEditorRGL] single -> after', Array.from(next));
+                    }
+                  }
+                }
+              }}
+            >
               <ResponsiveGridLayout
                 className="layout"
                 layouts={layouts}
