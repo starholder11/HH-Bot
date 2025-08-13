@@ -279,7 +279,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               setSelectedIds(prev => {
                 const next = new Set(prev);
                 rangeIds.forEach(id => next.add(id));
-                console.log('[LayoutEditorRGL] CLICK RANGE', Array.from(next));
+                console.log('[LayoutEditorRGL] CLICK RANGE (' + (next.size) + ')', Array.from(next));
                 return next;
               });
               setSelectedId(item.id);
@@ -578,7 +578,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 rowHeight={cellSize}
                 width={design.width}
                 onLayoutChange={handleLayoutChange}
-                isDraggable={!isShiftHeld}
+                isDraggable={true}
                 isResizable={!isGroupDrag}
                 draggableCancel={'input, textarea, select, button'}
                 margin={[1, 1]}
@@ -589,32 +589,33 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 verticalCompact={false}
                 isBounded={true}
                 transformScale={1}
-                onDragStart={(currentLayout, oldItem, newItem) => {
+                                onDragStart={(currentLayout, oldItem, newItem) => {
                   const sel = selectedIdsRef.current;
                   console.log('[LayoutEditorRGL] onDragStart', {
                     draggedItem: newItem?.i,
                     selectedIds: Array.from(sel),
                     selectedIdsSize: sel.size,
-                    isInSelection: newItem?.i ? sel.has(newItem.i) : false
+                    isInSelection: newItem?.i ? sel.has(newItem.i) : false,
+                    shiftHeld: isShiftHeld
                   });
-
-                  // NEVER change selection when Shift is held (range selection in progress)
-                  if (isShiftHeld) {
-                    console.log('[LayoutEditorRGL] Shift held - preventing drag selection change, preserving for range select');
-                    return;
-                  }
 
                   // Build stable group snapshot that always includes dragged item
                   if (newItem?.i) {
                     draggedItemOriginRef.current = { x: newItem.x, y: newItem.y };
 
-                    // Always build group as: current selection + dragged item
-                    const group = new Set(sel);
-                    group.add(newItem.i);
-
+                    // Determine group: if there's a selection, use it + dragged item
+                    // Even if dragged item wasn't originally selected
+                    let group: Set<string>;
+                    if (sel.size > 0) {
+                      group = new Set(sel);
+                      group.add(newItem.i);
+                    } else {
+                      group = new Set([newItem.i]);
+                    }
+                    
                     // Determine if this is a group drag (more than 1 item total)
                     const isGroup = group.size > 1;
-
+                    
                     if (isGroup) {
                       activeGroupIdsRef.current = group;
                       console.log('[LayoutEditorRGL] Group drag starting with items:', Array.from(group));
@@ -622,7 +623,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       activeGroupIdsRef.current = new Set([newItem.i]);
                       console.log('[LayoutEditorRGL] Single item drag starting:', newItem.i);
                     }
-
+                    
                     setIsGroupDrag(isGroup);
 
                     // Capture origin positions for all items in the group
@@ -633,7 +634,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       }
                     });
                     bulkDragOriginPositionsRef.current = positions;
-
+                    
                     console.log('[LayoutEditorRGL] Captured origin positions for:', Object.keys(positions));
                   }
                 }}
