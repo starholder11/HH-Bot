@@ -86,20 +86,30 @@ export default function LayoutEditorModal({
     setEdited((prev) => updateItemGrid(prev, item.i, item.x, item.y, item.w, item.h));
   }
 
-  // Keep layout controlled during interactions to avoid jump-back
+    // Keep layout controlled during interactions to avoid jump-back
   function handleLayoutChange(newLayout: any[]) {
+    console.log('[LayoutEditor] handleLayoutChange called with:', newLayout.length, 'items');
+    console.log('[LayoutEditor] New layout positions:', newLayout.map(l => ({ id: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
+    
     // Apply layout changes to all items at once to maintain consistency
     setEdited((prev) => {
+      console.log('[LayoutEditor] handleLayoutChange - prev state items:', prev.layout_data.items.length);
+      
       const updatedItems = prev.layout_data.items.map(item => {
         const layoutItem = newLayout.find(l => l.i === item.id);
         if (layoutItem) {
-          return updateItemPosition(item, layoutItem.x, layoutItem.y, layoutItem.w, layoutItem.h, prev.layout_data);
+          const updated = updateItemPosition(item, layoutItem.x, layoutItem.y, layoutItem.w, layoutItem.h, prev.layout_data);
+          console.log('[LayoutEditor] Updated item:', item.id, 'from', { x: item.x, y: item.y, w: item.w, h: item.h }, 'to', { x: updated.x, y: updated.y, w: updated.w, h: updated.h });
+          return updated;
         }
         return item;
       });
+      
       // Enforce bounds again on the full set to avoid drift on right edge
       const normalized = normalizeAllItems({ ...prev, layout_data: { ...prev.layout_data, items: updatedItems } } as LayoutAsset);
-
+      
+      console.log('[LayoutEditor] handleLayoutChange - final normalized items:', normalized.layout_data.items.length);
+      
       return {
         ...normalized,
         updated_at: new Date().toISOString()
@@ -107,56 +117,83 @@ export default function LayoutEditorModal({
     });
   }
 
-  async function handleSave() {
+    async function handleSave() {
     try {
       setWorking(true);
-      console.log('[LayoutEditor] Starting save...');
-
+      console.log('[LayoutEditor] ===== SAVE START =====');
+      console.log('[LayoutEditor] Initial edited state:', JSON.stringify(edited, null, 2));
+      
       // Ensure inline text edits are committed to state before save
       let toSave = edited;
       if (isEditingText && selectedId) {
-        console.log('[LayoutEditor] Committing current text edit');
+        console.log('[LayoutEditor] Committing current text edit for:', selectedId, 'text:', draftText);
         toSave = commitCurrentText(toSave, selectedId, draftText);
+        console.log('[LayoutEditor] After text commit:', JSON.stringify(toSave.layout_data.items.find(i => i.id === selectedId), null, 2));
       }
       // Ensure normalized coords are consistent before persisting
+      console.log('[LayoutEditor] Before normalization - items count:', toSave.layout_data.items.length);
       toSave = normalizeAllItems(toSave);
-
-      console.log('[LayoutEditor] Saving layout:', toSave.id);
+      console.log('[LayoutEditor] After normalization - items count:', toSave.layout_data.items.length);
+      console.log('[LayoutEditor] Final payload to save:', JSON.stringify(toSave, null, 2));
+      
+      console.log('[LayoutEditor] Making PUT request to:', `/api/media-assets/${toSave.id}`);
       const res = await fetch(`/api/media-assets/${toSave.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(toSave),
       });
-
+      
+      console.log('[LayoutEditor] PUT response status:', res.status, res.statusText);
+      
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('[LayoutEditor] Save failed:', res.status, errorText);
+        console.error('[LayoutEditor] PUT failed - status:', res.status, 'response:', errorText);
         throw new Error(`Failed to save layout: ${res.status} ${errorText}`);
       }
+      
+      const putData = await res.json();
+      console.log('[LayoutEditor] PUT successful - response:', JSON.stringify(putData, null, 2));
+      
       // Re-fetch fresh copy from API to ensure persistence and kill any stale state
-      const fresh = await fetch(`/api/media-assets/${toSave.id}?ts=${Date.now()}`, { cache: 'no-store' });
+      const freshUrl = `/api/media-assets/${toSave.id}?ts=${Date.now()}`;
+      console.log('[LayoutEditor] Re-fetching fresh copy from:', freshUrl);
+      const fresh = await fetch(freshUrl, { cache: 'no-store' });
+      console.log('[LayoutEditor] Fresh fetch status:', fresh.status, fresh.statusText);
+      
       if (!fresh.ok) {
-        console.warn('[LayoutEditor] Fresh fetch after save failed, using local copy');
+        console.warn('[LayoutEditor] Fresh fetch failed, using PUT response');
+        var data = putData;
+      } else {
+        var data = await fresh.json();
+        console.log('[LayoutEditor] Fresh fetch successful - response:', JSON.stringify(data, null, 2));
       }
-      const data = fresh.ok ? await fresh.json() : { asset: toSave };
+      
       const savedAsset = (data.asset || toSave) as LayoutAsset;
-      console.log('[LayoutEditor] Save successful, state synced to fresh copy');
+      console.log('[LayoutEditor] Final saved asset to sync to editor:', JSON.stringify(savedAsset, null, 2));
 
+      console.log('[LayoutEditor] Setting edited state to saved asset...');
       setEdited(savedAsset);
-
+      console.log('[LayoutEditor] Editor state updated');
+      
       // Clear any editing states
+      console.log('[LayoutEditor] Clearing editing states...');
       setIsEditingText(false);
       setDraftText('');
-
+      
       // Trigger refresh and notify parent with the saved asset
+      console.log('[LayoutEditor] Dispatching layouts:refresh event...');
       try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
+      
+      console.log('[LayoutEditor] Calling onSaved callback with:', savedAsset.id);
       onSaved?.(savedAsset);
 
-      console.log('[LayoutEditor] Save complete - modal should stay open');
+      console.log('[LayoutEditor] ===== SAVE COMPLETE =====');
     } catch (e) {
-      console.error('[LayoutEditor] Save error:', e);
+      console.error('[LayoutEditor] ===== SAVE ERROR =====', e);
+      console.error('[LayoutEditor] Error stack:', (e as Error).stack);
       alert(`Save failed: ${(e as Error).message}`);
     } finally {
+      console.log('[LayoutEditor] Setting working to false...');
       setWorking(false);
     }
   }
