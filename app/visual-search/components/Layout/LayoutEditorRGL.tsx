@@ -415,6 +415,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 cols={{ lg: Math.floor(design.width / cellSize), md: Math.floor(design.width / cellSize), sm: Math.floor(design.width / cellSize), xs: Math.floor(design.width / cellSize), xxs: Math.floor(design.width / cellSize) }}
                 rowHeight={cellSize}
                 width={design.width}
+                maxRows={Math.floor(design.height / cellSize)}
                 onLayoutChange={handleLayoutChange}
                 isDraggable={true}
                 isResizable={true}
@@ -425,7 +426,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 preventCollision={true}
                 compactType={null}
                 verticalCompact={false}
-                isBounded={true}
+                isBounded={false}
                 transformScale={1}
               >
                 {children}
