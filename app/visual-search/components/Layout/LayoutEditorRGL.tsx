@@ -23,6 +23,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [edited, setEdited] = useState<LayoutAsset>(layout);
   const [working, setWorking] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
@@ -169,7 +170,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     return edited.layout_data.items.map(item => (
       <div
         key={item.id}
-        className={`rounded-sm overflow-hidden border ${selectedId === item.id ? 'border-blue-500' : 'border-blue-400/40'}`}
+        className={`rounded-sm overflow-hidden border ${selectedIds.has(item.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
         style={{
           margin: 0,
           padding: 0,
@@ -177,12 +178,26 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
-        onMouseDown={() => setSelectedId(item.id)}
+        onMouseDown={(e) => {
+          setSelectedId(item.id);
+          setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (e.metaKey || e.ctrlKey) {
+              if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+              return next;
+            }
+            if (e.shiftKey) {
+              next.add(item.id);
+              return next;
+            }
+            return new Set([item.id]);
+          });
+        }}
       >
         {renderItem(item)}
       </div>
     ));
-  }, [edited.layout_data.items, renderItem, selectedId]);
+  }, [edited.layout_data.items, renderItem, selectedIds]);
 
   // Helpers to update item fields safely
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -246,22 +261,19 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (!selectedId) return;
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault();
-        deleteItem(selectedId);
-        return;
-      }
+      const anySelected = selectedIds.size > 0 || !!selectedId;
+      if (!anySelected) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
       const step = 1;
-      if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelected(-step, 0); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); nudgeSelected(step, 0); }
-      if (e.key === 'ArrowUp') { e.preventDefault(); nudgeSelected(0, -step); }
-      if (e.key === 'ArrowDown') { e.preventDefault(); nudgeSelected(0, step); }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateItem(selectedId); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelection(-step, 0); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); nudgeSelection(step, 0); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); nudgeSelection(0, -step); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); nudgeSelection(0, step); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedId, nudgeSelected, duplicateItem, deleteItem]);
+  }, [selectedId, selectedIds, nudgeSelection, duplicateSelected, deleteSelected]);
 
   // --- Block creation helpers ---
   function gridSize() {
@@ -309,6 +321,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
       updated_at: new Date().toISOString(),
     }));
     setSelectedId(id);
+    setSelectedIds(new Set([id]));
   }, [edited.layout_data.items]);
 
   const addImageBlock = useCallback(() => {
@@ -322,6 +335,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
       updated_at: new Date().toISOString(),
     }));
     setSelectedId(id);
+    setSelectedIds(new Set([id]));
   }, [edited.layout_data.items]);
 
   return (
@@ -386,6 +400,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 verticalCompact={false}
                 isBounded={true}
                 transformScale={1}
+                onDragStart={(currentLayout, oldItem, newItem) => {
+                  if (newItem?.i && !selectedIds.has(newItem.i)) {
+                    setSelectedIds(new Set([newItem.i]));
+                    setSelectedId(newItem.i);
+                  }
+                }}
               >
                 {children}
               </ResponsiveGridLayout>
@@ -396,10 +416,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           <div className="w-[320px] shrink-0 border-l border-neutral-800 bg-neutral-900/70 backdrop-blur p-3 overflow-auto">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm text-neutral-300 font-medium">Inspector</div>
-              {selectedId && (
+              {(selectedIds.size > 0) && (
                 <div className="flex gap-1">
-                  <button onClick={() => duplicateItem(selectedId)} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Duplicate</button>
-                  <button onClick={() => deleteItem(selectedId)} className="px-2 py-1 text-xs rounded border border-red-700 text-red-300 hover:bg-red-900/30">Delete</button>
+                  <button onClick={() => duplicateSelected()} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">Duplicate</button>
+                  <button onClick={() => deleteSelected()} className="px-2 py-1 text-xs rounded border border-red-700 text-red-300 hover:bg-red-900/30">Delete</button>
                 </div>
               )}
             </div>
@@ -484,9 +504,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               </div>
             )}
 
-            {!selectedId ? (
+            {selectedIds.size === 0 ? (
               <div className="text-xs text-neutral-400">Select an item to edit its properties.</div>
-            ) : (
+            ) : (selectedIds.size === 1 && selectedId) ? (
               (() => {
                 const it = edited.layout_data.items.find(x => x.id === selectedId)!;
                 return (
@@ -548,6 +568,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   </div>
                 );
               })()
+            ) : (
+              <div className="text-xs text-neutral-400">{selectedIds.size} items selected</div>
             )}
           </div>
         </div>

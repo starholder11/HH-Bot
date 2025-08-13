@@ -22,6 +22,7 @@ export default function LayoutEditorModal({
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isEditingText, setIsEditingText] = useState(false);
   const [draftText, setDraftText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -43,6 +44,99 @@ export default function LayoutEditorModal({
       })),
     [edited.layout_data.items]
   );
+
+  // Keyboard shortcuts: delete, duplicate, nudge for multi-select
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (selectedIds.size === 0) return;
+      const isMeta = e.metaKey || e.ctrlKey;
+      // Duplicate selection
+      if (isMeta && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        duplicateSelected();
+        return;
+      }
+      // Delete selection
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteSelected();
+        return;
+      }
+      // Arrow nudging
+      const step = 1;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelection(-step, 0); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); nudgeSelection(step, 0); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); nudgeSelection(0, -step); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); nudgeSelection(0, step); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedIds]);
+
+  // Nudge all selected items by dx, dy grid units
+  function nudgeSelection(dx: number, dy: number) {
+    if (selectedIds.size === 0) return;
+    setEdited(prev => {
+      const cell = prev.layout_data.cellSize || 20;
+      const designSize = prev.layout_data.designSize || { width: 1200, height: 800 };
+      const gridCols = Math.floor(designSize.width / cell);
+      const gridRows = Math.floor(designSize.height / cell);
+      const items = prev.layout_data.items.map(it => {
+        if (!selectedIds.has(it.id)) return it;
+        const w = Math.max(1, it.w || 1);
+        const h = Math.max(1, it.h || 1);
+        const maxX = Math.max(0, gridCols - w);
+        const maxY = Math.max(0, gridRows - h);
+        const x = Math.max(0, Math.min((it.x || 0) + dx, maxX));
+        const y = Math.max(0, Math.min((it.y || 0) + dy, maxY));
+        const pxX = x * cell, pxY = y * cell, pxW = w * cell, pxH = h * cell;
+        return {
+          ...it,
+          x, y,
+          w, h,
+          nx: clamp(pxX / designSize.width),
+          ny: clamp(pxY / designSize.height),
+          nw: clamp(pxW / designSize.width),
+          nh: clamp(pxH / designSize.height),
+        } as Item;
+      });
+      return { ...prev, layout_data: { ...prev.layout_data, items }, updated_at: new Date().toISOString() } as LayoutAsset;
+    });
+  }
+
+  function duplicateSelected() {
+    if (selectedIds.size === 0) return;
+    setEdited(prev => {
+      const copies: Item[] = [];
+      const nowSuffix = Date.now().toString(36);
+      for (const id of selectedIds) {
+        const it = prev.layout_data.items.find(i => i.id === id);
+        if (!it) continue;
+        const copy = { ...it, id: `${it.id}_copy_${nowSuffix}_${Math.random().toString(36).slice(2,5)}`, x: (it.x || 0) + 1, y: (it.y || 0) + 1 } as Item;
+        copies.push(copy);
+      }
+      const next = { ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, ...copies] }, updated_at: new Date().toISOString() } as LayoutAsset;
+      // Select the new copies
+      if (copies.length > 0) {
+        setSelectedIds(new Set(copies.map(c => c.id)));
+        setSelectedId(copies[copies.length - 1].id);
+      }
+      return next;
+    });
+  }
+
+  function deleteSelected() {
+    if (selectedIds.size === 0) return;
+    setSelectedId(null);
+    setIsEditingText(false);
+    setDraftText('');
+    setEdited(prev => {
+      const filtered = prev.layout_data.items.filter(i => !selectedIds.has(i.id));
+      const normalized = normalizeAllItems({ ...prev, layout_data: { ...prev.layout_data, items: filtered } } as LayoutAsset);
+      return { ...normalized, updated_at: new Date().toISOString() } as LayoutAsset;
+    });
+    setSelectedIds(new Set());
+  }
 
   // Load content preview URLs
   useEffect(() => {
@@ -210,7 +304,7 @@ export default function LayoutEditorModal({
     }
   }
 
-  const { addTextBlock, addImageBlock, duplicateSelected, deleteSelected } = useCommands(
+  const { addTextBlock, addImageBlock } = useCommands(
     edited,
     setEdited,
     selectedId,
@@ -266,10 +360,15 @@ export default function LayoutEditorModal({
               autoSize={false}
               useCSSTransforms={true}
               // Only sync state on drag/resize stop for smoother UX
-              onDragStop={(layout: any[]) => {
+              onDragStop={(layout: any[], oldItem: any, newItem: any) => {
                 console.log('[LayoutEditor] onDragStop called with:', layout.length, 'items');
                 console.log('[LayoutEditor] onDragStop positions:', layout.map(l => ({ id: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
                 handleLayoutChange(layout);
+                // Ensure selection includes dragged item if none or different
+                if (!selectedIds.has(newItem?.i)) {
+                  setSelectedIds(new Set([newItem?.i]));
+                  setSelectedId(newItem?.i || null);
+                }
               }}
               onResizeStop={(layout: any[]) => {
                 console.log('[LayoutEditor] onResizeStop called with:', layout.length, 'items');
@@ -277,6 +376,10 @@ export default function LayoutEditorModal({
               }}
               onDragStart={(layout: any[], oldItem: any, newItem: any) => {
                 console.log('[LayoutEditor] onDragStart - item:', newItem.i, 'from:', { x: oldItem.x, y: oldItem.y }, 'to:', { x: newItem.x, y: newItem.y });
+                if (!selectedIds.has(newItem.i)) {
+                  setSelectedIds(new Set([newItem.i]));
+                  setSelectedId(newItem.i);
+                }
               }}
               // Don't mutate state on every drag tick to avoid jank
               onResizeStart={(layout: any[], oldItem: any, newItem: any) => {
@@ -289,11 +392,28 @@ export default function LayoutEditorModal({
               {edited.layout_data.items.map((it) => (
                 <div
                   key={it.id}
-                  className={`border bg-neutral-900 overflow-hidden ${selectedId === it.id ? 'border-blue-500' : 'border-blue-500/30'}`}
-                  onMouseDown={() => { setSelectedId(it.id); setIsEditingText(false); }}
+                  className={`border bg-neutral-900 overflow-hidden ${selectedIds.has(it.id) ? 'border-blue-500' : 'border-blue-500/30'}`}
+                  onMouseDown={(e) => {
+                    // Multi-select: Cmd/Ctrl toggles, Shift adds, plain selects single
+                    setIsEditingText(false);
+                    setSelectedId(it.id);
+                    setSelectedIds(prev => {
+                      const next = new Set(prev);
+                      if (e.metaKey || e.ctrlKey) {
+                        if (next.has(it.id)) next.delete(it.id); else next.add(it.id);
+                        return next;
+                      }
+                      if (e.shiftKey) {
+                        next.add(it.id);
+                        return next;
+                      }
+                      return new Set([it.id]);
+                    });
+                  }}
                   onDoubleClick={() => {
                     if (it.type === 'inline_text') {
                       setSelectedId(it.id);
+                      setSelectedIds(new Set([it.id]));
                       setDraftText(it.inlineContent?.text || '');
                       setIsEditingText(true);
                     }
@@ -307,7 +427,7 @@ export default function LayoutEditorModal({
                   </div>
 
                   {renderItem(it, previewUrls[it.id], loadingMap[it.id], {
-                    isSelected: selectedId === it.id,
+                    isSelected: selectedIds.has(it.id),
                     isEditing: isEditingText && selectedId === it.id,
                     draftText,
                     setDraftText,
@@ -327,11 +447,13 @@ export default function LayoutEditorModal({
             <div className="flex gap-1">
               <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addTextBlock();}} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Text</button>
               <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addImageBlock();}} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Image</button>
-              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 disabled:opacity-50">Duplicate</button>
-              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={!selectedId} className="px-2 py-1 text-xs rounded border border-red-700 hover:bg-red-800 text-red-200 disabled:opacity-50">Delete</button>
+              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 disabled:opacity-50">Duplicate</button>
+              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} className="px-2 py-1 text-xs rounded border border-red-700 hover:bg-red-800 text-red-200 disabled:opacity-50">Delete</button>
             </div>
           </div>
-          {selectedId ? (
+          {selectedIds.size === 0 ? (
+            <div className="text-xs text-neutral-500">Select an item to edit.</div>
+          ) : selectedIds.size === 1 && selectedId ? (
             <ItemInspector
               item={edited.layout_data.items.find(i => i.id === selectedId)!}
               cellSize={cellSize}
@@ -339,7 +461,7 @@ export default function LayoutEditorModal({
               onZ={(dir) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: bringZ(prev.layout_data.items, selectedId, dir) } }))}
             />
           ) : (
-            <div className="text-xs text-neutral-500">Select an item to edit.</div>
+            <div className="text-xs text-neutral-400">{selectedIds.size} items selected</div>
           )}
         </div>
       </div>
@@ -679,31 +801,7 @@ function useCommands(
       updated_at: new Date().toISOString()
     } as LayoutAsset));
   }
-  function duplicateSelected() {
-    if (!selectedId) return;
-    setEdited(prev => {
-      const it = prev.layout_data.items.find(i => i.id === selectedId);
-      if (!it) return prev;
-      const copy = { ...it, id: `${it.id}_copy_${Math.random().toString(36).slice(2,6)}`, x: (it.x || 0) + 1, y: (it.y || 0) + 1 } as Item;
-      return { ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, copy] }, updated_at: new Date().toISOString() } as LayoutAsset;
-    });
-  }
-  function deleteSelected() {
-    if (!selectedId) return;
-
-    // Clear selection first to avoid referencing deleted item
-    setSelectedId(null);
-    setIsEditingText(false);
-    setDraftText('');
-
-    // Then update the layout
-    setEdited(prev => {
-      const filtered = prev.layout_data.items.filter(i => i.id !== selectedId);
-      const normalized = normalizeAllItems({ ...prev, layout_data: { ...prev.layout_data, items: filtered } } as LayoutAsset);
-      return { ...normalized, updated_at: new Date().toISOString() } as LayoutAsset;
-    });
-  }
-  return { addTextBlock, addImageBlock, duplicateSelected, deleteSelected };
+  return { addTextBlock, addImageBlock, duplicateSelected: () => {}, deleteSelected: () => {} };
 }
 
 // Inspector for selected item properties
