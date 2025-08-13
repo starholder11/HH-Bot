@@ -1973,6 +1973,7 @@ export default function VisualSearchPage() {
 
   const exportAsLayout = async () => {
     try {
+      console.log('[exportAsLayout] Pinned items:', pinned.length, pinned);
       if (pinned.length === 0) {
         alert('Canvas is empty. Add some items to export as layout.');
         return;

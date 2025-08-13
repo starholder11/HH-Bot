@@ -87,18 +87,30 @@ export default function LayoutEditorModal({
   }
 
   // Keep layout controlled during interactions to avoid jump-back
-  function handleDrag(_: any, item: any) {
-    setEdited((prev) => updateItemGrid(prev, item.i, item.x, item.y, item.w, item.h));
-  }
-  function handleResize(_: any, item: any) {
-    setEdited((prev) => updateItemGrid(prev, item.i, item.x, item.y, item.w, item.h));
+  function handleLayoutChange(newLayout: any[]) {
+    // Apply layout changes to all items at once to maintain consistency
+    setEdited((prev) => {
+      const updatedItems = prev.layout_data.items.map(item => {
+        const layoutItem = newLayout.find(l => l.i === item.id);
+        if (layoutItem) {
+          return updateItemPosition(item, layoutItem.x, layoutItem.y, layoutItem.w, layoutItem.h, prev.layout_data);
+        }
+        return item;
+      });
+      
+      return {
+        ...prev,
+        layout_data: { ...prev.layout_data, items: updatedItems },
+        updated_at: new Date().toISOString()
+      } as LayoutAsset;
+    });
   }
 
   async function handleSave() {
     try {
       setWorking(true);
       console.log('[LayoutEditor] Starting save...');
-      
+
       // Ensure inline text edits are committed to state before save
       let toSave = edited;
       if (isEditingText && selectedId) {
@@ -107,31 +119,31 @@ export default function LayoutEditorModal({
       }
       // Ensure normalized coords are consistent before persisting
       toSave = normalizeAllItems(toSave);
-      
+
       console.log('[LayoutEditor] Saving layout:', toSave.id);
       const res = await fetch(`/api/media-assets/${toSave.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(toSave),
       });
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         console.error('[LayoutEditor] Save failed:', res.status, errorText);
         throw new Error(`Failed to save layout: ${res.status} ${errorText}`);
       }
-      
+
       const data = await res.json();
       console.log('[LayoutEditor] Save successful');
-      
+
       // Update the edited state to reflect the saved version
       setEdited(data.asset as LayoutAsset);
-      
+
       // Trigger refresh and notify parent
       try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
       onSaved?.(data.asset as LayoutAsset);
       setIsEditingText(false);
-      
+
       console.log('[LayoutEditor] Save complete - modal should stay open');
     } catch (e) {
       console.error('[LayoutEditor] Save error:', e);
@@ -142,8 +154,8 @@ export default function LayoutEditorModal({
   }
 
   const { addTextBlock, addImageBlock, duplicateSelected, deleteSelected } = useCommands(
-    edited, 
-    setEdited, 
+    edited,
+    setEdited,
     selectedId,
     setSelectedId,
     setIsEditingText,
@@ -192,9 +204,8 @@ export default function LayoutEditorModal({
               verticalCompact={false}
               preventCollision={true}
               compactType={null}
-              onDrag={handleDrag}
+              onLayoutChange={handleLayoutChange}
               onDragStop={handleDragStop}
-              onResize={handleResize}
               onResizeStop={handleResizeStop}
             >
               {edited.layout_data.items.map((it) => (
@@ -250,6 +261,30 @@ export default function LayoutEditorModal({
       </div>
     </div>
   );
+}
+
+function updateItemPosition(item: Item, x: number, y: number, w: number, h: number, layoutData: LayoutAsset['layout_data']): Item {
+  const cellSize = layoutData.cellSize || 20;
+  const design = layoutData.designSize || { width: 1200, height: 800 };
+  
+  // Clamp to bounds to keep items inside canvas
+  const maxX = Math.max(0, Math.floor(design.width / cellSize) - w);
+  const maxY = Math.max(0, Math.floor(design.height / cellSize) - h);
+  const clampedX = Math.max(0, Math.min(x, maxX));
+  const clampedY = Math.max(0, Math.min(y, maxY));
+  const pxW = w * cellSize;
+  const pxH = h * cellSize;
+  const pxX = clampedX * cellSize;
+  const pxY = clampedY * cellSize;
+
+  return {
+    ...item,
+    x: clampedX, y: clampedY, w, h,
+    nx: clamp(pxX / design.width),
+    ny: clamp(pxY / design.height),
+    nw: clamp(pxW / design.width),
+    nh: clamp(pxH / design.height),
+  } as Item;
 }
 
 function updateItemGrid(layout: LayoutAsset, id: string, x: number, y: number, w: number, h: number): LayoutAsset {
@@ -432,27 +467,121 @@ function useCommands(
   function addTextBlock() {
     const id = `inline_${Date.now().toString(36)}`;
     const cellSize = edited.layout_data.cellSize || 20;
+    const design = edited.layout_data.designSize || { width: 1200, height: 800 };
+    
+    // Find a good position that doesn't overlap
+    const existingItems = edited.layout_data.items;
+    let x = 0, y = 0;
+    let foundSpot = false;
+    
+    // Simple placement algorithm: try positions until we find one that doesn't overlap
+    for (let tryY = 0; tryY < 10 && !foundSpot; tryY++) {
+      for (let tryX = 0; tryX < 10 && !foundSpot; tryX++) {
+        const testX = tryX * 2;
+        const testY = tryY * 2;
+        const testW = Math.max(6, Math.round(400 / cellSize));
+        const testH = Math.max(3, Math.round(120 / cellSize));
+        
+        // Check if this position overlaps with existing items
+        const overlaps = existingItems.some(item => {
+          const itemX = item.x || 0;
+          const itemY = item.y || 0;
+          const itemW = item.w || 1;
+          const itemH = item.h || 1;
+          
+          return !(testX + testW <= itemX || testX >= itemX + itemW || 
+                   testY + testH <= itemY || testY >= itemY + itemH);
+        });
+        
+        if (!overlaps) {
+          x = testX;
+          y = testY;
+          foundSpot = true;
+        }
+      }
+    }
+    
     const newItem: Item = {
       id,
       type: 'inline_text',
-      x: 0, y: 0, w: Math.max(6, Math.round(400 / cellSize)), h: Math.max(3, Math.round(120 / cellSize)),
-      nx: 0, ny: 0, nw: 0.33, nh: 0.15,
+      x, y, 
+      w: Math.max(6, Math.round(400 / cellSize)), 
+      h: Math.max(3, Math.round(120 / cellSize)),
+      nx: (x * cellSize) / design.width, 
+      ny: (y * cellSize) / design.height, 
+      nw: (Math.max(6, Math.round(400 / cellSize)) * cellSize) / design.width, 
+      nh: (Math.max(3, Math.round(120 / cellSize)) * cellSize) / design.height,
       inlineContent: { text: 'Edit me' },
     } as any;
-    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, newItem] }, updated_at: new Date().toISOString() } as LayoutAsset));
+    
+    setEdited(prev => ({ 
+      ...prev, 
+      layout_data: { 
+        ...prev.layout_data, 
+        items: [...prev.layout_data.items, newItem] 
+      }, 
+      updated_at: new Date().toISOString() 
+    } as LayoutAsset));
   }
   
   function addImageBlock() {
     const id = `inline_img_${Date.now().toString(36)}`;
     const cellSize = edited.layout_data.cellSize || 20;
+    const design = edited.layout_data.designSize || { width: 1200, height: 800 };
+    
+    // Find a good position that doesn't overlap
+    const existingItems = edited.layout_data.items;
+    let x = 0, y = 0;
+    let foundSpot = false;
+    
+    // Simple placement algorithm: try positions until we find one that doesn't overlap
+    for (let tryY = 0; tryY < 10 && !foundSpot; tryY++) {
+      for (let tryX = 0; tryX < 10 && !foundSpot; tryX++) {
+        const testX = tryX * 2;
+        const testY = tryY * 2;
+        const testW = Math.max(4, Math.round(300 / cellSize));
+        const testH = Math.max(4, Math.round(200 / cellSize));
+        
+        // Check if this position overlaps with existing items
+        const overlaps = existingItems.some(item => {
+          const itemX = item.x || 0;
+          const itemY = item.y || 0;
+          const itemW = item.w || 1;
+          const itemH = item.h || 1;
+          
+          return !(testX + testW <= itemX || testX >= itemX + itemW || 
+                   testY + testH <= itemY || testY >= itemY + itemH);
+        });
+        
+        if (!overlaps) {
+          x = testX;
+          y = testY;
+          foundSpot = true;
+        }
+      }
+    }
+    
     const newItem: Item = {
       id,
       type: 'inline_image',
-      x: 0, y: 0, w: Math.max(4, Math.round(300 / cellSize)), h: Math.max(4, Math.round(200 / cellSize)),
-      nx: 0, ny: 0, nw: 0.25, nh: 0.25,
+      x, y,
+      w: Math.max(4, Math.round(300 / cellSize)), 
+      h: Math.max(4, Math.round(200 / cellSize)),
+      nx: (x * cellSize) / design.width, 
+      ny: (y * cellSize) / design.height, 
+      nw: (Math.max(4, Math.round(300 / cellSize)) * cellSize) / design.width, 
+      nh: (Math.max(4, Math.round(200 / cellSize)) * cellSize) / design.height,
       inlineContent: { imageUrl: '', alt: 'Image' },
     } as any;
-    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, newItem] }, updated_at: new Date().toISOString() } as LayoutAsset));
+    
+    setEdited(prev => ({ 
+      ...prev, 
+      layout_data: { 
+        ...prev.layout_data, 
+        items: [...prev.layout_data.items, newItem] 
+      }, 
+      updated_at: new Date().toISOString() 
+    } as LayoutAsset));
   }
   function duplicateSelected() {
     if (!selectedId) return;
@@ -465,20 +594,20 @@ function useCommands(
   }
   function deleteSelected() {
     if (!selectedId) return;
-    
+
     // Clear selection first to avoid referencing deleted item
     setSelectedId(null);
     setIsEditingText(false);
     setDraftText('');
-    
+
     // Then update the layout
-    setEdited(prev => ({ 
-      ...prev, 
-      layout_data: { 
-        ...prev.layout_data, 
-        items: prev.layout_data.items.filter(i => i.id !== selectedId) 
-      }, 
-      updated_at: new Date().toISOString() 
+    setEdited(prev => ({
+      ...prev,
+      layout_data: {
+        ...prev.layout_data,
+        items: prev.layout_data.items.filter(i => i.id !== selectedId)
+      },
+      updated_at: new Date().toISOString()
     } as LayoutAsset));
   }
   return { addTextBlock, addImageBlock, duplicateSelected, deleteSelected };
