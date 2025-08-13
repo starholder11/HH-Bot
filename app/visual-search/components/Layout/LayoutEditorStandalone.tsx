@@ -1170,7 +1170,7 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
 }
 
 function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>> }) {
-  const currentTheme = edited.layout_data.theme || 'minimal';
+  const currentTheme = edited.layout_data.styling?.theme || 'minimal';
 
   return (
     <div>
