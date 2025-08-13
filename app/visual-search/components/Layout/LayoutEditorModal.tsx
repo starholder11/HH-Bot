@@ -283,7 +283,7 @@ export default function LayoutEditorModal({
               {edited.layout_data.items.map((it) => (
                 <div
                   key={it.id}
-                  className={`border bg-neutral-900 overflow-hidden ${selectedId === it.id ? 'border-blue-500' : 'border-blue-500/30'}`}
+                  className={`border bg-neutral-900 overflow-hidden cursor-move ${selectedId === it.id ? 'border-blue-500' : 'border-blue-500/30'}`}
                   onMouseDown={() => { setSelectedId(it.id); setIsEditingText(false); }}
                   onDoubleClick={() => {
                     if (it.type === 'inline_text') {
@@ -292,7 +292,7 @@ export default function LayoutEditorModal({
                       setIsEditingText(true);
                     }
                   }}
-                  style={{ zIndex: it.z || 1 }}
+                  style={{ zIndex: it.z || 1, userSelect: 'none' }}
                 >
                   {renderItem(it, previewUrls[it.id], loadingMap[it.id], {
                     isSelected: selectedId === it.id,
@@ -459,7 +459,7 @@ function renderItem(
     return (
       <div className="h-full w-full flex items-center justify-center bg-black/50">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt="inline" className="max-w-full max-h-full object-contain" />
+        <img src={src} alt="inline" className="max-w-full max-h-full object-contain" draggable={false} />
       </div>
     );
   }
@@ -473,7 +473,7 @@ function renderItem(
       return (
         <div className="h-full w-full flex items-center justify-center bg-black/50">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="image" className="max-w-full max-h-full object-contain" />
+          <img src={url} alt="image" className="max-w-full max-h-full object-contain" draggable={false} />
         </div>
       );
     }
