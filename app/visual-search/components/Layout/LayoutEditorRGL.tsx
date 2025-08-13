@@ -25,6 +25,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isShiftHeld, setIsShiftHeld] = useState<boolean>(false);
+  const [dragStartPos, setDragStartPos] = useState<{x: number, y: number} | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
@@ -181,12 +183,128 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
-        
+        onMouseDown={(e) => {
+          // Record start position for drag detection
+          setDragStartPos({ x: e.clientX, y: e.clientY });
+          setIsDragging(false);
+          
+          console.log('[LayoutEditorRGL] MOUSE DOWN - recording start position', {
+            id: item.id,
+            startPos: { x: e.clientX, y: e.clientY },
+            shiftKey: e.shiftKey,
+            metaKey: e.metaKey,
+            ctrlKey: e.ctrlKey
+          });
+        }}
+        onMouseMove={(e) => {
+          // Detect if we've moved enough to be considered a drag
+          if (dragStartPos && !isDragging) {
+            const deltaX = Math.abs(e.clientX - dragStartPos.x);
+            const deltaY = Math.abs(e.clientY - dragStartPos.y);
+            const dragThreshold = 5; // pixels
+            
+            if (deltaX > dragThreshold || deltaY > dragThreshold) {
+              setIsDragging(true);
+              console.log('[LayoutEditorRGL] DRAG DETECTED for item:', item.id);
+            }
+          }
+        }}
+        onMouseUp={(e) => {
+          console.log('[LayoutEditorRGL] MOUSE UP', {
+            id: item.id,
+            isDragging,
+            dragStartPos
+          });
+          
+          // Only handle selection if this was NOT a drag
+          if (!isDragging && dragStartPos) {
+            const isToggle = e.metaKey || e.ctrlKey;
+            const isRange = e.shiftKey && !!selectedId;
+            
+            console.log('[LayoutEditorRGL] CLEAN CLICK (not drag) SELECTION', { 
+              id: item.id, 
+              itemType: item.type,
+              isToggle, 
+              isRange, 
+              selectedId, 
+              before: Array.from(selectedIds)
+            });
+
+            if (isToggle) {
+              setSelectedIds(prev => {
+                const next = new Set(prev);
+                if (next.has(item.id)) {
+                  next.delete(item.id);
+                  if (selectedId === item.id) {
+                    const remaining = Array.from(next);
+                    setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+                  }
+                } else {
+                  next.add(item.id);
+                  setSelectedId(item.id);
+                }
+                console.log('[LayoutEditorRGL] TOGGLE result:', Array.from(next));
+                return next;
+              });
+            } else if (isRange) {
+              // Special case: if Shift+clicking the same item, do nothing
+              if (selectedId === item.id) {
+                console.log('[LayoutEditorRGL] Shift+clicking same item, ignoring');
+                return;
+              }
+              
+              const items = edited.layout_data.items;
+              const lastIndex = items.findIndex(it => it.id === selectedId);
+              const currentIndex = items.findIndex(it => it.id === item.id);
+              
+              console.log('[LayoutEditorRGL] RANGE DEBUG', {
+                selectedId,
+                itemId: item.id,
+                lastIndex,
+                currentIndex,
+                totalItems: items.length,
+                itemsOrder: items.map(it => it.id)
+              });
+              
+              if (lastIndex !== -1 && currentIndex !== -1) {
+                const start = Math.min(lastIndex, currentIndex);
+                const end = Math.max(lastIndex, currentIndex);
+                const rangeIds = items.slice(start, end + 1).map(it => it.id);
+                
+                console.log('[LayoutEditorRGL] RANGE CALCULATION', {
+                  start,
+                  end,
+                  rangeIds,
+                  slicedItems: items.slice(start, end + 1).map(it => ({ id: it.id, type: it.type }))
+                });
+                
+                setSelectedIds(prev => {
+                  const next = new Set(prev);
+                  rangeIds.forEach(id => next.add(id));
+                  console.log('[LayoutEditorRGL] RANGE result:', Array.from(next));
+                  return next;
+                });
+                setSelectedId(item.id);
+              } else {
+                console.log('[LayoutEditorRGL] RANGE FAILED - invalid indices');
+              }
+            } else {
+              setSelectedId(item.id);
+              const next = new Set([item.id]);
+              setSelectedIds(next);
+              console.log('[LayoutEditorRGL] SINGLE result:', Array.from(next));
+            }
+          }
+          
+          // Reset drag tracking
+          setDragStartPos(null);
+          setIsDragging(false);
+        }}
       >
         {renderItem(item)}
       </div>
     ));
-  }, [edited.layout_data.items, renderItem, selectedIds, selectedId]);
+  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, dragStartPos, isDragging]);
 
   // Helpers to update item fields safely
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -449,110 +567,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                                     <div
               className="mx-auto border border-neutral-800 rounded-lg"
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
-              onClick={(e) => {
-                // Handle selection ONLY on clicks that didn't start a drag
-                // This avoids conflicts with RGL's drag system
-                
-                // Find the item by traversing up the DOM
-                let element = e.target as HTMLElement;
-                let itemId: string | null = null;
-                let attempts = 0;
-                
-                while (element && attempts < 10) {
-                  const dataItemId = element.getAttribute('data-item-id');
-                  if (dataItemId) {
-                    itemId = dataItemId;
-                    break;
-                  }
-                  element = element.parentElement as HTMLElement;
-                  attempts++;
-                }
 
-                console.log('[LayoutEditorRGL] CLEAN CLICK SELECTION', { 
-                  itemId, 
-                  attempts,
-                  shiftKey: e.shiftKey,
-                  metaKey: e.metaKey,
-                  ctrlKey: e.ctrlKey,
-                  selectedId,
-                  before: Array.from(selectedIds)
-                });
-
-                if (itemId) {
-                  const isToggle = e.metaKey || e.ctrlKey;
-                  const isRange = e.shiftKey && !!selectedId;
-
-                  if (isToggle) {
-                    setSelectedIds(prev => {
-                      const next = new Set(prev);
-                      if (next.has(itemId)) {
-                        next.delete(itemId);
-                        if (selectedId === itemId) {
-                          const remaining = Array.from(next);
-                          setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-                        }
-                      } else {
-                        next.add(itemId);
-                        setSelectedId(itemId);
-                      }
-                      console.log('[LayoutEditorRGL] CLEAN TOGGLE result:', Array.from(next));
-                      return next;
-                    });
-                  } else if (isRange) {
-                    // Special case: if Shift+clicking the same item, do nothing
-                    if (selectedId === itemId) {
-                      console.log('[LayoutEditorRGL] Shift+clicking same item, ignoring');
-                      return;
-                    }
-                    
-                    const items = edited.layout_data.items;
-                    const lastIndex = items.findIndex(it => it.id === selectedId);
-                    const currentIndex = items.findIndex(it => it.id === itemId);
-                    
-                    console.log('[LayoutEditorRGL] RANGE DEBUG', {
-                      selectedId,
-                      itemId,
-                      lastIndex,
-                      currentIndex,
-                      totalItems: items.length,
-                      itemsOrder: items.map(it => it.id)
-                    });
-                    
-                    if (lastIndex !== -1 && currentIndex !== -1) {
-                      const start = Math.min(lastIndex, currentIndex);
-                      const end = Math.max(lastIndex, currentIndex);
-                      const rangeIds = items.slice(start, end + 1).map(it => it.id);
-                      
-                      console.log('[LayoutEditorRGL] RANGE CALCULATION', {
-                        start,
-                        end,
-                        rangeIds,
-                        slicedItems: items.slice(start, end + 1).map(it => ({ id: it.id, type: it.type }))
-                      });
-                      
-                      setSelectedIds(prev => {
-                        const next = new Set(prev);
-                        rangeIds.forEach(id => next.add(id));
-                        console.log('[LayoutEditorRGL] CLEAN RANGE result:', Array.from(next));
-                        return next;
-                      });
-                      setSelectedId(itemId);
-                    } else {
-                      console.log('[LayoutEditorRGL] RANGE FAILED - invalid indices');
-                    }
-                  } else {
-                    setSelectedId(itemId);
-                    const next = new Set([itemId]);
-                    setSelectedIds(next);
-                    console.log('[LayoutEditorRGL] CLEAN SINGLE result:', Array.from(next));
-                  }
-                } else if (e.target === e.currentTarget) {
-                  // Clear selection when clicking background (empty space)
-                  console.log('[LayoutEditorRGL] clicked background, clearing selection');
-                  setSelectedIds(new Set());
-                  setSelectedId(null);
-                }
-              }}
             >
               <ResponsiveGridLayout
                 className="layout"
