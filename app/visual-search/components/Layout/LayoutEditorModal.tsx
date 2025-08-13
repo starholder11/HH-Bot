@@ -1053,7 +1053,7 @@ export default function LayoutEditorModal({
         </div>
 
           </div>
-          
+
           {/* Right inspector */}
           <div className="w-72 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-3 space-y-3 min-h-screen">
           <div className="flex items-center justify-between">
@@ -2881,34 +2881,5 @@ async function getNextVersionNumber(baseTitle: string): Promise<number> {
   } catch {
     return 1;
   }
-}
-
-          {/* Image Library Modal */}
-          {showImageLibrary && (
-            <ImageLibraryModal
-              onClose={() => setShowImageLibrary(false)}
-              onSelect={(url) => {
-                if (pendingImageItemId) {
-                  setEdited(prev => ({
-                    ...prev,
-                    layout_data: {
-                      ...prev.layout_data,
-                      items: prev.layout_data.items.map(it =>
-                        it.id === pendingImageItemId
-                          ? { ...it, inlineContent: { ...it.inlineContent, imageUrl: url } }
-                          : it
-                      )
-                    }
-                  }));
-                  setPendingImageItemId(null);
-                }
-                setShowImageLibrary(false);
-              }}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
 }
 
