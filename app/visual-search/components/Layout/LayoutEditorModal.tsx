@@ -46,10 +46,17 @@ export default function LayoutEditorModal({
   const scrollWrapRef = useRef<HTMLDivElement | null>(null);
   const prevHeightRef = useRef<number>(design.height);
 
+  // Text inputs for dimension controls (so user can freely type/erase)
+  const [widthInput, setWidthInput] = useState<string>(String(design.width));
+  const [heightInput, setHeightInput] = useState<string>(String(design.height));
+  const [cellInput, setCellInput] = useState<string>(String(cellSize));
+
   // Reset canvas height when switching breakpoints
   useEffect(() => {
     setCanvasHeight(design.height);
     prevHeightRef.current = design.height;
+    setWidthInput(String(design.width));
+    setHeightInput(String(design.height));
   }, [currentBreakpoint, design.height]);
 
   // Create dynamic CSS for canvas height to override any CSS conflicts
@@ -73,6 +80,38 @@ export default function LayoutEditorModal({
   }, [canvasHeight]);
   const cols = Math.max(1, Math.floor(design.width / cellSize));
   const rowHeight = cellSize;
+
+  // Keep cell input in sync if external changes occur
+  useEffect(() => {
+    setCellInput(String(cellSize));
+  }, [cellSize]);
+
+  function commitWidth() {
+    const parsed = parseInt(widthInput.trim(), 10);
+    if (Number.isNaN(parsed)) return setWidthInput(String(design.width));
+    const w = Math.min(2400, Math.max(320, parsed));
+    setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], width: w } }));
+    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, designSize: { width: w, height: canvasHeight } } }));
+    setWidthInput(String(w));
+  }
+
+  function commitHeight() {
+    const parsed = parseInt(heightInput.trim(), 10);
+    if (Number.isNaN(parsed)) return setHeightInput(String(canvasHeight));
+    const h = Math.min(5000, Math.max(200, parsed));
+    setCanvasHeight(h);
+    setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], height: h } }));
+    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, designSize: { width: design.width, height: h } } }));
+    setHeightInput(String(h));
+  }
+
+  function commitCellSize() {
+    const parsed = parseInt(cellInput.trim(), 10);
+    if (Number.isNaN(parsed)) return setCellInput(String(cellSize));
+    const size = Math.min(200, Math.max(4, parsed));
+    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, cellSize: size } }));
+    setCellInput(String(size));
+  }
 
   // Filter visible items for current breakpoint
   const visibleItems = useMemo(
@@ -771,8 +810,8 @@ export default function LayoutEditorModal({
         <div ref={scrollWrapRef} className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
           <div
             className="mx-auto border border-neutral-800 bg-neutral-900 relative"
-            style={{ 
-              width: design.width, 
+            style={{
+              width: design.width,
               height: `${canvasHeight}px`,
               minHeight: `${canvasHeight}px`
             }}
@@ -976,11 +1015,10 @@ export default function LayoutEditorModal({
                 <span className="text-neutral-400">Width</span>
                 <input
                   type="text"
-                  value={design.width.toString()}
-                  onChange={(e) => {
-                    const w = Math.max(320, parseInt(e.target.value) || design.width);
-                    setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], width: w } }));
-                  }}
+                  value={widthInput}
+                  onChange={(e) => setWidthInput(e.target.value)}
+                  onBlur={commitWidth}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); commitWidth(); }} }
                   className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </label>
@@ -988,13 +1026,10 @@ export default function LayoutEditorModal({
                 <span className="text-neutral-400">Height</span>
                 <input
                   type="text"
-                  value={canvasHeight.toString()}
-                  onChange={(e) => {
-                    const h = Math.max(200, parseInt(e.target.value) || canvasHeight);
-                    console.log("Setting canvas height to:", h);
-                    setCanvasHeight(h);
-                    setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], height: h } }));
-                  }}
+                  value={heightInput}
+                  onChange={(e) => setHeightInput(e.target.value)}
+                  onBlur={commitHeight}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); commitHeight(); }} }
                   className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </label>
@@ -1002,11 +1037,10 @@ export default function LayoutEditorModal({
                 <span className="text-neutral-400">Grid Cell</span>
                 <input
                   type="text"
-                  value={cellSize.toString()}
-                  onChange={(e) => {
-                    const size = Math.max(4, parseInt(e.target.value) || cellSize);
-                    setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, cellSize: size } }));
-                  }}
+                  value={cellInput}
+                  onChange={(e) => setCellInput(e.target.value)}
+                  onBlur={commitCellSize}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); commitCellSize(); } } }
                   className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </label>
