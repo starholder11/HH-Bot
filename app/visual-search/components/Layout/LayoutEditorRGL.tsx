@@ -430,10 +430,23 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               className="mx-auto border border-neutral-800 rounded-lg" 
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
               onMouseDown={(e) => {
+                console.log('[LayoutEditorRGL] ANY CLICK DETECTED', { 
+                  target: e.target, 
+                  currentTarget: e.currentTarget,
+                  button: e.button,
+                  metaKey: e.metaKey,
+                  ctrlKey: e.ctrlKey,
+                  shiftKey: e.shiftKey
+                });
+                
                 // Find the closest item element
                 const itemEl = (e.target as HTMLElement).closest('[data-grid]');
+                console.log('[LayoutEditorRGL] closest data-grid:', itemEl);
+                
                 if (itemEl) {
                   const itemId = itemEl.getAttribute('data-grid');
+                  console.log('[LayoutEditorRGL] found itemId:', itemId);
+                  
                   if (itemId) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -481,6 +494,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       console.log('[LayoutEditorRGL] single -> after', Array.from(next));
                     }
                   }
+                } else {
+                  console.log('[LayoutEditorRGL] NO data-grid found, clicked background');
                 }
               }}
             >
