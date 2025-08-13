@@ -24,6 +24,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [working, setWorking] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isShiftHeld, setIsShiftHeld] = useState<boolean>(false);
 
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
@@ -246,6 +247,28 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
       } as LayoutAsset;
     });
   }, [selectedId]);
+
+  // Track Shift key to prevent onDragStart from interfering with range selection
+  React.useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Shift') {
+        console.log('[LayoutEditorRGL] Shift DOWN - protecting range selection');
+        setIsShiftHeld(true);
+      }
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.key === 'Shift') {
+        console.log('[LayoutEditorRGL] Shift UP - allowing drag selection');
+        setIsShiftHeld(false);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
 
 
 
@@ -558,6 +581,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     isInSelection: newItem?.i ? selectedIds.has(newItem.i) : false
                   });
 
+                  // NEVER change selection when Shift is held (range selection in progress)
+                  if (isShiftHeld) {
+                    console.log('[LayoutEditorRGL] Shift held - preventing drag selection change, preserving for range select');
+                    return;
+                  }
+                  
                   // ONLY change selection if dragging an item that's NOT in the current selection
                   // AND we don't have multiple items selected (to preserve multi-select for drag)
                   if (newItem?.i && !selectedIds.has(newItem.i) && selectedIds.size <= 1) {
