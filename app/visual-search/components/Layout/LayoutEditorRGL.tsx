@@ -172,7 +172,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
       <div
         key={item.id}
         data-item-id={item.id}
-        className={`rounded-sm overflow-hidden border cursor-pointer ${selectedIds.has(item.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
+        className={`rounded-sm overflow-hidden border cursor-pointer selection-zone ${selectedIds.has(item.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
         style={{
           margin: 0,
           padding: 0,
@@ -180,22 +180,32 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
-        onMouseDown={(e) => {
+                onMouseDown={(e) => {
+          // AGGRESSIVE event stopping
           e.preventDefault();
           e.stopPropagation();
+          if (e.nativeEvent) {
+            e.nativeEvent.preventDefault();
+            e.nativeEvent.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+          }
 
           const isToggle = e.metaKey || e.ctrlKey;
           const isRange = e.shiftKey && !!selectedId;
-          console.log('[LayoutEditorRGL] CLICK ANYWHERE', {
-            id: item.id,
+          console.log('[LayoutEditorRGL] CLICK ANYWHERE - AGGRESSIVE CAPTURE', { 
+            id: item.id, 
             itemType: item.type,
-            isToggle,
-            isRange,
-            selectedId,
+            isToggle, 
+            isRange, 
+            selectedId, 
             before: Array.from(selectedIds),
             shiftKey: e.shiftKey,
             metaKey: e.metaKey,
-            ctrlKey: e.ctrlKey
+            ctrlKey: e.ctrlKey,
+            isShiftDown,
+            target: e.target,
+            currentTarget: e.currentTarget,
+            timestamp: Date.now()
           });
 
           if (isToggle) {
@@ -237,11 +247,21 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
             console.log('[LayoutEditorRGL] SINGLE result:', Array.from(next));
           }
         }}
+        onClick={(e) => {
+          // Additional click handler as backup
+          console.log('[LayoutEditorRGL] CLICK EVENT as backup', {
+            id: item.id,
+            shiftKey: e.shiftKey,
+            metaKey: e.metaKey,
+            ctrlKey: e.ctrlKey,
+            target: e.target
+          });
+        }}
       >
         {renderItem(item)}
       </div>
     ));
-  }, [edited.layout_data.items, renderItem, selectedIds, selectedId]);
+  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, isShiftDown]);
 
   // Helpers to update item fields safely
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -515,7 +535,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 onLayoutChange={handleLayoutChange}
                 isDraggable={!isShiftDown}
                 isResizable={true}
-                draggableCancel={'input, textarea, select, button'}
+                draggableCancel={isShiftDown ? '.selection-zone' : 'input, textarea, select, button'}
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
