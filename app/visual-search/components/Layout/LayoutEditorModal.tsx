@@ -394,21 +394,49 @@ export default function LayoutEditorModal({
                   key={it.id}
                   className={`border bg-neutral-900 overflow-hidden ${selectedIds.has(it.id) ? 'border-blue-500' : 'border-blue-500/30'}`}
                   onMouseDown={(e) => {
-                    // Multi-select: Cmd/Ctrl toggles, Shift adds, plain selects single
+                    e.preventDefault();
                     setIsEditingText(false);
-                    setSelectedId(it.id);
-                    setSelectedIds(prev => {
-                      const next = new Set(prev);
-                      if (e.metaKey || e.ctrlKey) {
-                        if (next.has(it.id)) next.delete(it.id); else next.add(it.id);
+                    
+                    if (e.metaKey || e.ctrlKey) {
+                      // Cmd/Ctrl+click: toggle selection
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        if (next.has(it.id)) {
+                          next.delete(it.id);
+                          // If we removed the current selectedId, pick another one or clear
+                          if (selectedId === it.id) {
+                            const remaining = Array.from(next);
+                            setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+                          }
+                        } else {
+                          next.add(it.id);
+                          setSelectedId(it.id);
+                        }
                         return next;
+                      });
+                    } else if (e.shiftKey && selectedId) {
+                      // Shift+click: select range from last selected to this item
+                      const items = edited.layout_data.items;
+                      const lastIndex = items.findIndex(item => item.id === selectedId);
+                      const currentIndex = items.findIndex(item => item.id === it.id);
+                      
+                      if (lastIndex !== -1 && currentIndex !== -1) {
+                        const start = Math.min(lastIndex, currentIndex);
+                        const end = Math.max(lastIndex, currentIndex);
+                        const rangeIds = items.slice(start, end + 1).map(item => item.id);
+                        
+                        setSelectedIds(prev => {
+                          const next = new Set(prev);
+                          rangeIds.forEach(id => next.add(id));
+                          return next;
+                        });
+                        setSelectedId(it.id);
                       }
-                      if (e.shiftKey) {
-                        next.add(it.id);
-                        return next;
-                      }
-                      return new Set([it.id]);
-                    });
+                    } else {
+                      // Plain click: select only this item
+                      setSelectedId(it.id);
+                      setSelectedIds(new Set([it.id]));
+                    }
                   }}
                   onDoubleClick={() => {
                     if (it.type === 'inline_text') {

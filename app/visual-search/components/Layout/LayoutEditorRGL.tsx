@@ -179,19 +179,48 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           WebkitBackfaceVisibility: 'hidden'
         }}
         onMouseDown={(e) => {
-          setSelectedId(item.id);
-          setSelectedIds(prev => {
-            const next = new Set(prev);
-            if (e.metaKey || e.ctrlKey) {
-              if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+          e.preventDefault();
+          
+          if (e.metaKey || e.ctrlKey) {
+            // Cmd/Ctrl+click: toggle selection
+            setSelectedIds(prev => {
+              const next = new Set(prev);
+              if (next.has(item.id)) {
+                next.delete(item.id);
+                // If we removed the current selectedId, pick another one or clear
+                if (selectedId === item.id) {
+                  const remaining = Array.from(next);
+                  setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+                }
+              } else {
+                next.add(item.id);
+                setSelectedId(item.id);
+              }
               return next;
+            });
+          } else if (e.shiftKey && selectedId) {
+            // Shift+click: select range from last selected to this item
+            const items = edited.layout_data.items;
+            const lastIndex = items.findIndex(it => it.id === selectedId);
+            const currentIndex = items.findIndex(it => it.id === item.id);
+            
+            if (lastIndex !== -1 && currentIndex !== -1) {
+              const start = Math.min(lastIndex, currentIndex);
+              const end = Math.max(lastIndex, currentIndex);
+              const rangeIds = items.slice(start, end + 1).map(it => it.id);
+              
+              setSelectedIds(prev => {
+                const next = new Set(prev);
+                rangeIds.forEach(id => next.add(id));
+                return next;
+              });
+              setSelectedId(item.id);
             }
-            if (e.shiftKey) {
-              next.add(item.id);
-              return next;
-            }
-            return new Set([item.id]);
-          });
+          } else {
+            // Plain click: select only this item
+            setSelectedId(item.id);
+            setSelectedIds(new Set([item.id]));
+          }
         }}
       >
         {renderItem(item)}
