@@ -27,6 +27,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [isShiftHeld, setIsShiftHeld] = useState<boolean>(false);
   const [dragStartPos, setDragStartPos] = useState<{x: number, y: number} | null>(null); // reserved
   const [isDragging, setIsDragging] = useState<boolean>(false); // reserved
+  const [isGroupDrag, setIsGroupDrag] = useState<boolean>(false);
 
   // Bulk-drag tracking: store origin positions for selected items and the dragged item's origin
   const bulkDragOriginPositionsRef = React.useRef<Record<string, { x: number; y: number }>>({});
@@ -519,7 +520,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
-                preventCollision={true}
+                preventCollision={!isGroupDrag}
                 compactType={null}
                 verticalCompact={false}
                 isBounded={true}
@@ -559,6 +560,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     // Ensure the dragged item is included if selectedIds is empty (single drag)
                     if (sel.size === 0) {
                       bulkDragOriginPositionsRef.current[newItem.i] = { x: newItem.x, y: newItem.y };
+                    }
+                    // If group drag, temporarily disable collision to allow movement to start
+                    if (sel.size > 1 && sel.has(newItem.i)) {
+                      setIsGroupDrag(true);
+                    } else {
+                      setIsGroupDrag(false);
                     }
                   }
                 }}
@@ -631,6 +638,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   // Reset bulk drag origins
                   draggedItemOriginRef.current = null;
                   bulkDragOriginPositionsRef.current = {};
+                  setIsGroupDrag(false);
                 }}
               >
                 {children}
