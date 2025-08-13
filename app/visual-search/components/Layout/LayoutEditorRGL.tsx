@@ -439,8 +439,19 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const anySelected = selectedIds.size > 0 || !!selectedId;
-      if (!anySelected) return;
       console.log('[LayoutEditorRGL] key', { key: e.key, size: selectedIds.size, ids: Array.from(selectedIds) });
+      
+      // Escape to clear selection
+      if (e.key === 'Escape' && anySelected) {
+        e.preventDefault();
+        setSelectedIds(new Set());
+        setSelectedId(null);
+        console.log('[LayoutEditorRGL] Cleared selection via Escape key');
+        return;
+      }
+      
+      if (!anySelected) return;
+      
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
       const step = 1;
       if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelection(-step, 0); }
@@ -566,7 +577,14 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                                     <div
               className="mx-auto border border-neutral-800 rounded-lg"
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
-
+              onClick={(e) => {
+                // Clear selection when clicking empty canvas area
+                if (e.target === e.currentTarget) {
+                  setSelectedIds(new Set());
+                  setSelectedId(null);
+                  console.log('[LayoutEditorRGL] Cleared selection - clicked empty canvas');
+                }
+              }}
             >
               <ResponsiveGridLayout
                 className="layout"
@@ -696,37 +714,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     wasGroupDrag: isGroupDrag
                   });
 
-                  // Calculate the drag delta
-                  const deltaX = (newItem?.x || 0) - (oldItem?.x || 0);
-                  const deltaY = (newItem?.y || 0) - (oldItem?.y || 0);
-
-                  console.log('[LayoutEditorRGL] drag delta:', { deltaX, deltaY });
-
-                  // Final group drag synchronization
-                  if (group && group.size > 1 && newItem?.i && group.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
-                    console.log('[LayoutEditorRGL] Finalizing group drag for', group.size, 'items');
-
-                    const finalLayout = currentLayout.map(layoutItem => {
-                      // Apply final positions based on origin + total delta
-                      if (group.has(layoutItem.i) && layoutItem.i !== newItem.i) {
-                        const origin = bulkDragOriginPositionsRef.current[layoutItem.i];
-                        if (origin) {
-                          const finalPos = {
-                            x: Math.max(0, origin.x + deltaX),
-                            y: Math.max(0, origin.y + deltaY)
-                          };
-                          console.log('[LayoutEditorRGL] Final position for', layoutItem.i, ':', finalPos);
-                          return {
-                            ...layoutItem,
-                            ...finalPos
-                          };
-                        }
-                      }
-                      return layoutItem;
-                    });
-
-                    handleLayoutChange(finalLayout, { lg: finalLayout });
-                    console.log('[LayoutEditorRGL] Applied final group drag positions');
+                  // For group drags, always use the current layout state since onDrag already updated positions
+                  if (group && group.size > 1) {
+                    console.log('[LayoutEditorRGL] Finalizing group drag - using current layout state');
+                    // Use the current layoutState since onDrag has been updating it
+                    handleLayoutChange(layoutState, { lg: layoutState });
+                    console.log('[LayoutEditorRGL] Applied group drag from layout state');
                   } else {
                     // Normal single item drag
                     handleLayoutChange(currentLayout, { lg: currentLayout });
