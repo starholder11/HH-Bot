@@ -45,10 +45,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const bulkDragOriginPositionsRef = React.useRef<Record<string, { x: number; y: number }>>({});
   const draggedItemOriginRef = React.useRef<{ x: number; y: number } | null>(null);
   // Keep latest selection in refs so drag handlers don't read stale closures
-  const selectedIdsRef = React.useRef<Set<string>>(new Set());
-  const selectedIdRef = React.useRef<string | null>(null);
-  React.useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
-  React.useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+  const selectedIdsRef = React.useRef<Set<string>>(selectedIds);
+  const selectedIdRef = React.useRef<string | null>(selectedId);
+  
+  // Update refs immediately when state changes
+  selectedIdsRef.current = selectedIds;
+  selectedIdRef.current = selectedId;
 
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
