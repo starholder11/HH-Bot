@@ -20,7 +20,7 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
       setError(null);
 
       // Fetch layouts directly from layouts API
-      const response = await fetch('/api/layouts');
+      const response = await fetch(`/api/layouts?ts=${Date.now()}`, { cache: 'no-store' });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -66,11 +66,18 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
         throw new Error('Failed to delete layout');
       }
 
-      // Refresh layouts list
-      await loadLayouts();
+      // Optimistically remove locally
+      setLayouts(prev => prev.filter(l => l.id !== layoutId));
+      try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
+
+      // Non-blocking refresh to sync from backend
+      loadLayouts().catch((e) => console.warn('Background refresh failed after delete:', e));
     } catch (err) {
       console.error('Failed to delete layout:', err);
-      alert('Failed to delete layout: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      // Only alert if the DELETE call itself failed; do not alert on refresh failures
+      if (err instanceof Error && err.message.includes('Failed to delete layout')) {
+        alert('Failed to delete layout: ' + err.message);
+      }
     }
   };
 
