@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { UnifiedSearchResult, UnifiedSearchResponse, ContentType, PinnedItem, LayoutAsset } from './types';
 import { getResultMediaUrl } from './utils/mediaUrl';
@@ -34,9 +35,6 @@ const AgentChat = dynamic(() => import('../../components/AgentChat'), { ssr: fal
 
 // Dynamically import Layout components
 const LayoutsBrowser = dynamic(() => import('./components/Layout/LayoutsBrowser'), { ssr: false });
-const LayoutEditor = dynamic(() => import('./components/Layout/LayoutEditor'), { ssr: false });
-// Use the new, feature-rich LayoutEditorModal with Block Library, Uploads, Breakpoints, etc.
-const LayoutEditorModal = dynamic(() => import('./components/Layout/LayoutEditorModal'), { ssr: false });
 
 // Moved types to ./types
 
@@ -191,6 +189,7 @@ function FieldRenderer({
 
 // LayoutsTab component for managing and viewing layouts
 function LayoutsTab() {
+  const router = useRouter();
   const [selectedLayout, setSelectedLayout] = useState<LayoutAsset | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingLayout, setLoadingLayout] = useState(false);
@@ -215,8 +214,8 @@ function LayoutsTab() {
       }
 
       console.log('[LayoutsTab] Fresh layout data loaded:', data.asset.id, 'items:', data.asset.layout_data.items.length);
-      setSelectedLayout(data.asset);
-      setShowModal(true);
+      // Navigate to standalone editor page
+      router.push(`/layout-editor/${data.asset.id}`);
     } catch (error) {
       console.error('[LayoutsTab] Failed to load fresh layout:', error);
       alert(`Failed to load layout: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -234,23 +233,7 @@ function LayoutsTab() {
           Loading fresh layout data...
         </div>
       )}
-      <LayoutsBrowser
-        onSelectLayout={handleSelectLayout}
-        selectedLayoutId={selectedLayout ? (selectedLayout as LayoutAsset).id : null}
-      />
-      {showModal && selectedLayout && (
-        <LayoutEditorModal
-          layout={selectedLayout}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedLayout(null);
-          }}
-          onSaved={(l) => {
-            console.log('[LayoutsTab] onSaved called with layout:', l.id, 'items:', l.layout_data.items.length);
-            setSelectedLayout(l);
-          }}
-        />
-      )}
+      <LayoutsBrowser onSelectLayout={handleSelectLayout} selectedLayoutId={selectedLayout ? (selectedLayout as LayoutAsset).id : null} />
     </div>
   );
 }

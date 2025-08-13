@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Height Test</title>
+    <style>
+        body { margin: 0; font-family: system-ui; }
+        .container { padding: 20px; }
+        .scroll-wrapper {
+            height: 400px;
+            border: 2px solid red;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .dynamic-canvas {
+            width: 800px;
+            background: #333;
+            border: 1px solid #666;
+            margin: 0 auto;
+        }
+        .height-4000 {
+            height: 4000px !important;
+            min-height: 4000px !important;
+        }
+        input { padding: 8px; margin: 10px; }
+        button { padding: 8px 12px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Height Test - Should show scrollbar when height = 4000px</h1>
+
+        <input type="text" id="heightInput" value="4000" placeholder="Height">
+        <button onclick="setHeight()">Set Height</button>
+        <button onclick="addClass()">Add Class</button>
+
+        <div class="scroll-wrapper" id="scrollWrapper">
+            <div class="dynamic-canvas" id="canvas">
+                <p style="color: white; padding: 20px;">Canvas content</p>
+            </div>
+        </div>
+
+        <p>Current canvas height: <span id="currentHeight">800</span>px</p>
+    </div>
+
+    <script>
+        function setHeight() {
+            const input = document.getElementById('heightInput');
+            const canvas = document.getElementById('canvas');
+            const display = document.getElementById('currentHeight');
+
+            const height = parseInt(input.value) || 800;
+
+            // Set inline style
+            canvas.style.height = height + 'px';
+            canvas.style.minHeight = height + 'px';
+
+            display.textContent = height;
+
+            console.log('Set height to:', height);
+            console.log('Canvas computed height:', getComputedStyle(canvas).height);
+        }
+
+        function addClass() {
+            const canvas = document.getElementById('canvas');
+            canvas.classList.add('height-4000');
+
+            console.log('Added height-4000 class');
+            console.log('Canvas computed height:', getComputedStyle(canvas).height);
+        }
+
+        // Initialize
+        setHeight();
+    </script>
+</body>
+</html>

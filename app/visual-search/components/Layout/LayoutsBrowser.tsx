@@ -5,6 +5,8 @@ import { LayoutAsset } from '@/app/visual-search/types';
 
 interface LayoutsBrowserProps {
   onSelectLayout: (layout: LayoutAsset) => void;
+  // Optional: if provided, use navigation instead of modal
+  openInPage?: boolean;
   selectedLayoutId?: string | null;
 }
 
@@ -119,12 +121,12 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
     const isTemplate = layout.title.toLowerCase().includes('template');
     const isVersion = /v\d+$/.test(layout.title);
     const isCopy = layout.title.toLowerCase().includes('copy');
-    
+
     let category = 'Layouts';
     if (isTemplate) category = 'Templates';
     else if (isVersion) category = 'Versions';
     else if (isCopy) category = 'Copies';
-    
+
     if (!acc[category]) acc[category] = [];
     acc[category].push(layout);
     return acc;

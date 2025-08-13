@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layout Height Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .dynamic-height-test {
+            height: 800px !important;
+            min-height: 800px !important;
+            transition: height 0.3s ease;
+        }
+        .expanded {
+            height: 1200px !important;
+            min-height: 1200px !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <h1 class="text-2xl font-bold mb-6">Layout Height Behavior Test</h1>
+
+    <div class="space-y-6">
+        <!-- Test the container height behavior -->
+        <div class="border border-gray-600 rounded-lg p-4">
+            <h2 class="text-lg font-semibold mb-4">Container Height Test</h2>
+            <button
+                id="expandBtn"
+                class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mb-4"
+                onclick="toggleHeight()"
+            >
+                Expand Container
+            </button>
+
+            <!-- Canvas container that should expand -->
+            <div
+                id="testContainer"
+                class="dynamic-height-test bg-gray-800 border border-gray-600 rounded overflow-visible relative"
+            >
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-center">
+                        <p class="text-gray-400">Container Height: <span id="heightDisplay">800px</span></p>
+                        <p class="text-sm text-gray-500 mt-2">This container should expand dynamically</p>
+                    </div>
+                </div>
+
+                <!-- Simulated content that might overflow -->
+                <div id="overflowContent" class="absolute bottom-4 left-4 right-4 bg-blue-900/50 rounded p-4 hidden">
+                    <p class="text-sm">This content would normally be hidden with overflow:hidden</p>
+                    <p class="text-xs text-gray-400 mt-2">But now it should be visible with overflow:visible</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test modal behavior -->
+        <div class="border border-gray-600 rounded-lg p-4">
+            <h2 class="text-lg font-semibold mb-4">Modal Height Test</h2>
+            <button
+                id="modalBtn"
+                class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded"
+                onclick="toggleModal()"
+            >
+                Show Modal
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal overlay -->
+    <div id="modalOverlay" class="fixed inset-0 z-50 bg-black/70 p-6 hidden">
+        <div class="w-full max-h-[90vh] bg-gray-900 rounded-xl border border-gray-600 shadow-2xl overflow-auto flex flex-col">
+            <div class="h-14 shrink-0 bg-gray-800 border-b border-gray-600 flex items-center justify-between px-4">
+                <h3 class="text-lg font-semibold">Test Modal</h3>
+                <button onclick="toggleModal()" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div class="flex-1 p-4">
+                <div id="modalContent" class="bg-gray-800 border border-gray-600 rounded min-h-[600px] h-auto p-4">
+                    <p class="mb-4">This modal content should expand properly.</p>
+                    <button
+                        onclick="addContent()"
+                        class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded mb-4"
+                    >
+                        Add Content (Test Height Growth)
+                    </button>
+                    <div id="dynamicContent" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isExpanded = false;
+        let contentCount = 0;
+
+        function toggleHeight() {
+            const container = document.getElementById('testContainer');
+            const btn = document.getElementById('expandBtn');
+            const heightDisplay = document.getElementById('heightDisplay');
+            const overflowContent = document.getElementById('overflowContent');
+
+            isExpanded = !isExpanded;
+
+            if (isExpanded) {
+                container.classList.add('expanded');
+                btn.textContent = 'Collapse Container';
+                heightDisplay.textContent = '1200px';
+                overflowContent.classList.remove('hidden');
+            } else {
+                container.classList.remove('expanded');
+                btn.textContent = 'Expand Container';
+                heightDisplay.textContent = '800px';
+                overflowContent.classList.add('hidden');
+            }
+        }
+
+        function toggleModal() {
+            const modal = document.getElementById('modalOverlay');
+            modal.classList.toggle('hidden');
+        }
+
+        function addContent() {
+            const dynamicContent = document.getElementById('dynamicContent');
+            contentCount++;
+
+            const newDiv = document.createElement('div');
+            newDiv.className = 'bg-gray-700 p-3 rounded';
+            newDiv.innerHTML = `
+                <p class="text-sm">Dynamic content block ${contentCount}</p>
+                <p class="text-xs text-gray-400">Height should grow to accommodate this content</p>
+            `;
+
+            dynamicContent.appendChild(newDiv);
+
+            // Update modal content height info
+            const modalContent = document.getElementById('modalContent');
+            const currentHeight = modalContent.offsetHeight;
+            console.log(`Modal content height: ${currentHeight}px`);
+        }
+    </script>
+</body>
+</html>
