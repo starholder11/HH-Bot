@@ -48,6 +48,23 @@ export default function LayoutEditorModal({
   useEffect(() => {
     setCanvasHeight(design.height);
   }, [currentBreakpoint, design.height]);
+
+  // Create dynamic CSS for canvas height to override any CSS conflicts
+  useEffect(() => {
+    const styleId = 'dynamic-canvas-height';
+    let styleEl = document.getElementById(styleId) as HTMLStyleElement;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = styleId;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = `
+      .dynamic-canvas-container {
+        height: ${canvasHeight}px !important;
+        min-height: ${canvasHeight}px !important;
+      }
+    `;
+  }, [canvasHeight]);
   const cols = Math.floor(design.width / cellSize);
   const rowHeight = cellSize;
 
@@ -746,8 +763,8 @@ export default function LayoutEditorModal({
         {/* Canvas area */}
         <div className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
           <div
-            className="mx-auto border border-neutral-800 bg-neutral-900 relative"
-            style={{ width: design.width, height: canvasHeight }}
+            className="mx-auto border border-neutral-800 bg-neutral-900 relative dynamic-canvas-container"
+            style={{ width: design.width }}
             onMouseDown={(e) => {
               if (e.currentTarget === e.target) {
                 setSelectedIds(new Set());
