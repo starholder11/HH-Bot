@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { LAYOUT_THEMES } from './themes';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import type { LayoutAsset } from '@/app/visual-search/types';
 
@@ -22,7 +23,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [edited, setEdited] = useState<LayoutAsset>(layout);
   const [working, setWorking] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showStyle, setShowStyle] = useState<boolean>(false);
+  // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
   const cellSize = edited.layout_data.cellSize || 20;
@@ -88,7 +89,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const handleSave = useCallback(async () => {
     try {
       setWorking(true);
-      
+
       const response = await fetch(`/api/media-assets/${edited.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -99,7 +100,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
       const result = await response.json();
       onSaved?.(result.asset || edited);
-      
+
     } catch (error) {
       alert(`Save failed: ${(error as Error).message}`);
     } finally {
@@ -111,7 +112,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const renderItem = useCallback((item: Item) => {
     // Common wrapper styles for all content types - no padding, full fill
     const wrapperClass = "w-full h-full overflow-hidden bg-neutral-800 flex items-center justify-center";
-    
+
     if (item.type === 'inline_text') {
       return (
         <div className={`${wrapperClass} p-1`}>
@@ -127,9 +128,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
       return (
         <div className={wrapperClass}>
           {imageUrl ? (
-            <img 
-              src={imageUrl} 
-              alt="Content" 
+            <img
+              src={imageUrl}
+              alt="Content"
               className="w-full h-full object-cover"
               draggable={false}
               style={{ userSelect: 'none', pointerEvents: 'none' }}
@@ -144,9 +145,9 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     if (item.type === 'content_ref' && item.mediaUrl) {
       return (
         <div className={wrapperClass}>
-          <img 
-            src={item.mediaUrl} 
-            alt={item.snippet || 'Content'} 
+          <img
+            src={item.mediaUrl}
+            alt={item.snippet || 'Content'}
             className="w-full h-full object-cover"
             draggable={false}
             style={{ userSelect: 'none', pointerEvents: 'none' }}
@@ -165,11 +166,11 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   // Memoize children for performance - optimized containers
   const children = useMemo(() => {
     return edited.layout_data.items.map(item => (
-      <div 
-        key={item.id} 
+      <div
+        key={item.id}
         className={`rounded-sm overflow-hidden border ${selectedId === item.id ? 'border-blue-500' : 'border-blue-400/40'}`}
-        style={{ 
-          margin: 0, 
+        style={{
+          margin: 0,
           padding: 0,
           willChange: 'transform',
           backfaceVisibility: 'hidden',
@@ -333,12 +334,6 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowStyle(s => !s)}
-              className={`px-2.5 py-1.5 rounded text-xs border ${showStyle ? 'bg-neutral-700 text-white border-neutral-600' : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700'}`}
-            >
-              Style
-            </button>
-            <button
               onClick={addTextBlock}
               className="px-2.5 py-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs border border-neutral-700"
             >
@@ -408,9 +403,34 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               )}
             </div>
 
-            {showStyle && (
-              <div className="mb-3 space-y-2 rounded border border-neutral-800 p-2 bg-neutral-900/60">
+            {/* Layout style controls - always shown */}
+            {true && (
+            <div className="mb-3 space-y-2 rounded border border-neutral-800 p-2 bg-neutral-900/60">
                 <div className="text-xs text-neutral-400">Layout Style</div>
+              <label className="block text-xs text-neutral-400">
+                Theme
+                <select
+                  className="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                  value={(() => {
+                    const current = edited.layout_data.styling;
+                    const match = LAYOUT_THEMES.find(t => t.colors.background === current?.colors?.background && t.colors.text === current?.colors?.text && t.typography.fontFamily === current?.typography?.fontFamily);
+                    return match?.id || '';
+                  })()}
+                  onChange={e => {
+                    const theme = LAYOUT_THEMES.find(t => t.id === e.target.value);
+                    if (!theme) return;
+                    setEdited(prev => ({
+                      ...prev,
+                      layout_data: { ...prev.layout_data, styling: { colors: theme.colors, typography: theme.typography } }
+                    }));
+                  }}
+                >
+                  <option value="">Custom…</option>
+                  {LAYOUT_THEMES.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </label>
                 <label className="flex items-center justify-between gap-2 text-xs text-neutral-400">
                   Background
                   <input type="color" className="w-8 h-6 bg-transparent border border-neutral-700 rounded"
