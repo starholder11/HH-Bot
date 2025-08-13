@@ -180,68 +180,54 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   }, [edited.layout_data.items, renderItem]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-neutral-950">
-      {/* Integrated Header */}
-      <div className="flex items-center justify-between p-3 bg-neutral-900/50 border-b border-neutral-800/50">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors"
-            title="Back to layouts"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h2 className="text-sm font-medium text-white">{edited.title}</h2>
-            <p className="text-xs text-neutral-400">{edited.layout_data.items.length} items • {design.width}×{design.height}</p>
-          </div>
-        </div>
-        
+    <div className="fixed inset-0 bg-black/80 z-50 flex">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-14 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between px-4 z-10">
+        <h2 className="text-lg font-medium text-white">{edited.title}</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={handleSave}
             disabled={working}
-            className="px-3 py-1.5 text-sm rounded bg-green-600 hover:bg-green-500 text-white disabled:opacity-50 transition-colors"
+            className="px-3 py-1.5 rounded border border-green-600 bg-green-700 hover:bg-green-600 text-white disabled:opacity-50"
           >
             {working ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded border border-neutral-600 bg-neutral-700 hover:bg-neutral-600 text-white"
+          >
+            Close
           </button>
         </div>
       </div>
 
-      {/* Canvas area - fits in page flow */}
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex justify-center">
-          <div 
-            className="border border-neutral-700 bg-neutral-900 shadow-xl rounded-lg overflow-hidden"
-            style={{ 
-              width: typeof window !== 'undefined' ? Math.min(design.width, window.innerWidth - 100) : design.width, 
-              height: typeof window !== 'undefined' ? Math.min(design.height, window.innerHeight - 200) : design.height 
-            }}
+      {/* Canvas area */}
+      <div className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
+        <div 
+          className="mx-auto border border-neutral-800 bg-neutral-900"
+          style={{ width: design.width, height: design.height }}
+        >
+          <ResponsiveGridLayout
+            className="layout"
+            layouts={layouts}
+            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+            cols={{ lg: Math.floor(design.width / cellSize), md: Math.floor(design.width / cellSize), sm: Math.floor(design.width / cellSize), xs: Math.floor(design.width / cellSize), xxs: Math.floor(design.width / cellSize) }}
+            rowHeight={cellSize}
+            width={design.width}
+            onLayoutChange={handleLayoutChange}
+            isDraggable={true}
+            isResizable={true}
+            margin={[1, 1]}
+            containerPadding={[2, 2]}
+            useCSSTransforms={true}
+            preventCollision={true}
+            compactType={null}
+            verticalCompact={false}
+            isBounded={true}
+            transformScale={1}
           >
-            <ResponsiveGridLayout
-              className="layout"
-              layouts={layouts}
-              breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-              cols={{ lg: Math.floor(design.width / cellSize), md: Math.floor(design.width / cellSize), sm: Math.floor(design.width / cellSize), xs: Math.floor(design.width / cellSize), xxs: Math.floor(design.width / cellSize) }}
-              rowHeight={cellSize}
-              width={typeof window !== 'undefined' ? Math.min(design.width, window.innerWidth - 100) : design.width}
-              onLayoutChange={handleLayoutChange}
-              isDraggable={true}
-              isResizable={true}
-              margin={[1, 1]}
-              containerPadding={[2, 2]}
-              useCSSTransforms={true}
-              preventCollision={true}
-              compactType={null}
-              verticalCompact={false}
-              isBounded={true}
-              transformScale={typeof window !== 'undefined' ? Math.min(1, (window.innerWidth - 100) / design.width) : 1}
-            >
-              {children}
-            </ResponsiveGridLayout>
-          </div>
+            {children}
+          </ResponsiveGridLayout>
         </div>
       </div>
     </div>
