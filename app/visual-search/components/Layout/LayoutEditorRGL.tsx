@@ -582,7 +582,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
-                preventCollision={!isGroupDrag}
+                preventCollision={isGroupDrag}
                 compactType={null}
                 verticalCompact={false}
                 isBounded={true}
