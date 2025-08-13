@@ -24,6 +24,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [working, setWorking] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isShiftDown, setIsShiftDown] = useState<boolean>(false);
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
@@ -185,16 +186,16 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
           const isToggle = e.metaKey || e.ctrlKey;
           const isRange = e.shiftKey && !!selectedId;
-          console.log('[LayoutEditorRGL] CLICK ANYWHERE', { 
-            id: item.id, 
+          console.log('[LayoutEditorRGL] CLICK ANYWHERE', {
+            id: item.id,
             itemType: item.type,
-            isToggle, 
-            isRange, 
-            selectedId, 
+            isToggle,
+            isRange,
+            selectedId,
             before: Array.from(selectedIds),
             shiftKey: e.shiftKey,
             metaKey: e.metaKey,
-            ctrlKey: e.ctrlKey 
+            ctrlKey: e.ctrlKey
           });
 
           if (isToggle) {
@@ -301,6 +302,22 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
       } as LayoutAsset;
     });
   }, [selectedId]);
+
+  // Track Shift key globally to disable dragging while selecting ranges
+  React.useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Shift') setIsShiftDown(true);
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.key === 'Shift') setIsShiftDown(false);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
 
   // Multi-select functions
   const nudgeSelection = useCallback((dx: number, dy: number) => {
@@ -496,7 +513,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 rowHeight={cellSize}
                 width={design.width}
                 onLayoutChange={handleLayoutChange}
-                isDraggable={true}
+                isDraggable={!isShiftDown}
                 isResizable={true}
                 draggableCancel={'input, textarea, select, button'}
                 margin={[1, 1]}
