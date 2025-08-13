@@ -25,9 +25,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isShiftHeld, setIsShiftHeld] = useState<boolean>(false);
-  const [dragStartPos, setDragStartPos] = useState<{x: number, y: number} | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
+  const [dragStartPos, setDragStartPos] = useState<{x: number, y: number} | null>(null); // reserved
+  const [isDragging, setIsDragging] = useState<boolean>(false); // reserved
 
   // Bulk-drag tracking: store origin positions for selected items and the dragged item's origin
   const bulkDragOriginPositionsRef = React.useRef<Record<string, { x: number; y: number }>>({});
@@ -188,152 +187,55 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
-        onMouseDown={(e) => {
-          // STOP RGL from capturing this event
-          e.preventDefault();
-          e.stopPropagation();
-
-          // Record start position for drag detection
-          setDragStartPos({ x: e.clientX, y: e.clientY });
-          setIsDragging(false);
-          setIsSelectionMode(true);
-
-          console.log('[LayoutEditorRGL] MOUSE DOWN - BLOCKING RGL, starting selection mode', {
-            id: item.id,
-            startPos: { x: e.clientX, y: e.clientY },
-            shiftKey: e.shiftKey,
-            metaKey: e.metaKey,
-            ctrlKey: e.ctrlKey
-          });
-        }}
-        onMouseMove={(e) => {
-          // Only track movement if we're in selection mode
-          if (isSelectionMode && dragStartPos && !isDragging) {
-            const deltaX = Math.abs(e.clientX - dragStartPos.x);
-            const deltaY = Math.abs(e.clientY - dragStartPos.y);
-            const dragThreshold = 5; // pixels
-
-            if (deltaX > dragThreshold || deltaY > dragThreshold) {
-              setIsDragging(true);
-              setIsSelectionMode(false); // Exit selection mode, enter drag mode
-              console.log('[LayoutEditorRGL] DRAG DETECTED - switching to drag mode for item:', item.id);
-
-              // Now manually trigger RGL drag by dispatching a new mousedown
-              // This is a workaround to let RGL handle the drag after we've detected intent
-              const gridElement = e.currentTarget.closest('.react-grid-layout');
-              if (gridElement) {
-                console.log('[LayoutEditorRGL] manually triggering RGL drag');
-                // Create new mousedown event to let RGL take over
-                const newEvent = new MouseEvent('mousedown', {
-                  bubbles: true,
-                  cancelable: true,
-                  clientX: e.clientX,
-                  clientY: e.clientY,
-                  button: 0
-                });
-                e.currentTarget.dispatchEvent(newEvent);
+        onClick={(e) => {
+          const isToggle = e.metaKey || e.ctrlKey;
+          const isRange = e.shiftKey && !!selectedId;
+          
+          if (isToggle) {
+            setSelectedIds(prev => {
+              const next = new Set(prev);
+              if (next.has(item.id)) {
+                next.delete(item.id);
+                if (selectedId === item.id) {
+                  const remaining = Array.from(next);
+                  setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+                }
+              } else {
+                next.add(item.id);
+                setSelectedId(item.id);
               }
-            }
-          }
-        }}
-        onMouseUp={(e) => {
-          console.log('[LayoutEditorRGL] MOUSE UP', {
-            id: item.id,
-            isDragging,
-            isSelectionMode,
-            dragStartPos
-          });
-
-          // Only handle selection if we're in selection mode (clean click, no drag)
-          if (isSelectionMode && !isDragging && dragStartPos) {
-            const isToggle = e.metaKey || e.ctrlKey;
-            const isRange = e.shiftKey && !!selectedId;
-
-            console.log('[LayoutEditorRGL] ✅ CLEAN CLICK SELECTION (bypassed RGL)', {
-              id: item.id,
-              itemType: item.type,
-              isToggle,
-              isRange,
-              selectedId,
-              before: Array.from(selectedIds)
+              console.log('[LayoutEditorRGL] CLICK TOGGLE', Array.from(next));
+              return next;
             });
-
-            if (isToggle) {
+          } else if (isRange) {
+            if (selectedId === item.id) return;
+            const items = edited.layout_data.items;
+            const lastIndex = items.findIndex(it => it.id === selectedId);
+            const currentIndex = items.findIndex(it => it.id === item.id);
+            if (lastIndex !== -1 && currentIndex !== -1) {
+              const start = Math.min(lastIndex, currentIndex);
+              const end = Math.max(lastIndex, currentIndex);
+              const rangeIds = items.slice(start, end + 1).map(it => it.id);
               setSelectedIds(prev => {
                 const next = new Set(prev);
-                if (next.has(item.id)) {
-                  next.delete(item.id);
-                  if (selectedId === item.id) {
-                    const remaining = Array.from(next);
-                    setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-                  }
-                } else {
-                  next.add(item.id);
-                  setSelectedId(item.id);
-                }
-                console.log('[LayoutEditorRGL] ✅ TOGGLE result:', Array.from(next));
+                rangeIds.forEach(id => next.add(id));
+                console.log('[LayoutEditorRGL] CLICK RANGE', Array.from(next));
                 return next;
               });
-            } else if (isRange) {
-              // Special case: if Shift+clicking the same item, do nothing
-              if (selectedId === item.id) {
-                console.log('[LayoutEditorRGL] Shift+clicking same item, ignoring');
-                return;
-              }
-
-              const items = edited.layout_data.items;
-              const lastIndex = items.findIndex(it => it.id === selectedId);
-              const currentIndex = items.findIndex(it => it.id === item.id);
-
-              console.log('[LayoutEditorRGL] RANGE DEBUG', {
-                selectedId,
-                itemId: item.id,
-                lastIndex,
-                currentIndex,
-                totalItems: items.length,
-                itemsOrder: items.map(it => it.id)
-              });
-
-              if (lastIndex !== -1 && currentIndex !== -1) {
-                const start = Math.min(lastIndex, currentIndex);
-                const end = Math.max(lastIndex, currentIndex);
-                const rangeIds = items.slice(start, end + 1).map(it => it.id);
-
-                console.log('[LayoutEditorRGL] RANGE CALCULATION', {
-                  start,
-                  end,
-                  rangeIds,
-                  slicedItems: items.slice(start, end + 1).map(it => ({ id: it.id, type: it.type }))
-                });
-
-                setSelectedIds(prev => {
-                  const next = new Set(prev);
-                  rangeIds.forEach(id => next.add(id));
-                  console.log('[LayoutEditorRGL] ✅ RANGE result:', Array.from(next));
-                  return next;
-                });
-                setSelectedId(item.id);
-              } else {
-                console.log('[LayoutEditorRGL] RANGE FAILED - invalid indices');
-              }
-            } else {
               setSelectedId(item.id);
-              const next = new Set([item.id]);
-              setSelectedIds(next);
-              console.log('[LayoutEditorRGL] ✅ SINGLE result:', Array.from(next));
             }
+          } else {
+            setSelectedId(item.id);
+            const next = new Set([item.id]);
+            setSelectedIds(next);
+            console.log('[LayoutEditorRGL] CLICK SINGLE', Array.from(next));
           }
-
-          // Reset all tracking
-          setDragStartPos(null);
-          setIsDragging(false);
-          setIsSelectionMode(false);
         }}
       >
         {renderItem(item)}
       </div>
     ));
-  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, dragStartPos, isDragging, isSelectionMode]);
+  }, [edited.layout_data.items, renderItem, selectedIds, selectedId]);
 
   // Helpers to update item fields safely
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -631,20 +533,13 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     return;
                   }
 
-                  // ONLY change selection if dragging an item that's NOT in the current selection
-                  // AND we don't have multiple items selected (to preserve multi-select for drag)
-                  if (newItem?.i && !selectedIds.has(newItem.i) && selectedIds.size <= 1) {
-                    setSelectedIds(new Set([newItem.i]));
-                    setSelectedId(newItem.i);
-                    console.log('[LayoutEditorRGL] drag item not selected, selecting only:', newItem.i);
-                  }
-                  // If dragging an item that IS in selection, DON'T change selection - preserve multi-select
-                  else if (newItem?.i && selectedIds.has(newItem.i)) {
-                    console.log('[LayoutEditorRGL] dragging selected item, preserving multi-selection of', selectedIds.size, 'items');
-                  }
-                  // If we have multiple items selected, don't change selection even for unselected items
-                  else if (selectedIds.size > 1) {
-                    console.log('[LayoutEditorRGL] preserving multi-selection during drag, not changing to:', newItem?.i);
+                  // Never mutate selection in onDragStart. Selection is click-only.
+                  if (newItem?.i) {
+                    if (selectedIds.has(newItem.i)) {
+                      console.log('[LayoutEditorRGL] dragging selected item, preserving multi-selection of', selectedIds.size, 'items');
+                    } else {
+                      console.log('[LayoutEditorRGL] dragging unselected item; selection unchanged (click-only selection)');
+                    }
                   }
 
                   // Capture origin positions for bulk drag
