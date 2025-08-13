@@ -226,59 +226,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     );
   }, []);
 
-      // Handle mouse down to ensure selection is committed before drag
-  const handleItemMouseDown = useCallback((e: React.MouseEvent, item: Item) => {
-    console.log('[LayoutEditorRGL] mousedown on item:', item.id, 'shift:', e.shiftKey, 'meta/ctrl:', e.metaKey || e.ctrlKey);
-
-    const isToggle = e.metaKey || e.ctrlKey;
-    const isRange = e.shiftKey && !!selectedId;
-
-    if (isToggle) {
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        if (next.has(item.id)) {
-          next.delete(item.id);
-          if (selectedId === item.id) {
-            const remaining = Array.from(next);
-            setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-          }
-        } else {
-          next.add(item.id);
-          setSelectedId(item.id);
-        }
-        console.log('[LayoutEditorRGL] MOUSEDOWN TOGGLE', Array.from(next));
-        return next;
-      });
-    } else if (isRange) {
-      if (selectedId === item.id) return;
-      const items = edited.layout_data.items;
-      const lastIndex = items.findIndex(it => it.id === selectedId);
-      const currentIndex = items.findIndex(it => it.id === item.id);
-      if (lastIndex !== -1 && currentIndex !== -1) {
-        const start = Math.min(lastIndex, currentIndex);
-        const end = Math.max(lastIndex, currentIndex);
-        const rangeIds = items.slice(start, end + 1).map(it => it.id);
-        setSelectedIds(prev => {
-          const next = new Set(prev);
-          rangeIds.forEach(id => next.add(id));
-          console.log('[LayoutEditorRGL] MOUSEDOWN RANGE', Array.from(next));
-          return next;
-        });
-        setSelectedId(item.id);
-      }
-    } else {
-      // Only change selection if item is not already selected
-      // This preserves multi-selection when starting to drag an already-selected item
-      if (!selectedIds.has(item.id)) {
-        setSelectedId(item.id);
-        const next = new Set([item.id]);
-        setSelectedIds(next);
-        console.log('[LayoutEditorRGL] MOUSEDOWN SINGLE', Array.from(next));
-      } else {
-        console.log('[LayoutEditorRGL] MOUSEDOWN preserving selection - item already selected');
-      }
-    }
-  }, [selectedId, selectedIds, edited.layout_data.items]);
+      
 
   // Memoize children for performance - use mousedown for immediate selection
   const children = useMemo(() => {
@@ -295,13 +243,49 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           WebkitBackfaceVisibility: 'hidden',
           cursor: isGroupDrag ? 'grabbing' : 'pointer'
         }}
-        onMouseDown={(e) => {
-          // Commit selection immediately on mousedown
-          handleItemMouseDown(e, item);
-        }}
         onClick={(e) => {
-          // Click handler kept for accessibility, but selection already handled in mousedown
-          e.preventDefault();
+          const isToggle = e.metaKey || e.ctrlKey;
+          const isRange = e.shiftKey && !!selectedId;
+
+          if (isToggle) {
+            setSelectedIds(prev => {
+              const next = new Set(prev);
+              if (next.has(item.id)) {
+                next.delete(item.id);
+                if (selectedId === item.id) {
+                  const remaining = Array.from(next);
+                  setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+                }
+              } else {
+                next.add(item.id);
+                setSelectedId(item.id);
+              }
+              console.log('[LayoutEditorRGL] CLICK TOGGLE', Array.from(next));
+              return next;
+            });
+          } else if (isRange) {
+            if (selectedId === item.id) return;
+            const items = edited.layout_data.items;
+            const lastIndex = items.findIndex(it => it.id === selectedId);
+            const currentIndex = items.findIndex(it => it.id === item.id);
+            if (lastIndex !== -1 && currentIndex !== -1) {
+              const start = Math.min(lastIndex, currentIndex);
+              const end = Math.max(lastIndex, currentIndex);
+              const rangeIds = items.slice(start, end + 1).map(it => it.id);
+              setSelectedIds(prev => {
+                const next = new Set(prev);
+                rangeIds.forEach(id => next.add(id));
+                console.log('[LayoutEditorRGL] CLICK RANGE', Array.from(next));
+                return next;
+              });
+              setSelectedId(item.id);
+            }
+          } else {
+            setSelectedId(item.id);
+            const next = new Set([item.id]);
+            setSelectedIds(next);
+            console.log('[LayoutEditorRGL] CLICK SINGLE', Array.from(next));
+          }
         }}
       >
         {renderItem(item)}
@@ -312,7 +296,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         )}
       </div>
     ));
-  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, handleItemMouseDown, isGroupDrag]);
+  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, isGroupDrag]);
 
   // Helpers to update item fields safely
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
@@ -686,7 +670,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       }
                       return layoutItem;
                     });
-                    handleLayoutChange(updatedLayout, { lg: updatedLayout });
+                    // Update layoutState only during drag - don't sync to edited until dragStop
+                    setLayoutState(updatedLayout);
                   }
                 }}
                 onDragStop={(currentLayout, oldItem, newItem) => {
