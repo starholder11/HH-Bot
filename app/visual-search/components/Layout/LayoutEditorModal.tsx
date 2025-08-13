@@ -785,7 +785,11 @@ export default function LayoutEditorModal({
         <div ref={scrollWrapRef} className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
           <div
             className="mx-auto border border-neutral-800 bg-neutral-900 relative dynamic-canvas-container"
-            style={{ width: design.width }}
+            style={{ 
+              width: design.width, 
+              height: canvasHeight,
+              minHeight: canvasHeight 
+            }}
             onMouseDown={(e) => {
               if (e.currentTarget === e.target) {
                 setSelectedIds(new Set());
@@ -817,7 +821,6 @@ export default function LayoutEditorModal({
               />
             )}
             <ReactGridLayout
-              key={`rgl-${currentBreakpoint}`}
               className="layout"
               layout={rglLayout}
               cols={cols}
@@ -986,38 +989,39 @@ export default function LayoutEditorModal({
               <label className="block">
                 <span className="text-neutral-400">Width</span>
                 <input
-                  type="number"
-                  value={design.width}
+                  type="text"
+                  value={design.width.toString()}
                   onChange={(e) => {
                     const w = Math.max(320, parseInt(e.target.value) || design.width);
                     setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], width: w } }));
                   }}
-                  className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200"
+                  className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </label>
               <label className="block">
                 <span className="text-neutral-400">Height</span>
                 <input
-                  type="number"
-                  value={canvasHeight}
+                  type="text"
+                  value={canvasHeight.toString()}
                   onChange={(e) => {
                     const h = Math.max(200, parseInt(e.target.value) || canvasHeight);
+                    console.log("Setting canvas height to:", h);
                     setCanvasHeight(h);
-                    setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], height: Math.max(prev[currentBreakpoint].height, h) } }));
+                    setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], height: h } }));
                   }}
-                  className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200"
+                  className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </label>
               <label className="block">
                 <span className="text-neutral-400">Grid Cell</span>
                 <input
-                  type="number"
-                  value={cellSize}
+                  type="text"
+                  value={cellSize.toString()}
                   onChange={(e) => {
                     const size = Math.max(4, parseInt(e.target.value) || cellSize);
                     setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, cellSize: size } }));
                   }}
-                  className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200"
+                  className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </label>
             </div>
