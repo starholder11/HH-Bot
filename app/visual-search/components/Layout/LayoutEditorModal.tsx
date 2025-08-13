@@ -1009,14 +1009,20 @@ export default function LayoutEditorModal({
 
           {/* Layout Settings */}
           <div className="rounded border border-neutral-800 bg-neutral-900/60 p-3 mb-3">
-            <div className="text-xs font-medium text-neutral-300 mb-2">Layout Settings</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-medium text-neutral-300">Layout Settings</div>
+              <button
+                onClick={() => { commitWidth(); commitHeight(); commitCellSize(); }}
+                className="px-2 py-1 text-[11px] rounded border border-neutral-700 hover:bg-neutral-800 text-neutral-200"
+              >Apply</button>
+            </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <label className="block">
                 <span className="text-neutral-400">Width</span>
                 <input
                   type="text"
                   value={widthInput}
-                  onChange={(e) => setWidthInput(e.target.value)}
+                  onChange={(e) => { setWidthInput(e.target.value); const p = parseInt(e.target.value, 10); if (!Number.isNaN(p)) { const w = Math.min(2400, Math.max(320, p)); setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], width: w } })); setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, designSize: { width: w, height: canvasHeight } } })); } }}
                   onBlur={commitWidth}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); commitWidth(); }} }
                   className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -1027,7 +1033,7 @@ export default function LayoutEditorModal({
                 <input
                   type="text"
                   value={heightInput}
-                  onChange={(e) => setHeightInput(e.target.value)}
+                  onChange={(e) => { setHeightInput(e.target.value); const p = parseInt(e.target.value, 10); if (!Number.isNaN(p)) { const h = Math.min(5000, Math.max(200, p)); setCanvasHeight(h); setDesignSizes(prev => ({ ...prev, [currentBreakpoint]: { ...prev[currentBreakpoint], height: h } })); setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, designSize: { width: design.width, height: h } } })); } }}
                   onBlur={commitHeight}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); commitHeight(); }} }
                   className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -1038,7 +1044,7 @@ export default function LayoutEditorModal({
                 <input
                   type="text"
                   value={cellInput}
-                  onChange={(e) => setCellInput(e.target.value)}
+                  onChange={(e) => { setCellInput(e.target.value); const p = parseInt(e.target.value, 10); if (!Number.isNaN(p)) { const size = Math.min(200, Math.max(4, p)); setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, cellSize: size } })); } }}
                   onBlur={commitCellSize}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); commitCellSize(); } } }
                   className="mt-1 w-full px-2 py-1 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
