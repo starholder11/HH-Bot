@@ -66,7 +66,20 @@ export async function POST(request: NextRequest) {
 
     // Validate key format
     if (!openaiApiKey.startsWith('sk-')) {
-      return NextResponse.json({ error: 'Invalid OpenAI API key format' }, { status: 500 });
+      console.warn('Invalid OpenAI API key format, returning empty results for unified search');
+      return NextResponse.json({
+        success: true,
+        query,
+        page: safePage,
+        limit: safeLimit,
+        total: 0,
+        results: {
+          all: [],
+          media: [],
+          text: [],
+          layouts: []
+        }
+      });
     }
 
     console.log('🔑 Using OpenAI key:', `${openaiApiKey.slice(0, 10)}...${openaiApiKey.slice(-4)}`);
