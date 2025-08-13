@@ -105,12 +105,17 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     }
   }, [edited, onSaved]);
 
-  // Render item content
+  // Render item content - optimized for smooth dragging
   const renderItem = useCallback((item: Item) => {
+    // Common wrapper styles for all content types - no padding, full fill
+    const wrapperClass = "w-full h-full overflow-hidden bg-neutral-800 flex items-center justify-center";
+    
     if (item.type === 'inline_text') {
       return (
-        <div className="p-2 text-sm text-white bg-gray-800 h-full overflow-hidden">
-          {item.inlineContent?.text || 'Text block'}
+        <div className={`${wrapperClass} p-1`}>
+          <div className="text-xs text-white text-center leading-tight truncate">
+            {item.inlineContent?.text || 'Text block'}
+          </div>
         </div>
       );
     }
@@ -118,16 +123,17 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     if (item.type === 'inline_image') {
       const imageUrl = item.inlineContent?.imageUrl || item.inlineContent?.imageData;
       return (
-        <div className="bg-gray-800 h-full flex items-center justify-center">
+        <div className={wrapperClass}>
           {imageUrl ? (
             <img 
               src={imageUrl} 
               alt="Content" 
-              className="max-w-full max-h-full object-contain"
+              className="w-full h-full object-cover"
               draggable={false}
+              style={{ userSelect: 'none', pointerEvents: 'none' }}
             />
           ) : (
-            <span className="text-gray-400 text-xs">Image block</span>
+            <span className="text-neutral-400 text-xs">Image</span>
           )}
         </div>
       );
@@ -135,28 +141,39 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
     if (item.type === 'content_ref' && item.mediaUrl) {
       return (
-        <div className="bg-gray-800 h-full flex items-center justify-center">
+        <div className={wrapperClass}>
           <img 
             src={item.mediaUrl} 
             alt={item.snippet || 'Content'} 
-            className="max-w-full max-h-full object-contain"
+            className="w-full h-full object-cover"
             draggable={false}
+            style={{ userSelect: 'none', pointerEvents: 'none' }}
           />
         </div>
       );
     }
 
     return (
-      <div className="bg-gray-700 h-full flex items-center justify-center text-xs text-gray-300">
+      <div className={`${wrapperClass} text-xs text-neutral-400`}>
         {item.type}
       </div>
     );
   }, []);
 
-  // Memoize children for performance
+  // Memoize children for performance - optimized containers
   const children = useMemo(() => {
     return edited.layout_data.items.map(item => (
-      <div key={item.id} className="border border-blue-400 rounded">
+      <div 
+        key={item.id} 
+        className="border border-blue-400/50 rounded-sm overflow-hidden"
+        style={{ 
+          margin: 0, 
+          padding: 0,
+          willChange: 'transform',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden'
+        }}
+      >
         {renderItem(item)}
       </div>
     ));
@@ -200,11 +217,14 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
             onLayoutChange={handleLayoutChange}
             isDraggable={true}
             isResizable={true}
-            margin={[0, 0]}
-            containerPadding={[0, 0]}
+            margin={[1, 1]}
+            containerPadding={[2, 2]}
             useCSSTransforms={true}
-            preventCollision={false}
-            compactType="vertical"
+            preventCollision={true}
+            compactType={null}
+            verticalCompact={false}
+            isBounded={true}
+            transformScale={1}
           >
             {children}
           </ResponsiveGridLayout>

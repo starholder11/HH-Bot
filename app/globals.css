@@ -436,34 +436,50 @@ header {
   @apply focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:ring-offset-2;
 }
 
-/* React Grid Layout - Custom minimal styles to avoid conflicts */
+/* React Grid Layout - Optimized styles for smooth image dragging */
 .react-grid-layout {
   position: relative;
+  background: transparent;
 }
 
 .react-grid-item {
-  transition: all 200ms ease;
-  transition-property: left, top;
+  transition: none; /* Remove transitions during dragging for smoother UX */
+  box-sizing: border-box;
+  transform-origin: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
 }
 
 .react-grid-item.cssTransforms {
-  transition-property: transform;
+  transition: none;
+}
+
+.react-grid-item.react-dragging {
+  transition: none !important;
+  z-index: 3;
+}
+
+.react-grid-item.react-resizing {
+  transition: none !important;
+  z-index: 3;
 }
 
 .react-grid-item > .react-resizable-handle {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   bottom: 0;
   right: 0;
   background: #3b82f6;
-  background-size: 12px 12px;
+  background-size: 10px 10px;
   background-position: center;
   background-repeat: no-repeat;
   background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 6" fill="%23ffffff"><circle cx="1" cy="1" r=".5"/><circle cx="1" cy="3" r=".5"/><circle cx="1" cy="5" r=".5"/><circle cx="3" cy="3" r=".5"/><circle cx="3" cy="5" r=".5"/><circle cx="5" cy="5" r=".5"/></svg>');
   cursor: se-resize;
-  opacity: 0.6;
-  border-radius: 0 0 4px 0;
+  opacity: 0.7;
+  border-radius: 0 0 2px 0;
+  z-index: 4;
 }
 
 .react-grid-item:hover > .react-resizable-handle {
@@ -471,9 +487,24 @@ header {
 }
 
 .react-grid-item.react-grid-placeholder {
-  background: rgba(59, 130, 246, 0.2);
-  border: 2px dashed #3b82f6;
-  border-radius: 4px;
-  opacity: 0.8;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px dashed #3b82f6;
+  border-radius: 2px;
+  opacity: 0.6;
   z-index: 2;
+  transition: none;
+}
+
+/* Prevent image selection and dragging conflicts */
+.react-grid-item img {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  draggable: false;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
 }
