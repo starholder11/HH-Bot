@@ -32,14 +32,14 @@ export default function LayoutEditorModal({
 
   const cellSize = edited.layout_data.cellSize || 20;
 
-  // Get breakpoint-specific design size
-  const breakpointSizes = {
+  // Get and control breakpoint-specific design size (dynamic so canvas can extend)
+  const [designSizes, setDesignSizes] = useState({
     desktop: { width: 1200, height: 800 },
     tablet: { width: 768, height: 1024 },
     mobile: { width: 375, height: 667 }
-  };
+  });
 
-  const design = breakpointSizes[currentBreakpoint];
+  const design = designSizes[currentBreakpoint];
   const cols = Math.floor(design.width / cellSize);
   const rowHeight = cellSize;
 
@@ -418,14 +418,36 @@ export default function LayoutEditorModal({
       return;
     }
 
+    // Optionally extend canvas height if user drags near/beyond bottom
+    try {
+      const maxY = Math.max(0, ...newLayout.map(l => (l.y || 0) + (l.h || 0)));
+      const rowsNow = Math.floor(design.height / rowHeight);
+      if (maxY >= rowsNow - 1) {
+        const nextHeight = (maxY + 2) * rowHeight; // add a small buffer of 2 rows
+        setDesignSizes(prev => ({
+          ...prev,
+          [currentBreakpoint]: { ...prev[currentBreakpoint], height: nextHeight }
+        }));
+      }
+    } catch {}
+
     // Apply layout changes to all items at once to maintain consistency
     setEdited((prev) => {
       console.log('[LayoutEditor] handleLayoutChange - prev state items:', prev.layout_data.items.length);
 
-      const updatedItems = prev.layout_data.items.map(item => {
+        const updatedItems = prev.layout_data.items.map(item => {
         const layoutItem = newLayout.find(l => l.i === item.id);
         if (layoutItem) {
-          const updated = updateItemPositionWithBreakpoint(item as any, layoutItem.x, layoutItem.y, layoutItem.w, layoutItem.h, prev.layout_data, currentBreakpoint);
+          const updated = updateItemPositionWithBreakpoint(
+            item as any,
+            layoutItem.x,
+            layoutItem.y,
+            layoutItem.w,
+            layoutItem.h,
+            prev.layout_data,
+            currentBreakpoint,
+            design
+          );
           console.log('[LayoutEditor] Updated item:', item.id, 'for breakpoint:', currentBreakpoint, 'from', { x: item.x, y: item.y, w: item.w, h: item.h }, 'to position:', { x: layoutItem.x, y: layoutItem.y, w: layoutItem.w, h: layoutItem.h });
           return updated;
         }
@@ -433,7 +455,10 @@ export default function LayoutEditorModal({
       });
 
       // Enforce bounds again on the full set to avoid drift on right edge
-      const normalized = normalizeAllItems({ ...prev, layout_data: { ...prev.layout_data, items: updatedItems } } as LayoutAsset);
+      const normalized = normalizeAllItems(
+        { ...prev, layout_data: { ...prev.layout_data, items: updatedItems } } as LayoutAsset,
+        design
+      );
 
       console.log('[LayoutEditor] handleLayoutChange - final normalized items:', normalized.layout_data.items.length);
 
@@ -668,7 +693,7 @@ export default function LayoutEditorModal({
                       ? 'bg-blue-600 text-white'
                       : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                   }`}
-                  title={`${bp.charAt(0).toUpperCase() + bp.slice(1)} view (${breakpointSizes[bp].width}×${breakpointSizes[bp].height})`}
+                  title={`${bp.charAt(0).toUpperCase() + bp.slice(1)} view (${designSizes[bp].width}×${designSizes[bp].height})`}
                 >
                   {bp === 'desktop' ? '🖥️' : bp === 'tablet' ? '📱' : '📱'}
                   <span className="ml-1">{bp.charAt(0).toUpperCase() + bp.slice(1)}</span>
@@ -713,6 +738,12 @@ export default function LayoutEditorModal({
           <div
             className="mx-auto border border-neutral-800 bg-neutral-900 relative"
             style={{ width: design.width, height: design.height }}
+            onMouseDown={(e) => {
+              if (e.currentTarget === e.target) {
+                setSelectedIds(new Set());
+                setSelectedId(null);
+              }
+            }}
           >
             {/* Grid overlay */}
             {snapToGrid && (
@@ -778,6 +809,19 @@ export default function LayoutEditorModal({
                   setSelectedIds(new Set([newItem.i]));
                   setSelectedId(newItem.i);
                 }
+              }}
+              onDrag={(layout: any[]) => {
+                try {
+                  const maxY = Math.max(0, ...layout.map(l => (l.y || 0) + (l.h || 0)));
+                  const rowsNow = Math.floor(design.height / rowHeight);
+                  if (maxY >= rowsNow - 1) {
+                    const nextHeight = (maxY + 2) * rowHeight;
+                    setDesignSizes(prev => ({
+                      ...prev,
+                      [currentBreakpoint]: { ...prev[currentBreakpoint], height: nextHeight }
+                    }));
+                  }
+                } catch {}
               }}
               // Don't mutate state on every drag tick to avoid jank
               onResizeStart={(layout: any[], oldItem: any, newItem: any) => {
@@ -929,15 +973,11 @@ function updateItemPositionWithBreakpoint(
   w: number,
   h: number,
   layoutData: LayoutAsset['layout_data'],
-  breakpoint: 'desktop' | 'tablet' | 'mobile'
+  breakpoint: 'desktop' | 'tablet' | 'mobile',
+  designOverride?: { width: number; height: number }
 ): any {
   const cellSize = layoutData.cellSize || 20;
-  const breakpointSizes = {
-    desktop: { width: 1200, height: 800 },
-    tablet: { width: 768, height: 1024 },
-    mobile: { width: 375, height: 667 }
-  };
-  const design = breakpointSizes[breakpoint];
+  const design = designOverride || { width: 1200, height: 800 };
 
   // Clamp to bounds for the current breakpoint
   const gridCols = Math.floor(design.width / cellSize);
@@ -1007,9 +1047,9 @@ function updateItemGrid(layout: LayoutAsset, id: string, x: number, y: number, w
 }
 
 // Normalize all items' normalized coords to match grid before persisting
-function normalizeAllItems(layout: LayoutAsset): LayoutAsset {
+function normalizeAllItems(layout: LayoutAsset, designOverride?: { width: number; height: number }): LayoutAsset {
   const cellSize = layout.layout_data.cellSize || 20;
-  const design = layout.layout_data.designSize || { width: 1200, height: 800 };
+  const design = designOverride || layout.layout_data.designSize || { width: 1200, height: 800 };
   const gridCols = Math.floor(design.width / cellSize);
   const gridRows = Math.floor(design.height / cellSize);
 
