@@ -569,8 +569,15 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     draggedItemOriginRef.current = { x: newItem.x, y: newItem.y };
 
                     // Decide group: only if dragged item is in selection and more than 1 selected
-                    const isGroup = sel.size > 1 && sel.has(newItem.i);
-                    activeGroupIdsRef.current = isGroup ? new Set(sel) : null;
+                    // If multiple are selected, always form a group and ensure dragged item is included
+                    const isGroup = sel.size > 1;
+                    if (isGroup) {
+                      const group = new Set(sel);
+                      group.add(newItem.i);
+                      activeGroupIdsRef.current = group;
+                    } else {
+                      activeGroupIdsRef.current = null;
+                    }
                     setIsGroupDrag(isGroup);
 
                     const positions: Record<string, { x: number; y: number } | undefined> = {};
