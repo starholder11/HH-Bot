@@ -44,6 +44,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   // Bulk-drag tracking: store origin positions for selected items and the dragged item's origin
   const bulkDragOriginPositionsRef = React.useRef<Record<string, { x: number; y: number }>>({});
   const draggedItemOriginRef = React.useRef<{ x: number; y: number } | null>(null);
+  const activeGroupIdsRef = React.useRef<Set<string> | null>(null);
   // Keep latest selection in refs so drag handlers don't read stale closures
   const selectedIdsRef = React.useRef<Set<string>>(selectedIds);
   const selectedIdRef = React.useRef<string | null>(selectedId);
@@ -563,24 +564,21 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     }
                   }
 
-                  // Capture origin positions for bulk drag
+                  // Determine active group and capture origin positions for bulk drag
                   if (newItem?.i) {
                     draggedItemOriginRef.current = { x: newItem.x, y: newItem.y };
-                    const positions: Record<string, { x: number; y: number }> = {};
+
+                    // Decide group: only if dragged item is in selection and more than 1 selected
+                    const isGroup = sel.size > 1 && sel.has(newItem.i);
+                    activeGroupIdsRef.current = isGroup ? new Set(sel) : null;
+                    setIsGroupDrag(isGroup);
+
+                    const positions: Record<string, { x: number; y: number } | undefined> = {};
                     currentLayout.forEach(li => {
-                      if (sel.has(li.i)) positions[li.i] = { x: li.x, y: li.y };
+                      const inGroup = isGroup ? activeGroupIdsRef.current?.has(li.i) : (li.i === newItem.i);
+                      if (inGroup) positions[li.i] = { x: li.x, y: li.y };
                     });
-                    bulkDragOriginPositionsRef.current = positions;
-                    // Ensure the dragged item is included if selectedIds is empty (single drag)
-                    if (sel.size === 0) {
-                      bulkDragOriginPositionsRef.current[newItem.i] = { x: newItem.x, y: newItem.y };
-                    }
-                    // If group drag, temporarily disable collision to allow movement to start
-                    if (sel.size > 1 && sel.has(newItem.i)) {
-                      setIsGroupDrag(true);
-                    } else {
-                      setIsGroupDrag(false);
-                    }
+                    bulkDragOriginPositionsRef.current = positions as Record<string, { x: number; y: number }>;
                   }
                 }}
                 onDrag={(currentLayout, oldItem, newItem) => {
@@ -591,11 +589,11 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   const deltaX = (newItem.x || 0) - draggedOrigin.x;
                   const deltaY = (newItem.y || 0) - draggedOrigin.y;
 
-                  const sel = selectedIdsRef.current;
-                  if (sel.size > 1 && sel.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
+                  const group = activeGroupIdsRef.current;
+                  if (group && group.size > 1 && group.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
                     const originPositions = bulkDragOriginPositionsRef.current;
                     const updatedLayout = currentLayout.map(layoutItem => {
-                      if (layoutItem.i !== newItem.i && sel.has(layoutItem.i)) {
+                      if (layoutItem.i !== newItem.i && group.has(layoutItem.i)) {
                         const origin = originPositions[layoutItem.i];
                         if (origin) {
                           return {
@@ -611,7 +609,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   }
                 }}
                 onDragStop={(currentLayout, oldItem, newItem) => {
-                  const sel = selectedIdsRef.current;
+                  const sel = activeGroupIdsRef.current || selectedIdsRef.current;
                   console.log('[LayoutEditorRGL] onDragStop', {
                     draggedItem: newItem?.i,
                     oldPos: { x: oldItem?.x, y: oldItem?.y },
@@ -626,12 +624,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   console.log('[LayoutEditorRGL] drag delta:', { deltaX, deltaY });
 
                   // If multiple items are selected and we dragged one of them, move all selected items
-                  if (sel.size > 1 && newItem?.i && sel.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
+                  if (activeGroupIdsRef.current && activeGroupIdsRef.current.size > 1 && newItem?.i && activeGroupIdsRef.current.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
                     console.log('[LayoutEditorRGL] moving all selected items by delta');
 
                     const updatedLayout = currentLayout.map(layoutItem => {
                       // If this item is selected (but not the one we dragged), apply the same delta
-                      if (sel.has(layoutItem.i) && layoutItem.i !== newItem.i) {
+                      if (activeGroupIdsRef.current?.has(layoutItem.i) && layoutItem.i !== newItem.i) {
                         return {
                           ...layoutItem,
                           x: Math.max(0, layoutItem.x + deltaX),
@@ -653,6 +651,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   draggedItemOriginRef.current = null;
                   bulkDragOriginPositionsRef.current = {};
                   setIsGroupDrag(false);
+                  activeGroupIdsRef.current = null;
                 }}
               >
                 {children}
