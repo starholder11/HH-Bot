@@ -183,7 +183,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         <div className="drag-handle h-5 px-2 flex items-center text-[10px] uppercase tracking-wide bg-neutral-800/70 border-b border-neutral-800 select-none cursor-move">
           <span className="text-neutral-400">drag</span>
         </div>
-        
+
         {/* Content area - selection happens via event delegation */}
         <div className="content-area relative" style={{ minHeight: '40px' }}>
           {renderItem(item)}
@@ -426,12 +426,13 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         <div className="flex-1 min-h-0 flex">
           {/* Canvas */}
           <div className="flex-1 p-4 overflow-auto">
-            <div 
-              className="mx-auto border border-neutral-800 rounded-lg" 
+            <div
+              className="mx-auto border border-neutral-800 rounded-lg"
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
               onMouseDown={(e) => {
-                console.log('[LayoutEditorRGL] ANY CLICK DETECTED', { 
+                                console.log('[LayoutEditorRGL] ANY CLICK DETECTED', { 
                   target: e.target, 
+                  targetClass: (e.target as HTMLElement).className,
                   currentTarget: e.currentTarget,
                   button: e.button,
                   metaKey: e.metaKey,
@@ -439,22 +440,46 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   shiftKey: e.shiftKey
                 });
                 
-                // Find the closest item element
-                const itemEl = (e.target as HTMLElement).closest('[data-grid]');
-                console.log('[LayoutEditorRGL] closest data-grid:', itemEl);
+                // Skip if clicking the drag handle
+                if ((e.target as HTMLElement).closest('.drag-handle')) {
+                  console.log('[LayoutEditorRGL] SKIP - clicked drag handle');
+                  return;
+                }
                 
+                // Find the closest item element - try multiple approaches
+                let itemEl = (e.target as HTMLElement).closest('[data-grid]') || 
+                            (e.target as HTMLElement).closest('.react-grid-item');
+                
+                // If not found, try to find our custom wrapper with item key
+                if (!itemEl) {
+                  const customWrapper = (e.target as HTMLElement).closest('[key]');
+                  if (customWrapper && customWrapper.getAttribute('key')) {
+                    itemEl = customWrapper;
+                  }
+                }
+                
+                console.log('[LayoutEditorRGL] closest item element:', itemEl);
+                console.log('[LayoutEditorRGL] element attributes:', itemEl ? {
+                  'data-grid': itemEl.getAttribute('data-grid'),
+                  'className': itemEl.className,
+                  'data-key': itemEl.getAttribute('data-key'),
+                  'key': itemEl.getAttribute('key')
+                } : 'no element');
+
                 if (itemEl) {
-                  const itemId = itemEl.getAttribute('data-grid');
+                  const itemId = itemEl.getAttribute('data-grid') ||
+                                itemEl.getAttribute('data-key') ||
+                                itemEl.getAttribute('key');
                   console.log('[LayoutEditorRGL] found itemId:', itemId);
-                  
+
                   if (itemId) {
                     e.preventDefault();
                     e.stopPropagation();
-                    
+
                     const isToggle = e.metaKey || e.ctrlKey;
                     const isRange = e.shiftKey && !!selectedId;
                     console.log('[LayoutEditorRGL] container onMouseDown', { itemId, isToggle, isRange, selectedId, before: Array.from(selectedIds) });
-                    
+
                     if (isToggle) {
                       setSelectedIds(prev => {
                         const next = new Set(prev);
