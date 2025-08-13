@@ -165,11 +165,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     );
   }, []);
 
-  // Memoize children for performance - optimized containers
+    // Memoize children for performance - optimized containers
   const children = useMemo(() => {
     return edited.layout_data.items.map(item => (
       <div
         key={item.id}
+        data-item-id={item.id}
         className={`rounded-sm overflow-hidden border ${selectedIds.has(item.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
         style={{
           margin: 0,
@@ -183,7 +184,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         <div className="drag-handle h-5 px-2 flex items-center text-[10px] uppercase tracking-wide bg-neutral-800/70 border-b border-neutral-800 select-none cursor-move">
           <span className="text-neutral-400">drag</span>
         </div>
-
+        
         {/* Content area - selection happens via event delegation */}
         <div className="content-area relative" style={{ minHeight: '40px' }}>
           {renderItem(item)}
@@ -467,10 +468,13 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 } : 'no element');
 
                 if (itemEl) {
-                  const itemId = itemEl.getAttribute('data-grid') ||
-                                itemEl.getAttribute('data-key') ||
-                                itemEl.getAttribute('key');
-                  console.log('[LayoutEditorRGL] found itemId:', itemId);
+                  // Try our custom data-item-id first, then standard RGL attributes
+                  let itemId = itemEl.getAttribute('data-item-id') ||
+                              itemEl.getAttribute('data-grid') ||
+                              itemEl.getAttribute('data-key') ||
+                              itemEl.getAttribute('key');
+                  
+                  console.log('[LayoutEditorRGL] final itemId:', itemId);
 
                   if (itemId) {
                     e.preventDefault();
