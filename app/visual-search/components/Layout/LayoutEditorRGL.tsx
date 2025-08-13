@@ -514,7 +514,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 rowHeight={cellSize}
                 width={design.width}
                 onLayoutChange={handleLayoutChange}
-                isDraggable={true}
+                isDraggable={!isShiftHeld}
                 isResizable={true}
                 draggableCancel={'input, textarea, select, button'}
                 margin={[1, 1]}
