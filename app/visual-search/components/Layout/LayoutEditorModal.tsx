@@ -279,6 +279,12 @@ export default function LayoutEditorModal({
               onDrag={(layout: any[], oldItem: any, newItem: any) => {
                 console.log('[LayoutEditor] onDrag - item:', newItem.i, 'position:', { x: newItem.x, y: newItem.y });
               }}
+              onResizeStart={(layout: any[], oldItem: any, newItem: any) => {
+                console.log('[LayoutEditor] onResizeStart - item:', newItem.i, 'from:', { w: oldItem.w, h: oldItem.h }, 'to:', { w: newItem.w, h: newItem.h });
+              }}
+              onResize={(layout: any[], oldItem: any, newItem: any) => {
+                console.log('[LayoutEditor] onResize - item:', newItem.i, 'size:', { w: newItem.w, h: newItem.h });
+              }}
             >
               {edited.layout_data.items.map((it) => (
                 <div

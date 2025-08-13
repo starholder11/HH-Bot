@@ -2,6 +2,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
+/* React Grid Layout CSS - Required for resize handles */
+@import '~react-grid-layout/css/styles.css';
+@import '~react-resizable/css/styles.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -432,4 +436,23 @@ header {
 /* Clean Focus States */
 .focus-ring {
   @apply focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:ring-offset-2;
+}
+
+/* React Grid Layout customizations for dark theme */
+.react-resizable-handle {
+  background-color: #3b82f6 !important; /* Blue resize handle */
+  opacity: 0.8 !important;
+}
+
+.react-resizable-handle:hover {
+  opacity: 1 !important;
+}
+
+.react-grid-item:hover .react-resizable-handle {
+  opacity: 1 !important;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: rgb(59, 130, 246, 0.3) !important; /* Blue placeholder */
+  border: 2px dashed #3b82f6 !important;
 }
