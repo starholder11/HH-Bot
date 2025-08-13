@@ -649,37 +649,37 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   console.log('[LayoutEditorRGL] onDrag', {
                     draggedItem: newItem.i,
                     groupSize: group?.size || 0,
+                    groupItems: group ? Array.from(group) : [],
                     delta: { deltaX, deltaY },
-                    hasGroup: !!(group && group.size > 1),
-                    inGroup: group?.has(newItem.i)
+                    draggedPosition: { x: newItem.x, y: newItem.y },
+                    originPositions: Object.keys(bulkDragOriginPositionsRef.current)
                   });
 
-                  if (group && group.size > 1 && group.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
+                  // For group drags, always update positions when we have a group and movement
+                  if (group && group.size > 1 && (deltaX !== 0 || deltaY !== 0)) {
                     const originPositions = bulkDragOriginPositionsRef.current;
-                    console.log('[LayoutEditorRGL] Updating group positions during drag');
+                    console.log('[LayoutEditorRGL] Applying group movement: delta', { deltaX, deltaY });
                     
-                    // Create complete updated layout including the dragged item
+                    // Create complete updated layout with group movement
                     const updatedLayout = currentLayout.map(layoutItem => {
                       if (group.has(layoutItem.i)) {
-                        if (layoutItem.i === newItem.i) {
-                          // Use the current position from RGL for the dragged item
-                          return newItem;
-                        } else {
-                          // Calculate new position for group members based on delta
-                          const origin = originPositions[layoutItem.i];
-                          if (origin) {
-                            return {
-                              ...layoutItem,
-                              x: Math.max(0, origin.x + deltaX),
-                              y: Math.max(0, origin.y + deltaY)
-                            };
-                          }
+                        const origin = originPositions[layoutItem.i];
+                        if (origin) {
+                          const newPos = {
+                            x: Math.max(0, origin.x + deltaX),
+                            y: Math.max(0, origin.y + deltaY)
+                          };
+                          return {
+                            ...layoutItem,
+                            x: newPos.x,
+                            y: newPos.y
+                          };
                         }
                       }
                       return layoutItem;
                     });
                     
-                    // Update immediately instead of throttling for better responsiveness
+                    // Force immediate layout state update
                     setLayoutState(updatedLayout);
                   }
                 }}
