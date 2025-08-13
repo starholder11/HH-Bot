@@ -111,12 +111,13 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   // Render item content - optimized for smooth dragging
   const renderItem = useCallback((item: Item) => {
     // Common wrapper styles for all content types - no padding, full fill
-    const wrapperClass = "w-full h-full overflow-hidden bg-neutral-800 flex items-center justify-center";
+    // NOTE: Do NOT set background or text colors here so items inherit layout styling
+    const wrapperClass = "w-full h-full overflow-hidden flex items-center justify-center";
 
     if (item.type === 'inline_text') {
       return (
         <div className={`${wrapperClass} p-1`}>
-          <div className="text-xs text-white text-center leading-tight truncate">
+          <div className="text-xs text-center leading-tight truncate">
             {item.inlineContent?.text || 'Text block'}
           </div>
         </div>
@@ -126,7 +127,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     if (item.type === 'inline_image') {
       const imageUrl = item.inlineContent?.imageUrl || item.inlineContent?.imageData;
       return (
-        <div className={wrapperClass}>
+        <div className={`${wrapperClass}`}>
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -144,7 +145,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
     if (item.type === 'content_ref' && item.mediaUrl) {
       return (
-        <div className={wrapperClass}>
+        <div className={`${wrapperClass}`}>
           <img
             src={item.mediaUrl}
             alt={item.snippet || 'Content'}
