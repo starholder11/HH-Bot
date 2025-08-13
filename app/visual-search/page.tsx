@@ -35,7 +35,8 @@ const AgentChat = dynamic(() => import('../../components/AgentChat'), { ssr: fal
 // Dynamically import Layout components
 const LayoutsBrowser = dynamic(() => import('./components/Layout/LayoutsBrowser'), { ssr: false });
 const LayoutEditor = dynamic(() => import('./components/Layout/LayoutEditor'), { ssr: false });
-const LayoutEditorModal = dynamic(() => import('./components/Layout/LayoutEditorRGL'), { ssr: false });
+// Use the new, feature-rich LayoutEditorModal with Block Library, Uploads, Breakpoints, etc.
+const LayoutEditorModal = dynamic(() => import('./components/Layout/LayoutEditorModal'), { ssr: false });
 
 // Moved types to ./types
 
