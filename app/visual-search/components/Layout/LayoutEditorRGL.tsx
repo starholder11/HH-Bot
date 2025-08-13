@@ -219,36 +219,33 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 h-14 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between px-4 z-10">
-        <h2 className="text-lg font-medium text-white">{edited.title}</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSave}
-            disabled={working}
-            className="px-3 py-1.5 rounded border border-green-600 bg-green-700 hover:bg-green-600 text-white disabled:opacity-50"
-          >
-            {working ? 'Saving…' : 'Save'}
-          </button>
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 rounded border border-neutral-600 bg-neutral-700 hover:bg-neutral-600 text-white"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-
-      {/* Canvas + Inspector */}
-      <div className="absolute top-14 bottom-0 inset-x-0 p-4">
-        <div className="w-full h-full flex gap-4">
-          {/* Canvas area */}
-          <div className="flex-1 overflow-auto">
-            <div 
-              className="mx-auto border border-neutral-800 bg-neutral-900"
-              style={{ width: design.width, height: design.height }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
+      <div className="w-[min(1400px,100%)] h-[min(90vh,100%)] bg-neutral-950 rounded-xl border border-neutral-800 shadow-2xl overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="h-14 shrink-0 bg-neutral-900/80 backdrop-blur border-b border-neutral-800 flex items-center justify-between px-4">
+          <div className="text-sm text-neutral-200 font-medium truncate pr-4">{edited.title}</div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSave}
+              disabled={working}
+              className="px-3 py-1.5 rounded bg-green-600 hover:bg-green-500 text-white text-sm disabled:opacity-50"
             >
+              {working ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm border border-neutral-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 min-h-0 flex">
+          {/* Canvas */}
+          <div className="flex-1 p-4 overflow-auto">
+            <div className="mx-auto bg-neutral-900 border border-neutral-800 rounded-lg" style={{ width: design.width, height: design.height }}>
               <ResponsiveGridLayout
                 className="layout"
                 layouts={layouts}
@@ -275,7 +272,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           </div>
 
           {/* Inspector */}
-          <div className="w-80 shrink-0 border-l border-neutral-800 bg-neutral-900/70 backdrop-blur p-3 overflow-auto">
+          <div className="w-[320px] shrink-0 border-l border-neutral-800 bg-neutral-900/70 backdrop-blur p-3 overflow-auto">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm text-neutral-300 font-medium">Inspector</div>
               {selectedId && (
