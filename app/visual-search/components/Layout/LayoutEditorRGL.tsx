@@ -476,6 +476,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       return next;
                     });
                   } else if (isRange) {
+                    // Special case: if Shift+clicking the same item, do nothing
+                    if (selectedId === itemId) {
+                      console.log('[LayoutEditorRGL] Shift+clicking same item, ignoring');
+                      return;
+                    }
+                    
                     const items = edited.layout_data.items;
                     const lastIndex = items.findIndex(it => it.id === selectedId);
                     const currentIndex = items.findIndex(it => it.id === itemId);
@@ -553,7 +559,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   });
 
                   // ONLY change selection if dragging an item that's NOT in the current selection
-                  if (newItem?.i && !selectedIds.has(newItem.i)) {
+                  // AND we don't have multiple items selected (to preserve multi-select for drag)
+                  if (newItem?.i && !selectedIds.has(newItem.i) && selectedIds.size <= 1) {
                     setSelectedIds(new Set([newItem.i]));
                     setSelectedId(newItem.i);
                     console.log('[LayoutEditorRGL] drag item not selected, selecting only:', newItem.i);
@@ -561,6 +568,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   // If dragging an item that IS in selection, DON'T change selection - preserve multi-select
                   else if (newItem?.i && selectedIds.has(newItem.i)) {
                     console.log('[LayoutEditorRGL] dragging selected item, preserving multi-selection of', selectedIds.size, 'items');
+                  }
+                  // If we have multiple items selected, don't change selection even for unselected items
+                  else if (selectedIds.size > 1) {
+                    console.log('[LayoutEditorRGL] preserving multi-selection during drag, not changing to:', newItem?.i);
                   }
                 }}
                 onDragStop={(currentLayout, oldItem, newItem) => {
