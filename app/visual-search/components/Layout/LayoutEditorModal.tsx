@@ -40,6 +40,7 @@ export default function LayoutEditorModal({
   });
 
   const design = designSizes[currentBreakpoint];
+  const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
   const cols = Math.floor(design.width / cellSize);
   const rowHeight = cellSize;
 
@@ -421,13 +422,14 @@ export default function LayoutEditorModal({
     // Optionally extend canvas height if user drags near/beyond bottom
     try {
       const maxY = Math.max(0, ...newLayout.map(l => (l.y || 0) + (l.h || 0)));
-      const rowsNow = Math.floor(design.height / rowHeight);
+      const rowsNow = Math.floor((dynamicHeight ?? design.height) / rowHeight);
       if (maxY >= rowsNow - 1) {
-        const nextHeight = (maxY + 2) * rowHeight; // add a small buffer of 2 rows
+        const nextHeight = (maxY + 2) * rowHeight; // add buffer
         setDesignSizes(prev => ({
           ...prev,
-          [currentBreakpoint]: { ...prev[currentBreakpoint], height: nextHeight }
+          [currentBreakpoint]: { ...prev[currentBreakpoint], height: Math.max(prev[currentBreakpoint].height, nextHeight) }
         }));
+        setDynamicHeight(h => Math.max(h ?? design.height, nextHeight));
       }
     } catch {}
 
@@ -446,7 +448,7 @@ export default function LayoutEditorModal({
             layoutItem.h,
             prev.layout_data,
             currentBreakpoint,
-            design
+            { width: design.width, height: dynamicHeight ?? design.height }
           );
           console.log('[LayoutEditor] Updated item:', item.id, 'for breakpoint:', currentBreakpoint, 'from', { x: item.x, y: item.y, w: item.w, h: item.h }, 'to position:', { x: layoutItem.x, y: layoutItem.y, w: layoutItem.w, h: layoutItem.h });
           return updated;
@@ -457,7 +459,7 @@ export default function LayoutEditorModal({
       // Enforce bounds again on the full set to avoid drift on right edge
       const normalized = normalizeAllItems(
         { ...prev, layout_data: { ...prev.layout_data, items: updatedItems } } as LayoutAsset,
-        design
+        { width: design.width, height: dynamicHeight ?? design.height }
       );
 
       console.log('[LayoutEditor] handleLayoutChange - final normalized items:', normalized.layout_data.items.length);
@@ -737,7 +739,7 @@ export default function LayoutEditorModal({
         <div className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
           <div
             className="mx-auto border border-neutral-800 bg-neutral-900 relative"
-            style={{ width: design.width, height: design.height }}
+            style={{ width: design.width, height: dynamicHeight ?? design.height }}
             onMouseDown={(e) => {
               if (e.currentTarget === e.target) {
                 setSelectedIds(new Set());
@@ -813,13 +815,14 @@ export default function LayoutEditorModal({
               onDrag={(layout: any[]) => {
                 try {
                   const maxY = Math.max(0, ...layout.map(l => (l.y || 0) + (l.h || 0)));
-                  const rowsNow = Math.floor(design.height / rowHeight);
+                  const rowsNow = Math.floor((dynamicHeight ?? design.height) / rowHeight);
                   if (maxY >= rowsNow - 1) {
                     const nextHeight = (maxY + 2) * rowHeight;
                     setDesignSizes(prev => ({
                       ...prev,
-                      [currentBreakpoint]: { ...prev[currentBreakpoint], height: nextHeight }
+                      [currentBreakpoint]: { ...prev[currentBreakpoint], height: Math.max(prev[currentBreakpoint].height, nextHeight) }
                     }));
+                    setDynamicHeight(h => Math.max(h ?? design.height, nextHeight));
                   }
                 } catch {}
               }}
