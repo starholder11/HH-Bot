@@ -165,13 +165,13 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     );
   }, []);
 
-    // Memoize children for performance - optimized containers
+      // Memoize children for performance - simple click-anywhere selection
   const children = useMemo(() => {
     return edited.layout_data.items.map(item => (
       <div
         key={item.id}
         data-item-id={item.id}
-        className={`rounded-sm overflow-hidden border ${selectedIds.has(item.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
+        className={`rounded-sm overflow-hidden border cursor-pointer ${selectedIds.has(item.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
         style={{
           margin: 0,
           padding: 0,
@@ -179,85 +179,65 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
-      >
-        {/* Drag handle - always at top */}
-        <div className="drag-handle h-5 px-2 flex items-center text-[10px] uppercase tracking-wide bg-neutral-800/70 border-b border-neutral-800 select-none cursor-move">
-          <span className="text-neutral-400">drag</span>
-        </div>
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
 
-        {/* Content area - selection happens here directly */}
-        <div
-          className="content-area relative"
-          style={{ minHeight: '40px' }}
-          data-item-id={item.id}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          const isToggle = e.metaKey || e.ctrlKey;
+          const isRange = e.shiftKey && !!selectedId;
+          console.log('[LayoutEditorRGL] CLICK ANYWHERE', { 
+            id: item.id, 
+            itemType: item.type,
+            isToggle, 
+            isRange, 
+            selectedId, 
+            before: Array.from(selectedIds),
+            shiftKey: e.shiftKey,
+            metaKey: e.metaKey,
+            ctrlKey: e.ctrlKey 
+          });
 
-            const isToggle = e.metaKey || e.ctrlKey;
-            const isRange = e.shiftKey && !!selectedId;
-            console.log('[LayoutEditorRGL] DIRECT onMouseDown', {
-              id: item.id,
-              itemType: item.type,
-              isToggle,
-              isRange,
-              selectedId,
-              before: Array.from(selectedIds),
-              shiftKey: e.shiftKey,
-              metaKey: e.metaKey,
-              ctrlKey: e.ctrlKey
-            });
-
-            if (isToggle) {
-              setSelectedIds(prev => {
-                const next = new Set(prev);
-                if (next.has(item.id)) {
-                  next.delete(item.id);
-                  if (selectedId === item.id) {
-                    const remaining = Array.from(next);
-                    setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
-                  }
-                } else {
-                  next.add(item.id);
-                  setSelectedId(item.id);
+          if (isToggle) {
+            setSelectedIds(prev => {
+              const next = new Set(prev);
+              if (next.has(item.id)) {
+                next.delete(item.id);
+                if (selectedId === item.id) {
+                  const remaining = Array.from(next);
+                  setSelectedId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
                 }
-                console.log('[LayoutEditorRGL] DIRECT toggle -> after', {
-                  after: Array.from(next),
-                  selectedId: item.id,
-                  action: next.has(item.id) ? 'added' : 'removed'
-                });
-                return next;
-              });
-            } else if (isRange) {
-              const items = edited.layout_data.items;
-              const lastIndex = items.findIndex(it => it.id === selectedId);
-              const currentIndex = items.findIndex(it => it.id === item.id);
-              if (lastIndex !== -1 && currentIndex !== -1) {
-                const start = Math.min(lastIndex, currentIndex);
-                const end = Math.max(lastIndex, currentIndex);
-                const rangeIds = items.slice(start, end + 1).map(it => it.id);
-                setSelectedIds(prev => {
-                  const next = new Set(prev);
-                  rangeIds.forEach(id => next.add(id));
-                  console.log('[LayoutEditorRGL] DIRECT range ->', { start, end, rangeIds, after: Array.from(next) });
-                  return next;
-                });
+              } else {
+                next.add(item.id);
                 setSelectedId(item.id);
               }
-            } else {
+              console.log('[LayoutEditorRGL] TOGGLE result:', Array.from(next));
+              return next;
+            });
+          } else if (isRange) {
+            const items = edited.layout_data.items;
+            const lastIndex = items.findIndex(it => it.id === selectedId);
+            const currentIndex = items.findIndex(it => it.id === item.id);
+            if (lastIndex !== -1 && currentIndex !== -1) {
+              const start = Math.min(lastIndex, currentIndex);
+              const end = Math.max(lastIndex, currentIndex);
+              const rangeIds = items.slice(start, end + 1).map(it => it.id);
+              setSelectedIds(prev => {
+                const next = new Set(prev);
+                rangeIds.forEach(id => next.add(id));
+                console.log('[LayoutEditorRGL] RANGE result:', Array.from(next));
+                return next;
+              });
               setSelectedId(item.id);
-              const next = new Set([item.id]);
-              setSelectedIds(next);
-                              console.log('[LayoutEditorRGL] DIRECT single -> after', {
-                  after: Array.from(next),
-                  selectedId: item.id,
-                  clearedPrevious: selectedIds.size > 0
-                });
             }
-          }}
-        >
-          {renderItem(item)}
-        </div>
+          } else {
+            setSelectedId(item.id);
+            const next = new Set([item.id]);
+            setSelectedIds(next);
+            console.log('[LayoutEditorRGL] SINGLE result:', Array.from(next));
+          }
+        }}
+      >
+        {renderItem(item)}
       </div>
     ));
   }, [edited.layout_data.items, renderItem, selectedIds, selectedId]);
@@ -518,7 +498,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 onLayoutChange={handleLayoutChange}
                 isDraggable={true}
                 isResizable={true}
-                draggableCancel={'.content-area, input, textarea, select, button, .no-drag'}
+                draggableCancel={'input, textarea, select, button'}
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
