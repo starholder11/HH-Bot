@@ -2,9 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
-/* React Grid Layout CSS - Required for resize handles */
-@import '~react-grid-layout/css/styles.css';
-@import '~react-resizable/css/styles.css';
+/* React Grid Layout CSS - Minimal required styles only */
 
 @tailwind base;
 @tailwind components;
@@ -438,21 +436,44 @@ header {
   @apply focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:ring-offset-2;
 }
 
-/* React Grid Layout customizations for dark theme */
-.react-resizable-handle {
-  background-color: #3b82f6 !important; /* Blue resize handle */
-  opacity: 0.8 !important;
+/* React Grid Layout - Custom minimal styles to avoid conflicts */
+.react-grid-layout {
+  position: relative;
 }
 
-.react-resizable-handle:hover {
-  opacity: 1 !important;
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top;
 }
 
-.react-grid-item:hover .react-resizable-handle {
-  opacity: 1 !important;
+.react-grid-item.cssTransforms {
+  transition-property: transform;
+}
+
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  background: #3b82f6;
+  background-size: 12px 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 6" fill="%23ffffff"><circle cx="1" cy="1" r=".5"/><circle cx="1" cy="3" r=".5"/><circle cx="1" cy="5" r=".5"/><circle cx="3" cy="3" r=".5"/><circle cx="3" cy="5" r=".5"/><circle cx="5" cy="5" r=".5"/></svg>');
+  cursor: se-resize;
+  opacity: 0.6;
+  border-radius: 0 0 4px 0;
+}
+
+.react-grid-item:hover > .react-resizable-handle {
+  opacity: 1;
 }
 
 .react-grid-item.react-grid-placeholder {
-  background: rgb(59, 130, 246, 0.3) !important; /* Blue placeholder */
-  border: 2px dashed #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.2);
+  border: 2px dashed #3b82f6;
+  border-radius: 4px;
+  opacity: 0.8;
+  z-index: 2;
 }
