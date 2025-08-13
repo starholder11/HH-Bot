@@ -42,6 +42,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     }));
   });
 
+  // Throttle layout updates during drag to one per animation frame
+  const dragRafRef = React.useRef<number | null>(null);
+  const pendingLayoutRef = React.useRef<Layout[] | null>(null);
+
   // Prevent layout prop changes from wiping selection state
   React.useEffect(() => {
     // Only update edited state if the layout ID actually changed
@@ -580,7 +584,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 margin={[1, 1]}
                 containerPadding={[2, 2]}
                 useCSSTransforms={true}
-                preventCollision={true}
+                preventCollision={!isGroupDrag}
                 compactType={null}
                 verticalCompact={false}
                 isBounded={true}
@@ -642,14 +646,6 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   const deltaY = (newItem.y || 0) - draggedOrigin.y;
 
                   const group = activeGroupIdsRef.current;
-                  console.log('[LayoutEditorRGL] onDrag', {
-                    draggedItem: newItem.i,
-                    groupSize: group?.size || 0,
-                    groupItems: group ? Array.from(group) : [],
-                    delta: { deltaX, deltaY },
-                    draggedPosition: { x: newItem.x, y: newItem.y },
-                    draggedOrigin
-                  });
 
                   if (group && group.size > 1 && group.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
                     const originPositions = bulkDragOriginPositionsRef.current;
@@ -661,7 +657,6 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                             x: Math.max(0, origin.x + deltaX),
                             y: Math.max(0, origin.y + deltaY)
                           };
-                          console.log('[LayoutEditorRGL] Moving group item', layoutItem.i, 'from', origin, 'to', newPos);
                           return {
                             ...layoutItem,
                             ...newPos
@@ -670,8 +665,17 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       }
                       return layoutItem;
                     });
-                    // Update layoutState only during drag - don't sync to edited until dragStop
-                    setLayoutState(updatedLayout);
+                    // Throttle updates to once per animation frame
+                    pendingLayoutRef.current = updatedLayout;
+                    if (dragRafRef.current == null) {
+                      dragRafRef.current = requestAnimationFrame(() => {
+                        if (pendingLayoutRef.current) {
+                          setLayoutState(pendingLayoutRef.current);
+                        }
+                        dragRafRef.current = null;
+                        pendingLayoutRef.current = null;
+                      });
+                    }
                   }
                 }}
                 onDragStop={(currentLayout, oldItem, newItem) => {
@@ -729,6 +733,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   bulkDragOriginPositionsRef.current = {};
                   setIsGroupDrag(false);
                   activeGroupIdsRef.current = null;
+                  // Cancel any pending RAF
+                  if (dragRafRef.current != null) {
+                    cancelAnimationFrame(dragRafRef.current);
+                    dragRafRef.current = null;
+                    pendingLayoutRef.current = null;
+                  }
                   console.log('[LayoutEditorRGL] Reset drag state');
                 }}
               >
