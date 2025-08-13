@@ -31,6 +31,11 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   // Bulk-drag tracking: store origin positions for selected items and the dragged item's origin
   const bulkDragOriginPositionsRef = React.useRef<Record<string, { x: number; y: number }>>({});
   const draggedItemOriginRef = React.useRef<{ x: number; y: number } | null>(null);
+  // Keep latest selection in refs so drag handlers don't read stale closures
+  const selectedIdsRef = React.useRef<Set<string>>(new Set());
+  const selectedIdRef = React.useRef<string | null>(null);
+  React.useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
+  React.useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
 
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
@@ -190,7 +195,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         onClick={(e) => {
           const isToggle = e.metaKey || e.ctrlKey;
           const isRange = e.shiftKey && !!selectedId;
-          
+
           if (isToggle) {
             setSelectedIds(prev => {
               const next = new Set(prev);
@@ -520,11 +525,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 isBounded={true}
                 transformScale={1}
                 onDragStart={(currentLayout, oldItem, newItem) => {
+                  const sel = selectedIdsRef.current;
                   console.log('[LayoutEditorRGL] onDragStart', {
                     draggedItem: newItem?.i,
-                    selectedIds: Array.from(selectedIds),
-                    selectedIdsSize: selectedIds.size,
-                    isInSelection: newItem?.i ? selectedIds.has(newItem.i) : false
+                    selectedIds: Array.from(sel),
+                    selectedIdsSize: sel.size,
+                    isInSelection: newItem?.i ? sel.has(newItem.i) : false
                   });
 
                   // NEVER change selection when Shift is held (range selection in progress)
@@ -535,8 +541,8 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
                   // Never mutate selection in onDragStart. Selection is click-only.
                   if (newItem?.i) {
-                    if (selectedIds.has(newItem.i)) {
-                      console.log('[LayoutEditorRGL] dragging selected item, preserving multi-selection of', selectedIds.size, 'items');
+                    if (sel.has(newItem.i)) {
+                      console.log('[LayoutEditorRGL] dragging selected item, preserving multi-selection of', sel.size, 'items');
                     } else {
                       console.log('[LayoutEditorRGL] dragging unselected item; selection unchanged (click-only selection)');
                     }
@@ -547,11 +553,11 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     draggedItemOriginRef.current = { x: newItem.x, y: newItem.y };
                     const positions: Record<string, { x: number; y: number }> = {};
                     currentLayout.forEach(li => {
-                      if (selectedIds.has(li.i)) positions[li.i] = { x: li.x, y: li.y };
+                      if (sel.has(li.i)) positions[li.i] = { x: li.x, y: li.y };
                     });
                     bulkDragOriginPositionsRef.current = positions;
                     // Ensure the dragged item is included if selectedIds is empty (single drag)
-                    if (selectedIds.size === 0) {
+                    if (sel.size === 0) {
                       bulkDragOriginPositionsRef.current[newItem.i] = { x: newItem.x, y: newItem.y };
                     }
                   }
@@ -564,10 +570,11 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   const deltaX = (newItem.x || 0) - draggedOrigin.x;
                   const deltaY = (newItem.y || 0) - draggedOrigin.y;
 
-                  if (selectedIds.size > 1 && selectedIds.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
+                  const sel = selectedIdsRef.current;
+                  if (sel.size > 1 && sel.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
                     const originPositions = bulkDragOriginPositionsRef.current;
                     const updatedLayout = currentLayout.map(layoutItem => {
-                      if (layoutItem.i !== newItem.i && selectedIds.has(layoutItem.i)) {
+                      if (layoutItem.i !== newItem.i && sel.has(layoutItem.i)) {
                         const origin = originPositions[layoutItem.i];
                         if (origin) {
                           return {
@@ -583,11 +590,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   }
                 }}
                 onDragStop={(currentLayout, oldItem, newItem) => {
+                  const sel = selectedIdsRef.current;
                   console.log('[LayoutEditorRGL] onDragStop', {
                     draggedItem: newItem?.i,
                     oldPos: { x: oldItem?.x, y: oldItem?.y },
                     newPos: { x: newItem?.x, y: newItem?.y },
-                    selectedIds: Array.from(selectedIds)
+                    selectedIds: Array.from(sel)
                   });
 
                   // Calculate the drag delta
@@ -597,12 +605,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   console.log('[LayoutEditorRGL] drag delta:', { deltaX, deltaY });
 
                   // If multiple items are selected and we dragged one of them, move all selected items
-                  if (selectedIds.size > 1 && newItem?.i && selectedIds.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
+                  if (sel.size > 1 && newItem?.i && sel.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
                     console.log('[LayoutEditorRGL] moving all selected items by delta');
 
                     const updatedLayout = currentLayout.map(layoutItem => {
                       // If this item is selected (but not the one we dragged), apply the same delta
-                      if (selectedIds.has(layoutItem.i) && layoutItem.i !== newItem.i) {
+                      if (sel.has(layoutItem.i) && layoutItem.i !== newItem.i) {
                         return {
                           ...layoutItem,
                           x: Math.max(0, layoutItem.x + deltaX),
