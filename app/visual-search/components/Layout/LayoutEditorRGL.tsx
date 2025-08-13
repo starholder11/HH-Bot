@@ -250,10 +250,16 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   // Track Shift key globally to disable dragging while selecting ranges
   React.useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Shift') setIsShiftDown(true);
+      if (e.key === 'Shift') {
+        console.log('[LayoutEditorRGL] Shift DOWN - disabling drag');
+        setIsShiftDown(true);
+      }
     }
     function onKeyUp(e: KeyboardEvent) {
-      if (e.key === 'Shift') setIsShiftDown(false);
+      if (e.key === 'Shift') {
+        console.log('[LayoutEditorRGL] Shift UP - enabling drag');
+        setIsShiftDown(false);
+      }
     }
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
@@ -563,7 +569,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   console.log('[LayoutEditorRGL] onDragStart', {
                     draggedItem: newItem?.i,
                     selectedIds: Array.from(selectedIds),
-                    isInSelection: newItem?.i ? selectedIds.has(newItem.i) : false
+                    selectedIdsSize: selectedIds.size,
+                    isInSelection: newItem?.i ? selectedIds.has(newItem.i) : false,
+                    isDraggable: !isShiftDown,
+                    isShiftDown
                   });
 
                   // ONLY change selection if dragging an item that's NOT in the current selection
