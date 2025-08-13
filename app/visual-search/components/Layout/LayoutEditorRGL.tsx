@@ -27,6 +27,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [isShiftHeld, setIsShiftHeld] = useState<boolean>(false);
   const [dragStartPos, setDragStartPos] = useState<{x: number, y: number} | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
 
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
@@ -184,11 +185,16 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           WebkitBackfaceVisibility: 'hidden'
         }}
         onMouseDown={(e) => {
+          // STOP RGL from capturing this event
+          e.preventDefault();
+          e.stopPropagation();
+          
           // Record start position for drag detection
           setDragStartPos({ x: e.clientX, y: e.clientY });
           setIsDragging(false);
+          setIsSelectionMode(true);
           
-          console.log('[LayoutEditorRGL] MOUSE DOWN - recording start position', {
+          console.log('[LayoutEditorRGL] MOUSE DOWN - BLOCKING RGL, starting selection mode', {
             id: item.id,
             startPos: { x: e.clientX, y: e.clientY },
             shiftKey: e.shiftKey,
@@ -197,15 +203,32 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           });
         }}
         onMouseMove={(e) => {
-          // Detect if we've moved enough to be considered a drag
-          if (dragStartPos && !isDragging) {
+          // Only track movement if we're in selection mode
+          if (isSelectionMode && dragStartPos && !isDragging) {
             const deltaX = Math.abs(e.clientX - dragStartPos.x);
             const deltaY = Math.abs(e.clientY - dragStartPos.y);
             const dragThreshold = 5; // pixels
             
             if (deltaX > dragThreshold || deltaY > dragThreshold) {
               setIsDragging(true);
-              console.log('[LayoutEditorRGL] DRAG DETECTED for item:', item.id);
+              setIsSelectionMode(false); // Exit selection mode, enter drag mode
+              console.log('[LayoutEditorRGL] DRAG DETECTED - switching to drag mode for item:', item.id);
+              
+              // Now manually trigger RGL drag by dispatching a new mousedown
+              // This is a workaround to let RGL handle the drag after we've detected intent
+              const gridElement = e.currentTarget.closest('.react-grid-layout');
+              if (gridElement) {
+                console.log('[LayoutEditorRGL] manually triggering RGL drag');
+                // Create new mousedown event to let RGL take over
+                const newEvent = new MouseEvent('mousedown', {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: e.clientX,
+                  clientY: e.clientY,
+                  button: 0
+                });
+                e.currentTarget.dispatchEvent(newEvent);
+              }
             }
           }
         }}
@@ -213,15 +236,16 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           console.log('[LayoutEditorRGL] MOUSE UP', {
             id: item.id,
             isDragging,
+            isSelectionMode,
             dragStartPos
           });
           
-          // Only handle selection if this was NOT a drag
-          if (!isDragging && dragStartPos) {
+          // Only handle selection if we're in selection mode (clean click, no drag)
+          if (isSelectionMode && !isDragging && dragStartPos) {
             const isToggle = e.metaKey || e.ctrlKey;
             const isRange = e.shiftKey && !!selectedId;
             
-            console.log('[LayoutEditorRGL] CLEAN CLICK (not drag) SELECTION', { 
+            console.log('[LayoutEditorRGL] ✅ CLEAN CLICK SELECTION (bypassed RGL)', { 
               id: item.id, 
               itemType: item.type,
               isToggle, 
@@ -243,7 +267,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   next.add(item.id);
                   setSelectedId(item.id);
                 }
-                console.log('[LayoutEditorRGL] TOGGLE result:', Array.from(next));
+                console.log('[LayoutEditorRGL] ✅ TOGGLE result:', Array.from(next));
                 return next;
               });
             } else if (isRange) {
@@ -281,7 +305,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 setSelectedIds(prev => {
                   const next = new Set(prev);
                   rangeIds.forEach(id => next.add(id));
-                  console.log('[LayoutEditorRGL] RANGE result:', Array.from(next));
+                  console.log('[LayoutEditorRGL] ✅ RANGE result:', Array.from(next));
                   return next;
                 });
                 setSelectedId(item.id);
@@ -292,19 +316,20 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               setSelectedId(item.id);
               const next = new Set([item.id]);
               setSelectedIds(next);
-              console.log('[LayoutEditorRGL] SINGLE result:', Array.from(next));
+              console.log('[LayoutEditorRGL] ✅ SINGLE result:', Array.from(next));
             }
           }
           
-          // Reset drag tracking
+          // Reset all tracking
           setDragStartPos(null);
           setIsDragging(false);
+          setIsSelectionMode(false);
         }}
       >
         {renderItem(item)}
       </div>
     ));
-  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, dragStartPos, isDragging]);
+  }, [edited.layout_data.items, renderItem, selectedIds, selectedId, dragStartPos, isDragging, isSelectionMode]);
 
   // Helpers to update item fields safely
   const updateItem = useCallback((id: string, updates: Partial<Item>) => {
