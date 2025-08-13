@@ -53,21 +53,7 @@ export default function LayoutEditorModal({
   }, [currentBreakpoint, design.height]);
 
   // Create dynamic CSS for canvas height to override any CSS conflicts
-  useEffect(() => {
-    const styleId = 'dynamic-canvas-height';
-    let styleEl = document.getElementById(styleId) as HTMLStyleElement;
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = styleId;
-      document.head.appendChild(styleEl);
-    }
-    styleEl.textContent = `
-      .dynamic-canvas-container {
-        height: ${canvasHeight}px !important;
-        min-height: ${canvasHeight}px !important;
-      }
-    `;
-  }, [canvasHeight]);
+
 
   // Auto-scroll the canvas wrapper when height increases so changes are visible
   useEffect(() => {
@@ -784,11 +770,11 @@ export default function LayoutEditorModal({
         {/* Canvas area */}
         <div ref={scrollWrapRef} className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
           <div
-            className="mx-auto border border-neutral-800 bg-neutral-900 relative dynamic-canvas-container"
+            className="mx-auto border border-neutral-800 bg-neutral-900 relative"
             style={{ 
               width: design.width, 
-              height: canvasHeight,
-              minHeight: canvasHeight 
+              height: `${canvasHeight}px`,
+              minHeight: `${canvasHeight}px`
             }}
             onMouseDown={(e) => {
               if (e.currentTarget === e.target) {
