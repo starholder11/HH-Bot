@@ -807,7 +807,7 @@ export default function LayoutEditorModal({
         </div>
 
         {/* Canvas area */}
-        <div ref={scrollWrapRef} className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
+        <div ref={scrollWrapRef} className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-y-auto">
           <div
             className="mx-auto border border-neutral-800 bg-neutral-900 relative"
             style={{
@@ -851,6 +851,7 @@ export default function LayoutEditorModal({
               cols={cols}
               rowHeight={rowHeight}
               width={design.width}
+              style={{ height: canvasHeight }}
               margin={[0, 0]}
               containerPadding={[0, 0]}
               isDraggable
