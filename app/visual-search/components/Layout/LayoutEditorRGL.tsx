@@ -218,13 +218,89 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     });
   }, []);
 
+  // --- Block creation helpers ---
+  function gridSize() {
+    const cols = Math.floor((edited.layout_data.designSize?.width || 1200) / (edited.layout_data.cellSize || 20));
+    const rows = Math.floor((edited.layout_data.designSize?.height || 800) / (edited.layout_data.cellSize || 20));
+    return { cols, rows };
+  }
+
+  function collides(a: {x:number;y:number;w:number;h:number}, b: {x:number;y:number;w:number;h:number}) {
+    return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+  }
+
+  function findSpot(w: number, h: number) {
+    const items = edited.layout_data.items;
+    const { cols, rows } = gridSize();
+    for (let y = 0; y <= rows - h; y++) {
+      for (let x = 0; x <= cols - w; x++) {
+        const rect = { x, y, w, h };
+        const hit = items.some(it => collides(rect, { x: it.x || 0, y: it.y || 0, w: it.w || 1, h: it.h || 1 }));
+        if (!hit) return { x, y };
+      }
+    }
+    return { x: 0, y: 0 };
+  }
+
+  function withNormalized(base: Partial<Item> & { id: string; x: number; y: number; w: number; h: number; type: Item['type'] }): Item {
+    const design = edited.layout_data.designSize || { width: 1200, height: 800 };
+    const cell = edited.layout_data.cellSize || 20;
+    const pxX = base.x * cell, pxY = base.y * cell, pxW = base.w * cell, pxH = base.h * cell;
+    const nx = Math.max(0, Math.min(1, pxX / design.width));
+    const ny = Math.max(0, Math.min(1, pxY / design.height));
+    const nw = Math.max(0, Math.min(1, pxW / design.width));
+    const nh = Math.max(0, Math.min(1, pxH / design.height));
+    return { z: 1, contentType: (base as any).contentType, mediaUrl: (base as any).mediaUrl, snippet: (base as any).snippet, refId: (base as any).refId, inlineContent: (base as any).inlineContent, ...base, nx, ny, nw, nh } as Item;
+  }
+
+  const addTextBlock = useCallback(() => {
+    const id = `inline_${Date.now().toString(36)}`;
+    const w = 12, h = 6;
+    const { x, y } = findSpot(w, h);
+    const item = withNormalized({ id, type: 'inline_text', x, y, w, h, inlineContent: { text: 'New text' } as any });
+    setEdited(prev => ({
+      ...prev,
+      layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, item] },
+      updated_at: new Date().toISOString(),
+    }));
+    setSelectedId(id);
+  }, [edited.layout_data.items]);
+
+  const addImageBlock = useCallback(() => {
+    const id = `inline_${Date.now().toString(36)}`;
+    const w = 10, h = 8;
+    const { x, y } = findSpot(w, h);
+    const item = withNormalized({ id, type: 'inline_image', x, y, w, h, inlineContent: { imageUrl: '' } as any });
+    setEdited(prev => ({
+      ...prev,
+      layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, item] },
+      updated_at: new Date().toISOString(),
+    }));
+    setSelectedId(id);
+  }, [edited.layout_data.items]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
       <div className="w-[min(1400px,100%)] h-[min(90vh,100%)] bg-neutral-950 rounded-xl border border-neutral-800 shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="h-14 shrink-0 bg-neutral-900/80 backdrop-blur border-b border-neutral-800 flex items-center justify-between px-4">
-          <div className="text-sm text-neutral-200 font-medium truncate pr-4">{edited.title}</div>
+          <div className="flex items-center gap-2 pr-4">
+            <div className="text-sm text-neutral-200 font-medium truncate">{edited.title}</div>
+            <div className="text-xs text-neutral-500">• {edited.layout_data.items.length} items</div>
+          </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={addTextBlock}
+              className="px-2.5 py-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs border border-neutral-700"
+            >
+              + Text
+            </button>
+            <button
+              onClick={addImageBlock}
+              className="px-2.5 py-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs border border-neutral-700"
+            >
+              + Image
+            </button>
             <button
               onClick={handleSave}
               disabled={working}
