@@ -26,23 +26,54 @@ export default function LayoutEditorModal({
   const [isEditingText, setIsEditingText] = useState(false);
   const [draftText, setDraftText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [showAlignmentGuides, setShowAlignmentGuides] = useState(true);
+  const [currentBreakpoint, setCurrentBreakpoint] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   const cellSize = edited.layout_data.cellSize || 20;
-  const design = edited.layout_data.designSize || { width: 1200, height: 800 };
-  const cols = Math.floor(design.width / cellSize); // Use exact floor to match bounds
+
+  // Get breakpoint-specific design size
+  const breakpointSizes = {
+    desktop: { width: 1200, height: 800 },
+    tablet: { width: 768, height: 1024 },
+    mobile: { width: 375, height: 667 }
+  };
+
+  const design = breakpointSizes[currentBreakpoint];
+  const cols = Math.floor(design.width / cellSize);
   const rowHeight = cellSize;
+
+  // Filter visible items for current breakpoint
+  const visibleItems = useMemo(
+    () => edited.layout_data.items.filter(it => {
+      const breakpointData = (it as any).breakpoints?.[currentBreakpoint];
+      return breakpointData?.visible ?? true;
+    }),
+    [edited.layout_data.items, currentBreakpoint]
+  );
 
   const rglLayout = useMemo(
     () =>
-      edited.layout_data.items.map((it) => ({
-        i: it.id,
-        x: Math.max(0, it.x),
-        y: Math.max(0, it.y),
-        w: Math.max(1, it.w),
-        h: Math.max(1, it.h),
-        static: false,
-      })),
-    [edited.layout_data.items]
+      visibleItems.map((it) => {
+        // Get breakpoint-specific position, fallback to desktop position
+        const breakpointData = (it as any).breakpoints?.[currentBreakpoint] || {};
+        const position = {
+          x: breakpointData.x ?? it.x ?? 0,
+          y: breakpointData.y ?? it.y ?? 0,
+          w: breakpointData.w ?? it.w ?? 1,
+          h: breakpointData.h ?? it.h ?? 1,
+        };
+
+        return {
+          i: it.id,
+          x: Math.max(0, position.x),
+          y: Math.max(0, position.y),
+          w: Math.max(1, position.w),
+          h: Math.max(1, position.h),
+          static: false,
+        };
+      }),
+    [visibleItems, currentBreakpoint]
   );
 
   // Keyboard shortcuts: delete, duplicate, nudge for multi-select
@@ -139,6 +170,200 @@ export default function LayoutEditorModal({
     setSelectedIds(new Set());
   }
 
+  // Alignment functions for multi-select
+  function alignSelected(alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') {
+    if (selectedIds.size < 2) return;
+
+    setEdited(prev => {
+      const selectedItems = prev.layout_data.items.filter(i => selectedIds.has(i.id));
+      if (selectedItems.length < 2) return prev;
+
+      // Get current positions for the selected breakpoint
+      const getCurrentPosition = (item: any) => {
+        const breakpointData = item.breakpoints?.[currentBreakpoint] || {};
+        return {
+          x: breakpointData.x ?? item.x ?? 0,
+          y: breakpointData.y ?? item.y ?? 0,
+          w: breakpointData.w ?? item.w ?? 1,
+          h: breakpointData.h ?? item.h ?? 1,
+        };
+      };
+
+      // Calculate alignment reference based on first selected item or bounds
+      let alignRef: number;
+      switch (alignment) {
+        case 'left':
+          alignRef = Math.min(...selectedItems.map(i => getCurrentPosition(i).x));
+          break;
+        case 'right': {
+          const maxRight = Math.max(...selectedItems.map(i => {
+            const pos = getCurrentPosition(i);
+            return pos.x + pos.w;
+          }));
+          alignRef = maxRight;
+          break;
+        }
+        case 'center': {
+          const minX = Math.min(...selectedItems.map(i => getCurrentPosition(i).x));
+          const maxX = Math.max(...selectedItems.map(i => {
+            const pos = getCurrentPosition(i);
+            return pos.x + pos.w;
+          }));
+          alignRef = Math.floor((minX + maxX) / 2);
+          break;
+        }
+        case 'top':
+          alignRef = Math.min(...selectedItems.map(i => getCurrentPosition(i).y));
+          break;
+        case 'bottom': {
+          const maxBottom = Math.max(...selectedItems.map(i => {
+            const pos = getCurrentPosition(i);
+            return pos.y + pos.h;
+          }));
+          alignRef = maxBottom;
+          break;
+        }
+        case 'middle': {
+          const minY = Math.min(...selectedItems.map(i => getCurrentPosition(i).y));
+          const maxY = Math.max(...selectedItems.map(i => {
+            const pos = getCurrentPosition(i);
+            return pos.y + pos.h;
+          }));
+          alignRef = Math.floor((minY + maxY) / 2);
+          break;
+        }
+        default:
+          return prev;
+      }
+
+      const cell = prev.layout_data.cellSize || 20;
+      const gridCols = Math.floor(design.width / cell);
+      const gridRows = Math.floor(design.height / cell);
+
+      const updatedItems = prev.layout_data.items.map(item => {
+        if (!selectedIds.has(item.id)) return item;
+
+        const currentPos = getCurrentPosition(item);
+        let newX = currentPos.x;
+        let newY = currentPos.y;
+        const w = currentPos.w;
+        const h = currentPos.h;
+
+        switch (alignment) {
+          case 'left':
+            newX = alignRef;
+            break;
+          case 'right':
+            newX = alignRef - w;
+            break;
+          case 'center':
+            newX = alignRef - Math.floor(w / 2);
+            break;
+          case 'top':
+            newY = alignRef;
+            break;
+          case 'bottom':
+            newY = alignRef - h;
+            break;
+          case 'middle':
+            newY = alignRef - Math.floor(h / 2);
+            break;
+        }
+
+        // Clamp to bounds
+        const maxX = Math.max(0, gridCols - w);
+        const maxY = Math.max(0, gridRows - h);
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+
+        // Update using breakpoint-aware function
+        return updateItemPositionWithBreakpoint(item, newX, newY, w, h, prev.layout_data, currentBreakpoint);
+      });
+
+      return {
+        ...prev,
+        layout_data: { ...prev.layout_data, items: updatedItems },
+        updated_at: new Date().toISOString()
+      } as LayoutAsset;
+    });
+  }
+
+  function distributeSelected(direction: 'horizontal' | 'vertical') {
+    if (selectedIds.size < 3) return;
+
+    setEdited(prev => {
+      const selectedItems = prev.layout_data.items.filter(i => selectedIds.has(i.id));
+      if (selectedItems.length < 3) return prev;
+
+      // Sort items by position
+      const sortedItems = direction === 'horizontal'
+        ? selectedItems.sort((a, b) => (a.x || 0) - (b.x || 0))
+        : selectedItems.sort((a, b) => (a.y || 0) - (b.y || 0));
+
+      const first = sortedItems[0];
+      const last = sortedItems[sortedItems.length - 1];
+
+      // Calculate total space between first and last item
+      const totalSpace = direction === 'horizontal'
+        ? ((last.x || 0) + (last.w || 1)) - (first.x || 0)
+        : ((last.y || 0) + (last.h || 1)) - (first.y || 0);
+
+      // Calculate spacing between items
+      const spacing = totalSpace / (sortedItems.length - 1);
+
+      const cell = prev.layout_data.cellSize || 20;
+      const designSize = prev.layout_data.designSize || { width: 1200, height: 800 };
+      const gridCols = Math.floor(designSize.width / cell);
+      const gridRows = Math.floor(designSize.height / cell);
+
+      // Update item positions
+      const updatedItems = prev.layout_data.items.map(item => {
+        const itemIndex = sortedItems.findIndex(si => si.id === item.id);
+        if (itemIndex === -1 || itemIndex === 0 || itemIndex === sortedItems.length - 1) {
+          return item; // Don't move first and last items
+        }
+
+        let newX = item.x || 0;
+        let newY = item.y || 0;
+        const w = item.w || 1;
+        const h = item.h || 1;
+
+        if (direction === 'horizontal') {
+          newX = Math.round((first.x || 0) + (spacing * itemIndex) - (w / 2));
+        } else {
+          newY = Math.round((first.y || 0) + (spacing * itemIndex) - (h / 2));
+        }
+
+        // Clamp to bounds
+        const maxX = Math.max(0, gridCols - w);
+        const maxY = Math.max(0, gridRows - h);
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+
+        const pxX = newX * cell;
+        const pxY = newY * cell;
+        const pxW = w * cell;
+        const pxH = h * cell;
+
+        return {
+          ...item,
+          x: newX,
+          y: newY,
+          nx: clamp(pxX / designSize.width),
+          ny: clamp(pxY / designSize.height),
+          nw: clamp(pxW / designSize.width),
+          nh: clamp(pxH / designSize.height),
+        } as Item;
+      });
+
+      return {
+        ...prev,
+        layout_data: { ...prev.layout_data, items: updatedItems },
+        updated_at: new Date().toISOString()
+      } as LayoutAsset;
+    });
+  }
+
   // Load content preview URLs
   useEffect(() => {
     let cancelled = false;
@@ -200,8 +425,8 @@ export default function LayoutEditorModal({
       const updatedItems = prev.layout_data.items.map(item => {
         const layoutItem = newLayout.find(l => l.i === item.id);
         if (layoutItem) {
-          const updated = updateItemPosition(item, layoutItem.x, layoutItem.y, layoutItem.w, layoutItem.h, prev.layout_data);
-          console.log('[LayoutEditor] Updated item:', item.id, 'from', { x: item.x, y: item.y, w: item.w, h: item.h }, 'to', { x: updated.x, y: updated.y, w: updated.w, h: updated.h });
+          const updated = updateItemPositionWithBreakpoint(item as any, layoutItem.x, layoutItem.y, layoutItem.w, layoutItem.h, prev.layout_data, currentBreakpoint);
+          console.log('[LayoutEditor] Updated item:', item.id, 'for breakpoint:', currentBreakpoint, 'from', { x: item.x, y: item.y, w: item.w, h: item.h }, 'to position:', { x: layoutItem.x, y: layoutItem.y, w: layoutItem.w, h: layoutItem.h });
           return updated;
         }
         return item;
@@ -305,11 +530,12 @@ export default function LayoutEditorModal({
     }
   }
 
-  const { addTextBlock, addImageBlock } = useCommands(
+  const { addTextBlock, addImageBlock, addBlock } = useCommands(
     edited,
     setEdited,
     selectedId,
     setSelectedId,
+    setSelectedIds,
     setIsEditingText,
     setDraftText
   );
@@ -324,7 +550,123 @@ export default function LayoutEditorModal({
             <div className="font-medium">{edited.title}</div>
             <div className="text-xs text-neutral-400">{edited.layout_type} • {edited.layout_data.items.length} items</div>
           </div>
+
+          {/* Alignment tools - shown when multiple items selected */}
+          {selectedIds.size >= 2 && (
+            <div className="flex items-center gap-1">
+              <div className="text-xs text-neutral-400 mr-2">{selectedIds.size} selected</div>
+
+              {/* Alignment buttons */}
+              <div className="flex gap-1 border-r border-neutral-700 pr-2">
+                <button
+                  onClick={() => alignSelected('left')}
+                  className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800"
+                  title="Align Left"
+                >
+                  ⫷
+                </button>
+                <button
+                  onClick={() => alignSelected('center')}
+                  className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800"
+                  title="Align Center"
+                >
+                  ≣
+                </button>
+                <button
+                  onClick={() => alignSelected('right')}
+                  className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800"
+                  title="Align Right"
+                >
+                  ⫸
+                </button>
+                <button
+                  onClick={() => alignSelected('top')}
+                  className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800"
+                  title="Align Top"
+                >
+                  ⫶
+                </button>
+                <button
+                  onClick={() => alignSelected('middle')}
+                  className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800"
+                  title="Align Middle"
+                >
+                  ☰
+                </button>
+                <button
+                  onClick={() => alignSelected('bottom')}
+                  className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800"
+                  title="Align Bottom"
+                >
+                  ⫷
+                </button>
+              </div>
+
+              {/* Distribution buttons */}
+              {selectedIds.size >= 3 && (
+                <div className="flex gap-1 border-r border-neutral-700 pr-2">
+                  <button
+                    onClick={() => distributeSelected('horizontal')}
+                    className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800"
+                    title="Distribute Horizontally"
+                  >
+                    ⟷
+                  </button>
+                  <button
+                    onClick={() => distributeSelected('vertical')}
+                    className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800"
+                    title="Distribute Vertically"
+                  >
+                    ↕
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
+            {/* Breakpoint selector */}
+            <div className="flex items-center gap-1 text-xs border-r border-neutral-700 pr-2">
+              <span className="text-neutral-400">View:</span>
+              {(['desktop', 'tablet', 'mobile'] as const).map((bp) => (
+                <button
+                  key={bp}
+                  onClick={() => setCurrentBreakpoint(bp)}
+                  className={`px-2 py-1 rounded text-xs ${
+                    currentBreakpoint === bp
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                  }`}
+                  title={`${bp.charAt(0).toUpperCase() + bp.slice(1)} view (${breakpointSizes[bp].width}×${breakpointSizes[bp].height})`}
+                >
+                  {bp === 'desktop' ? '🖥️' : bp === 'tablet' ? '📱' : '📱'}
+                  <span className="ml-1">{bp.charAt(0).toUpperCase() + bp.slice(1)}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Grid and snap controls */}
+            <div className="flex items-center gap-2 text-xs border-r border-neutral-700 pr-2">
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={snapToGrid}
+                  onChange={(e) => setSnapToGrid(e.target.checked)}
+                  className="text-blue-500"
+                />
+                <span className="text-neutral-300">Snap</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={showAlignmentGuides}
+                  onChange={(e) => setShowAlignmentGuides(e.target.checked)}
+                  className="text-blue-500"
+                />
+                <span className="text-neutral-300">Guides</span>
+              </label>
+            </div>
+
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); void handleSave(); }}
               disabled={working}
@@ -341,6 +683,29 @@ export default function LayoutEditorModal({
             className="mx-auto border border-neutral-800 bg-neutral-900 relative"
             style={{ width: design.width, height: design.height }}
           >
+            {/* Grid overlay */}
+            {snapToGrid && (
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage: `
+                    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)
+                  `,
+                  backgroundSize: `${cellSize}px ${cellSize}px`
+                }}
+              />
+            )}
+
+            {/* Alignment guides */}
+            {showAlignmentGuides && selectedIds.size > 0 && (
+              <AlignmentGuides
+                items={edited.layout_data.items}
+                selectedIds={selectedIds}
+                cellSize={cellSize}
+                designSize={design}
+              />
+            )}
             <ReactGridLayout
               className="layout"
               layout={rglLayout}
@@ -390,7 +755,7 @@ export default function LayoutEditorModal({
                 console.log('[LayoutEditor] onResize - item:', newItem.i, 'size:', { w: newItem.w, h: newItem.h });
               }}
             >
-              {edited.layout_data.items.map((it) => (
+              {visibleItems.map((it) => (
                 <div
                   key={it.id}
                   className={`border bg-neutral-900 overflow-hidden ${selectedIds.has(it.id) ? 'border-blue-500' : 'border-blue-500/30'}`}
@@ -474,12 +839,13 @@ export default function LayoutEditorModal({
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-300 font-medium">Inspector</div>
             <div className="flex gap-1">
-              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addTextBlock();}} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Text</button>
-              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addImageBlock();}} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800">+ Image</button>
               <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 disabled:opacity-50">Duplicate</button>
               <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} className="px-2 py-1 text-xs rounded border border-red-700 hover:bg-red-800 text-red-200 disabled:opacity-50">Delete</button>
             </div>
           </div>
+
+          {/* Block Library */}
+          <BlockLibrary onAddBlock={addBlock} />
           {selectedIds.size === 0 ? (
             <div className="text-xs text-neutral-500">Select an item to edit.</div>
           ) : selectedIds.size === 1 && selectedId ? (
@@ -522,6 +888,55 @@ function updateItemPosition(item: Item, x: number, y: number, w: number, h: numb
     nw: clamp(pxW / design.width),
     nh: clamp(pxH / design.height),
   } as Item;
+}
+
+function updateItemPositionWithBreakpoint(
+  item: any,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  layoutData: LayoutAsset['layout_data'],
+  breakpoint: 'desktop' | 'tablet' | 'mobile'
+): any {
+  const cellSize = layoutData.cellSize || 20;
+  const breakpointSizes = {
+    desktop: { width: 1200, height: 800 },
+    tablet: { width: 768, height: 1024 },
+    mobile: { width: 375, height: 667 }
+  };
+  const design = breakpointSizes[breakpoint];
+
+  // Clamp to bounds for the current breakpoint
+  const gridCols = Math.floor(design.width / cellSize);
+  const gridRows = Math.floor(design.height / cellSize);
+  const maxX = Math.max(0, gridCols - w);
+  const maxY = Math.max(0, gridRows - h);
+  const clampedX = Math.max(0, Math.min(x, maxX));
+  const clampedY = Math.max(0, Math.min(y, maxY));
+
+  // Initialize breakpoints data if it doesn't exist
+  const breakpoints = item.breakpoints || {};
+  breakpoints[breakpoint] = {
+    x: clampedX,
+    y: clampedY,
+    w,
+    h,
+    visible: breakpoints[breakpoint]?.visible ?? true
+  };
+
+  return {
+    ...item,
+    breakpoints,
+    // Also update base position if this is desktop
+    ...(breakpoint === 'desktop' ? {
+      x: clampedX, y: clampedY, w, h,
+      nx: clamp((clampedX * cellSize) / design.width),
+      ny: clamp((clampedY * cellSize) / design.height),
+      nw: clamp((w * cellSize) / design.width),
+      nh: clamp((h * cellSize) / design.height),
+    } : {})
+  };
 }
 
 function updateItemGrid(layout: LayoutAsset, id: string, x: number, y: number, w: number, h: number): LayoutAsset {
@@ -598,7 +1013,13 @@ function renderItem(
   loading?: boolean,
   opts?: { isSelected?: boolean; isEditing?: boolean; draftText?: string; setDraftText?: (t: string) => void; onCommitText?: (t: string) => void; onCancelEdit?: () => void }
 ) {
-  const label = `${it.type}${it.contentType ? ` • ${it.contentType}` : ''}`;
+  const label = `${it.type}${it.contentType ? ` • ${it.contentType}` : ''}${(it as any).blockType ? ` • ${(it as any).blockType}` : ''}`;
+
+  // Handle block types
+  if (it.type === 'block' && (it as any).blockType) {
+    return renderBlockItem(it as any, opts);
+  }
+
   if (it.type === 'inline_text' && it.inlineContent?.text) {
     return (
       <div className="h-full w-full p-2 text-neutral-200 overflow-auto">
@@ -660,6 +1081,89 @@ function renderItem(
   );
 }
 
+function renderBlockItem(it: any, opts?: any) {
+  const config = it.config || {};
+
+  switch (it.blockType) {
+    case 'hero':
+      return (
+        <div className="h-full w-full p-4 text-white bg-gradient-to-r from-blue-600 to-purple-600 overflow-hidden">
+          <div className="text-center h-full flex flex-col justify-center">
+            <h1 className="text-2xl font-bold mb-2">{config.title || 'Hero Title'}</h1>
+            <p className="text-lg opacity-90 mb-4">{config.subtitle || 'Hero subtitle'}</p>
+            <button className="bg-white text-blue-600 px-4 py-2 rounded font-medium">
+              {config.ctaText || 'Get Started'}
+            </button>
+          </div>
+        </div>
+      );
+
+    case 'media_grid':
+      return (
+        <div className="h-full w-full p-4 bg-neutral-800">
+          <div
+            className="grid h-full gap-2"
+            style={{ gridTemplateColumns: `repeat(${config.columns || 3}, 1fr)` }}
+          >
+            {Array.from({ length: (config.columns || 3) * (config.rows || 2) }).map((_, i) => (
+              <div key={i} className="bg-neutral-700 rounded flex items-center justify-center text-xs text-neutral-400">
+                {config.items?.[i]?.title || `Item ${i + 1}`}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'cta':
+      return (
+        <div className="h-full w-full p-4 bg-gradient-to-r from-green-600 to-blue-600 text-white flex flex-col justify-center items-center text-center">
+          <h3 className="text-xl font-bold mb-2">{config.title || 'Call to Action'}</h3>
+          <p className="text-sm opacity-90 mb-4">{config.description || 'Description'}</p>
+          <button className="bg-white text-green-600 px-4 py-2 rounded font-medium">
+            {config.buttonText || 'Click Here'}
+          </button>
+        </div>
+      );
+
+    case 'footer':
+      return (
+        <div className="h-full w-full p-4 bg-neutral-800 text-neutral-200 flex items-center justify-between">
+          <div className="text-xs">{config.copyright || '© 2024 Your Company'}</div>
+          <div className="flex gap-4 text-xs">
+            {(config.links || []).map((link: any, i: number) => (
+              <span key={i} className="text-blue-400">{link.text}</span>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'text_section':
+      return (
+        <div className="h-full w-full p-4 bg-white text-neutral-900 overflow-auto">
+          <h2 className="text-lg font-bold mb-2">{config.title || 'Section Title'}</h2>
+          <div className="text-sm leading-relaxed">{config.content || 'Content goes here'}</div>
+        </div>
+      );
+
+    case 'spacer':
+      return (
+        <div
+          className="h-full w-full border-2 border-dashed border-neutral-600 flex items-center justify-center text-xs text-neutral-500"
+          style={{ backgroundColor: config.backgroundColor || 'transparent' }}
+        >
+          Spacer ({config.height || 80}px)
+        </div>
+      );
+
+    default:
+      return (
+        <div className="h-full w-full flex items-center justify-center text-xs text-neutral-300 bg-purple-500/10">
+          {it.blockType} block
+        </div>
+      );
+  }
+}
+
 function updateInlineText(id: string, text: string, setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>>) {
   setEdited(prev => ({
     ...prev,
@@ -708,6 +1212,7 @@ function useCommands(
   setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>>,
   selectedId: string | null,
   setSelectedId: React.Dispatch<React.SetStateAction<string | null>>,
+  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>,
   setIsEditingText: React.Dispatch<React.SetStateAction<boolean>>,
   setDraftText: React.Dispatch<React.SetStateAction<string>>,
 ) {
@@ -830,7 +1335,63 @@ function useCommands(
       updated_at: new Date().toISOString()
     } as LayoutAsset));
   }
-  return { addTextBlock, addImageBlock, duplicateSelected: () => {}, deleteSelected: () => {} };
+
+  function addBlock(blockType: 'hero' | 'media_grid' | 'cta' | 'footer' | 'text_section' | 'spacer' | 'inline_text' | 'inline_image') {
+    const id = `${blockType}_${Date.now().toString(36)}`;
+    const cellSize = edited.layout_data.cellSize || 20;
+    const design = edited.layout_data.designSize || { width: 1200, height: 800 };
+
+    // Find a good position that doesn't overlap
+    const existingItems = edited.layout_data.items;
+    let x = 0, y = 0;
+    let foundSpot = false;
+
+    // Simple placement algorithm: try positions until we find one that doesn't overlap
+    for (let tryY = 0; tryY < 10 && !foundSpot; tryY++) {
+      for (let tryX = 0; tryX < 10 && !foundSpot; tryX++) {
+        const testX = tryX * 2;
+        const testY = tryY * 2;
+
+        // Get size based on block type
+        const { w: testW, h: testH } = getBlockSize(blockType, cellSize);
+
+        // Check if this position overlaps with existing items
+        const overlaps = existingItems.some(item => {
+          const itemX = item.x || 0;
+          const itemY = item.y || 0;
+          const itemW = item.w || 1;
+          const itemH = item.h || 1;
+
+          return !(testX + testW <= itemX || testX >= itemX + itemW ||
+                   testY + testH <= itemY || testY >= itemY + itemH);
+        });
+
+        if (!overlaps) {
+          x = testX;
+          y = testY;
+          foundSpot = true;
+        }
+      }
+    }
+
+    const { w, h } = getBlockSize(blockType, cellSize);
+    const newItem: Item = createBlockItem(blockType, id, x, y, w, h, cellSize, design);
+
+    setEdited(prev => ({
+      ...prev,
+      layout_data: {
+        ...prev.layout_data,
+        items: [...prev.layout_data.items, newItem]
+      },
+      updated_at: new Date().toISOString()
+    } as LayoutAsset));
+
+    // Select the newly created item
+    setSelectedId(id);
+    setSelectedIds(new Set([id]));
+  }
+
+  return { addTextBlock, addImageBlock, addBlock, duplicateSelected: () => {}, deleteSelected: () => {} };
 }
 
 // Inspector for selected item properties
@@ -908,20 +1469,38 @@ function ItemInspector({
         </div>
       </div>
 
-      {item.type === 'inline_image' && (
-        <div>
-          <div className="text-xs text-neutral-400 mb-1">Image URL</div>
-          <input
-            type="url"
-            value={localImageUrl}
-            onChange={(e) => handleImageUrlChange(e.target.value)}
-            placeholder="https://example.com/image.jpg"
-            className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200 text-xs"
-          />
-          <div className="text-xs text-neutral-500 mt-1">
-            Paste an image URL or upload to S3
-          </div>
+      <div>
+        <div className="text-xs text-neutral-400 mb-1">Responsive Visibility</div>
+        <div className="space-y-1">
+          {(['desktop', 'tablet', 'mobile'] as const).map(bp => {
+            const isVisible = (item as any).breakpoints?.[bp]?.visible ?? true;
+            return (
+              <label key={bp} className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={isVisible}
+                  onChange={(e) => {
+                    const breakpoints = (item as any).breakpoints || {};
+                    breakpoints[bp] = { ...breakpoints[bp], visible: e.target.checked };
+                    onChange({ breakpoints } as any);
+                  }}
+                  className="text-blue-500"
+                />
+                <span className="text-neutral-300 capitalize">{bp}</span>
+                <span className="text-neutral-500">
+                  {bp === 'desktop' ? '🖥️' : bp === 'tablet' ? '📱' : '📱'}
+                </span>
+              </label>
+            );
+          })}
         </div>
+      </div>
+
+      {item.type === 'inline_image' && (
+        <ImageUploadSection
+          imageUrl={localImageUrl}
+          onImageChange={handleImageUrlChange}
+        />
       )}
 
       {item.type === 'content_ref' && (
@@ -935,13 +1514,807 @@ function ItemInspector({
         </div>
       )}
 
+      {item.type === 'block' && (item as any).blockType && (
+        <BlockInspector
+          item={item as any}
+          onChange={onChange}
+        />
+      )}
+
       <div>
         <div className="text-xs text-neutral-400 mb-1">Item Info</div>
         <div className="text-xs text-neutral-300">
           Type: {item.type}<br/>
+          {(item as any).blockType && <>Block: {(item as any).blockType}<br/></>}
           ID: {item.id}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Block Inspector for configuring block-specific properties
+function BlockInspector({
+  item,
+  onChange,
+}: {
+  item: any;
+  onChange: (updates: Partial<Item>) => void;
+}) {
+  const config = item.config || {};
+
+  const updateConfig = (configUpdates: any) => {
+    onChange({
+      config: { ...config, ...configUpdates }
+    });
+  };
+
+  switch (item.blockType) {
+    case 'hero':
+      return (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">Hero Configuration</div>
+          <div className="space-y-2 text-xs">
+            <div>
+              <label className="text-neutral-400">Title</label>
+              <input
+                type="text"
+                value={config.title || ''}
+                onChange={(e) => updateConfig({ title: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Subtitle</label>
+              <input
+                type="text"
+                value={config.subtitle || ''}
+                onChange={(e) => updateConfig({ subtitle: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">CTA Text</label>
+              <input
+                type="text"
+                value={config.ctaText || ''}
+                onChange={(e) => updateConfig({ ctaText: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">CTA URL</label>
+              <input
+                type="url"
+                value={config.ctaUrl || ''}
+                onChange={(e) => updateConfig({ ctaUrl: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'media_grid':
+      return (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">Media Grid Configuration</div>
+          <div className="space-y-2 text-xs">
+            <div>
+              <label className="text-neutral-400">Columns</label>
+              <input
+                type="number"
+                min="1"
+                max="6"
+                value={config.columns || 3}
+                onChange={(e) => updateConfig({ columns: parseInt(e.target.value) || 3 })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Rows</label>
+              <input
+                type="number"
+                min="1"
+                max="4"
+                value={config.rows || 2}
+                onChange={(e) => updateConfig({ rows: parseInt(e.target.value) || 2 })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Gap (px)</label>
+              <input
+                type="number"
+                min="0"
+                value={config.gap || 16}
+                onChange={(e) => updateConfig({ gap: parseInt(e.target.value) || 16 })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'cta':
+      return (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">CTA Configuration</div>
+          <div className="space-y-2 text-xs">
+            <div>
+              <label className="text-neutral-400">Title</label>
+              <input
+                type="text"
+                value={config.title || ''}
+                onChange={(e) => updateConfig({ title: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Description</label>
+              <textarea
+                value={config.description || ''}
+                onChange={(e) => updateConfig({ description: e.target.value })}
+                rows={2}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Button Text</label>
+              <input
+                type="text"
+                value={config.buttonText || ''}
+                onChange={(e) => updateConfig({ buttonText: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Button URL</label>
+              <input
+                type="url"
+                value={config.buttonUrl || ''}
+                onChange={(e) => updateConfig({ buttonUrl: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'text_section':
+      return (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">Text Section Configuration</div>
+          <div className="space-y-2 text-xs">
+            <div>
+              <label className="text-neutral-400">Title</label>
+              <input
+                type="text"
+                value={config.title || ''}
+                onChange={(e) => updateConfig({ title: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Content</label>
+              <textarea
+                value={config.content || ''}
+                onChange={(e) => updateConfig({ content: e.target.value })}
+                rows={4}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Text Alignment</label>
+              <select
+                value={config.textAlignment || 'left'}
+                onChange={(e) => updateConfig({ textAlignment: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'footer':
+      return (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">Footer Configuration</div>
+          <div className="space-y-2 text-xs">
+            <div>
+              <label className="text-neutral-400">Copyright</label>
+              <input
+                type="text"
+                value={config.copyright || ''}
+                onChange={(e) => updateConfig({ copyright: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Links (JSON)</label>
+              <textarea
+                value={JSON.stringify(config.links || [], null, 2)}
+                onChange={(e) => {
+                  try {
+                    const links = JSON.parse(e.target.value);
+                    updateConfig({ links });
+                  } catch {}
+                }}
+                rows={3}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200 font-mono"
+                placeholder='[{"text": "Privacy", "url": "#"}]'
+              />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'spacer':
+      return (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">Spacer Configuration</div>
+          <div className="space-y-2 text-xs">
+            <div>
+              <label className="text-neutral-400">Height (px)</label>
+              <input
+                type="number"
+                min="20"
+                value={config.height || 80}
+                onChange={(e) => updateConfig({ height: parseInt(e.target.value) || 80 })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="text-neutral-400">Background Color</label>
+              <input
+                type="text"
+                value={config.backgroundColor || 'transparent'}
+                onChange={(e) => updateConfig({ backgroundColor: e.target.value })}
+                className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+                placeholder="transparent, #ff0000, etc."
+              />
+            </div>
+          </div>
+        </div>
+      );
+
+    default:
+      return (
+        <div>
+          <div className="text-xs text-neutral-400 mb-1">Block Configuration</div>
+          <div className="text-xs text-neutral-500">No configuration available for {item.blockType}</div>
+        </div>
+      );
+  }
+}
+
+// Image Upload Section with S3 integration
+function ImageUploadSection({
+  imageUrl,
+  onImageChange,
+}: {
+  imageUrl: string;
+  onImageChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [showImageLibrary, setShowImageLibrary] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      alert('Image file size must be less than 10MB.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'image');
+      formData.append('directory', 'layout-images');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.url) {
+        onImageChange(result.url);
+      } else {
+        throw new Error('No URL returned from upload');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="text-xs text-neutral-400 mb-1">Image</div>
+
+      {/* Current image preview */}
+      {imageUrl && (
+        <div className="mb-2 relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt="Preview"
+            className="w-full h-24 object-cover rounded border border-neutral-700"
+          />
+          <button
+            onClick={() => onImageChange('')}
+            className="absolute top-1 right-1 w-5 h-5 bg-red-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700"
+            title="Remove image"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Upload options */}
+      <div className="space-y-2">
+        {/* File upload */}
+        <label className="block">
+          <div className={`w-full px-3 py-2 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+            uploading
+              ? 'border-blue-400 bg-blue-50/10 text-blue-400'
+              : 'border-neutral-600 hover:border-neutral-500 text-neutral-400 hover:text-neutral-300'
+          }`}>
+            {uploading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs">Uploading...</span>
+              </div>
+            ) : (
+              <div>
+                <div className="text-lg mb-1">📁</div>
+                <div className="text-xs">Click to upload image</div>
+                <div className="text-xs text-neutral-500 mt-1">Max 10MB • JPG, PNG, GIF, WebP</div>
+              </div>
+            )}
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                handleFileUpload(file);
+              }
+            }}
+            disabled={uploading}
+          />
+        </label>
+
+        {/* URL input */}
+        <div>
+          <input
+            type="url"
+            value={imageUrl}
+            onChange={(e) => onImageChange(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200 text-xs"
+          />
+          <div className="text-xs text-neutral-500 mt-1">
+            Or paste an image URL
+          </div>
+        </div>
+
+        {/* Image library button */}
+        <button
+          onClick={() => setShowImageLibrary(true)}
+          className="w-full px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 text-neutral-300"
+        >
+          Browse Image Library
+        </button>
+      </div>
+
+      {/* Image Library Modal */}
+      {showImageLibrary && (
+        <ImageLibraryModal
+          onSelect={(url) => {
+            onImageChange(url);
+            setShowImageLibrary(false);
+          }}
+          onClose={() => setShowImageLibrary(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Image Library Modal for browsing existing images
+function ImageLibraryModal({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (url: string) => void;
+  onClose: () => void;
+}) {
+  const [images, setImages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const response = await fetch('/api/media-assets?media_type=image&limit=50');
+        if (response.ok) {
+          const data = await response.json();
+          setImages(data.assets || []);
+        }
+      } catch (error) {
+        console.error('Failed to load images:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadImages();
+  }, []);
+
+  const filteredImages = images.filter(img =>
+    img.title?.toLowerCase().includes(search.toLowerCase()) ||
+    img.filename?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-neutral-900 rounded-lg border border-neutral-700 w-full max-w-4xl max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-neutral-700 flex items-center justify-between">
+          <h3 className="text-lg font-medium text-neutral-100">Image Library</h3>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-200"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="p-4 border-b border-neutral-700">
+          <input
+            type="text"
+            placeholder="Search images..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-3 py-2 bg-neutral-800 rounded border border-neutral-600 text-neutral-100"
+          />
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto p-4">
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-neutral-400">Loading images...</div>
+            </div>
+          ) : filteredImages.length === 0 ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-neutral-500">
+                {search ? 'No images found matching your search' : 'No images found'}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredImages.map((img) => (
+                <button
+                  key={img.id}
+                  onClick={() => onSelect(img.cloudflare_url || img.s3_url)}
+                  className="aspect-square rounded border border-neutral-600 hover:border-neutral-500 overflow-hidden group"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.cloudflare_url || img.s3_url}
+                    alt={img.title || img.filename}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
+                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
+                    <div className="text-xs text-white truncate">
+                      {img.title || img.filename}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper functions for block creation
+function getBlockSize(blockType: string, cellSize: number): { w: number; h: number } {
+  switch (blockType) {
+    case 'hero':
+      return { w: Math.max(20, Math.round(800 / cellSize)), h: Math.max(8, Math.round(400 / cellSize)) };
+    case 'media_grid':
+      return { w: Math.max(15, Math.round(600 / cellSize)), h: Math.max(12, Math.round(480 / cellSize)) };
+    case 'cta':
+      return { w: Math.max(8, Math.round(320 / cellSize)), h: Math.max(4, Math.round(160 / cellSize)) };
+    case 'footer':
+      return { w: Math.max(20, Math.round(800 / cellSize)), h: Math.max(3, Math.round(120 / cellSize)) };
+    case 'text_section':
+      return { w: Math.max(12, Math.round(480 / cellSize)), h: Math.max(6, Math.round(240 / cellSize)) };
+    case 'spacer':
+      return { w: Math.max(4, Math.round(160 / cellSize)), h: Math.max(2, Math.round(80 / cellSize)) };
+    case 'inline_text':
+      return { w: Math.max(6, Math.round(240 / cellSize)), h: Math.max(3, Math.round(120 / cellSize)) };
+    case 'inline_image':
+      return { w: Math.max(6, Math.round(240 / cellSize)), h: Math.max(6, Math.round(240 / cellSize)) };
+    default:
+      return { w: 4, h: 3 };
+  }
+}
+
+function createBlockItem(
+  blockType: string,
+  id: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  cellSize: number,
+  design: { width: number; height: number }
+): Item {
+  const baseItem = {
+    id,
+    x, y, w, h,
+    nx: (x * cellSize) / design.width,
+    ny: (y * cellSize) / design.height,
+    nw: (w * cellSize) / design.width,
+    nh: (h * cellSize) / design.height,
+  };
+
+  switch (blockType) {
+    case 'hero':
+      return {
+        ...baseItem,
+        type: 'block',
+        blockType: 'hero',
+        config: {
+          title: 'Hero Title',
+          subtitle: 'Hero subtitle text goes here',
+          ctaText: 'Get Started',
+          ctaUrl: '#',
+          backgroundImage: '',
+          textAlignment: 'center'
+        }
+      } as any;
+
+    case 'media_grid':
+      return {
+        ...baseItem,
+        type: 'block',
+        blockType: 'media_grid',
+        config: {
+          columns: 3,
+          rows: 2,
+          gap: 16,
+          items: []
+        }
+      } as any;
+
+    case 'cta':
+      return {
+        ...baseItem,
+        type: 'block',
+        blockType: 'cta',
+        config: {
+          title: 'Call to Action',
+          description: 'Compelling description here',
+          buttonText: 'Click Here',
+          buttonUrl: '#',
+          style: 'primary'
+        }
+      } as any;
+
+    case 'footer':
+      return {
+        ...baseItem,
+        type: 'block',
+        blockType: 'footer',
+        config: {
+          copyright: '© 2024 Your Company',
+          links: [
+            { text: 'Privacy', url: '#' },
+            { text: 'Terms', url: '#' },
+            { text: 'Contact', url: '#' }
+          ]
+        }
+      } as any;
+
+    case 'text_section':
+      return {
+        ...baseItem,
+        type: 'block',
+        blockType: 'text_section',
+        config: {
+          title: 'Section Title',
+          content: 'Your content goes here. This is a text section block that can contain rich text content.',
+          textAlignment: 'left'
+        }
+      } as any;
+
+    case 'spacer':
+      return {
+        ...baseItem,
+        type: 'block',
+        blockType: 'spacer',
+        config: {
+          height: h * cellSize,
+          backgroundColor: 'transparent'
+        }
+      } as any;
+
+    case 'inline_text':
+      return {
+        ...baseItem,
+        type: 'inline_text',
+        inlineContent: { text: 'Edit me' }
+      } as any;
+
+    case 'inline_image':
+      return {
+        ...baseItem,
+        type: 'inline_image',
+        inlineContent: { imageUrl: '', alt: 'Image' }
+      } as any;
+
+    default:
+      return baseItem as any;
+  }
+}
+
+// Block Library component
+function BlockLibrary({ onAddBlock }: { onAddBlock: (blockType: any) => void }) {
+  const blocks = [
+    { type: 'inline_text', name: 'Text', icon: 'T', description: 'Simple text block' },
+    { type: 'inline_image', name: 'Image', icon: '🖼️', description: 'Image block' },
+    { type: 'hero', name: 'Hero', icon: '🏆', description: 'Hero section with title, subtitle, and CTA' },
+    { type: 'media_grid', name: 'Media Grid', icon: '⊞', description: 'Grid of media items' },
+    { type: 'text_section', name: 'Text Section', icon: '📄', description: 'Rich text content section' },
+    { type: 'cta', name: 'CTA', icon: '🎯', description: 'Call-to-action block' },
+    { type: 'footer', name: 'Footer', icon: '⬇️', description: 'Footer with links and copyright' },
+    { type: 'spacer', name: 'Spacer', icon: '⬜', description: 'Empty spacing block' }
+  ];
+
+  return (
+    <div>
+      <div className="text-xs text-neutral-400 mb-2">Block Library</div>
+      <div className="grid grid-cols-2 gap-2">
+        {blocks.map(block => (
+          <button
+            key={block.type}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAddBlock(block.type);
+            }}
+            className="p-2 text-left rounded border border-neutral-700 hover:border-neutral-600 hover:bg-neutral-800/50 transition-colors"
+            title={block.description}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{block.icon}</span>
+              <div>
+                <div className="text-xs font-medium text-neutral-200">{block.name}</div>
+                <div className="text-xs text-neutral-500 line-clamp-1">{block.description}</div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Alignment guides component that shows visual snap lines
+function AlignmentGuides({
+  items,
+  selectedIds,
+  cellSize,
+  designSize,
+}: {
+  items: Item[];
+  selectedIds: Set<string>;
+  cellSize: number;
+  designSize: { width: number; height: number };
+}) {
+  const selectedItems = items.filter(item => selectedIds.has(item.id));
+  const otherItems = items.filter(item => !selectedIds.has(item.id));
+
+  if (selectedItems.length === 0) return null;
+
+  const guides: Array<{ type: 'vertical' | 'horizontal'; position: number; color: string }> = [];
+
+  // Add guides for other items that align with selected items
+  selectedItems.forEach(selectedItem => {
+    const selectedLeft = (selectedItem.x || 0) * cellSize;
+    const selectedRight = ((selectedItem.x || 0) + (selectedItem.w || 1)) * cellSize;
+    const selectedTop = (selectedItem.y || 0) * cellSize;
+    const selectedBottom = ((selectedItem.y || 0) + (selectedItem.h || 1)) * cellSize;
+    const selectedCenterX = selectedLeft + ((selectedItem.w || 1) * cellSize) / 2;
+    const selectedCenterY = selectedTop + ((selectedItem.h || 1) * cellSize) / 2;
+
+    otherItems.forEach(otherItem => {
+      const otherLeft = (otherItem.x || 0) * cellSize;
+      const otherRight = ((otherItem.x || 0) + (otherItem.w || 1)) * cellSize;
+      const otherTop = (otherItem.y || 0) * cellSize;
+      const otherBottom = ((otherItem.y || 0) + (otherItem.h || 1)) * cellSize;
+      const otherCenterX = otherLeft + ((otherItem.w || 1) * cellSize) / 2;
+      const otherCenterY = otherTop + ((otherItem.h || 1) * cellSize) / 2;
+
+      // Vertical alignment guides
+      if (Math.abs(selectedLeft - otherLeft) < 2) {
+        guides.push({ type: 'vertical', position: selectedLeft, color: 'rgba(59, 130, 246, 0.6)' });
+      }
+      if (Math.abs(selectedRight - otherRight) < 2) {
+        guides.push({ type: 'vertical', position: selectedRight, color: 'rgba(59, 130, 246, 0.6)' });
+      }
+      if (Math.abs(selectedCenterX - otherCenterX) < 2) {
+        guides.push({ type: 'vertical', position: selectedCenterX, color: 'rgba(59, 130, 246, 0.8)' });
+      }
+
+      // Horizontal alignment guides
+      if (Math.abs(selectedTop - otherTop) < 2) {
+        guides.push({ type: 'horizontal', position: selectedTop, color: 'rgba(59, 130, 246, 0.6)' });
+      }
+      if (Math.abs(selectedBottom - otherBottom) < 2) {
+        guides.push({ type: 'horizontal', position: selectedBottom, color: 'rgba(59, 130, 246, 0.6)' });
+      }
+      if (Math.abs(selectedCenterY - otherCenterY) < 2) {
+        guides.push({ type: 'horizontal', position: selectedCenterY, color: 'rgba(59, 130, 246, 0.8)' });
+      }
+    });
+  });
+
+  // Remove duplicate guides
+  const uniqueGuides = guides.filter((guide, index, arr) =>
+    arr.findIndex(g => g.type === guide.type && Math.abs(g.position - guide.position) < 1) === index
+  );
+
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {uniqueGuides.map((guide, index) => (
+        <div
+          key={index}
+          className="absolute"
+          style={{
+            ...(guide.type === 'vertical' ? {
+              left: guide.position,
+              top: 0,
+              bottom: 0,
+              width: 1,
+              borderLeft: `1px dashed ${guide.color}`,
+            } : {
+              top: guide.position,
+              left: 0,
+              right: 0,
+              height: 1,
+              borderTop: `1px dashed ${guide.color}`,
+            })
+          }}
+        />
+      ))}
     </div>
   );
 }
