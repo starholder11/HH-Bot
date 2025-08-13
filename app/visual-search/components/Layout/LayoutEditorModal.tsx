@@ -482,6 +482,7 @@ export default function LayoutEditorModal({
       });
 
       // Enforce bounds again on the full set to avoid drift on right edge
+      // IMPORTANT: do not clamp Y using the base design height; use the current canvasHeight to prevent snap-up
       const normalized = normalizeAllItems(
         { ...prev, layout_data: { ...prev.layout_data, items: updatedItems } } as LayoutAsset,
         { width: design.width, height: canvasHeight }
@@ -796,13 +797,12 @@ export default function LayoutEditorModal({
               />
             )}
             <ReactGridLayout
-              key={`${currentBreakpoint}-${canvasHeight}`}
+              key={`rgl-${currentBreakpoint}`}
               className="layout"
               layout={rglLayout}
               cols={cols}
               rowHeight={rowHeight}
               width={design.width}
-              height={canvasHeight}
               margin={[0, 0]}
               containerPadding={[0, 0]}
               isDraggable
@@ -821,6 +821,14 @@ export default function LayoutEditorModal({
               onDragStop={(layout: any[], oldItem: any, newItem: any) => {
                 console.log('[LayoutEditor] onDragStop called with:', layout.length, 'items');
                 console.log('[LayoutEditor] onDragStop positions:', layout.map(l => ({ id: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
+                try {
+                  const maxBottomY = Math.max(0, ...layout.map(l => (l.y || 0) + (l.h || 0)));
+                  const currentRows = Math.floor(canvasHeight / rowHeight);
+                  if (maxBottomY >= currentRows - 2) {
+                    const newHeight = Math.max(canvasHeight, (maxBottomY + 5) * rowHeight);
+                    setCanvasHeight(newHeight);
+                  }
+                } catch {}
                 handleLayoutChange(layout);
                 // Ensure selection includes dragged item if none or different
                 if (!selectedIds.has(newItem?.i)) {
