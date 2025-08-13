@@ -109,12 +109,12 @@ export default function LayoutEditorModal({
     setEdited(prev => {
       const copies: Item[] = [];
       const nowSuffix = Date.now().toString(36);
-      for (const id of selectedIds) {
+      Array.from(selectedIds).forEach((id) => {
         const it = prev.layout_data.items.find(i => i.id === id);
-        if (!it) continue;
+        if (!it) return;
         const copy = { ...it, id: `${it.id}_copy_${nowSuffix}_${Math.random().toString(36).slice(2,5)}`, x: (it.x || 0) + 1, y: (it.y || 0) + 1 } as Item;
         copies.push(copy);
-      }
+      });
       const next = { ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, ...copies] }, updated_at: new Date().toISOString() } as LayoutAsset;
       // Select the new copies
       if (copies.length > 0) {

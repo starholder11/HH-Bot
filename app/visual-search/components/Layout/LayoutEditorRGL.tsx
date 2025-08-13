@@ -259,6 +259,58 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     });
   }, [selectedId]);
 
+  // Multi-select functions
+  const nudgeSelection = useCallback((dx: number, dy: number) => {
+    if (selectedIds.size === 0) return;
+    setEdited(prev => {
+      const cell = prev.layout_data.cellSize || 20;
+      const designSize = prev.layout_data.designSize || { width: 1200, height: 800 };
+      const gridCols = Math.floor(designSize.width / cell);
+      const gridRows = Math.floor(designSize.height / cell);
+      const items = prev.layout_data.items.map(it => {
+        if (!selectedIds.has(it.id)) return it;
+        const w = Math.max(1, it.w || 1);
+        const h = Math.max(1, it.h || 1);
+        const maxX = Math.max(0, gridCols - w);
+        const maxY = Math.max(0, gridRows - h);
+        const x = Math.max(0, Math.min((it.x || 0) + dx, maxX));
+        const y = Math.max(0, Math.min((it.y || 0) + dy, maxY));
+        const pxX = x * cell, pxY = y * cell, pxW = w * cell, pxH = h * cell;
+        return { ...it, x, y, nx: Math.max(0, Math.min(1, pxX / designSize.width)), ny: Math.max(0, Math.min(1, pxY / designSize.height)), nw: Math.max(0, Math.min(1, pxW / designSize.width)), nh: Math.max(0, Math.min(1, pxH / designSize.height)) } as Item;
+      });
+      return { ...prev, layout_data: { ...prev.layout_data, items }, updated_at: new Date().toISOString() } as LayoutAsset;
+    });
+  }, [selectedIds]);
+
+  const duplicateSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setEdited(prev => {
+      const copies: Item[] = [];
+      const nowSuffix = Date.now().toString(36);
+      Array.from(selectedIds).forEach((id) => {
+        const it = prev.layout_data.items.find(i => i.id === id);
+        if (!it) return;
+        copies.push({ ...it, id: `${it.id}_copy_${nowSuffix}_${Math.random().toString(36).slice(2,5)}`, x: (it.x || 0) + 1, y: (it.y || 0) + 1 } as Item);
+      });
+      const next = { ...prev, layout_data: { ...prev.layout_data, items: [...prev.layout_data.items, ...copies] }, updated_at: new Date().toISOString() } as LayoutAsset;
+      if (copies.length > 0) {
+        setSelectedIds(new Set(copies.map(c => c.id)));
+        setSelectedId(copies[copies.length - 1].id);
+      }
+      return next;
+    });
+  }, [selectedIds]);
+
+  const deleteSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setEdited(prev => {
+      const filtered = prev.layout_data.items.filter(i => !selectedIds.has(i.id));
+      return { ...prev, layout_data: { ...prev.layout_data, items: filtered }, updated_at: new Date().toISOString() } as LayoutAsset;
+    });
+    setSelectedId(null);
+    setSelectedIds(new Set());
+  }, [selectedIds]);
+
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const anySelected = selectedIds.size > 0 || !!selectedId;
