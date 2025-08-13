@@ -184,20 +184,30 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         <div className="drag-handle h-5 px-2 flex items-center text-[10px] uppercase tracking-wide bg-neutral-800/70 border-b border-neutral-800 select-none cursor-move">
           <span className="text-neutral-400">drag</span>
         </div>
-        
+
         {/* Content area - selection happens here directly */}
-        <div 
-          className="content-area relative" 
+        <div
+          className="content-area relative"
           style={{ minHeight: '40px' }}
           data-item-id={item.id}
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+
             const isToggle = e.metaKey || e.ctrlKey;
             const isRange = e.shiftKey && !!selectedId;
-            console.log('[LayoutEditorRGL] DIRECT onMouseDown', { id: item.id, isToggle, isRange, selectedId, before: Array.from(selectedIds) });
-            
+            console.log('[LayoutEditorRGL] DIRECT onMouseDown', {
+              id: item.id,
+              itemType: item.type,
+              isToggle,
+              isRange,
+              selectedId,
+              before: Array.from(selectedIds),
+              shiftKey: e.shiftKey,
+              metaKey: e.metaKey,
+              ctrlKey: e.ctrlKey
+            });
+
             if (isToggle) {
               setSelectedIds(prev => {
                 const next = new Set(prev);
@@ -211,7 +221,11 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   next.add(item.id);
                   setSelectedId(item.id);
                 }
-                console.log('[LayoutEditorRGL] DIRECT toggle -> after', Array.from(next));
+                console.log('[LayoutEditorRGL] DIRECT toggle -> after', {
+                  after: Array.from(next),
+                  selectedId: item.id,
+                  action: next.has(item.id) ? 'added' : 'removed'
+                });
                 return next;
               });
             } else if (isRange) {
@@ -234,7 +248,11 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               setSelectedId(item.id);
               const next = new Set([item.id]);
               setSelectedIds(next);
-              console.log('[LayoutEditorRGL] DIRECT single -> after', Array.from(next));
+                              console.log('[LayoutEditorRGL] DIRECT single -> after', {
+                  after: Array.from(next),
+                  selectedId: item.id,
+                  clearedPrevious: selectedIds.size > 0
+                });
             }
           }}
         >
@@ -478,9 +496,17 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         <div className="flex-1 min-h-0 flex">
           {/* Canvas */}
           <div className="flex-1 p-4 overflow-auto">
-                        <div 
-              className="mx-auto border border-neutral-800 rounded-lg" 
+                                    <div
+              className="mx-auto border border-neutral-800 rounded-lg"
               style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}
+              onClick={(e) => {
+                // Clear selection when clicking background (empty space)
+                if (e.target === e.currentTarget) {
+                  console.log('[LayoutEditorRGL] clicked background, clearing selection');
+                  setSelectedIds(new Set());
+                  setSelectedId(null);
+                }
+              }}
             >
               <ResponsiveGridLayout
                 className="layout"
@@ -502,41 +528,41 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 isBounded={true}
                 transformScale={1}
                 onDragStart={(currentLayout, oldItem, newItem) => {
-                  console.log('[LayoutEditorRGL] onDragStart', { 
-                    draggedItem: newItem?.i, 
+                  console.log('[LayoutEditorRGL] onDragStart', {
+                    draggedItem: newItem?.i,
                     selectedIds: Array.from(selectedIds),
                     isInSelection: newItem?.i ? selectedIds.has(newItem.i) : false
                   });
-                  
-                  // If dragging an item that's not in the current selection, select just this item
+
+                  // ONLY change selection if dragging an item that's NOT in the current selection
                   if (newItem?.i && !selectedIds.has(newItem.i)) {
                     setSelectedIds(new Set([newItem.i]));
                     setSelectedId(newItem.i);
                     console.log('[LayoutEditorRGL] drag item not selected, selecting only:', newItem.i);
                   }
-                  // If dragging an item that IS in selection, keep all selected items
+                  // If dragging an item that IS in selection, DON'T change selection - preserve multi-select
                   else if (newItem?.i && selectedIds.has(newItem.i)) {
-                    console.log('[LayoutEditorRGL] dragging selected item, will move all selected items');
+                    console.log('[LayoutEditorRGL] dragging selected item, preserving multi-selection of', selectedIds.size, 'items');
                   }
                 }}
                 onDragStop={(currentLayout, oldItem, newItem) => {
-                  console.log('[LayoutEditorRGL] onDragStop', { 
+                  console.log('[LayoutEditorRGL] onDragStop', {
                     draggedItem: newItem?.i,
                     oldPos: { x: oldItem?.x, y: oldItem?.y },
                     newPos: { x: newItem?.x, y: newItem?.y },
                     selectedIds: Array.from(selectedIds)
                   });
-                  
+
                   // Calculate the drag delta
                   const deltaX = (newItem?.x || 0) - (oldItem?.x || 0);
                   const deltaY = (newItem?.y || 0) - (oldItem?.y || 0);
-                  
+
                   console.log('[LayoutEditorRGL] drag delta:', { deltaX, deltaY });
-                  
+
                   // If multiple items are selected and we dragged one of them, move all selected items
                   if (selectedIds.size > 1 && newItem?.i && selectedIds.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
                     console.log('[LayoutEditorRGL] moving all selected items by delta');
-                    
+
                     const updatedLayout = currentLayout.map(layoutItem => {
                       // If this item is selected (but not the one we dragged), apply the same delta
                       if (selectedIds.has(layoutItem.i) && layoutItem.i !== newItem.i) {
@@ -548,7 +574,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                       }
                       return layoutItem;
                     });
-                    
+
                     handleLayoutChange(updatedLayout, { lg: updatedLayout });
                     console.log('[LayoutEditorRGL] applied bulk drag to selected items');
                   } else {
