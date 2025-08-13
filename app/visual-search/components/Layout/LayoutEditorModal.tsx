@@ -97,10 +97,11 @@ export default function LayoutEditorModal({
         }
         return item;
       });
-      
+      // Enforce bounds again on the full set to avoid drift on right edge
+      const normalized = normalizeAllItems({ ...prev, layout_data: { ...prev.layout_data, items: updatedItems } } as LayoutAsset);
+
       return {
-        ...prev,
-        layout_data: { ...prev.layout_data, items: updatedItems },
+        ...normalized,
         updated_at: new Date().toISOString()
       } as LayoutAsset;
     });
@@ -132,18 +133,21 @@ export default function LayoutEditorModal({
         console.error('[LayoutEditor] Save failed:', res.status, errorText);
         throw new Error(`Failed to save layout: ${res.status} ${errorText}`);
       }
+      // Re-fetch fresh copy from API to ensure persistence and kill any stale state
+      const fresh = await fetch(`/api/media-assets/${toSave.id}?ts=${Date.now()}`, { cache: 'no-store' });
+      if (!fresh.ok) {
+        console.warn('[LayoutEditor] Fresh fetch after save failed, using local copy');
+      }
+      const data = fresh.ok ? await fresh.json() : { asset: toSave };
+      const savedAsset = (data.asset || toSave) as LayoutAsset;
+      console.log('[LayoutEditor] Save successful, state synced to fresh copy');
 
-            const data = await res.json();
-      console.log('[LayoutEditor] Save successful');
-      
-      // CRITICAL: Update the edited state to reflect the saved version immediately
-      const savedAsset = data.asset as LayoutAsset;
       setEdited(savedAsset);
-      
+
       // Clear any editing states
       setIsEditingText(false);
       setDraftText('');
-      
+
       // Trigger refresh and notify parent with the saved asset
       try { window.dispatchEvent(new Event('layouts:refresh')); } catch {}
       onSaved?.(savedAsset);
@@ -270,7 +274,7 @@ export default function LayoutEditorModal({
 function updateItemPosition(item: Item, x: number, y: number, w: number, h: number, layoutData: LayoutAsset['layout_data']): Item {
   const cellSize = layoutData.cellSize || 20;
   const design = layoutData.designSize || { width: 1200, height: 800 };
-  
+
   // Clamp to bounds to keep items inside canvas - use exact grid calculation
   const gridCols = Math.floor(design.width / cellSize);
   const gridRows = Math.floor(design.height / cellSize);
@@ -334,7 +338,7 @@ function normalizeAllItems(layout: LayoutAsset): LayoutAsset {
   const design = layout.layout_data.designSize || { width: 1200, height: 800 };
   const gridCols = Math.floor(design.width / cellSize);
   const gridRows = Math.floor(design.height / cellSize);
-  
+
   const items = layout.layout_data.items.map(it => {
     // Ensure grid positions are within bounds
     const clampedX = Math.max(0, Math.min(it.x || 0, gridCols - (it.w || 1)));
@@ -484,12 +488,12 @@ function useCommands(
     const id = `inline_${Date.now().toString(36)}`;
     const cellSize = edited.layout_data.cellSize || 20;
     const design = edited.layout_data.designSize || { width: 1200, height: 800 };
-    
+
     // Find a good position that doesn't overlap
     const existingItems = edited.layout_data.items;
     let x = 0, y = 0;
     let foundSpot = false;
-    
+
     // Simple placement algorithm: try positions until we find one that doesn't overlap
     for (let tryY = 0; tryY < 10 && !foundSpot; tryY++) {
       for (let tryX = 0; tryX < 10 && !foundSpot; tryX++) {
@@ -497,18 +501,18 @@ function useCommands(
         const testY = tryY * 2;
         const testW = Math.max(6, Math.round(400 / cellSize));
         const testH = Math.max(3, Math.round(120 / cellSize));
-        
+
         // Check if this position overlaps with existing items
         const overlaps = existingItems.some(item => {
           const itemX = item.x || 0;
           const itemY = item.y || 0;
           const itemW = item.w || 1;
           const itemH = item.h || 1;
-          
-          return !(testX + testW <= itemX || testX >= itemX + itemW || 
+
+          return !(testX + testW <= itemX || testX >= itemX + itemW ||
                    testY + testH <= itemY || testY >= itemY + itemH);
         });
-        
+
         if (!overlaps) {
           x = testX;
           y = testY;
@@ -516,40 +520,40 @@ function useCommands(
         }
       }
     }
-    
+
     const newItem: Item = {
       id,
       type: 'inline_text',
-      x, y, 
-      w: Math.max(6, Math.round(400 / cellSize)), 
+      x, y,
+      w: Math.max(6, Math.round(400 / cellSize)),
       h: Math.max(3, Math.round(120 / cellSize)),
-      nx: (x * cellSize) / design.width, 
-      ny: (y * cellSize) / design.height, 
-      nw: (Math.max(6, Math.round(400 / cellSize)) * cellSize) / design.width, 
+      nx: (x * cellSize) / design.width,
+      ny: (y * cellSize) / design.height,
+      nw: (Math.max(6, Math.round(400 / cellSize)) * cellSize) / design.width,
       nh: (Math.max(3, Math.round(120 / cellSize)) * cellSize) / design.height,
       inlineContent: { text: 'Edit me' },
     } as any;
-    
-    setEdited(prev => ({ 
-      ...prev, 
-      layout_data: { 
-        ...prev.layout_data, 
-        items: [...prev.layout_data.items, newItem] 
-      }, 
-      updated_at: new Date().toISOString() 
+
+    setEdited(prev => ({
+      ...prev,
+      layout_data: {
+        ...prev.layout_data,
+        items: [...prev.layout_data.items, newItem]
+      },
+      updated_at: new Date().toISOString()
     } as LayoutAsset));
   }
-  
+
   function addImageBlock() {
     const id = `inline_img_${Date.now().toString(36)}`;
     const cellSize = edited.layout_data.cellSize || 20;
     const design = edited.layout_data.designSize || { width: 1200, height: 800 };
-    
+
     // Find a good position that doesn't overlap
     const existingItems = edited.layout_data.items;
     let x = 0, y = 0;
     let foundSpot = false;
-    
+
     // Simple placement algorithm: try positions until we find one that doesn't overlap
     for (let tryY = 0; tryY < 10 && !foundSpot; tryY++) {
       for (let tryX = 0; tryX < 10 && !foundSpot; tryX++) {
@@ -557,18 +561,18 @@ function useCommands(
         const testY = tryY * 2;
         const testW = Math.max(4, Math.round(300 / cellSize));
         const testH = Math.max(4, Math.round(200 / cellSize));
-        
+
         // Check if this position overlaps with existing items
         const overlaps = existingItems.some(item => {
           const itemX = item.x || 0;
           const itemY = item.y || 0;
           const itemW = item.w || 1;
           const itemH = item.h || 1;
-          
-          return !(testX + testW <= itemX || testX >= itemX + itemW || 
+
+          return !(testX + testW <= itemX || testX >= itemX + itemW ||
                    testY + testH <= itemY || testY >= itemY + itemH);
         });
-        
+
         if (!overlaps) {
           x = testX;
           y = testY;
@@ -576,27 +580,27 @@ function useCommands(
         }
       }
     }
-    
+
     const newItem: Item = {
       id,
       type: 'inline_image',
       x, y,
-      w: Math.max(4, Math.round(300 / cellSize)), 
+      w: Math.max(4, Math.round(300 / cellSize)),
       h: Math.max(4, Math.round(200 / cellSize)),
-      nx: (x * cellSize) / design.width, 
-      ny: (y * cellSize) / design.height, 
-      nw: (Math.max(4, Math.round(300 / cellSize)) * cellSize) / design.width, 
+      nx: (x * cellSize) / design.width,
+      ny: (y * cellSize) / design.height,
+      nw: (Math.max(4, Math.round(300 / cellSize)) * cellSize) / design.width,
       nh: (Math.max(4, Math.round(200 / cellSize)) * cellSize) / design.height,
       inlineContent: { imageUrl: '', alt: 'Image' },
     } as any;
-    
-    setEdited(prev => ({ 
-      ...prev, 
-      layout_data: { 
-        ...prev.layout_data, 
-        items: [...prev.layout_data.items, newItem] 
-      }, 
-      updated_at: new Date().toISOString() 
+
+    setEdited(prev => ({
+      ...prev,
+      layout_data: {
+        ...prev.layout_data,
+        items: [...prev.layout_data.items, newItem]
+      },
+      updated_at: new Date().toISOString()
     } as LayoutAsset));
   }
   function duplicateSelected() {
@@ -617,14 +621,11 @@ function useCommands(
     setDraftText('');
 
     // Then update the layout
-    setEdited(prev => ({
-      ...prev,
-      layout_data: {
-        ...prev.layout_data,
-        items: prev.layout_data.items.filter(i => i.id !== selectedId)
-      },
-      updated_at: new Date().toISOString()
-    } as LayoutAsset));
+    setEdited(prev => {
+      const filtered = prev.layout_data.items.filter(i => i.id !== selectedId);
+      const normalized = normalizeAllItems({ ...prev, layout_data: { ...prev.layout_data, items: filtered } } as LayoutAsset);
+      return { ...normalized, updated_at: new Date().toISOString() } as LayoutAsset;
+    });
   }
   return { addTextBlock, addImageBlock, duplicateSelected, deleteSelected };
 }
