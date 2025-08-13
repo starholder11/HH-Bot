@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { LayoutAsset } from '@/app/visual-search/types';
 
 const ReactGridLayout = dynamic(() => import('react-grid-layout'), { ssr: false }) as any;
@@ -40,13 +40,16 @@ export default function LayoutEditorModal({
   });
 
   const design = designSizes[currentBreakpoint];
-  
+
   // Track the actual rendered canvas height (can be larger than base design height)
   const [canvasHeight, setCanvasHeight] = useState(design.height);
-  
+  const scrollWrapRef = useRef<HTMLDivElement | null>(null);
+  const prevHeightRef = useRef<number>(design.height);
+
   // Reset canvas height when switching breakpoints
   useEffect(() => {
     setCanvasHeight(design.height);
+    prevHeightRef.current = design.height;
   }, [currentBreakpoint, design.height]);
 
   // Create dynamic CSS for canvas height to override any CSS conflicts
@@ -64,6 +67,23 @@ export default function LayoutEditorModal({
         min-height: ${canvasHeight}px !important;
       }
     `;
+  }, [canvasHeight]);
+
+  // Auto-scroll the canvas wrapper when height increases so changes are visible
+  useEffect(() => {
+    if (canvasHeight > prevHeightRef.current) {
+      prevHeightRef.current = canvasHeight;
+      const el = scrollWrapRef.current;
+      if (el) {
+        try {
+          el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+        } catch {
+          el.scrollTop = el.scrollHeight;
+        }
+      }
+    } else {
+      prevHeightRef.current = canvasHeight;
+    }
   }, [canvasHeight]);
   const cols = Math.max(1, Math.floor(design.width / cellSize));
   const rowHeight = cellSize;
@@ -447,7 +467,7 @@ export default function LayoutEditorModal({
     try {
       const maxBottomY = Math.max(0, ...newLayout.map(l => (l.y || 0) + (l.h || 0)));
       const currentRows = Math.floor(canvasHeight / rowHeight);
-      
+
       // If any item is in the last 2 rows, extend canvas by 5 rows
       if (maxBottomY >= currentRows - 2) {
         const newHeight = Math.max(canvasHeight, (maxBottomY + 5) * rowHeight);
@@ -762,7 +782,7 @@ export default function LayoutEditorModal({
         </div>
 
         {/* Canvas area */}
-        <div className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
+        <div ref={scrollWrapRef} className="absolute top-14 bottom-0 inset-x-0 p-4 overflow-auto">
           <div
             className="mx-auto border border-neutral-800 bg-neutral-900 relative dynamic-canvas-container"
             style={{ width: design.width }}
@@ -851,7 +871,7 @@ export default function LayoutEditorModal({
                 try {
                   const maxBottomY = Math.max(0, ...layout.map(l => (l.y || 0) + (l.h || 0)));
                   const currentRows = Math.floor(canvasHeight / rowHeight);
-                  
+
                   // If dragging near bottom, extend canvas immediately
                   if (maxBottomY >= currentRows - 2) {
                     const newHeight = Math.max(canvasHeight, (maxBottomY + 5) * rowHeight);
@@ -2605,7 +2625,7 @@ function LayoutManagementDropdown({
 async function duplicateLayout(originalLayout: LayoutAsset): Promise<LayoutAsset> {
   const now = new Date().toISOString();
   const duplicateId = `layout_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-  
+
   const duplicate: LayoutAsset = {
     ...originalLayout,
     id: duplicateId,
@@ -2653,7 +2673,7 @@ async function createVersion(originalLayout: LayoutAsset): Promise<LayoutAsset> 
   const now = new Date().toISOString();
   const versionNumber = await getNextVersionNumber(originalLayout.title);
   const versionId = `layout_${Date.now().toString(36)}_v${versionNumber}`;
-  
+
   const version: LayoutAsset = {
     ...originalLayout,
     id: versionId,
@@ -2691,7 +2711,7 @@ async function createVersion(originalLayout: LayoutAsset): Promise<LayoutAsset> 
 async function saveAsTemplate(originalLayout: LayoutAsset): Promise<LayoutAsset> {
   const now = new Date().toISOString();
   const templateId = `template_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-  
+
   const template: LayoutAsset = {
     ...originalLayout,
     id: templateId,
@@ -2725,8 +2745,8 @@ async function saveAsTemplate(originalLayout: LayoutAsset): Promise<LayoutAsset>
         }
         // Keep inline content but make it generic
         if (cleanItem.type === 'inline_text' && cleanItem.inlineContent?.text) {
-          cleanItem.inlineContent.text = cleanItem.inlineContent.text.includes('Template') 
-            ? cleanItem.inlineContent.text 
+          cleanItem.inlineContent.text = cleanItem.inlineContent.text.includes('Template')
+            ? cleanItem.inlineContent.text
             : 'Template text content';
         }
         if (cleanItem.type === 'inline_image' && cleanItem.inlineContent?.imageUrl) {
@@ -2757,10 +2777,10 @@ async function getNextVersionNumber(baseTitle: string): Promise<number> {
     // Search for existing versions
     const response = await fetch('/api/media-assets?media_type=layout&limit=100');
     if (!response.ok) return 1;
-    
+
     const data = await response.json();
     const layouts = data.assets || [];
-    
+
     // Find existing versions of this layout
     const versionPattern = new RegExp(`^${baseTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} v(\\d+)$`);
     const versions = layouts
@@ -2769,7 +2789,7 @@ async function getNextVersionNumber(baseTitle: string): Promise<number> {
         return match ? parseInt(match[1]) : 0;
       })
       .filter((v: number) => v > 0);
-    
+
     return versions.length > 0 ? Math.max(...versions) + 1 : 1;
   } catch {
     return 1;
