@@ -8,18 +8,13 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('[layouts] Fetching all layout assets...');
+    console.log('[layouts] Fetching layout assets...');
 
-    // Load all layout assets to avoid pagination skipping new entries
-    // The underlying storage will iterate keys and filter by media_type: 'layout'
-    const result = await listMediaAssets('layout', { loadAll: true });
+    let layouts: any[] = [];
 
-    let layouts = result.assets;
-
-    // If none found, try layouts index as a fallback (fast path)
-    if (!layouts.length) {
-      try {
-        const idx = await readJsonFromS3('layouts/index.json');
+    // Try fast path first: use layouts index for instant results
+    try {
+      const idx = await readJsonFromS3('layouts/index.json');
         if (idx && Array.isArray(idx.items) && idx.items.length) {
           // Fetch by IDs listed in index
           const s3 = getS3Client();
@@ -38,7 +33,15 @@ export async function GET(request: NextRequest) {
           }
           layouts = fetched.filter(a => a.media_type === 'layout');
         }
-      } catch {}
+    } catch (error) {
+      console.log('[layouts] Index not found, falling back to S3 scan...');
+    }
+
+    // If fast path failed, fall back to slower S3 scan (paginated)
+    if (!layouts.length) {
+      console.log('[layouts] Using S3 scan fallback...');
+      const result = await listMediaAssets('layout', { page: 1, limit: 100 });
+      layouts = result.assets;
     }
 
     console.log(`[layouts] Returning ${layouts.length} layout assets`);

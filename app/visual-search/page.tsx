@@ -15,7 +15,7 @@ import DetailsOverlay from './components/DetailsOverlay';
 const CanvasBoard = dynamic(() => import('./components/Canvas/CanvasBoardRGL'), {
   ssr: false,
   loading: () => (
-    <div className="relative w-full h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden flex items-center justify-center">
+    <div className="relative w-full min-h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden flex items-center justify-center">
       <div className="text-neutral-400">Loading canvas...</div>
     </div>
   )
@@ -1118,7 +1118,7 @@ function RightPane({
             exportAsLayout={exportAsLayout}
           />
           {/* Only RGL canvas now - no grid/freeform toggle */}
-          <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 h-[640px]">
+          <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 min-h-[640px] h-auto">
             {pinned.length === 0 ? (
               <div className="h-full flex items-center justify-center text-neutral-500 text-sm">Pin results here to build a visual board.</div>
             ) : (
@@ -1162,7 +1162,7 @@ function RightPane({
       ) : tab === 'output' ? (
         <div className="mt-3 space-y-3">
           {genLoading ? (
-            <div className="h-[640px] w-full flex items-center justify-center rounded-xl border border-neutral-800 bg-neutral-950">
+            <div className="min-h-[640px] h-auto w-full flex items-center justify-center rounded-xl border border-neutral-800 bg-neutral-950">
               <div className="flex items-center gap-3 text-neutral-300">
                 <div className="w-5 h-5 border-2 border-neutral-600 border-t-white rounded-full animate-spin" />
                 Generating…
@@ -1171,10 +1171,10 @@ function RightPane({
           ) : (
             <div className="rounded-xl border border-neutral-800 p-3 bg-neutral-900/40">
               {genUrl && genMode === 'image' && (
-                <img src={genUrl} className="w-full max-h-[640px] object-contain rounded-md border border-neutral-800 bg-black" alt="output" />
+                <img src={genUrl} className="w-full h-auto object-contain rounded-md border border-neutral-800 bg-black" alt="output" />
               )}
               {genUrl && genMode === 'video' && (
-                <video src={genUrl} controls className="w-full max-h-[640px] rounded-md border border-neutral-800 bg-black" />
+                <video src={genUrl} controls className="w-full h-auto rounded-md border border-neutral-800 bg-black" />
               )}
               {genUrl && genMode === 'audio' && (
                 <div className="p-4">

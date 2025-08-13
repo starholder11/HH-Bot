@@ -1055,7 +1055,7 @@ export default function LayoutEditorModal({
           </div>
 
           {/* Right inspector */}
-          <div className="w-72 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-3 space-y-3 min-h-screen">
+          <div className="w-72 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-3 space-y-3 min-h-screen fixed right-0 top-14 z-50 overflow-y-auto">
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-300 font-medium">Inspector</div>
             <div className="flex gap-1">

@@ -119,7 +119,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const renderItem = useCallback((item: Item) => {
     // Common wrapper styles for all content types - no padding, full fill
     // NOTE: Do NOT set background or text colors here so items inherit layout styling
-    const wrapperClass = "w-full h-full overflow-hidden flex items-center justify-center";
+    const wrapperClass = "w-full h-full overflow-visible flex items-center justify-center";
 
     if (item.type === 'inline_text') {
       return (
@@ -179,7 +179,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
       <div
         key={item.id}
         data-item-id={item.id}
-        className={`rounded-sm overflow-hidden border ${selectedId === item.id ? 'border-blue-500' : 'border-blue-400/40'}`}
+        className={`rounded-sm overflow-visible border ${selectedId === item.id ? 'border-blue-500' : 'border-blue-400/40'}`}
         style={{
           margin: 0,
           padding: 0,
@@ -236,19 +236,19 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!selectedId) return;
-      
+
       if (e.key === 'Escape') {
         e.preventDefault();
         setSelectedId(null);
         return;
       }
-      
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         deleteItem(selectedId);
         return;
       }
-      
+
       // Arrow key nudging
       const step = 1;
       if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeItem(-step, 0); }
@@ -348,7 +348,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
-      <div className="w-[min(1400px,100%)] h-[min(90vh,100%)] bg-neutral-950 rounded-xl border border-neutral-800 shadow-2xl overflow-hidden flex flex-col">
+      <div className="w-[min(1400px,100%)] max-h-[90vh] bg-neutral-950 rounded-xl border border-neutral-800 shadow-2xl overflow-auto flex flex-col">
         {/* Header */}
         <div className="h-14 shrink-0 bg-neutral-900/80 backdrop-blur border-b border-neutral-800 flex items-center justify-between px-4">
           <div className="flex items-center gap-2 pr-4">
@@ -399,10 +399,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                             onClick={(e) => {
                 // Clear selection when clicking empty canvas area
                 const target = e.target as HTMLElement;
-                const isEmptyCanvas = target === e.currentTarget || 
+                const isEmptyCanvas = target === e.currentTarget ||
                                     target.classList.contains('react-grid-layout') ||
                                     target.classList.contains('layout');
-                
+
                 if (isEmptyCanvas) {
                   setSelectedId(null);
                 }
