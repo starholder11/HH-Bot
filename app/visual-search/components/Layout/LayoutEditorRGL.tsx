@@ -29,6 +29,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
 
+  // Bulk-drag tracking: store origin positions for selected items and the dragged item's origin
+  const bulkDragOriginPositionsRef = React.useRef<Record<string, { x: number; y: number }>>({});
+  const draggedItemOriginRef = React.useRef<{ x: number; y: number } | null>(null);
+
   // Style panel is always visible in Inspector; no toggle to avoid discoverability issues
 
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
@@ -188,12 +192,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           // STOP RGL from capturing this event
           e.preventDefault();
           e.stopPropagation();
-          
+
           // Record start position for drag detection
           setDragStartPos({ x: e.clientX, y: e.clientY });
           setIsDragging(false);
           setIsSelectionMode(true);
-          
+
           console.log('[LayoutEditorRGL] MOUSE DOWN - BLOCKING RGL, starting selection mode', {
             id: item.id,
             startPos: { x: e.clientX, y: e.clientY },
@@ -208,12 +212,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
             const deltaX = Math.abs(e.clientX - dragStartPos.x);
             const deltaY = Math.abs(e.clientY - dragStartPos.y);
             const dragThreshold = 5; // pixels
-            
+
             if (deltaX > dragThreshold || deltaY > dragThreshold) {
               setIsDragging(true);
               setIsSelectionMode(false); // Exit selection mode, enter drag mode
               console.log('[LayoutEditorRGL] DRAG DETECTED - switching to drag mode for item:', item.id);
-              
+
               // Now manually trigger RGL drag by dispatching a new mousedown
               // This is a workaround to let RGL handle the drag after we've detected intent
               const gridElement = e.currentTarget.closest('.react-grid-layout');
@@ -239,18 +243,18 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
             isSelectionMode,
             dragStartPos
           });
-          
+
           // Only handle selection if we're in selection mode (clean click, no drag)
           if (isSelectionMode && !isDragging && dragStartPos) {
             const isToggle = e.metaKey || e.ctrlKey;
             const isRange = e.shiftKey && !!selectedId;
-            
-            console.log('[LayoutEditorRGL] ✅ CLEAN CLICK SELECTION (bypassed RGL)', { 
-              id: item.id, 
+
+            console.log('[LayoutEditorRGL] ✅ CLEAN CLICK SELECTION (bypassed RGL)', {
+              id: item.id,
               itemType: item.type,
-              isToggle, 
-              isRange, 
-              selectedId, 
+              isToggle,
+              isRange,
+              selectedId,
               before: Array.from(selectedIds)
             });
 
@@ -276,11 +280,11 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 console.log('[LayoutEditorRGL] Shift+clicking same item, ignoring');
                 return;
               }
-              
+
               const items = edited.layout_data.items;
               const lastIndex = items.findIndex(it => it.id === selectedId);
               const currentIndex = items.findIndex(it => it.id === item.id);
-              
+
               console.log('[LayoutEditorRGL] RANGE DEBUG', {
                 selectedId,
                 itemId: item.id,
@@ -289,19 +293,19 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 totalItems: items.length,
                 itemsOrder: items.map(it => it.id)
               });
-              
+
               if (lastIndex !== -1 && currentIndex !== -1) {
                 const start = Math.min(lastIndex, currentIndex);
                 const end = Math.max(lastIndex, currentIndex);
                 const rangeIds = items.slice(start, end + 1).map(it => it.id);
-                
+
                 console.log('[LayoutEditorRGL] RANGE CALCULATION', {
                   start,
                   end,
                   rangeIds,
                   slicedItems: items.slice(start, end + 1).map(it => ({ id: it.id, type: it.type }))
                 });
-                
+
                 setSelectedIds(prev => {
                   const next = new Set(prev);
                   rangeIds.forEach(id => next.add(id));
@@ -319,7 +323,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
               console.log('[LayoutEditorRGL] ✅ SINGLE result:', Array.from(next));
             }
           }
-          
+
           // Reset all tracking
           setDragStartPos(null);
           setIsDragging(false);
@@ -626,7 +630,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     console.log('[LayoutEditorRGL] Shift held - preventing drag selection change, preserving for range select');
                     return;
                   }
-                  
+
                   // ONLY change selection if dragging an item that's NOT in the current selection
                   // AND we don't have multiple items selected (to preserve multi-select for drag)
                   if (newItem?.i && !selectedIds.has(newItem.i) && selectedIds.size <= 1) {
@@ -641,6 +645,46 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                   // If we have multiple items selected, don't change selection even for unselected items
                   else if (selectedIds.size > 1) {
                     console.log('[LayoutEditorRGL] preserving multi-selection during drag, not changing to:', newItem?.i);
+                  }
+
+                  // Capture origin positions for bulk drag
+                  if (newItem?.i) {
+                    draggedItemOriginRef.current = { x: newItem.x, y: newItem.y };
+                    const positions: Record<string, { x: number; y: number }> = {};
+                    currentLayout.forEach(li => {
+                      if (selectedIds.has(li.i)) positions[li.i] = { x: li.x, y: li.y };
+                    });
+                    bulkDragOriginPositionsRef.current = positions;
+                    // Ensure the dragged item is included if selectedIds is empty (single drag)
+                    if (selectedIds.size === 0) {
+                      bulkDragOriginPositionsRef.current[newItem.i] = { x: newItem.x, y: newItem.y };
+                    }
+                  }
+                }}
+                onDrag={(currentLayout, oldItem, newItem) => {
+                  // Live-update other selected items during drag
+                  if (!newItem?.i) return;
+                  const draggedOrigin = draggedItemOriginRef.current;
+                  if (!draggedOrigin) return;
+                  const deltaX = (newItem.x || 0) - draggedOrigin.x;
+                  const deltaY = (newItem.y || 0) - draggedOrigin.y;
+
+                  if (selectedIds.size > 1 && selectedIds.has(newItem.i) && (deltaX !== 0 || deltaY !== 0)) {
+                    const originPositions = bulkDragOriginPositionsRef.current;
+                    const updatedLayout = currentLayout.map(layoutItem => {
+                      if (layoutItem.i !== newItem.i && selectedIds.has(layoutItem.i)) {
+                        const origin = originPositions[layoutItem.i];
+                        if (origin) {
+                          return {
+                            ...layoutItem,
+                            x: Math.max(0, origin.x + deltaX),
+                            y: Math.max(0, origin.y + deltaY)
+                          };
+                        }
+                      }
+                      return layoutItem;
+                    });
+                    handleLayoutChange(updatedLayout, { lg: updatedLayout });
                   }
                 }}
                 onDragStop={(currentLayout, oldItem, newItem) => {
@@ -680,6 +724,10 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                     handleLayoutChange(currentLayout, { lg: currentLayout });
                     console.log('[LayoutEditorRGL] normal single item drag');
                   }
+
+                  // Reset bulk drag origins
+                  draggedItemOriginRef.current = null;
+                  bulkDragOriginPositionsRef.current = {};
                 }}
               >
                 {children}
