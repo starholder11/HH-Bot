@@ -29,6 +29,18 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [isDragging, setIsDragging] = useState<boolean>(false); // reserved
   const [isGroupDrag, setIsGroupDrag] = useState<boolean>(false);
 
+  // Prevent layout prop changes from wiping selection state
+  React.useEffect(() => {
+    // Only update edited state if the layout ID actually changed
+    if (layout.id !== edited.id) {
+      setEdited(layout);
+      // Clear selection when switching to different layout
+      setSelectedIds(new Set());
+      setSelectedId(null);
+      console.log('[LayoutEditorRGL] Layout changed, clearing selection');
+    }
+  }, [layout.id, edited.id]);
+
   // Bulk-drag tracking: store origin positions for selected items and the dragged item's origin
   const bulkDragOriginPositionsRef = React.useRef<Record<string, { x: number; y: number }>>({});
   const draggedItemOriginRef = React.useRef<{ x: number; y: number } | null>(null);
