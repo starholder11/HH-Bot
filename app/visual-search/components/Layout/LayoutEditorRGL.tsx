@@ -22,6 +22,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
   const [edited, setEdited] = useState<LayoutAsset>(layout);
   const [working, setWorking] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showStyle, setShowStyle] = useState<boolean>(false);
 
   const design = edited.layout_data.designSize || { width: 1200, height: 800 };
   const cellSize = edited.layout_data.cellSize || 20;
@@ -218,6 +219,48 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
     });
   }, []);
 
+  // Keyboard shortcuts: arrows to nudge, Del to delete, Cmd/Ctrl+D duplicate
+  const nudgeSelected = useCallback((dx: number, dy: number) => {
+    if (!selectedId) return;
+    setEdited(prev => {
+      const it = prev.layout_data.items.find(x => x.id === selectedId);
+      if (!it) return prev;
+      const x = Math.max(0, (it.x || 0) + dx);
+      const y = Math.max(0, (it.y || 0) + dy);
+      const cell = prev.layout_data.cellSize || 20;
+      const design = prev.layout_data.designSize || { width: 1200, height: 800 };
+      const nx = (x * cell) / design.width;
+      const ny = (y * cell) / design.height;
+      return {
+        ...prev,
+        layout_data: {
+          ...prev.layout_data,
+          items: prev.layout_data.items.map(item => item.id === selectedId ? ({ ...item, x, y, nx, ny } as Item) : item)
+        },
+        updated_at: new Date().toISOString(),
+      } as LayoutAsset;
+    });
+  }, [selectedId]);
+
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!selectedId) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteItem(selectedId);
+        return;
+      }
+      const step = 1;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelected(-step, 0); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); nudgeSelected(step, 0); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); nudgeSelected(0, -step); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); nudgeSelected(0, step); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateItem(selectedId); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId, nudgeSelected, duplicateItem, deleteItem]);
+
   // --- Block creation helpers ---
   function gridSize() {
     const cols = Math.floor((edited.layout_data.designSize?.width || 1200) / (edited.layout_data.cellSize || 20));
@@ -290,6 +333,12 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowStyle(s => !s)}
+              className={`px-2.5 py-1.5 rounded text-xs border ${showStyle ? 'bg-neutral-700 text-white border-neutral-600' : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700'}`}
+            >
+              Style
+            </button>
+            <button
               onClick={addTextBlock}
               className="px-2.5 py-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs border border-neutral-700"
             >
@@ -321,7 +370,7 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
         <div className="flex-1 min-h-0 flex">
           {/* Canvas */}
           <div className="flex-1 p-4 overflow-auto">
-            <div className="mx-auto bg-neutral-900 border border-neutral-800 rounded-lg" style={{ width: design.width, height: design.height }}>
+            <div className="mx-auto border border-neutral-800 rounded-lg" style={{ width: design.width, height: design.height, background: edited.layout_data.styling?.colors?.background || '#0a0a0a', color: edited.layout_data.styling?.colors?.text || '#ffffff', fontFamily: edited.layout_data.styling?.typography?.fontFamily || undefined }}>
               <ResponsiveGridLayout
                 className="layout"
                 layouts={layouts}
@@ -358,6 +407,61 @@ export default function LayoutEditorRGL({ layout, onClose, onSaved }: Props) {
                 </div>
               )}
             </div>
+
+            {showStyle && (
+              <div className="mb-3 space-y-2 rounded border border-neutral-800 p-2 bg-neutral-900/60">
+                <div className="text-xs text-neutral-400">Layout Style</div>
+                <label className="flex items-center justify-between gap-2 text-xs text-neutral-400">
+                  Background
+                  <input type="color" className="w-8 h-6 bg-transparent border border-neutral-700 rounded"
+                    value={edited.layout_data.styling?.colors?.background || '#0a0a0a'}
+                    onChange={e => setEdited(prev => ({
+                      ...prev,
+                      layout_data: {
+                        ...prev.layout_data,
+                        styling: {
+                          ...(prev.layout_data.styling || {}),
+                          colors: { ...(prev.layout_data.styling?.colors || {}), background: e.target.value }
+                        }
+                      }
+                    }))}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-2 text-xs text-neutral-400">
+                  Text
+                  <input type="color" className="w-8 h-6 bg-transparent border border-neutral-700 rounded"
+                    value={edited.layout_data.styling?.colors?.text || '#ffffff'}
+                    onChange={e => setEdited(prev => ({
+                      ...prev,
+                      layout_data: {
+                        ...prev.layout_data,
+                        styling: {
+                          ...(prev.layout_data.styling || {}),
+                          colors: { ...(prev.layout_data.styling?.colors || {}), text: e.target.value }
+                        }
+                      }
+                    }))}
+                  />
+                </label>
+                <label className="block text-xs text-neutral-400">
+                  Font Family
+                  <input className="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
+                    placeholder="Inter, sans-serif"
+                    value={edited.layout_data.styling?.typography?.fontFamily || ''}
+                    onChange={e => setEdited(prev => ({
+                      ...prev,
+                      layout_data: {
+                        ...prev.layout_data,
+                        styling: {
+                          ...(prev.layout_data.styling || {}),
+                          typography: { ...(prev.layout_data.styling?.typography || {}), fontFamily: e.target.value }
+                        }
+                      }
+                    }))}
+                  />
+                </label>
+              </div>
+            )}
 
             {!selectedId ? (
               <div className="text-xs text-neutral-400">Select an item to edit its properties.</div>
