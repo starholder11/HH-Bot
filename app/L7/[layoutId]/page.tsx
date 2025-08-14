@@ -15,42 +15,42 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
     async function loadData() {
       try {
         console.log('[L7] Loading layout:', params.layoutId);
-        
+
         const response = await fetch(`/api/media-assets/${params.layoutId}`);
         console.log('[L7] Response status:', response.status);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const responseData = await response.json();
         console.log('[L7] Full response:', responseData);
-        
+
         // Handle both wrapped and direct responses
         const asset = responseData.asset || responseData;
         console.log('[L7] Asset data:', asset);
         console.log('[L7] Media type:', asset?.media_type);
-        
+
         if (!asset) {
           throw new Error('No asset data in response');
         }
-        
+
         if (asset.media_type !== 'layout') {
           throw new Error(`Expected layout, got: ${asset.media_type}`);
         }
-        
+
         if (!asset.layout_data) {
           throw new Error('No layout_data in asset');
         }
-        
+
         setData(asset);
         console.log('[L7] Layout loaded successfully');
-        
+
         // Load full content for all items
         if (asset.layout_data?.items) {
           loadAllContent(asset);
         }
-        
+
       } catch (err) {
         console.error('[L7] Error:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -63,18 +63,18 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   }, [params.layoutId]);
 
   async function loadAllContent(asset: any) {
-    const contentItems = asset.layout_data.items.filter((item: any) => 
+    const contentItems = asset.layout_data.items.filter((item: any) =>
       item.type === 'content_ref'
     );
-    
+
     for (const item of contentItems) {
       try {
         const assetId = item.contentId || item.refId || '';
-        
+
         if (item.contentType === 'text') {
           // Handle text content
           console.log('[L7] Raw assetId for text:', assetId);
-          
+
           // Extract slug from various possible formats
           let slug = '';
           if (assetId.includes('content_ref_')) {
@@ -86,23 +86,23 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           } else {
             slug = assetId;
           }
-          
+
           console.log('[L7] Extracted slug:', slug);
-          
+
           if (slug) {
             console.log('[L7] Loading text content for slug:', slug);
             const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
             if (response.ok) {
               const textData = await response.json();
               console.log('[L7] Loaded text data:', textData);
-              
+
               // Update the item with full text content
               setData((prev: any) => ({
                 ...prev,
                 layout_data: {
                   ...prev.layout_data,
-                  items: prev.layout_data.items.map((i: any) => 
-                    i.id === item.id 
+                  items: prev.layout_data.items.map((i: any) =>
+                    i.id === item.id
                       ? { ...i, fullTextContent: textData.content, textMetadata: textData.metadata }
                       : i
                   )
@@ -120,16 +120,16 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
             const responseData = await response.json();
             const mediaAsset = responseData.asset || responseData;
             const mediaUrl = mediaAsset.cloudflare_url || mediaAsset.s3_url || mediaAsset.url;
-            
+
             console.log('[L7] Loaded media URL:', mediaUrl);
-            
+
             // Update the item with media URL
             setData((prev: any) => ({
               ...prev,
               layout_data: {
                 ...prev.layout_data,
-                items: prev.layout_data.items.map((i: any) => 
-                  i.id === item.id 
+                items: prev.layout_data.items.map((i: any) =>
+                  i.id === item.id
                     ? { ...i, mediaUrl, assetData: mediaAsset }
                     : i
                 )
@@ -181,10 +181,10 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
-      <div 
+      <div
         className="relative border border-gray-600"
-        style={{ 
-          width: `${designSize.width}px`, 
+        style={{
+          width: `${designSize.width}px`,
           height: `${designSize.height}px`,
           backgroundColor: layout_data.styling?.colors?.background || '#171717',
           color: layout_data.styling?.colors?.text || '#ffffff',
@@ -201,20 +201,28 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
       >
         {items.map((item: any, index: number) => {
           // Use desktop breakpoint overrides when available
-          const bp = item.breakpoints?.desktop;
-          const gridX = (bp?.x ?? item.x ?? 0);
-          const gridY = (bp?.y ?? item.y ?? 0);
-          const gridW = (bp?.w ?? item.w ?? 1);
-          const gridH = (bp?.h ?? item.h ?? 1);
+          const bp = item.breakpoints?.desktop || {};
+
+          // Helper to decide if a numeric value is valid
+          const isNum = (v: any) => typeof v === 'number' && Number.isFinite(v);
+
+          // Prefer explicit grid units (x,y,w,h). If missing, derive from normalized (nx,ny,nw,nh).
+          const derivedX = isNum(bp.x) ? bp.x : isNum(item.x) ? item.x : Math.max(0, Math.round(((bp.nx ?? item.nx ?? 0) as number) * cols));
+          const derivedY = isNum(bp.y) ? bp.y : isNum(item.y) ? item.y : Math.max(0, Math.round(((bp.ny ?? item.ny ?? 0) as number) * rows));
+          const derivedW = isNum(bp.w) ? bp.w : isNum(item.w) ? item.w : Math.max(1, Math.round(((bp.nw ?? item.nw ?? 1 / cols) as number) * cols));
+          const derivedH = isNum(bp.h) ? bp.h : isNum(item.h) ? item.h : Math.max(1, Math.round(((bp.nh ?? item.nh ?? 1 / rows) as number) * rows));
+
+          const gridX = Math.max(0, derivedX);
+          const gridY = Math.max(0, derivedY);
+          const gridW = Math.max(1, derivedW);
+          const gridH = Math.max(1, derivedH);
 
           // Debug logging with expanded coordinates
-          const actualZ = item.z || 1;
-          
           console.log(`[L7] Item ${item.id || index}:`,
             `type=${item.type}`,
             `contentType=${item.contentType || 'none'}`,
             `grid=(${gridX + 1}, ${gridY + 1}, span ${gridW}, span ${gridH})`,
-            bp ? '[bp=desktop]' : '[bp=base]'
+            bp && (isNum(bp.x) || isNum(bp.nx)) ? '[bp=desktop]' : '[bp=base]'
           );
 
           return (
@@ -243,12 +251,12 @@ function renderContent(item: any) {
   if (item.contentType === 'video' && item.mediaUrl) {
     return (
       <div className="w-full h-full bg-black flex items-center justify-center">
-        <video 
-          src={item.mediaUrl} 
+        <video
+          src={item.mediaUrl}
           className="max-w-full max-h-full object-contain"
-          controls 
-          autoPlay 
-          muted 
+          controls
+          autoPlay
+          muted
           loop
         />
       </div>
@@ -259,9 +267,9 @@ function renderContent(item: any) {
   if (item.contentType === 'image' && item.mediaUrl) {
     return (
       <div className="w-full h-full bg-black flex items-center justify-center">
-        <img 
-          src={item.mediaUrl} 
-          alt={item.snippet || 'Image'} 
+        <img
+          src={item.mediaUrl}
+          alt={item.snippet || 'Image'}
           className="max-w-full max-h-full object-contain"
         />
       </div>
@@ -274,9 +282,9 @@ function renderContent(item: any) {
     if (imageUrl) {
       return (
         <div className="w-full h-full bg-transparent flex items-center justify-center">
-          <img 
-            src={imageUrl} 
-            alt={item.snippet || item.inlineContent?.alt || 'Image'} 
+          <img
+            src={imageUrl}
+            alt={item.snippet || item.inlineContent?.alt || 'Image'}
             className="max-w-full max-h-full object-contain"
           />
         </div>
@@ -293,7 +301,7 @@ function renderContent(item: any) {
   if (item.contentType === 'text') {
     const title = item.snippet || item.title || '';
     const content = item.fullTextContent || '';
-    
+
     return (
       <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative shadow-lg border border-gray-300">
         <div className="prose prose-lg max-w-none h-full overflow-y-auto">
@@ -313,7 +321,7 @@ function renderContent(item: any) {
   // Handle block types
   if (item.type === 'block') {
     const config = item.config || {};
-    
+
     switch (item.blockType) {
       case 'hero':
         return (
@@ -327,7 +335,7 @@ function renderContent(item: any) {
             </div>
           </div>
         );
-        
+
       case 'text_section':
         return (
           <div className="w-full h-full p-6 overflow-auto bg-gray-100 text-gray-900">
@@ -342,7 +350,7 @@ function renderContent(item: any) {
             </div>
           </div>
         );
-        
+
       default:
         return (
           <div className="w-full h-full bg-gray-700 text-white flex items-center justify-center rounded">
