@@ -23,7 +23,6 @@ import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
 import { TransformComponents } from './transforms';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/input';
 import { ImageIcon, BoxesIcon, TrophyIcon, GridIcon, FileTextIcon, TargetIcon, DownloadIcon, SquareIcon } from 'lucide-react';
 
@@ -59,6 +58,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [showTransformPanel, setShowTransformPanel] = useState(false);
   const [transformTargetId, setTransformTargetId] = useState<string | null>(null);
   const [showAssetModal, setShowAssetModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageModalTargetId, setImageModalTargetId] = useState<string | null>(null);
 
   const openRteForId = React.useCallback((id: string) => {
     setSelectedId(id);
@@ -494,30 +495,6 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Breakpoint toggles */}
-          <div className="flex gap-1 border border-neutral-700 rounded overflow-hidden">
-            {(['desktop', 'tablet', 'mobile'] as const).map(bp => (
-              <Button
-                key={bp}
-                onClick={() => setCurrentBreakpoint(bp)}
-                size="sm"
-                className={currentBreakpoint === bp ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-white hover:bg-neutral-700'}
-              >
-                {bp === 'desktop' ? '🖥️' : bp === 'tablet' ? '📱' : '📱'} {bp}
-              </Button>
-            ))}
-          </div>
-
-          {/* Snap / Guides */}
-          <label className="flex items-center gap-1 text-xs text-white">
-            <input type="checkbox" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} />
-            Snap
-          </label>
-          <label className="flex items-center gap-1 text-xs text-white">
-            <input type="checkbox" checked={showAlignmentGuides} onChange={e => setShowAlignmentGuides(e.target.checked)} />
-            Guides
-          </label>
-
           <Button onClick={handleSave} disabled={working} size="sm" className="bg-neutral-700 text-white hover:bg-neutral-600">
             {working ? 'Saving…' : 'Save'}
           </Button>
@@ -723,7 +700,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         {/* Right inspector */}
-        <Card className="w-64 bg-black border border-neutral-700 p-3 space-y-3 flex-shrink-0 overflow-y-auto text-white rounded-md">
+        <div className="w-64 bg-black border border-neutral-700 p-3 space-y-3 flex-shrink-0 overflow-y-auto text-white rounded-md !bg-black" style={{backgroundColor: '#000000'}}>
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-white">Inspector</div>
             <div className="flex gap-1">
@@ -777,6 +754,38 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           {/* Theme Selector */}
           <ThemeSelector edited={edited} setEdited={setEdited} />
 
+          {/* Breakpoint Controls */}
+          <div>
+            <div className="text-xs text-white mb-2">Breakpoints</div>
+            <div className="flex gap-1 border border-neutral-700 rounded overflow-hidden">
+              {(['desktop', 'tablet', 'mobile'] as const).map(bp => (
+                <Button
+                  key={bp}
+                  onClick={() => setCurrentBreakpoint(bp)}
+                  size="sm"
+                  className={currentBreakpoint === bp ? 'bg-neutral-600 text-white flex-1' : 'bg-neutral-800 text-white hover:bg-neutral-700 flex-1'}
+                >
+                  {bp === 'desktop' ? '🖥️' : bp === 'tablet' ? '📱' : '📱'} {bp}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Editor Settings */}
+          <div>
+            <div className="text-xs text-white mb-2">Editor Settings</div>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-xs text-white">
+                <input type="checkbox" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} className="rounded" />
+                Snap to Grid
+              </label>
+              <label className="flex items-center gap-2 text-xs text-white">
+                <input type="checkbox" checked={showAlignmentGuides} onChange={e => setShowAlignmentGuides(e.target.checked)} className="rounded" />
+                Show Alignment Guides
+              </label>
+            </div>
+          </div>
+
           {selectedIds.size === 0 ? (
             <div className="text-xs text-white">Select an item to edit.</div>
           ) : selectedIds.size === 1 && selectedId ? (
@@ -789,7 +798,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           ) : (
             <div className="text-xs text-white">{selectedIds.size} items selected</div>
           )}
-        </Card>
+        </div>
       </div>
       {showRteModal && rteTargetId && (
         <RteModal
@@ -841,6 +850,32 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             });
             console.log('[ASSET SEARCH] Closing modal after asset add');
             setShowAssetModal(false);
+          }}
+        />
+      )}
+
+      {showImageModal && imageModalTargetId && (
+        <ImageModal
+          item={edited.layout_data.items.find(i => i.id === imageModalTargetId)}
+          onClose={() => {
+            setShowImageModal(false);
+            setImageModalTargetId(null);
+          }}
+          onSave={(imageUrl) => {
+            setEdited(prev => ({
+              ...prev,
+              layout_data: {
+                ...prev.layout_data,
+                items: prev.layout_data.items.map(i => 
+                  i.id === imageModalTargetId 
+                    ? { ...i, inlineContent: { ...(i.inlineContent || {}), imageUrl } } as Item
+                    : i
+                )
+              },
+              updated_at: new Date().toISOString(),
+            } as LayoutAsset));
+            setShowImageModal(false);
+            setImageModalTargetId(null);
           }}
         />
       )}
@@ -1584,6 +1619,118 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
   );
 }
 
+function ImageModal({ item, onClose, onSave }: { item: Item | undefined; onClose: () => void; onSave: (imageUrl: string) => void }) {
+  const [imageUrl, setImageUrl] = useState(item?.inlineContent?.imageUrl || '');
+  const [uploading, setUploading] = useState(false);
+
+  if (!item) return null;
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      
+      // Create form data for upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'image');
+      formData.append('directory', 'public/uploads');
+
+      // Upload the file
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result?.url) {
+        setImageUrl(result.url);
+      } else {
+        throw new Error(result?.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+      <div className="bg-black border border-neutral-700 rounded-lg w-[500px] flex flex-col shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-neutral-700">
+          <h2 className="text-lg font-medium text-white">Edit Image</h2>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Image URL
+            </label>
+            <Input
+              type="text"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Enter image URL or upload a file..."
+              className="bg-neutral-800 border-neutral-700 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Or Upload File
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file);
+              }}
+              disabled={uploading}
+              className="w-full text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-neutral-700 file:text-white hover:file:bg-neutral-600"
+            />
+            {uploading && <div className="text-sm text-neutral-400 mt-2">Uploading...</div>}
+          </div>
+
+          {imageUrl && (
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Preview</label>
+              <img src={imageUrl} alt="Preview" className="max-w-full h-32 object-contain bg-neutral-800 rounded" />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 p-4 border-t border-neutral-700">
+          <Button onClick={onClose} className="bg-neutral-700 text-white hover:bg-neutral-600">
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => onSave(imageUrl)} 
+            disabled={!imageUrl}
+            className="bg-blue-700 text-white hover:bg-blue-600"
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>> }) {
   const currentTheme = edited.layout_data.styling?.theme || 'minimal';
 
@@ -1770,53 +1917,22 @@ function ItemInspector({
 
       {item.type === 'inline_image' && (
         <div>
-          <div className="text-xs text-white mb-1">Image URL</div>
-          <input
-            type="text"
-            value={localImageUrl}
-            onChange={(e) => handleImageUrlChange(e.target.value)}
-            placeholder="Enter image URL or upload..."
-            className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-white"
-          />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-
-              try {
-                // Show uploading state
-                handleImageUrlChange('Uploading...');
-
-                // Create form data for upload
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('type', 'image');
-                formData.append('directory', 'public/uploads');
-
-                // Upload the file
-                const response = await fetch('/api/upload', {
-                  method: 'POST',
-                  body: formData,
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result?.url) {
-                  // Set the uploaded URL
-                  handleImageUrlChange(result.url);
-                } else {
-                  throw new Error(result?.error || 'Upload failed');
-                }
-              } catch (error) {
-                console.error('Upload failed:', error);
-                handleImageUrlChange('');
-                alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              }
+          <div className="text-xs text-white mb-1">Image</div>
+          <Button 
+            onClick={() => {
+              setImageModalTargetId(item.id);
+              setShowImageModal(true);
             }}
-            className="w-full mt-2 text-xs text-neutral-400"
-          />
+            className="w-full bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700"
+            size="sm"
+          >
+            {item.inlineContent?.imageUrl ? 'Edit Image' : 'Set Image'}
+          </Button>
+          {item.inlineContent?.imageUrl && (
+            <div className="mt-2 text-xs text-neutral-400 truncate">
+              {item.inlineContent.imageUrl}
+            </div>
+          )}
         </div>
       )}
 
