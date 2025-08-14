@@ -184,7 +184,22 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         }}
       >
         {items
-          .sort((a: any, b: any) => (a.z || 1) - (b.z || 1)) // Sort by z-index
+          .sort((a: any, b: any) => {
+            // Sort by z-index first, then by Y position, then by type
+            const aZ = a.z || 1;
+            const bZ = b.z || 1;
+            if (aZ !== bZ) return aZ - bZ;
+            
+            const aY = a.y || 0;
+            const bY = b.y || 0;
+            if (aY !== bY) return aY - bY;
+            
+            // Render text content before inline images at the same Y level
+            if (a.contentType === 'text' && b.type === 'inline_image') return -1;
+            if (b.contentType === 'text' && a.type === 'inline_image') return 1;
+            
+            return 0;
+          })
           .map((item: any, index: number) => {
           const cellSize = layout_data.cellSize || 20;
           const x = (item.x || 0) * cellSize;
@@ -192,14 +207,14 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           const w = (item.w || 1) * cellSize;
           const h = (item.h || 1) * cellSize;
 
-          // Debug logging
-          console.log(`[L7] Item ${item.id || index}:`, {
-            type: item.type,
-            contentType: item.contentType,
-            coords: { x: item.x, y: item.y, w: item.w, h: item.h },
-            pixels: { x, y, w, h },
-            zIndex: item.z || 1
-          });
+          // Debug logging with expanded coordinates
+          console.log(`[L7] Item ${item.id || index}:`, 
+            `type=${item.type}`,
+            `contentType=${item.contentType || 'none'}`,
+            `coords=(${item.x || 0}, ${item.y || 0}, ${item.w || 1}, ${item.h || 1})`,
+            `pixels=(${x}, ${y}, ${w}, ${h})`,
+            `z=${item.z || 1}`
+          );
 
           return (
             <div
