@@ -200,8 +200,10 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         }}
       >
         {items.map((item: any, index: number) => {
-          // Use desktop breakpoint overrides when available
-          const bp = item.breakpoints?.desktop || {};
+          // Note: For published view we ignore per-breakpoint overrides for now
+          // and rely on base coordinates or normalized fractions to avoid
+          // mismatches with stale breakpoint data.
+          const bp = {} as any;
 
           // Helper to decide if a numeric value is valid
           const isNum = (v: any) => typeof v === 'number' && Number.isFinite(v);
@@ -233,7 +235,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
             `type=${item.type}`,
             `contentType=${item.contentType || 'none'}`,
             `grid=(${gridX + 1}, ${gridY + 1}, span ${gridW}, span ${gridH})`,
-            bp && (isNum(bp.x) || isNum(bp.nx)) ? '[bp=desktop]' : '[bp=base]'
+            '[published-layout]'
           );
 
           return (
