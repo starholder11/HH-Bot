@@ -243,11 +243,11 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   }
 
   const computedLayout = computeNonOverlappingLayout(items);
-  const maxBottomCells = items.reduce((max, it, idx) => {
+  const maxBottomCells = items.reduce((max: number, it: any, idx: number) => {
     const key = it.id || `item-${idx}`;
-    const pos = (computedLayout as any)[key] || { x: it.x || 0, y: it.y || 0, w: it.w || 1, h: it.h || 1 };
-    return Math.max(max, (pos.y || 0) + (pos.h || 1));
-  }, Math.ceil(designSize.height / (layout_data.cellSize || 20)));
+    const pos = (computedLayout as Record<string, any>)[key] || { x: it.x ?? 0, y: it.y ?? 0, w: it.w ?? 1, h: it.h ?? 1 };
+    return Math.max(max, (Number(pos.y) || 0) + (Number(pos.h) || 1));
+  }, Math.ceil(designSize.height / cellSize));
   const dynamicHeightPx = Math.max(designSize.height, maxBottomCells * cellSize);
 
   return (
