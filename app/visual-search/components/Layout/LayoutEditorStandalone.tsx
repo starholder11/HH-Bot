@@ -1777,9 +1777,36 @@ function ItemInspector({
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              // Upload logic would go here
-              // For now, just show the file name
-              handleImageUrlChange(`uploaded/${file.name}`);
+              
+              try {
+                // Show uploading state
+                handleImageUrlChange('Uploading...');
+                
+                // Create form data for upload
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('type', 'image');
+                formData.append('directory', 'public/uploads');
+                
+                // Upload the file
+                const response = await fetch('/api/upload', {
+                  method: 'POST',
+                  body: formData,
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result?.url) {
+                  // Set the uploaded URL
+                  handleImageUrlChange(result.url);
+                } else {
+                  throw new Error(result?.error || 'Upload failed');
+                }
+              } catch (error) {
+                console.error('Upload failed:', error);
+                handleImageUrlChange('');
+                alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              }
             }}
             className="w-full mt-2 text-xs text-neutral-400"
           />
