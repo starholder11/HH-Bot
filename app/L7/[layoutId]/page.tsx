@@ -3,13 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { LayoutAsset } from '@/app/visual-search/types';
 import { LAYOUT_THEMES } from '@/app/visual-search/components/Layout/themes';
-import dynamic from 'next/dynamic';
-
-// Dynamically import transform components to avoid SSR issues
-const TransformComponents = dynamic(
-  () => import('@/app/visual-search/components/Layout/transforms').then(mod => ({ default: mod.TransformComponents })),
-  { ssr: false }
-);
 
 interface LiveLayoutPageProps {
   params: { layoutId: string };
@@ -208,35 +201,6 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         })}
       </div>
     </div>
-  );
-}
-
-function renderWithTransform(content: React.ReactNode, transform: any, transformComponents?: any) {
-  if (!transform?.component || typeof window === 'undefined' || !transformComponents) {
-    return content;
-  }
-
-  const TransformComponent = transformComponents[transform.component];
-  if (!TransformComponent) {
-    console.warn(`Transform component "${transform.component}" not found`);
-    return content;
-  }
-
-  const transformProps = { ...transform.props };
-  
-  // Apply container styles if specified
-  const containerStyle: React.CSSProperties = {};
-  if (transform.container) {
-    if (transform.container.overflow) containerStyle.overflow = transform.container.overflow;
-    if (transform.container.background) containerStyle.background = transform.container.background;
-    if (transform.container.border) containerStyle.border = transform.container.border;
-    if (transform.container.borderRadius) containerStyle.borderRadius = transform.container.borderRadius;
-  }
-
-  return (
-    <TransformComponent {...transformProps} style={containerStyle}>
-      {content}
-    </TransformComponent>
   );
 }
 
