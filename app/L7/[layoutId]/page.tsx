@@ -215,12 +215,21 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           const h = gridH * cellSize;
 
           // Debug logging with expanded coordinates
+          const calculatedZ = item.z || (() => {
+            if (item.type === 'inline_image') return 100;
+            if (item.contentType === 'video') return 50;
+            if (item.contentType === 'image') return 40;
+            if (item.type === 'block') return 30;
+            if (item.contentType === 'text') return 20;
+            return 1;
+          })();
+          
           console.log(`[L7] Item ${item.id || index}:`,
             `type=${item.type}`,
             `contentType=${item.contentType || 'none'}`,
             `coords=(${gridX}, ${gridY}, ${gridW}, ${gridH})`,
             `pixels=(${x}, ${y}, ${w}, ${h})`,
-            `z=${item.z || 1}`,
+            `z=${calculatedZ}`,
             bp ? '[bp=desktop]' : '[bp=base]'
           );
 
@@ -233,7 +242,15 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                 top: `${y}px`,
                 width: `${w}px`,
                 height: `${h}px`,
-                zIndex: item.z || (item.type === 'inline_image' ? 10 : 1),
+                zIndex: item.z || (() => {
+                  // Smart z-index assignment to prevent overlapping
+                  if (item.type === 'inline_image') return 100;
+                  if (item.contentType === 'video') return 50;
+                  if (item.contentType === 'image') return 40;
+                  if (item.type === 'block') return 30;
+                  if (item.contentType === 'text') return 20;
+                  return 1;
+                })(),
               }}
             >
               {renderContent(item)}
@@ -302,7 +319,7 @@ function renderContent(item: any) {
     const content = item.fullTextContent || '';
     
     return (
-      <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative">
+      <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative shadow-lg">
         <div className="prose prose-lg max-w-none h-full overflow-y-auto">
           {title && <h1 className="text-2xl font-bold mb-6 text-black">{title}</h1>}
           {content ? (
