@@ -190,8 +190,8 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
             const bZ = b.z || 1;
             if (aZ !== bZ) return aZ - bZ;
             
-            const aY = a.y || 0;
-            const bY = b.y || 0;
+            const aY = (a.breakpoints?.desktop?.y ?? a.y ?? 0);
+            const bY = (b.breakpoints?.desktop?.y ?? b.y ?? 0);
             if (aY !== bY) return aY - bY;
             
             // Render text content before inline images at the same Y level
@@ -202,18 +202,26 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           })
           .map((item: any, index: number) => {
           const cellSize = layout_data.cellSize || 20;
-          const x = (item.x || 0) * cellSize;
-          const y = (item.y || 0) * cellSize;
-          const w = (item.w || 1) * cellSize;
-          const h = (item.h || 1) * cellSize;
+          // Use desktop breakpoint overrides when available
+          const bp = item.breakpoints?.desktop;
+          const gridX = (bp?.x ?? item.x ?? 0);
+          const gridY = (bp?.y ?? item.y ?? 0);
+          const gridW = (bp?.w ?? item.w ?? 1);
+          const gridH = (bp?.h ?? item.h ?? 1);
+
+          const x = gridX * cellSize;
+          const y = gridY * cellSize;
+          const w = gridW * cellSize;
+          const h = gridH * cellSize;
 
           // Debug logging with expanded coordinates
-          console.log(`[L7] Item ${item.id || index}:`, 
+          console.log(`[L7] Item ${item.id || index}:`,
             `type=${item.type}`,
             `contentType=${item.contentType || 'none'}`,
-            `coords=(${item.x || 0}, ${item.y || 0}, ${item.w || 1}, ${item.h || 1})`,
+            `coords=(${gridX}, ${gridY}, ${gridW}, ${gridH})`,
             `pixels=(${x}, ${y}, ${w}, ${h})`,
-            `z=${item.z || 1}`
+            `z=${item.z || 1}`,
+            bp ? '[bp=desktop]' : '[bp=base]'
           );
 
           return (
