@@ -18,9 +18,9 @@ export function ConditionalHeader() {
   }
 
   // Check if current path should use original styling
-  const useOriginalHeader = pathname && ORIGINAL_HEADER_ROUTES.some(route => 
+  const useOriginalHeader = Boolean(pathname && ORIGINAL_HEADER_ROUTES.some(route => 
     pathname.startsWith(route)
-  );
+  ));
 
   return <Header useOriginalStyling={useOriginalHeader} />;
 }
