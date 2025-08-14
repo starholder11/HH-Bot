@@ -303,7 +303,10 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         const testY = tryY * 2;
 
         // Get size based on block type
-        const blockTypeStr = typeof blockType === 'string' ? blockType : 'content_ref';
+        let blockTypeStr = typeof blockType === 'string' ? blockType : 'content_ref';
+        if (typeof blockType === 'object' && blockType.contentType === 'text') {
+          blockTypeStr = 'content_ref_text';
+        }
         const { w: testW, h: testH } = getBlockSize(blockTypeStr, cellSize);
 
         // Check if this position overlaps with existing items
@@ -329,7 +332,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
     if (typeof blockType === 'object') {
       // This is a content_ref from asset search
-      const { w, h } = getBlockSize('content_ref', cellSize);
+      // Use specific sizing for text content
+      const sizeKey = blockType.contentType === 'text' ? 'content_ref_text' : 'content_ref';
+      const { w, h } = getBlockSize(sizeKey, cellSize);
       newItem = {
         id,
         type: 'content_ref',
@@ -773,6 +778,7 @@ function getBlockSize(blockType: string, cellSize: number) {
     case 'inline_text': return { w: Math.max(6, Math.round(400 / cellSize)), h: Math.max(3, Math.round(120 / cellSize)) };
     case 'inline_image': return { w: Math.max(4, Math.round(300 / cellSize)), h: Math.max(4, Math.round(200 / cellSize)) };
     case 'content_ref': return { w: Math.max(4, Math.round(300 / cellSize)), h: Math.max(4, Math.round(200 / cellSize)) };
+    case 'content_ref_text': return { w: Math.max(6, Math.round(300 / cellSize)), h: Math.max(8, Math.round(400 / cellSize)) };
     default: return { w: 4, h: 3 };
   }
 }
@@ -966,6 +972,18 @@ function renderItem(
       return (
         <div className="h-full w-full flex items-center justify-center bg-black/50">
           <video src={src} className="max-w-full max-h-full object-contain" controls muted />
+        </div>
+      );
+    }
+
+    if (contentType === 'text') {
+      // For text content_ref, render the text content in a proper text block
+      const textContent = (it as any).snippet || (it as any).title || 'Text content';
+      return (
+        <div className="h-full w-full p-4 bg-neutral-900 text-neutral-100 overflow-auto">
+          <div className="leading-relaxed text-sm whitespace-pre-wrap">
+            {textContent}
+          </div>
         </div>
       );
     }
