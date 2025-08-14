@@ -58,6 +58,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [rteHtml, setRteHtml] = useState<string>('');
   const [showTransformPanel, setShowTransformPanel] = useState(false);
   const [transformTargetId, setTransformTargetId] = useState<string | null>(null);
+  const [showAssetModal, setShowAssetModal] = useState(false);
 
   const openRteForId = React.useCallback((id: string) => {
     setSelectedId(id);
@@ -824,6 +825,24 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           }}
         />
       )}
+
+      {showAssetModal && (
+        <AssetSearchModal
+          onClose={() => setShowAssetModal(false)}
+          onSelect={(asset) => {
+            console.log('[ASSET SEARCH] Adding asset to layout:', asset);
+            addBlock({
+              type: 'content_ref',
+              contentId: asset.id,
+              contentType: asset.type || asset.content_type || 'image',
+              mediaUrl: asset.cloudflare_url || asset.url || asset.s3_url,
+              snippet: asset.title || asset.filename || asset.description || 'Asset'
+            });
+            console.log('[ASSET SEARCH] Closing modal after asset add');
+            setShowAssetModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1336,74 +1355,7 @@ function bringZ(items: Item[], id: string, dir: 'front' | 'back' | 'up' | 'down'
   });
 }
 
-function BlockLibrary({ onAddBlock }: { onAddBlock: (blockType: any) => void }) {
-  const [showAssetModal, setShowAssetModal] = useState(false);
 
-  const blocks = [
-    { type: 'inline_image', name: 'Image', icon: '🖼️', description: 'Image block' },
-    { type: 'assets', name: 'Assets', icon: '📦', description: 'Search and add media assets', isSpecial: true },
-    { type: 'hero', name: 'Hero', icon: '🏆', description: 'Hero section with title, subtitle, and CTA' },
-    { type: 'media_grid', name: 'Media Grid', icon: '⊞', description: 'Grid of media items' },
-    { type: 'text_section', name: 'Rich Text', icon: '📄', description: 'Rich text content section' },
-    { type: 'cta', name: 'CTA', icon: '🎯', description: 'Call-to-action block' },
-    { type: 'footer', name: 'Footer', icon: '⬇️', description: 'Footer with links and copyright' },
-    { type: 'spacer', name: 'Spacer', icon: '⬜', description: 'Empty spacing block' }
-  ];
-
-
-
-  return (
-    <div>
-      <div className="text-xs text-muted-foreground mb-2">Block Library</div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {blocks.map(block => (
-          <Button
-            key={block.type}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (block.type === 'assets') {
-                setShowAssetModal(true);
-              } else {
-                onAddBlock(block.type);
-              }
-            }}
-            variant={block.isSpecial ? 'secondary' : 'outline'}
-            className="p-2 text-left h-auto justify-start"
-            title={block.description}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{block.icon}</span>
-              <div>
-                <div className="text-xs font-medium text-foreground">{block.name}</div>
-                <div className="text-xs text-muted-foreground line-clamp-1">{block.description}</div>
-              </div>
-            </div>
-          </Button>
-        ))}
-      </div>
-
-      {showAssetModal && (
-        <AssetSearchModal
-          onClose={() => setShowAssetModal(false)}
-          onSelect={(asset) => {
-            console.log('[ASSET SEARCH] Adding asset to layout:', asset);
-            onAddBlock({
-              type: 'content_ref',
-              contentId: asset.id,
-              contentType: asset.type || asset.content_type || 'image',
-              mediaUrl: asset.cloudflare_url || asset.url || asset.s3_url,
-              snippet: asset.title || asset.filename || asset.description || 'Asset'
-            });
-            console.log('[ASSET SEARCH] Closing modal after asset add');
-            setShowAssetModal(false);
-          }}
-        />
-      )}
-    </div>
-  );
-}
 
 function LayoutDimensions({ edited, setEdited }: { edited: LayoutAsset; setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>> }) {
   const currentDesign = edited.layout_data.designSize || { width: 400, height: 1000 };
