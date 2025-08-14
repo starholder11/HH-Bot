@@ -1243,8 +1243,10 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
         // Choose list to show based on active filters
         const onlyText = activeTypes.length === 1 && activeTypes[0] === 'text';
         const onlyMedia = activeTypes.every(t => ['image','video','audio'].includes(t)) && !activeTypes.includes('text');
-        const list = onlyText ? results.text : onlyMedia ? results.media : (results.all || []);
-        setSearchResults(Array.isArray(list) ? list : []);
+        const baseList = onlyText ? results.text : onlyMedia ? results.media : (results.all || []);
+        const allow = new Set<string>(activeTypes.includes('text') && activeTypes.length === 1 ? ['text'] : activeTypes);
+        const filtered = (Array.isArray(baseList) ? baseList : []).filter((r: any) => allow.has((r.content_type || r.type || '').toLowerCase()));
+        setSearchResults(filtered);
       } catch (error: any) {
         // Ignore abort errors; they are expected during fast typing
         if (error?.name !== 'AbortError') {
@@ -1281,29 +1283,38 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
 
         {/* Filters + Search */}
         <div className="p-4 border-b border-neutral-700 space-y-2">
-          <div className="text-xs text-neutral-400">Search</div>
-          <div className="flex flex-wrap gap-1">
-            {['image','video','audio','text'].map(t => {
-              const active = selectedTypes.includes(t);
-              return (
-                <button
-                  key={t}
-                  onClick={() => {
-                    setSelectedTypes(prev => {
-                      const has = prev.includes(t);
-                      const next = has ? prev.filter(x => x !== t) : [...prev, t];
-                      const ensured = next.length ? next : [t];
-                      // Trigger search refresh with the next selected set
-                      void searchAssets(searchQuery, ensured);
-                      return ensured;
-                    });
-                  }}
-                  className={`px-2 py-0.5 text-xs rounded border ${active ? 'border-blue-600 bg-blue-900/30 text-blue-200' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
-                >
-                  {t}
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between">
+            <div className="text-neutral-200 text-sm flex items-center gap-2">
+              <span>Search Assets</span>
+              <div className="flex flex-wrap gap-1">
+                {['image','video','audio','text'].map(t => {
+                  const active = selectedTypes.includes(t);
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => {
+                        setSelectedTypes(prev => {
+                          const has = prev.includes(t);
+                          const next = has ? prev.filter(x => x !== t) : [...prev, t];
+                          const ensured = next.length ? next : [t];
+                          void searchAssets(searchQuery, ensured);
+                          return ensured;
+                        });
+                      }}
+                      className={`px-2 py-0.5 text-xs rounded border ${active ? 'border-blue-600 bg-blue-900/30 text-blue-200' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-neutral-800 rounded text-neutral-400 hover:text-neutral-200"
+            >
+              ✕
+            </button>
           </div>
           <input
             type="text"
@@ -1315,7 +1326,6 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
               void searchAssets(v);
             }}
             className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded text-neutral-200 placeholder-neutral-400"
-            autoFocus
           />
         </div>
 
