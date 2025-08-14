@@ -195,9 +195,6 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
 
     // General rule: sort by y asc, then x asc, then original order (stable)
     rects.sort((a, b) => {
-      const aEnd = a.y + a.h;
-      const bEnd = b.y + b.h;
-      if (aEnd !== bEnd) return aEnd - bEnd; // items that finish earlier go first
       if (a.y !== b.y) return a.y - b.y;
       if (a.x !== b.x) return a.x - b.x;
       return a.order - b.order;
