@@ -2,8 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { LayoutAsset } from '@/app/visual-search/types';
-import { TransformComponents } from '@/app/visual-search/components/Layout/transforms';
 import { LAYOUT_THEMES } from '@/app/visual-search/components/Layout/themes';
+import dynamic from 'next/dynamic';
+
+// Dynamically import transform components to avoid SSR issues
+const TransformComponents = dynamic(
+  () => import('@/app/visual-search/components/Layout/transforms').then(mod => ({ default: mod.TransformComponents })),
+  { ssr: false }
+);
 
 interface LiveLayoutPageProps {
   params: { layoutId: string };
@@ -15,6 +21,17 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
+
+  // Error boundary for client-side errors
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('[L7] Client error:', event.error);
+      setError(`Client error: ${event.error?.message || 'Unknown error'}`);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   useEffect(() => {
     async function loadLayout() {
@@ -170,9 +187,8 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
             themeConfig
           );
 
-          const wrappedContent = item.transform 
-            ? renderWithTransform(content, item.transform)
-            : content;
+          // Temporarily disable transforms to debug layout loading
+          const wrappedContent = content;
 
           return (
             <div
@@ -195,12 +211,12 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   );
 }
 
-function renderWithTransform(content: React.ReactNode, transform: any) {
-  if (!transform?.component || typeof window === 'undefined') {
+function renderWithTransform(content: React.ReactNode, transform: any, transformComponents?: any) {
+  if (!transform?.component || typeof window === 'undefined' || !transformComponents) {
     return content;
   }
 
-  const TransformComponent = TransformComponents[transform.component];
+  const TransformComponent = transformComponents[transform.component];
   if (!TransformComponent) {
     console.warn(`Transform component "${transform.component}" not found`);
     return content;
