@@ -528,6 +528,14 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           >
             {working ? 'Saving…' : 'Save'}
           </button>
+
+          <button
+            onClick={() => window.open(`/L7/${edited.id}`, '_blank')}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-white text-sm"
+            title="View live published layout"
+          >
+            🚀 Publish
+          </button>
         </div>
       </div>
 
@@ -771,7 +779,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           }}
         />
       )}
-      
+
       {showTransformPanel && transformTargetId && (
         <TransformPanel
           transform={edited.layout_data.items.find(i => i.id === transformTargetId)?.transform}
@@ -1004,7 +1012,7 @@ function renderWithTransform(content: React.ReactNode, transform?: any) {
   }
 
   const transformProps = { ...transform.props };
-  
+
   // Apply container styles if specified
   const containerStyle: React.CSSProperties = {};
   if (transform.container) {
