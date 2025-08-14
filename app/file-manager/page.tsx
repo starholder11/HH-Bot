@@ -861,6 +861,7 @@ export default function FileManagerPage() {
     }
   };
 
+  // DEBUG: Check function structure here
   if (assets.length === 0) {
     return (
       <div className="min-h-screen bg-black text-white">
