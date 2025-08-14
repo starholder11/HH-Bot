@@ -129,25 +129,25 @@ const AssetListItem = memo(function AssetListItem({
       onClick={() => onSelect(asset)}
       className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
         isSelected
-          ? 'bg-blue-50 border-blue-300 shadow-md'
-          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+          ? 'bg-blue-900/50 border-blue-600 shadow-md'
+          : 'bg-neutral-900 border-neutral-700 hover:bg-neutral-800 hover:border-neutral-600'
       }`}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2">
             <span className="text-sm">{getAssetIcon(asset)}</span>
-            <div className="text-sm font-medium truncate">{asset.title}</div>
+            <div className="text-sm font-medium truncate text-white">{asset.title}</div>
           </div>
-          <div className="text-xs text-gray-500 truncate">{asset.filename}</div>
-          <div className="text-xs text-blue-600 mt-1">
+          <div className="text-xs text-neutral-400 truncate">{asset.filename}</div>
+          <div className="text-xs text-blue-400 mt-1">
             {displayInfo.primaryLabel}
           </div>
-          <div className="text-xs text-gray-400 mt-1">
+          <div className="text-xs text-neutral-500 mt-1">
             {displayInfo.secondaryInfo}
           </div>
           {asset.manual_labels?.mood?.length > 0 && (
-            <div className="text-xs text-purple-600 mt-1">
+            <div className="text-xs text-purple-400 mt-1">
               {(asset.manual_labels?.mood || []).slice(0, 2).join(', ')}
               {(asset.manual_labels?.mood || []).length > 2 && '...'}
             </div>
@@ -170,20 +170,20 @@ const AssetListItem = memo(function AssetListItem({
 const getAssetIcon = (asset: MediaAsset) => {
   switch (asset.media_type) {
     case 'image':
-      return <Image className="w-5 h-5 text-gray-500" />;
+      return <Image className="w-5 h-5 text-neutral-400" />;
     case 'keyframe_still':
       return (
         <span className="flex items-center space-x-0.5">
-          <Video className="w-4 h-4 text-gray-500" />
-          <Image className="w-4 h-4 text-gray-500" />
+          <Video className="w-4 h-4 text-neutral-400" />
+          <Image className="w-4 h-4 text-neutral-400" />
         </span>
       );
     case 'video':
-      return <Video className="w-5 h-5 text-gray-500" />;
+      return <Video className="w-5 h-5 text-neutral-400" />;
     case 'audio':
-      return <Music className="w-5 h-5 text-gray-500" />;
+      return <Music className="w-5 h-5 text-neutral-400" />;
     default:
-      return <FileText className="w-5 h-5 text-gray-500" />;
+      return <FileText className="w-5 h-5 text-neutral-400" />;
   }
 };
 
@@ -863,45 +863,48 @@ export default function FileManagerPage() {
 
   if (assets.length === 0) {
     return (
-      <div className="container mx-auto p-6">
-        <h1 className="text-3xl font-light tracking-tight mb-6">Media Library</h1>
-        <div className="text-center py-8">
-          <p className="text-gray-600 mb-4">No media assets found. Upload some files to get started.</p>
-          <Button
-            onClick={() => setIsUploading(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            Upload Media
-          </Button>
+      <div className="min-h-screen bg-black text-white">
+        <div className="container mx-auto p-6">
+          <h1 className="text-3xl font-light tracking-tight mb-6 text-white">Media Library</h1>
+          <div className="text-center py-8">
+            <p className="text-neutral-400 mb-4">No media assets found. Upload some files to get started.</p>
+            <Button
+              onClick={() => setIsUploading(true)}
+              className="bg-neutral-800 border border-neutral-700 text-white hover:bg-neutral-700"
+            >
+              Upload Media
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      {/* Header with Search and Filters */}
-      <div className="mb-6">
-                  <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-light tracking-tight">Media Library</h1>
+    <div className="min-h-screen bg-black text-white">
+      <div className="container mx-auto p-6">
+        {/* Header with Search and Filters */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-3xl font-light tracking-tight text-white">Media Library</h1>
             <div className="flex gap-3">
               <Button
                 onClick={() => setIsUploading(true)}
                 className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
-                  isUploading ? 'bg-gray-400 text-white' : 'bg-slate-600 text-white hover:bg-slate-700'
+                  isUploading ? 'bg-neutral-600 text-white' : 'bg-neutral-800 border border-neutral-700 text-white hover:bg-neutral-700'
                 }`}
               >
                 {isUploading ? 'Uploading...' : 'Upload'}
               </Button>
               <a
                 href="/keyframe-browser"
-                                  className="bg-slate-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-slate-700 transition-colors font-medium inline-flex items-center gap-2"
+                className="bg-neutral-800 border border-neutral-700 text-white px-3 py-1.5 text-sm rounded-md hover:bg-neutral-700 transition-colors font-medium inline-flex items-center gap-2"
               >
                 Keyframe Browser
               </a>
               <a
                 href="/video-analysis"
-                                  className="bg-slate-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-slate-700 transition-colors font-medium inline-flex items-center gap-2"
+                className="bg-neutral-800 border border-neutral-700 text-white px-3 py-1.5 text-sm rounded-md hover:bg-neutral-700 transition-colors font-medium inline-flex items-center gap-2"
               >
                 Analysis Dashboard
               </a>
@@ -915,7 +918,7 @@ export default function FileManagerPage() {
               placeholder="Search titles, tags, AI labels, scenes, objects, moods, themes, lyrics..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
@@ -927,7 +930,7 @@ export default function FileManagerPage() {
                 setMediaTypeFilter(val === 'all' ? '' : val);
               }}
             >
-              <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <SelectTrigger className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <SelectValue placeholder="All Media" />
               </SelectTrigger>
               <SelectContent>
@@ -941,7 +944,7 @@ export default function FileManagerPage() {
 
           {/* Exclude Keyframes Toggle */}
           <div className="flex items-center space-x-2">
-            <label className="flex items-center space-x-2 text-sm">
+            <label className="flex items-center space-x-2 text-sm text-white">
               <input
                 type="checkbox"
                 checked={excludeKeyframes}
@@ -949,7 +952,7 @@ export default function FileManagerPage() {
                   console.log(`[file-manager] 🔧 Exclude Keyframes changed: ${e.target.checked}`);
                   setExcludeKeyframes(e.target.checked);
                 }}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-neutral-700 bg-neutral-800 text-blue-600 focus:ring-blue-500"
               />
               <span>Exclude Keyframes</span>
             </label>
@@ -963,7 +966,7 @@ export default function FileManagerPage() {
                 setProjectFilter(val === 'none' ? '' : val);
               }}
             >
-              <SelectTrigger className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <SelectTrigger className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <SelectValue placeholder="All Projects" />
               </SelectTrigger>
               <SelectContent>
@@ -975,7 +978,7 @@ export default function FileManagerPage() {
             </Select>
             <Button
               onClick={() => setShowCreateProject(true)}
-              className="px-2 py-0.5 text-xs bg-slate-500 hover:bg-slate-600 rounded text-white transition-colors whitespace-nowrap"
+              className="px-2 py-0.5 text-xs bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 rounded text-white transition-colors whitespace-nowrap"
             >
               New Project
             </Button>
@@ -1024,15 +1027,15 @@ export default function FileManagerPage() {
 
           {/* Pagination Controls over cached list with progressive prefetch */}
           {totalAssetCount > itemsPerPage && (
-            <div className="mt-4 flex items-center justify-between border-t pt-4">
-              <div className="text-sm text-gray-500">
+            <div className="mt-4 flex items-center justify-between border-t border-neutral-700 pt-4">
+              <div className="text-sm text-neutral-400">
                 Page {currentPage} of {Math.max(1, Math.ceil(totalAssetCount / itemsPerPage))} ({totalAssetCount} loaded)
               </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-3 py-1 text-xs border border-neutral-700 bg-neutral-800 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700"
                 >
                   Previous
                 </button>
@@ -1049,8 +1052,8 @@ export default function FileManagerPage() {
                         onClick={() => setCurrentPage(pageNumber)}
                         className={`px-2 py-1 text-xs border rounded ${
                           currentPage === pageNumber
-                            ? 'bg-blue-500 text-white border-blue-500'
-                            : 'hover:bg-gray-50'
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700'
                         }`}
                       >
                         {pageNumber}
@@ -1062,7 +1065,7 @@ export default function FileManagerPage() {
                 <button
                   onClick={() => setCurrentPage(prev => prev + 1)}
                   disabled={currentPage === Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)) && !isFetchingChunkRef.current && !serverHasMoreRef.current}
-                  className="px-3 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-3 py-1 text-xs border border-neutral-700 bg-neutral-800 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700"
                 >
                   Next
                 </button>
