@@ -474,18 +474,18 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const headerHeightPx = 56; // h-14
 
   return (
-    <div className="bg-neutral-950 text-neutral-100" style={{ height: `${design.height + headerHeightPx}px` }}>
+    <div className="bg-background text-foreground" style={{ height: `${design.height + headerHeightPx}px` }}>
       {/* Header */}
-      <div className="sticky top-0 z-50 h-14 border-b border-input bg-background/80 backdrop-blur flex items-center justify-between px-4">
+      <div className="sticky top-0 z-50 h-14 border-b border-border bg-background/80 backdrop-blur flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           {onBack && (
             <Button variant="outline" size="sm" onClick={onBack}>Back</Button>
           )}
-          <h2 className="text-lg font-medium text-white">{edited.title}</h2>
-          <div className="text-xs text-neutral-500">• {edited.layout_data.items.length} items</div>
-          <div className="text-xs text-neutral-500">• {design.width}×{design.height}px</div>
+          <h2 className="text-lg font-medium">{edited.title}</h2>
+          <div className="text-xs text-muted-foreground">• {edited.layout_data.items.length} items</div>
+          <div className="text-xs text-muted-foreground">• {design.width}×{design.height}px</div>
           {selectedId && (
-            <div className="text-xs text-blue-400">
+            <div className="text-xs text-muted-foreground">
               • 1 selected
             </div>
           )}
@@ -493,7 +493,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
         <div className="flex items-center gap-2">
           {/* Breakpoint toggles */}
-          <div className="flex gap-1 border border-input rounded overflow-hidden">
+          <div className="flex gap-1 border border-border rounded overflow-hidden">
             {(['desktop', 'tablet', 'mobile'] as const).map(bp => (
               <Button
                 key={bp}
@@ -507,11 +507,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           </div>
 
           {/* Snap / Guides */}
-          <label className="flex items-center gap-1 text-xs text-neutral-300">
+          <label className="flex items-center gap-1 text-xs text-muted-foreground">
             <input type="checkbox" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} />
             Snap
           </label>
-          <label className="flex items-center gap-1 text-xs text-neutral-300">
+          <label className="flex items-center gap-1 text-xs text-muted-foreground">
             <input type="checkbox" checked={showAlignmentGuides} onChange={e => setShowAlignmentGuides(e.target.checked)} />
             Guides
           </label>
@@ -528,8 +528,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 window.open(`/L7/${edited.id}`, '_blank');
               }
             }}
-            size="sm"
             title="Save and open live published layout"
+            size="sm"
           >
             🚀 Publish
           </Button>
@@ -541,7 +541,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         {/* Canvas area */}
         <div className="flex-1 p-2">
           <div
-            className="mx-auto border border-input relative layout-canvas rounded-md bg-background"
+            className="mx-auto border border-border relative layout-canvas rounded-md bg-background"
             style={{
               width: design.width,
               height: design.height,
@@ -720,9 +720,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         {/* Right inspector */}
-        <Card className="w-64 bg-background border border-input p-2 space-y-2 flex-shrink-0 overflow-y-auto">
+        <Card className="w-64 bg-background border border-border p-2 space-y-2 flex-shrink-0 overflow-y-auto">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-neutral-300 font-medium">Inspector</div>
+            <div className="text-sm text-foreground font-medium">Inspector</div>
             <div className="flex gap-1">
               <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" variant="outline">Duplicate</Button>
               <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" variant="destructive">Delete</Button>
@@ -739,7 +739,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           <ThemeSelector edited={edited} setEdited={setEdited} />
 
           {selectedIds.size === 0 ? (
-            <div className="text-xs text-neutral-400">Select an item to edit.</div>
+            <div className="text-xs text-muted-foreground">Select an item to edit.</div>
           ) : selectedIds.size === 1 && selectedId ? (
             <ItemInspector
               item={edited.layout_data.items.find(i => i.id === selectedId)!}
@@ -748,7 +748,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               onZ={(dir) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: bringZ(prev.layout_data.items, selectedId, dir) } }))}
             />
           ) : (
-            <div className="text-xs text-neutral-400">{selectedIds.size} items selected</div>
+            <div className="text-xs text-muted-foreground">{selectedIds.size} items selected</div>
           )}
         </Card>
       </div>
@@ -1792,25 +1792,25 @@ function ItemInspector({
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              
+
               try {
                 // Show uploading state
                 handleImageUrlChange('Uploading...');
-                
+
                 // Create form data for upload
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('type', 'image');
                 formData.append('directory', 'public/uploads');
-                
+
                 // Upload the file
                 const response = await fetch('/api/upload', {
                   method: 'POST',
                   body: formData,
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (response.ok && result?.url) {
                   // Set the uploaded URL
                   handleImageUrlChange(result.url);
