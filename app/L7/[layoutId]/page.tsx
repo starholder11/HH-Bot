@@ -177,10 +177,13 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
       <div 
-        className="relative bg-gray-800 border border-gray-600"
+        className="relative border border-gray-600"
         style={{ 
           width: `${designSize.width}px`, 
-          height: `${designSize.height}px`
+          height: `${designSize.height}px`,
+          backgroundColor: layout_data.styling?.colors?.background || '#171717',
+          color: layout_data.styling?.colors?.text || '#ffffff',
+          fontFamily: layout_data.styling?.typography?.fontFamily || 'inherit'
         }}
       >
         {items
@@ -215,21 +218,14 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           const h = gridH * cellSize;
 
           // Debug logging with expanded coordinates
-          const calculatedZ = item.z || (() => {
-            if (item.type === 'inline_image') return 100;
-            if (item.contentType === 'video') return 50;
-            if (item.contentType === 'image') return 40;
-            if (item.type === 'block') return 30;
-            if (item.contentType === 'text') return 20;
-            return 1;
-          })();
+          const actualZ = item.z || 1;
           
           console.log(`[L7] Item ${item.id || index}:`,
             `type=${item.type}`,
             `contentType=${item.contentType || 'none'}`,
             `coords=(${gridX}, ${gridY}, ${gridW}, ${gridH})`,
             `pixels=(${x}, ${y}, ${w}, ${h})`,
-            `z=${calculatedZ}`,
+            `z=${actualZ}`,
             bp ? '[bp=desktop]' : '[bp=base]'
           );
 
@@ -242,15 +238,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                 top: `${y}px`,
                 width: `${w}px`,
                 height: `${h}px`,
-                zIndex: item.z || (() => {
-                  // Smart z-index assignment to prevent overlapping
-                  if (item.type === 'inline_image') return 100;
-                  if (item.contentType === 'video') return 50;
-                  if (item.contentType === 'image') return 40;
-                  if (item.type === 'block') return 30;
-                  if (item.contentType === 'text') return 20;
-                  return 1;
-                })(),
+                zIndex: item.z || 1,
               }}
             >
               {renderContent(item)}
