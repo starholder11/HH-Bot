@@ -576,7 +576,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                       setSelectedIds(new Set([it.id]));
                       setDraftText(it.inlineContent?.text || '');
                       setIsEditingText(true);
-                    } else if ((it as any).blockType === 'text_section') {
+                    } else if ((['text_section','hero','cta','footer'] as const).includes((it as any).blockType)) {
                       openRteForId(it.id);
                     }
                   }}
@@ -594,7 +594,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                   <div className="drag-handle h-6 px-2 flex items-center justify-between text-xs bg-neutral-800/70 border-b border-neutral-800 select-none">
                     <span className="text-neutral-300 truncate">{it.type === 'content_ref' ? it.contentType : it.type}</span>
                     <div className="flex items-center gap-1">
-                      {(it as any).blockType === 'text_section' && (
+                      {(['text_section','hero','cta','footer'] as const).includes((it as any).blockType) && (
                         <button
                           className="px-1.5 py-0.5 text-[10px] rounded bg-neutral-900/80 border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); openRteForId(it.id); }}
