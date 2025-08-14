@@ -1381,20 +1381,39 @@ function BlockLibrary({ onAddBlock }: { onAddBlock: (blockType: any) => void }) 
 }
 
 function LayoutDimensions({ edited, setEdited }: { edited: LayoutAsset; setEdited: React.Dispatch<React.SetStateAction<LayoutAsset>> }) {
-  const currentDesign = edited.layout_data.designSize || { width: 1200, height: 800 };
+  const currentDesign = edited.layout_data.designSize || { width: 400, height: 1000 };
 
-  const updateDimensions = (width: number | string, height: number | string) => {
-    const w = typeof width === 'string' ? (width === '' ? 400 : parseInt(width)) : width;
-    const h = typeof height === 'string' ? (height === '' ? 300 : parseInt(height)) : height;
+  const [localWidth, setLocalWidth] = React.useState<string>(String(currentDesign.width));
+  const [localHeight, setLocalHeight] = React.useState<string>(String(currentDesign.height));
+
+  // Keep local inputs in sync when external design changes
+  React.useEffect(() => {
+    setLocalWidth(String(currentDesign.width ?? 400));
+    setLocalHeight(String(currentDesign.height ?? 1000));
+  }, [currentDesign.width, currentDesign.height]);
+
+  const commit = (wStr: string, hStr: string) => {
+    const parsedW = Number.parseInt(wStr, 10);
+    const parsedH = Number.parseInt(hStr, 10);
+
+    const nextW = Number.isFinite(parsedW) ? parsedW : (currentDesign.width ?? 400);
+    const nextH = Number.isFinite(parsedH) ? parsedH : (currentDesign.height ?? 1000);
 
     setEdited(prev => ({
       ...prev,
       layout_data: {
         ...prev.layout_data,
-        designSize: { width: w || 400, height: h || 300 }
+        designSize: { width: nextW, height: nextH }
       },
       updated_at: new Date().toISOString()
     } as LayoutAsset));
+  };
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === 'Enter') {
+      commit(localWidth, localHeight);
+      (e.target as HTMLInputElement).blur();
+    }
   };
 
   return (
@@ -1405,8 +1424,10 @@ function LayoutDimensions({ edited, setEdited }: { edited: LayoutAsset; setEdite
           <label className="text-xs text-neutral-400">Width</label>
           <input
             type="number"
-            value={currentDesign.width}
-            onChange={(e) => updateDimensions(e.target.value, currentDesign.height)}
+            value={localWidth}
+            onChange={(e) => setLocalWidth(e.target.value)}
+            onBlur={() => commit(localWidth, localHeight)}
+            onKeyDown={handleKeyDown}
             className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-200"
           />
         </div>
@@ -1414,8 +1435,10 @@ function LayoutDimensions({ edited, setEdited }: { edited: LayoutAsset; setEdite
           <label className="text-xs text-neutral-400">Height</label>
           <input
             type="number"
-            value={currentDesign.height}
-            onChange={(e) => updateDimensions(currentDesign.width, e.target.value)}
+            value={localHeight}
+            onChange={(e) => setLocalHeight(e.target.value)}
+            onBlur={() => commit(localWidth, localHeight)}
+            onKeyDown={handleKeyDown}
             className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-200"
           />
         </div>
