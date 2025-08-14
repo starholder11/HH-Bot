@@ -794,6 +794,10 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               cellSize={cellSize}
               onChange={(up) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: prev.layout_data.items.map(i => i.id === selectedId ? { ...i, ...up } as Item : i) } }))}
               onZ={(dir) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: bringZ(prev.layout_data.items, selectedId, dir) } }))}
+              onEditImage={(itemId) => {
+                setImageModalTargetId(itemId);
+                setShowImageModal(true);
+              }}
             />
           ) : (
             <div className="text-xs text-white">{selectedIds.size} items selected</div>
@@ -1883,11 +1887,13 @@ function ItemInspector({
   cellSize,
   onChange,
   onZ,
+  onEditImage,
 }: {
   item: Item;
   cellSize: number;
   onChange: (updates: Partial<Item>) => void;
   onZ: (dir: 'front' | 'back' | 'up' | 'down') => void;
+  onEditImage: (itemId: string) => void;
 }) {
   const [localImageUrl, setLocalImageUrl] = useState(item.inlineContent?.imageUrl || '');
 
@@ -1919,10 +1925,7 @@ function ItemInspector({
         <div>
           <div className="text-xs text-white mb-1">Image</div>
           <Button 
-            onClick={() => {
-              setImageModalTargetId(item.id);
-              setShowImageModal(true);
-            }}
+            onClick={() => onEditImage(item.id)}
             className="w-full bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700"
             size="sm"
           >
