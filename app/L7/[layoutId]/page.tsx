@@ -46,9 +46,9 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         setData(asset);
         console.log('[L7] Layout loaded successfully');
         
-        // Load full text content for text items
+        // Load full content for all items
         if (asset.layout_data?.items) {
-          loadTextContent(asset);
+          loadAllContent(asset);
         }
         
       } catch (err) {
@@ -62,30 +62,58 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
     loadData();
   }, [params.layoutId]);
 
-  async function loadTextContent(asset: any) {
-    const textItems = asset.layout_data.items.filter((item: any) => item.contentType === 'text');
+  async function loadAllContent(asset: any) {
+    const contentItems = asset.layout_data.items.filter((item: any) => item.type === 'content_ref');
     
-    for (const item of textItems) {
+    for (const item of contentItems) {
       try {
         const assetId = item.contentId || item.refId || '';
-        const slugMatch = assetId.match(/content_ref_(.+)/);
-        const slug = slugMatch ? slugMatch[1] : assetId;
         
-        if (slug) {
-          console.log('[L7] Loading text content for:', slug);
-          const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+        if (item.contentType === 'text') {
+          // Handle text content
+          const slugMatch = assetId.match(/content_ref_(.+)/);
+          const slug = slugMatch ? slugMatch[1] : assetId;
+          
+          if (slug) {
+            console.log('[L7] Loading text content for:', slug);
+            const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+            if (response.ok) {
+              const textData = await response.json();
+              console.log('[L7] Loaded text data:', textData);
+              
+              // Update the item with full text content
+              setData((prev: any) => ({
+                ...prev,
+                layout_data: {
+                  ...prev.layout_data,
+                  items: prev.layout_data.items.map((i: any) => 
+                    i.id === item.id 
+                      ? { ...i, fullTextContent: textData.content, textMetadata: textData.metadata }
+                      : i
+                  )
+                }
+              }));
+            }
+          }
+        } else if (assetId && (item.contentType === 'video' || item.contentType === 'image' || item.contentType === 'audio')) {
+          // Handle media content - get the asset to find mediaUrl
+          console.log('[L7] Loading media asset for:', assetId);
+          const response = await fetch(`/api/media-assets/${assetId}`);
           if (response.ok) {
-            const textData = await response.json();
-            console.log('[L7] Loaded text data:', textData);
+            const responseData = await response.json();
+            const mediaAsset = responseData.asset || responseData;
+            const mediaUrl = mediaAsset.cloudflare_url || mediaAsset.s3_url || mediaAsset.url;
             
-            // Update the item with full text content
+            console.log('[L7] Loaded media URL:', mediaUrl);
+            
+            // Update the item with media URL
             setData((prev: any) => ({
               ...prev,
               layout_data: {
                 ...prev.layout_data,
                 items: prev.layout_data.items.map((i: any) => 
                   i.id === item.id 
-                    ? { ...i, fullTextContent: textData.content, textMetadata: textData.metadata }
+                    ? { ...i, mediaUrl, assetData: mediaAsset }
                     : i
                 )
               }
@@ -93,7 +121,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           }
         }
       } catch (error) {
-        console.error('[L7] Failed to load text content:', error);
+        console.error('[L7] Failed to load content for item:', item.id, error);
       }
     }
   }
