@@ -181,22 +181,14 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
-      <div
+      <div 
         className="relative border border-gray-600"
-        style={{
-          width: `${designSize.width}px`,
+        style={{ 
+          width: `${designSize.width}px`, 
           height: `${designSize.height}px`,
           backgroundColor: layout_data.styling?.colors?.background || '#171717',
           color: layout_data.styling?.colors?.text || '#ffffff',
-          fontFamily: layout_data.styling?.typography?.fontFamily || 'inherit',
-          display: 'grid',
-          gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
-          gridTemplateRows: `repeat(${rows}, ${rowHeight}px)`,
-          gridAutoRows: `${rowHeight}px`,
-          gridAutoColumns: `${cellSize}px`,
-          alignContent: 'start',
-          justifyContent: 'start',
-          gap: 0
+          fontFamily: layout_data.styling?.typography?.fontFamily || 'inherit'
         }}
       >
         {items.map((item: any, index: number) => {
@@ -238,14 +230,21 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
             '[published-layout]'
           );
 
+          // Convert to pixel-based absolute positioning for bulletproof rendering
+          const leftPx = gridX * cellSize;
+          const topPx = gridY * cellSize;
+          const widthPx = gridW * cellSize;
+          const heightPx = gridH * cellSize;
+
           return (
             <div
               key={item.id || `item-${index}`}
               style={{
-                gridColumnStart: gridX + 1,
-                gridColumnEnd: gridX + gridW + 1,
-                gridRowStart: gridY + 1,
-                gridRowEnd: gridY + gridH + 1,
+                position: 'absolute',
+                left: leftPx,
+                top: topPx,
+                width: widthPx,
+                height: heightPx,
                 zIndex: item.z || 1,
                 overflow: 'hidden'
               }}
