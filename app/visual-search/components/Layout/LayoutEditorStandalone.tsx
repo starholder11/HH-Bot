@@ -71,37 +71,72 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     const loadPreviews = async () => {
       for (const item of edited.layout_data.items) {
         if (item.type === 'content_ref') {
-          // First check if we already have a mediaUrl directly
-          if ((item as any).mediaUrl && !previewUrls[item.id]) {
-            setPreviewUrls(prev => ({ ...prev, [item.id]: (item as any).mediaUrl }));
+          const contentType = (item as any).contentType || 'unknown';
+          const assetId = (item as any).contentId || (item as any).refId;
+          
+          // Handle text content using the same approach as visual-search
+          if (contentType === 'text' && assetId && !(item as any).fullTextContent) {
+            setLoadingMap(prev => ({ ...prev, [item.id]: true }));
+            try {
+              // Extract slug from text asset ID (same logic as visual-search DetailsOverlay)
+              let slug = assetId;
+              if (assetId.startsWith('text_')) {
+                const after = assetId.split('text_')[1] ?? '';
+                const beforeHash = after.split('#')[0] ?? '';
+                const subParts = beforeHash.split('/');
+                slug = subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || assetId;
+              }
+              
+              console.log('[TEXT CONTENT] Fetching full text for slug:', slug);
+              const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.content) {
+                  // Attach full text content to the item
+                  setEdited(prev => ({
+                    ...prev,
+                    layout_data: {
+                      ...prev.layout_data,
+                      items: prev.layout_data.items.map(i => i.id === item.id ? 
+                        ({ ...i, fullTextContent: data.content, textMetadata: data.metadata }) as any : i)
+                    }
+                  } as LayoutAsset));
+                  console.log('[TEXT CONTENT] Loaded full text content for:', slug);
+                }
+              }
+            } catch (error) {
+              console.error('Failed to load text content for', assetId, error);
+            } finally {
+              setLoadingMap(prev => ({ ...prev, [item.id]: false }));
+            }
             continue;
           }
 
-          // Otherwise try to fetch by contentId or refId
-          const assetId = (item as any).contentId || (item as any).refId;
-          if (assetId && !previewUrls[item.id]) {
-            setLoadingMap(prev => ({ ...prev, [item.id]: true }));
-            try {
-              const response = await fetch(`/api/media-assets/${assetId}`);
-              if (response.ok) {
-                const data = await response.json();
-                const url = data.asset?.cloudflare_url || data.asset?.s3_url || data.asset?.url;
-                if (url) {
-                  setPreviewUrls(prev => ({ ...prev, [item.id]: url }));
-                }
-                // Attach full metadata (including body text) for text rendering
-                setEdited(prev => ({
-                  ...prev,
-                  layout_data: {
-                    ...prev.layout_data,
-                    items: prev.layout_data.items.map(i => i.id === item.id ? ({ ...i, assetMeta: data.asset }) as any : i)
+          // Handle media assets (non-text)
+          if (contentType !== 'text') {
+            // First check if we already have a mediaUrl directly
+            if ((item as any).mediaUrl && !previewUrls[item.id]) {
+              setPreviewUrls(prev => ({ ...prev, [item.id]: (item as any).mediaUrl }));
+              continue;
+            }
+
+            // Otherwise try to fetch by contentId or refId
+            if (assetId && !previewUrls[item.id]) {
+              setLoadingMap(prev => ({ ...prev, [item.id]: true }));
+              try {
+                const response = await fetch(`/api/media-assets/${assetId}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  const url = data.asset?.cloudflare_url || data.asset?.s3_url || data.asset?.url;
+                  if (url) {
+                    setPreviewUrls(prev => ({ ...prev, [item.id]: url }));
                   }
-                } as LayoutAsset));
+                }
+              } catch (error) {
+                console.error('Failed to load preview for', assetId, error);
+              } finally {
+                setLoadingMap(prev => ({ ...prev, [item.id]: false }));
               }
-            } catch (error) {
-              console.error('Failed to load preview for', assetId, error);
-            } finally {
-              setLoadingMap(prev => ({ ...prev, [item.id]: false }));
             }
           }
         }
@@ -954,24 +989,40 @@ function renderItem(
     const contentType = (it as any).contentType || 'unknown';
     const assetId = (it as any).contentId || (it as any).refId || '';
 
-    // Render text content immediately (text does not require a media URL)
+    // Render text content using the same approach as visual-search
     if (contentType === 'text') {
-      // Prefer body text from fetched asset metadata if present (timeline content)
-      const meta = (it as any).assetMeta || {};
-      const body = meta.content || meta.body || '';
-      const title = (it as any).snippet || (it as any).title || meta.title || '';
-      if (body) {
+      const fullTextContent = (it as any).fullTextContent || '';
+      const title = (it as any).snippet || (it as any).title || '';
+      
+      if (fullTextContent) {
+        // Render full content like visual-search DetailsOverlay
         return (
-          <div className="h-full w-full p-4 bg-neutral-900 text-neutral-100 overflow-auto">
-            <div className="font-semibold mb-2">{title}</div>
-            <div className="leading-relaxed text-sm whitespace-pre-wrap">{body}</div>
+          <div className="h-full w-full p-4 bg-white text-black overflow-auto">
+            <div className="prose prose-sm max-w-none">
+              <h3 className="text-lg font-semibold mb-3 text-black">{title}</h3>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
+                {fullTextContent}
+              </div>
+            </div>
           </div>
         );
       }
-      // Fallback to available title/snippet if body not yet loaded
+      
+      // Loading state or fallback
+      if (loading) {
+        return (
+          <div className="h-full w-full flex items-center justify-center text-xs text-neutral-400 bg-neutral-800/20">
+            Loading text content...
+          </div>
+        );
+      }
+      
+      // Fallback to available title/snippet if full content not yet loaded
       return (
-        <div className="h-full w-full p-4 bg-neutral-900 text-neutral-100 overflow-auto">
-          <div className="leading-relaxed text-sm whitespace-pre-wrap">{title || 'Text content'}</div>
+        <div className="h-full w-full p-4 bg-white text-black overflow-auto">
+          <div className="prose prose-sm max-w-none">
+            <div className="text-sm leading-relaxed text-gray-800">{title || 'Loading text content...'}</div>
+          </div>
         </div>
       );
     }
