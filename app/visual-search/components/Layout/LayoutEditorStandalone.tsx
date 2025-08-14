@@ -737,7 +737,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           <div>
             <div className="text-xs text-neutral-300 mb-2">Block Library</div>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('inline_image');}}>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('inline_image');}}>
                 <ImageIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Image</span>
               </Button>
@@ -745,27 +745,27 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 <BoxesIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Assets</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('hero');}}>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('hero');}}>
                 <TrophyIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Hero</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('media_grid');}}>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('media_grid');}}>
                 <GridIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Media Grid</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('text_section');}}>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('text_section');}}>
                 <FileTextIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Rich Text</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('cta');}}>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('cta');}}>
                 <TargetIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">CTA</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('footer');}}>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('footer');}}>
                 <DownloadIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Footer</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('spacer');}}>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('spacer');}}>
                 <SquareIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Spacer</span>
               </Button>
