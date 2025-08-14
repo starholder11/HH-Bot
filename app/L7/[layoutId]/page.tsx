@@ -222,11 +222,14 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           const derivedY = pick(bp.y, item.y, fromNormY) ?? 0;
           const derivedW = pick(bp.w, item.w, fromNormW) ?? 1;
           const derivedH = pick(bp.h, item.h, fromNormH) ?? 1;
+          
+          // Cap text items to reasonable height to prevent massive overlapping blocks
+          const maxReasonableH = item.contentType === 'text' ? Math.min(derivedH, 20) : derivedH;
 
           const gridX = Math.max(0, derivedX);
           const gridY = Math.max(0, derivedY);
           const gridW = Math.max(1, derivedW);
-          const gridH = Math.max(1, derivedH);
+          const gridH = Math.max(1, maxReasonableH);
 
           // Convert to pixel-based absolute positioning for bulletproof rendering
           const leftPx = gridX * cellSize;
@@ -317,13 +320,13 @@ function renderContent(item: any) {
     );
   }
 
-  // Handle text content
+    // Handle text content
   if (item.contentType === 'text') {
     const title = item.snippet || item.title || '';
     const content = item.fullTextContent || '';
-
+    
     return (
-      <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative shadow-lg border border-gray-300">
+      <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative shadow-lg border border-gray-300" style={{ zIndex: 1 }}>
         <div className="prose prose-lg max-w-none h-full overflow-y-auto">
           {title && <h1 className="text-2xl font-bold mb-6 text-black">{title}</h1>}
           {content ? (
