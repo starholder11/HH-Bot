@@ -182,34 +182,22 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   // Compute a collision-free layout at render time without mutating the saved data
   function computeNonOverlappingLayout(rawItems: any[]) {
     // Extract base grid rects
-    type Rect = { id: string; x: number; y: number; w: number; h: number; item: any };
+    type Rect = { id: string; x: number; y: number; w: number; h: number; item: any; order: number };
     const rects: Rect[] = rawItems.map((it: any, idx: number) => ({
       id: it.id || `item-${idx}`,
       x: Math.max(0, it.x ?? 0),
       y: Math.max(0, it.y ?? 0),
       w: Math.max(1, it.w ?? 1),
       h: Math.max(1, it.h ?? 1),
-      item: it
+      item: it,
+      order: idx
     }));
 
-    // Identify the first four non-text items closest to the top (original intent grid)
-    const nonTextSorted = rects
-      .filter(r => r.item.contentType !== 'text')
-      .sort((a, b) => (a.y !== b.y ? a.y - b.y : a.x - b.x));
-    const topFourIds = new Set(nonTextSorted.slice(0, 4).map(r => r.id));
-
-    // Priority tiers:
-    // 0 → top four non-text (stay at the top)
-    // 1 → all text content (go below the first four)
-    // 2 → remaining items (e.g., trailing inline image)
-    const priority = (r: Rect) => (topFourIds.has(r.id) ? 0 : r.item.contentType === 'text' ? 1 : 2);
-
+    // General rule: sort by y asc, then x asc, then original order (stable)
     rects.sort((a, b) => {
-      const pa = priority(a);
-      const pb = priority(b);
-      if (pa !== pb) return pa - pb;
       if (a.y !== b.y) return a.y - b.y;
-      return a.x - b.x;
+      if (a.x !== b.x) return a.x - b.x;
+      return a.order - b.order;
     });
 
     const placed: Rect[] = [];
@@ -231,14 +219,13 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         const test: Rect = { ...r, y: currentY };
         const colliders = placed.filter(p => overlaps(test, p));
         if (colliders.length === 0) break;
-        // Move below the lowest collider
+        // Move below the lowest collider we overlap with
         const nextY = Math.max(...colliders.map(p => p.y + p.h));
         if (nextY > maxY) {
           currentY = maxY;
           break;
         }
         if (nextY === currentY) {
-          // Prevent infinite loop
           currentY = Math.min(maxY, currentY + 1);
         } else {
           currentY = nextY;
