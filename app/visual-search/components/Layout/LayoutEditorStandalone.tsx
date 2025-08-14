@@ -476,18 +476,18 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const headerHeightPx = 56; // h-14
 
   return (
-    <div className="bg-background text-foreground" style={{ height: `${design.height + headerHeightPx}px` }}>
+    <div className="bg-black text-white" style={{ height: `${design.height + headerHeightPx}px` }}>
       {/* Header */}
-      <div className="sticky top-0 z-50 h-14 border-b border-border bg-background/80 backdrop-blur flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
+      <div className="sticky top-0 z-50 h-14 border-b border-neutral-700 bg-black flex items-center justify-between px-4">
+        <div className="flex items-center gap-4 ml-32">
+          <h2 className="text-lg font-medium text-white">{edited.title}</h2>
+          <div className="text-xs text-white">• {edited.layout_data.items.length} items</div>
+          <div className="text-xs text-white">• {design.width}×{design.height}px</div>
           {onBack && (
-            <Button variant="outline" size="sm" onClick={onBack}>Back</Button>
+            <Button variant="outline" size="sm" onClick={onBack} className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700">Back</Button>
           )}
-          <h2 className="text-lg font-medium">{edited.title}</h2>
-          <div className="text-xs text-muted-foreground">• {edited.layout_data.items.length} items</div>
-          <div className="text-xs text-muted-foreground">• {design.width}×{design.height}px</div>
           {selectedId && (
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-white">
               • 1 selected
             </div>
           )}
@@ -495,13 +495,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
         <div className="flex items-center gap-2">
           {/* Breakpoint toggles */}
-          <div className="flex gap-1 border border-border rounded overflow-hidden">
+          <div className="flex gap-1 border border-neutral-700 rounded overflow-hidden">
             {(['desktop', 'tablet', 'mobile'] as const).map(bp => (
               <Button
                 key={bp}
                 onClick={() => setCurrentBreakpoint(bp)}
                 size="sm"
-                variant={currentBreakpoint === bp ? 'default' : 'ghost'}
+                className={currentBreakpoint === bp ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-white hover:bg-neutral-700'}
               >
                 {bp === 'desktop' ? '🖥️' : bp === 'tablet' ? '📱' : '📱'} {bp}
               </Button>
@@ -509,16 +509,16 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           </div>
 
           {/* Snap / Guides */}
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1 text-xs text-white">
             <input type="checkbox" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} />
             Snap
           </label>
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1 text-xs text-white">
             <input type="checkbox" checked={showAlignmentGuides} onChange={e => setShowAlignmentGuides(e.target.checked)} />
             Guides
           </label>
 
-          <Button onClick={handleSave} disabled={working} variant="secondary" size="sm">
+          <Button onClick={handleSave} disabled={working} size="sm" className="bg-neutral-700 text-white hover:bg-neutral-600">
             {working ? 'Saving…' : 'Save'}
           </Button>
 
@@ -532,6 +532,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             }}
             title="Save and open live published layout"
             size="sm"
+            className="bg-blue-700 text-white hover:bg-blue-600"
           >
             🚀 Publish
           </Button>
