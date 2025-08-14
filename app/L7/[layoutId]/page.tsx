@@ -63,7 +63,9 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   }, [params.layoutId]);
 
   async function loadAllContent(asset: any) {
-    const contentItems = asset.layout_data.items.filter((item: any) => item.type === 'content_ref');
+    const contentItems = asset.layout_data.items.filter((item: any) => 
+      item.type === 'content_ref' || item.type === 'inline_image'
+    );
     
     for (const item of contentItems) {
       try {
@@ -110,7 +112,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
               console.error('[L7] Failed to load text content, status:', response.status);
             }
           }
-        } else if (assetId && (item.contentType === 'video' || item.contentType === 'image' || item.contentType === 'audio')) {
+        } else if (assetId && (item.contentType === 'video' || item.contentType === 'image' || item.contentType === 'audio' || item.type === 'inline_image')) {
           // Handle media content - get the asset to find mediaUrl
           console.log('[L7] Loading media asset for:', assetId);
           const response = await fetch(`/api/media-assets/${assetId}`);
@@ -173,16 +175,19 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   const { designSize = { width: 1200, height: 800 }, items = [] } = layout_data;
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <div className="p-4 text-white">
-        <h1 className="text-2xl font-bold mb-2">{data.title}</h1>
-        <p className="text-sm opacity-70 mb-4">
-          Layout: {designSize.width}×{designSize.height} | Items: {items.length}
-        </p>
+    <div className="min-h-screen bg-black">
+      {/* Starholder Header */}
+      <div className="bg-black border-b border-neutral-800 px-6 py-4">
+        <div className="flex items-center">
+          <div className="w-8 h-8 rounded-full bg-white mr-3 flex items-center justify-center">
+            <div className="w-6 h-6 bg-black rounded-full"></div>
+          </div>
+          <h1 className="text-xl font-bold text-white">Starholder</h1>
+        </div>
       </div>
       
       <div 
-        className="mx-auto relative bg-gray-800 border border-gray-600"
+        className="relative bg-gray-800 border border-gray-600"
         style={{ 
           width: `${designSize.width}px`, 
           height: `${designSize.height}px`
@@ -237,6 +242,19 @@ function renderContent(item: any) {
   if (item.contentType === 'image' && item.mediaUrl) {
     return (
       <div className="w-full h-full bg-black flex items-center justify-center">
+        <img 
+          src={item.mediaUrl} 
+          alt={item.snippet || 'Image'} 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+    );
+  }
+
+  // Handle inline_image type (like the TV with moth)
+  if (item.type === 'inline_image' && item.mediaUrl) {
+    return (
+      <div className="w-full h-full bg-transparent flex items-center justify-center">
         <img 
           src={item.mediaUrl} 
           alt={item.snippet || 'Image'} 

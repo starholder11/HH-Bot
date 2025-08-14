@@ -4,7 +4,10 @@ import { usePathname } from 'next/navigation';
 import { Header } from './Header';
 
 // Routes that should not show the header (iframe-ready routes)
-const IFRAME_ROUTES = ['/video-editor', '/audio-editor'];
+const IFRAME_ROUTES = ['/video-editor', '/audio-editor', '/L7'];
+
+// Routes that should use the original header styling
+const ORIGINAL_HEADER_ROUTES = ['/timeline', '/keystatic'];
 
 export function ConditionalHeader() {
   const pathname = usePathname();
@@ -14,5 +17,10 @@ export function ConditionalHeader() {
     return null;
   }
 
-  return <Header />;
+  // Check if current path should use original styling
+  const useOriginalHeader = pathname && ORIGINAL_HEADER_ROUTES.some(route => 
+    pathname.startsWith(route)
+  );
+
+  return <Header useOriginalStyling={useOriginalHeader} />;
 }
