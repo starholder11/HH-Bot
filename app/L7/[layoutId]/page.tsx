@@ -206,11 +206,22 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           // Helper to decide if a numeric value is valid
           const isNum = (v: any) => typeof v === 'number' && Number.isFinite(v);
 
-          // Prefer explicit grid units (x,y,w,h). If missing, derive from normalized (nx,ny,nw,nh).
-          const derivedX = isNum(bp.x) ? bp.x : isNum(item.x) ? item.x : Math.max(0, Math.round(((bp.nx ?? item.nx ?? 0) as number) * cols));
-          const derivedY = isNum(bp.y) ? bp.y : isNum(item.y) ? item.y : Math.max(0, Math.round(((bp.ny ?? item.ny ?? 0) as number) * rows));
-          const derivedW = isNum(bp.w) ? bp.w : isNum(item.w) ? item.w : Math.max(1, Math.round(((bp.nw ?? item.nw ?? 1 / cols) as number) * cols));
-          const derivedH = isNum(bp.h) ? bp.h : isNum(item.h) ? item.h : Math.max(1, Math.round(((bp.nh ?? item.nh ?? 1 / rows) as number) * rows));
+          // Compute candidates from normalized coords
+          const nxVal = (bp as any).nx ?? item.nx;
+          const nyVal = (bp as any).ny ?? item.ny;
+          const nwVal = (bp as any).nw ?? item.nw;
+          const nhVal = (bp as any).nh ?? item.nh;
+
+          const fromNormX = isNum(nxVal) ? Math.round(nxVal * cols) : undefined;
+          const fromNormY = isNum(nyVal) ? Math.round(nyVal * rows) : undefined;
+          const fromNormW = isNum(nwVal) ? Math.max(1, Math.round(nwVal * cols)) : undefined;
+          const fromNormH = isNum(nhVal) ? Math.max(1, Math.round(nhVal * rows)) : undefined;
+
+          // Prefer normalized coordinates when available; fall back to grid units
+          const derivedX = isNum(fromNormX) ? (fromNormX as number) : (isNum(bp.x) ? bp.x : isNum(item.x) ? item.x : 0);
+          const derivedY = isNum(fromNormY) ? (fromNormY as number) : (isNum(bp.y) ? bp.y : isNum(item.y) ? item.y : 0);
+          const derivedW = isNum(fromNormW) ? (fromNormW as number) : (isNum(bp.w) ? bp.w : isNum(item.w) ? item.w : 1);
+          const derivedH = isNum(fromNormH) ? (fromNormH as number) : (isNum(bp.h) ? bp.h : isNum(item.h) ? item.h : 1);
 
           const gridX = Math.max(0, derivedX);
           const gridY = Math.max(0, derivedY);
