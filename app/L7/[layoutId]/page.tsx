@@ -307,15 +307,15 @@ function renderContent(item: any) {
     const content = item.fullTextContent || '';
     
     return (
-      <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative shadow-lg">
-        <div className="prose prose-lg max-w-none h-full overflow-y-auto">
-          {title && <h1 className="text-2xl font-bold mb-6 text-black">{title}</h1>}
+      <div className="w-full h-full p-4 bg-white text-black overflow-hidden relative shadow-lg border border-gray-300">
+        <div className="prose prose-sm max-w-none h-full overflow-y-auto">
+          {title && <h2 className="text-lg font-bold mb-3 text-black line-clamp-2">{title}</h2>}
           {content ? (
-            <div className="text-base leading-relaxed whitespace-pre-wrap text-gray-800">
-              {content}
+            <div className="text-sm leading-relaxed text-gray-800 overflow-hidden">
+              {content.length > 500 ? content.substring(0, 500) + '...' : content}
             </div>
           ) : (
-            <div className="text-gray-500 italic">Loading text content...</div>
+            <div className="text-gray-500 italic text-sm">Loading text content...</div>
           )}
         </div>
       </div>
