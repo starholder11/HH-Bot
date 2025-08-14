@@ -194,23 +194,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           gap: 0
         }}
       >
-        {items
-          .sort((a: any, b: any) => {
-            // Render text content first (background layer)
-            if (a.contentType === 'text' && b.contentType !== 'text') return -1;
-            if (b.contentType === 'text' && a.contentType !== 'text') return 1;
-            
-            // Then sort by z-index
-            const aZ = a.z || 1;
-            const bZ = b.z || 1;
-            if (aZ !== bZ) return aZ - bZ;
-            
-            // Finally by grid position
-            const aY = (a.breakpoints?.desktop?.y ?? a.y ?? 0);
-            const bY = (b.breakpoints?.desktop?.y ?? b.y ?? 0);
-            return aY - bY;
-          })
-          .map((item: any, index: number) => {
+        {items.map((item: any, index: number) => {
           // Use desktop breakpoint overrides when available
           const bp = item.breakpoints?.desktop;
           const gridX = (bp?.x ?? item.x ?? 0);
@@ -225,7 +209,6 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
             `type=${item.type}`,
             `contentType=${item.contentType || 'none'}`,
             `grid=(${gridX + 1}, ${gridY + 1}, span ${gridW}, span ${gridH})`,
-            `z=${actualZ}`,
             bp ? '[bp=desktop]' : '[bp=base]'
           );
 
@@ -237,7 +220,6 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                 gridColumnEnd: gridX + gridW + 1,
                 gridRowStart: gridY + 1,
                 gridRowEnd: gridY + gridH + 1,
-                zIndex: item.contentType === 'text' ? 0 : (item.z || 1),
                 overflow: 'hidden'
               }}
             >
