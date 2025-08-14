@@ -220,6 +220,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                 gridColumnEnd: gridX + gridW + 1,
                 gridRowStart: gridY + 1,
                 gridRowEnd: gridY + gridH + 1,
+                zIndex: item.z || 1,
                 overflow: 'hidden'
               }}
             >
