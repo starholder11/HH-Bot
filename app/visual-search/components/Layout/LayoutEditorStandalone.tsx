@@ -495,6 +495,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         <div className="flex items-center gap-2">
+          <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700">Duplicate</Button>
+          <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" className="bg-red-900 border-red-800 text-white hover:bg-red-800">Delete</Button>
+          
           <Button onClick={handleSave} disabled={working} size="sm" className="bg-neutral-700 text-white hover:bg-neutral-600">
             {working ? 'Saving…' : 'Save'}
           </Button>
@@ -701,14 +704,6 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
         {/* Right inspector */}
         <div className="w-64 bg-black border border-neutral-700 p-3 space-y-3 flex-shrink-0 overflow-y-auto text-white rounded-md !bg-black" style={{backgroundColor: '#000000'}}>
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-white">Inspector</div>
-            <div className="flex gap-1">
-              <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700">Duplicate</Button>
-              <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" className="bg-red-900 border-red-800 text-white hover:bg-red-800">Delete</Button>
-            </div>
-          </div>
-
           {/* Layout Dimensions */}
           <LayoutDimensions edited={edited} setEdited={setEdited} />
 
