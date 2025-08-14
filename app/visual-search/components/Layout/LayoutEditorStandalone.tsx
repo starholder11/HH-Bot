@@ -1305,12 +1305,20 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
                     key={t}
                     onClick={() => {
                       setSelectedTypes(prev => {
-                        const has = prev.includes(t);
-                        const next = has ? prev.filter(x => x !== t) : [...prev, t];
-                        const ensured = next.length ? next : [t];
-                        console.log('[ASSET SEARCH] Filter changed to:', ensured);
-                        void searchAssets(searchQuery, ensured);
-                        return ensured;
+                        const isCurrentlyActive = prev.includes(t) && prev.length === 1;
+                        if (isCurrentlyActive) {
+                          // If this is the only active filter, select all types
+                          const allTypes = ['image', 'video', 'audio', 'text'];
+                          console.log('[ASSET SEARCH] Filter changed to ALL:', allTypes);
+                          void searchAssets(searchQuery, allTypes);
+                          return allTypes;
+                        } else {
+                          // Make this the only active filter
+                          const next = [t];
+                          console.log('[ASSET SEARCH] Filter changed to ONLY:', next);
+                          void searchAssets(searchQuery, next);
+                          return next;
+                        }
                       });
                     }}
                     className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${active ? 'border-blue-500 bg-blue-600 text-white' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:border-neutral-500'}`}
