@@ -218,18 +218,11 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
             return undefined;
           };
 
-          const derivedX = pick(bp.x, item.x, fromNormX) ?? 0;
-          const derivedY = pick(bp.y, item.y, fromNormY) ?? 0;
-          const derivedW = pick(bp.w, item.w, fromNormW) ?? 1;
-          const derivedH = pick(bp.h, item.h, fromNormH) ?? 1;
-          
-          // Cap text items to reasonable height to prevent massive overlapping blocks
-          const maxReasonableH = item.contentType === 'text' ? Math.min(derivedH, 20) : derivedH;
-
-          const gridX = Math.max(0, derivedX);
-          const gridY = Math.max(0, derivedY);
-          const gridW = Math.max(1, derivedW);
-          const gridH = Math.max(1, maxReasonableH);
+                    // Use the saved layout editor coordinates exactly as they were positioned
+          const gridX = Math.max(0, item.x ?? 0);
+          const gridY = Math.max(0, item.y ?? 0);
+          const gridW = Math.max(1, item.w ?? 1);
+          const gridH = Math.max(1, item.h ?? 1);
 
           // Convert to pixel-based absolute positioning for bulletproof rendering
           const leftPx = gridX * cellSize;
@@ -256,7 +249,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                 top: topPx,
                 width: widthPx,
                 height: heightPx,
-                zIndex: item.z || 1,
+                zIndex: item.z || (item.contentType === 'text' ? 0 : 1),
                 overflow: 'hidden'
               }}
             >
@@ -324,7 +317,7 @@ function renderContent(item: any) {
   if (item.contentType === 'text') {
     const title = item.snippet || item.title || '';
     const content = item.fullTextContent || '';
-    
+
     return (
       <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative shadow-lg border border-gray-300" style={{ zIndex: 1 }}>
         <div className="prose prose-lg max-w-none h-full overflow-y-auto">
