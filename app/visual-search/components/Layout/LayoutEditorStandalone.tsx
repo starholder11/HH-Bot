@@ -14,6 +14,12 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import VSResultCard from '../ResultCard/ResultCard';
 import ResultsGrid from '@/app/visual-search/components/ResultsGrid';
+import dynamic from 'next/dynamic';
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
+import 'katex/dist/katex.min.css';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/atom-one-dark.css';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -41,6 +47,19 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const isDraggingRef = React.useRef(false);
   const lastPointerClientYRef = React.useRef(0);
   const scrollRAFRef = React.useRef<number | null>(null);
+  const [showRteModal, setShowRteModal] = useState(false);
+  const [rteTargetId, setRteTargetId] = useState<string | null>(null);
+  const [rteHtml, setRteHtml] = useState<string>('');
+
+  const openRteForId = React.useCallback((id: string) => {
+    setSelectedId(id);
+    setSelectedIds(new Set([id]));
+    const item = edited.layout_data.items.find(i => i.id === id) as any;
+    const existing = item?.config?.content || '';
+    setRteHtml(existing);
+    setRteTargetId(id);
+    setShowRteModal(true);
+  }, [edited.layout_data.items]);
 
   // Keep layout in sync when prop changes
   useEffect(() => {
@@ -164,7 +183,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Don't interfere with text editing
-      if (isEditingText) return;
+      if (isEditingText || showRteModal) return;
 
       const isMeta = e.metaKey || e.ctrlKey;
 
@@ -506,7 +525,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               }}
               isDraggable={true}
               isResizable={true}
-              draggableCancel={'input, textarea, select, button, .content-editable'}
+              draggableCancel={'input, textarea, select, button, .content-editable, .rsw-editor, .rsw-editor *, .rsw-ce, .ql-container, .ql-editor, .quill-container'}
               margin={[1, 1]}
               containerPadding={[2, 2]}
               useCSSTransforms={true}
@@ -529,7 +548,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                             {visibleItems.map((it) => (
                 <div
                   key={it.id}
-                  className={`rounded-sm overflow-hidden border ${selectedIds.has(it.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
+                  className={`relative rounded-sm overflow-hidden border ${selectedIds.has(it.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
                   onMouseDownCapture={(e) => {
                     if (e.button !== 0) return;
                     const isMeta = e.metaKey || e.ctrlKey;
@@ -551,12 +570,14 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                       setSelectedIds(next);
                     }
                   }}
-                  onDoubleClick={() => {
+                  onDoubleClickCapture={() => {
                     if (it.type === 'inline_text') {
                       setSelectedId(it.id);
                       setSelectedIds(new Set([it.id]));
                       setDraftText(it.inlineContent?.text || '');
                       setIsEditingText(true);
+                    } else if ((it as any).blockType === 'text_section') {
+                      openRteForId(it.id);
                     }
                   }}
                   style={{
@@ -569,10 +590,21 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                     WebkitBackfaceVisibility: 'hidden'
                   }}
                 >
-                  {/* Drag handle bar */}
+                  {/* Drag handle bar with actions */}
                   <div className="drag-handle h-6 px-2 flex items-center justify-between text-xs bg-neutral-800/70 border-b border-neutral-800 select-none">
                     <span className="text-neutral-300 truncate">{it.type === 'content_ref' ? it.contentType : it.type}</span>
-                    <span className="text-neutral-500">drag</span>
+                    <div className="flex items-center gap-1">
+                      {(it as any).blockType === 'text_section' && (
+                        <button
+                          className="px-1.5 py-0.5 text-[10px] rounded bg-neutral-900/80 border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openRteForId(it.id); }}
+                          title="Edit rich text"
+                        >
+                          ✎ Edit
+                        </button>
+                      )}
+                      <span className="text-neutral-500">drag</span>
+                    </div>
                   </div>
 
                   <div className="block-content h-full w-full">
@@ -624,6 +656,32 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           )}
         </div>
       </div>
+      {showRteModal && rteTargetId && (
+        <RteModal
+          initialHtml={rteHtml}
+          onClose={() => {
+            setShowRteModal(false);
+            setRteTargetId(null);
+          }}
+          onSave={(html) => {
+            setEdited(prev => ({
+              ...prev,
+              layout_data: {
+                ...prev.layout_data,
+                items: prev.layout_data.items.map(i => {
+                  if (i.id !== rteTargetId) return i;
+                  const asAny: any = { ...i };
+                  asAny.config = { ...(asAny.config || {}), content: html };
+                  return asAny;
+                })
+              },
+              updated_at: new Date().toISOString(),
+            } as LayoutAsset));
+            setShowRteModal(false);
+            setRteTargetId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -916,7 +974,7 @@ function renderBlockItem(it: any, opts?: any) {
       return (
         <div className="h-full w-full p-4 bg-white text-neutral-900 overflow-auto">
           <h2 className="text-lg font-bold mb-2">{config.title || 'Section Title'}</h2>
-          <div className="text-sm leading-relaxed">{config.content || 'Content goes here'}</div>
+          <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: config.content || 'Content goes here' }} />
         </div>
       );
 
@@ -1271,6 +1329,66 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
         </div>
       </div>
     </div>
+  );
+}
+
+// ReactQuill toolbar config
+const quillModules = {
+  syntax: {
+    highlight: (text: string) => hljs.highlightAuto(text).value,
+  },
+  toolbar: [
+    [{ font: [] }, { size: [] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
+    [{ script: 'sub' }, { script: 'super' }],
+    [{ header: 1 }, { header: 2 }, 'blockquote', 'code-block'],
+    [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
+    [{ direction: 'rtl' }, { align: [] }],
+    ['link', 'image', 'video', 'formula'],
+    ['clean']
+  ]
+};
+const quillFormats = [
+  'font', 'size', 'bold', 'italic', 'underline', 'strike', 'color', 'background', 'script',
+  'header', 'blockquote', 'code-block', 'list', 'indent', 'direction', 'align', 'link', 'image', 'video', 'formula'
+];
+
+function RteModal({ initialHtml, onClose, onSave }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void }) {
+  const [mounted, setMounted] = useState(false);
+  const [html, setHtml] = useState(initialHtml || '');
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
+          <div className="flex items-center justify-between p-3 border-b border-neutral-700">
+          <div className="text-neutral-200 text-sm">Edit Rich Text</div>
+          <div className="flex gap-2">
+            <button className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded" onClick={() => onClose()}>Cancel</button>
+              <button className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(html)}>Save</button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-hidden p-3">
+          <div className="h-full w-full flex flex-col bg-white rounded border border-neutral-300 text-neutral-900">
+            <div className="flex-1 overflow-auto quill-container">
+              <ReactQuill
+                theme="snow"
+                modules={quillModules}
+                formats={quillFormats}
+                value={html}
+                onChange={setHtml}
+                placeholder="Start typing…"
+                className="h-full"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
 
