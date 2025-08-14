@@ -55,7 +55,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     setSelectedId(id);
     setSelectedIds(new Set([id]));
     const item = edited.layout_data.items.find(i => i.id === id) as any;
-    const existing = item?.config?.content || '';
+    const existing = item ? getRichTextHtmlForItem(item) : '';
     setRteHtml(existing);
     setRteTargetId(id);
     setShowRteModal(true);
@@ -670,9 +670,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 ...prev.layout_data,
                 items: prev.layout_data.items.map(i => {
                   if (i.id !== rteTargetId) return i;
-                  const asAny: any = { ...i };
-                  asAny.config = { ...(asAny.config || {}), content: html };
-                  return asAny;
+                  return applyRichTextHtmlToItem(i as any, html) as Item;
                 })
               },
               updated_at: new Date().toISOString(),
@@ -815,6 +813,81 @@ function getDefaultBlockConfig(blockType: string) {
     case 'spacer': return { height: 80, backgroundColor: 'transparent' };
     default: return {};
   }
+}
+
+function getRichTextHtmlForItem(item: any): string {
+  const bt = item?.blockType;
+  const cfg = item?.config || {};
+  if (bt === 'text_section') {
+    return cfg.content || '';
+  }
+  if (bt === 'hero') {
+    const title = cfg.title ? `<h1>${cfg.title}</h1>` : '';
+    const subtitle = cfg.subtitle ? `<p>${cfg.subtitle}</p>` : '';
+    return `${title}${subtitle}`;
+  }
+  if (bt === 'cta') {
+    const title = cfg.title ? `<h3>${cfg.title}</h3>` : '';
+    const descr = cfg.description ? `<p>${cfg.description}</p>` : '';
+    const button = cfg.buttonText ? `<p><strong>${cfg.buttonText}</strong></p>` : '';
+    return `${title}${descr}${button}`;
+  }
+  if (bt === 'footer') {
+    const copyright = cfg.copyright ? `<p>${cfg.copyright}</p>` : '';
+    const links = Array.isArray(cfg.links) && cfg.links.length
+      ? `<ul>${cfg.links.map((l: any) => `<li>${l.text || ''}</li>`).join('')}</ul>`
+      : '';
+    return `${copyright}${links}`;
+  }
+  return '';
+}
+
+function applyRichTextHtmlToItem(item: any, html: string): any {
+  const bt = item?.blockType;
+  const cfg = { ...(item?.config || {}) };
+  if (bt === 'text_section') {
+    return { ...item, config: { ...cfg, content: html } };
+  }
+  // For hero/cta/footer, store raw HTML too and also try to extract plain text fallbacks
+  const temp = document.createElement('div');
+  temp.innerHTML = html || '';
+  const getText = (sel: string) => temp.querySelector(sel)?.textContent?.trim() || '';
+  if (bt === 'hero') {
+    return {
+      ...item,
+      config: {
+        ...cfg,
+        title: getText('h1, h2, h3') || cfg.title || '',
+        subtitle: getText('p') || cfg.subtitle || '',
+        content: html,
+      }
+    };
+  }
+  if (bt === 'cta') {
+    return {
+      ...item,
+      config: {
+        ...cfg,
+        title: getText('h1, h2, h3') || cfg.title || '',
+        description: getText('p') || cfg.description || '',
+        buttonText: cfg.buttonText || '',
+        content: html,
+      }
+    };
+  }
+  if (bt === 'footer') {
+    const lis = Array.from(temp.querySelectorAll('li')).map(el => ({ text: el.textContent || '' }));
+    return {
+      ...item,
+      config: {
+        ...cfg,
+        copyright: getText('p') || cfg.copyright || '',
+        links: lis.length ? lis : (cfg.links || []),
+        content: html,
+      }
+    };
+  }
+  return { ...item, config: { ...cfg, content: html } };
 }
 
 function renderItem(
