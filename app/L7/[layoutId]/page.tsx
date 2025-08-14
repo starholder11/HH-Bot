@@ -21,12 +21,19 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
       try {
         const response = await fetch(`/api/media-assets/${params.layoutId}`);
         if (!response.ok) {
-          throw new Error('Layout not found');
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
         }
         
-        const data = await response.json();
-        if (data.media_type !== 'layout') {
-          throw new Error('Not a layout asset');
+        const responseData = await response.json();
+        console.log('[L7] Full API response:', responseData);
+        
+        // Handle both direct asset return and wrapped response
+        const data = responseData.asset || responseData;
+        console.log('[L7] Asset data:', data);
+        console.log('[L7] Asset media_type:', data?.media_type);
+        
+        if (!data || data.media_type !== 'layout') {
+          throw new Error(`Not a layout asset. Got media_type: ${data?.media_type}, asset exists: ${!!data}`);
         }
         
         setLayout(data);
