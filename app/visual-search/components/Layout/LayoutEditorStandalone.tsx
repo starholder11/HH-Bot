@@ -1219,7 +1219,7 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
   const debounceRef = React.useRef<number | null>(null);
   const lastRequestIdRef = React.useRef<number>(0);
 
-  const searchAssets = async (query: string) => {
+  const searchAssets = async (query: string, overrideTypes?: string[]) => {
     const q = query.trim();
     if (!q) {
       setSearchResults([]);
@@ -1235,11 +1235,16 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
       const requestId = (lastRequestIdRef.current += 1);
       setIsLoading(true);
       try {
-        const typeParam = selectedTypes.join(',');
+        const activeTypes = overrideTypes && overrideTypes.length ? overrideTypes : selectedTypes;
+        const typeParam = activeTypes.join(',');
         const json = await searchService.get(q, { type: typeParam, limit: 50, signal: controller.signal });
         if (controller.signal.aborted || requestId !== lastRequestIdRef.current) return;
-        const all = (json as any)?.results?.all || (json as any)?.results?.media || [];
-        setSearchResults(Array.isArray(all) ? all : []);
+        const results = (json as any)?.results || {};
+        // Choose list to show based on active filters
+        const onlyText = activeTypes.length === 1 && activeTypes[0] === 'text';
+        const onlyMedia = activeTypes.every(t => ['image','video','audio'].includes(t)) && !activeTypes.includes('text');
+        const list = onlyText ? results.text : onlyMedia ? results.media : (results.all || []);
+        setSearchResults(Array.isArray(list) ? list : []);
       } catch (error: any) {
         // Ignore abort errors; they are expected during fast typing
         if (error?.name !== 'AbortError') {
@@ -1276,7 +1281,8 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
 
         {/* Filters + Search */}
         <div className="p-4 border-b border-neutral-700 space-y-2">
-          <div className="flex flex-wrap gap-2">
+          <div className="text-xs text-neutral-400">Search</div>
+          <div className="flex flex-wrap gap-1">
             {['image','video','audio','text'].map(t => {
               const active = selectedTypes.includes(t);
               return (
@@ -1286,12 +1292,13 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
                     setSelectedTypes(prev => {
                       const has = prev.includes(t);
                       const next = has ? prev.filter(x => x !== t) : [...prev, t];
-                      // Trigger search refresh
-                      void searchAssets(searchQuery);
-                      return next.length ? next : [t];
+                      const ensured = next.length ? next : [t];
+                      // Trigger search refresh with the next selected set
+                      void searchAssets(searchQuery, ensured);
+                      return ensured;
                     });
                   }}
-                  className={`px-2 py-1 text-xs rounded border ${active ? 'border-blue-600 bg-blue-900/30 text-blue-200' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
+                  className={`px-2 py-0.5 text-xs rounded border ${active ? 'border-blue-600 bg-blue-900/30 text-blue-200' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
                 >
                   {t}
                 </button>
