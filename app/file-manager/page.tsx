@@ -785,27 +785,6 @@ export default function FileManagerPage() {
     }
   };
 
-  // Get asset icon based on type
-  const getAssetIcon = (asset: MediaAsset) => {
-    switch (asset.media_type) {
-      case 'image':
-        return <Image className="w-5 h-5 text-neutral-400" />;
-      case 'keyframe_still':
-        return (
-          <span className="flex items-center space-x-0.5">
-            <Video className="w-4 h-4 text-neutral-400" />
-            <Image className="w-4 h-4 text-neutral-400" />
-          </span>
-        );
-      case 'video':
-        return <Video className="w-5 h-5 text-neutral-400" />;
-      case 'audio':
-        return <Music className="w-5 h-5 text-neutral-400" />;
-      default:
-        return <FileText className="w-5 h-5 text-neutral-400" />;
-    }
-  };
-
   // Get a user-friendly display name for thumbnails
   const getDisplayName = (asset: MediaAsset) => {
     // Use title if it's meaningful (not just the filename)
