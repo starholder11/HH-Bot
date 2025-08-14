@@ -550,7 +550,7 @@ export default function VideoEditorPage() {
           </div>
 
           {/* Video Metadata */}
-          <p className="text-sm text-gray-500 mb-3">
+          <p className="text-sm text-neutral-400 mb-3">
             {formatDuration(selectedVideo.metadata.duration)} • {selectedVideo.metadata.format}
           </p>
 
@@ -573,7 +573,7 @@ export default function VideoEditorPage() {
         </div>
 
         <div className="p-6">
-          <div className="bg-gray-100 rounded-lg aspect-video flex items-center justify-center">
+          <div className="bg-neutral-900 rounded-lg aspect-video flex items-center justify-center border border-neutral-700">
             <video
               key={selectedVideo.id}
               controls
@@ -589,15 +589,15 @@ export default function VideoEditorPage() {
 
       {/* AI Analysis Results */}
       {selectedVideo.ai_labels && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Video-Level AI Analysis</h3>
+        <div className="bg-black rounded-lg border border-neutral-700 p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Video-Level AI Analysis</h3>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Overall Scenes</h4>
+              <h4 className="font-medium text-white mb-2">Overall Scenes</h4>
               <div className="space-y-2">
                 {selectedVideo.ai_labels.scenes.slice(0, 3).map((scene, index) => (
-                  <div key={index} className="text-sm text-gray-700 p-2 bg-gray-50 rounded">
+                  <div key={index} className="text-sm text-neutral-200 p-2 bg-neutral-900 rounded border border-neutral-800">
                     {scene}
                   </div>
                 ))}
@@ -605,7 +605,7 @@ export default function VideoEditorPage() {
             </div>
 
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Objects & Style</h4>
+              <h4 className="font-medium text-white mb-2">Objects & Style</h4>
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-1">
                   {selectedVideo.ai_labels.objects.slice(0, 6).map((object, index) => (
@@ -631,7 +631,7 @@ export default function VideoEditorPage() {
             </div>
 
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Mood</h4>
+              <h4 className="font-medium text-white mb-2">Mood</h4>
               <div className="flex flex-wrap gap-1">
                 {selectedVideo.ai_labels.mood.map((mood, index) => (
                   <span
@@ -645,7 +645,7 @@ export default function VideoEditorPage() {
             </div>
 
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Themes</h4>
+              <h4 className="font-medium text-white mb-2">Themes</h4>
               <div className="flex flex-wrap gap-1">
                 {selectedVideo.ai_labels.themes.map((theme, index) => (
                   <span
@@ -830,8 +830,8 @@ export default function VideoEditorPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Keyframes</h3>
+        <div className="bg-black rounded-lg border border-neutral-700 p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Keyframes</h3>
           <div className="text-center py-8">
             {isAnalyzing || selectedVideo.processing_status?.keyframe_extraction === 'processing' ? (
               <div className="space-y-4">
@@ -843,8 +843,8 @@ export default function VideoEditorPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="text-gray-400 text-4xl">🎬</div>
-                <p className="text-gray-500 mb-4">
+                <div className="text-neutral-400 text-4xl">🎬</div>
+                <p className="text-neutral-400 mb-4">
                   {selectedVideo.processing_status?.ai_labeling === 'completed'
                     ? 'No keyframes were generated for this video'
                     : 'Keyframes will appear here after analysis'}
@@ -853,7 +853,7 @@ export default function VideoEditorPage() {
                   <Button
                     onClick={handleAnalyzeVideo}
                     disabled={isAnalyzing}
-                    className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50"
+                    className="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 disabled:opacity-50"
                   >
                     {isAnalyzing ? 'Re-analyzing...' : 'Re-analyze Video'}
                   </Button>
