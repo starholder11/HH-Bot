@@ -1317,11 +1317,11 @@ function BlockLibrary({ onAddBlock }: { onAddBlock: (blockType: any) => void }) 
 
   return (
     <div>
-      <div className="text-xs text-neutral-400 mb-2">Block Library</div>
+      <div className="text-xs text-muted-foreground mb-2">Block Library</div>
 
       <div className="grid grid-cols-2 gap-2">
         {blocks.map(block => (
-          <button
+          <Button
             key={block.type}
             onClick={(e) => {
               e.preventDefault();
@@ -1332,21 +1332,18 @@ function BlockLibrary({ onAddBlock }: { onAddBlock: (blockType: any) => void }) 
                 onAddBlock(block.type);
               }
             }}
-            className={`p-2 text-left rounded border transition-colors ${
-              block.isSpecial
-                ? 'border-blue-600 hover:border-blue-500 hover:bg-blue-900/20 bg-blue-900/10'
-                : 'border-neutral-700 hover:border-neutral-600 hover:bg-neutral-800/50'
-            }`}
+            variant={block.isSpecial ? 'secondary' : 'outline'}
+            className="p-2 text-left h-auto justify-start"
             title={block.description}
           >
             <div className="flex items-center gap-2">
               <span className="text-lg">{block.icon}</span>
               <div>
-                <div className="text-xs font-medium text-neutral-200">{block.name}</div>
-                <div className="text-xs text-neutral-500 line-clamp-1">{block.description}</div>
+                <div className="text-xs font-medium text-foreground">{block.name}</div>
+                <div className="text-xs text-muted-foreground line-clamp-1">{block.description}</div>
               </div>
             </div>
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -1409,28 +1406,26 @@ function LayoutDimensions({ edited, setEdited }: { edited: LayoutAsset; setEdite
 
   return (
     <div>
-      <div className="text-xs text-neutral-400 mb-2">Layout Dimensions</div>
+      <div className="text-xs text-muted-foreground mb-2">Layout Dimensions</div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-xs text-neutral-400">Width</label>
-          <input
+          <label className="text-xs text-muted-foreground">Width</label>
+          <Input
             type="number"
             value={localWidth}
             onChange={(e) => setLocalWidth(e.target.value)}
             onBlur={() => commit(localWidth, localHeight)}
             onKeyDown={handleKeyDown}
-            className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-200"
           />
         </div>
         <div>
-          <label className="text-xs text-neutral-400">Height</label>
-          <input
+          <label className="text-xs text-muted-foreground">Height</label>
+          <Input
             type="number"
             value={localHeight}
             onChange={(e) => setLocalHeight(e.target.value)}
             onBlur={() => commit(localWidth, localHeight)}
             onKeyDown={handleKeyDown}
-            className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-200"
           />
         </div>
       </div>
