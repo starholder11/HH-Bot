@@ -89,6 +89,14 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 if (url) {
                   setPreviewUrls(prev => ({ ...prev, [item.id]: url }));
                 }
+                // Attach full metadata (including body text) for text rendering
+                setEdited(prev => ({
+                  ...prev,
+                  layout_data: {
+                    ...prev.layout_data,
+                    items: prev.layout_data.items.map(i => i.id === item.id ? ({ ...i, assetMeta: data.asset }) as any : i)
+                  }
+                } as LayoutAsset));
               }
             } catch (error) {
               console.error('Failed to load preview for', assetId, error);
@@ -553,6 +561,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                             {visibleItems.map((it) => (
                 <div
                   key={it.id}
+                  data-item-id={it.id}
                   className={`relative rounded-sm overflow-hidden border ${selectedIds.has(it.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
                   onMouseDownCapture={(e) => {
                     if (e.button !== 0) return;
@@ -943,15 +952,26 @@ function renderItem(
   if (it.type === 'content_ref') {
     const src = url || (it as any).mediaUrl || '';
     const contentType = (it as any).contentType || 'unknown';
+    const assetId = (it as any).contentId || (it as any).refId || '';
 
     // Render text content immediately (text does not require a media URL)
     if (contentType === 'text') {
-      const textContent = (it as any).snippet || (it as any).title || 'Text content';
+      // Prefer body text from fetched asset metadata if present (timeline content)
+      const meta = (it as any).assetMeta || {};
+      const body = meta.content || meta.body || '';
+      const title = (it as any).snippet || (it as any).title || meta.title || '';
+      if (body) {
+        return (
+          <div className="h-full w-full p-4 bg-neutral-900 text-neutral-100 overflow-auto">
+            <div className="font-semibold mb-2">{title}</div>
+            <div className="leading-relaxed text-sm whitespace-pre-wrap">{body}</div>
+          </div>
+        );
+      }
+      // Fallback to available title/snippet if body not yet loaded
       return (
         <div className="h-full w-full p-4 bg-neutral-900 text-neutral-100 overflow-auto">
-          <div className="leading-relaxed text-sm whitespace-pre-wrap">
-            {textContent}
-          </div>
+          <div className="leading-relaxed text-sm whitespace-pre-wrap">{title || 'Text content'}</div>
         </div>
       );
     }
