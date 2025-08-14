@@ -46,6 +46,11 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         setData(asset);
         console.log('[L7] Layout loaded successfully');
         
+        // Load full text content for text items
+        if (asset.layout_data?.items) {
+          loadTextContent(asset);
+        }
+        
       } catch (err) {
         console.error('[L7] Error:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -56,6 +61,42 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
 
     loadData();
   }, [params.layoutId]);
+
+  async function loadTextContent(asset: any) {
+    const textItems = asset.layout_data.items.filter((item: any) => item.contentType === 'text');
+    
+    for (const item of textItems) {
+      try {
+        const assetId = item.contentId || item.refId || '';
+        const slugMatch = assetId.match(/content_ref_(.+)/);
+        const slug = slugMatch ? slugMatch[1] : assetId;
+        
+        if (slug) {
+          console.log('[L7] Loading text content for:', slug);
+          const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+          if (response.ok) {
+            const textData = await response.json();
+            console.log('[L7] Loaded text data:', textData);
+            
+            // Update the item with full text content
+            setData((prev: any) => ({
+              ...prev,
+              layout_data: {
+                ...prev.layout_data,
+                items: prev.layout_data.items.map((i: any) => 
+                  i.id === item.id 
+                    ? { ...i, fullTextContent: textData.content, textMetadata: textData.metadata }
+                    : i
+                )
+              }
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('[L7] Failed to load text content:', error);
+      }
+    }
+  }
 
   if (loading) {
     return (
@@ -114,7 +155,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           return (
             <div
               key={item.id || `item-${index}`}
-              className="absolute border border-blue-500 bg-blue-900/20 text-white text-xs p-2 overflow-hidden"
+              className="absolute"
               style={{
                 left: `${x}px`,
                 top: `${y}px`,
@@ -123,14 +164,118 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                 zIndex: item.z || 1,
               }}
             >
-              <div className="font-bold">{item.type || 'unknown'}</div>
-              <div className="opacity-70">{item.contentType || ''}</div>
-              <div className="text-xs opacity-50 mt-1">
-                {item.snippet || item.title || 'No content'}
-              </div>
+              {renderContent(item)}
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function renderContent(item: any) {
+  // Handle video content
+  if (item.contentType === 'video' && item.mediaUrl) {
+    return (
+      <div className="w-full h-full bg-black flex items-center justify-center">
+        <video 
+          src={item.mediaUrl} 
+          className="max-w-full max-h-full object-contain"
+          controls 
+          autoPlay 
+          muted 
+          loop
+        />
+      </div>
+    );
+  }
+
+  // Handle image content
+  if (item.contentType === 'image' && item.mediaUrl) {
+    return (
+      <div className="w-full h-full bg-black flex items-center justify-center">
+        <img 
+          src={item.mediaUrl} 
+          alt={item.snippet || 'Image'} 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+    );
+  }
+
+  // Handle text content
+  if (item.contentType === 'text') {
+    const title = item.snippet || item.title || '';
+    const content = item.fullTextContent || '';
+    
+    return (
+      <div className="w-full h-full p-6 bg-white text-black overflow-auto">
+        <div className="prose prose-lg max-w-none">
+          {title && <h1 className="text-2xl font-bold mb-6 text-black">{title}</h1>}
+          {content ? (
+            <div className="text-base leading-relaxed whitespace-pre-wrap text-gray-800">
+              {content}
+            </div>
+          ) : (
+            <div className="text-gray-500 italic">Loading text content...</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Handle block types
+  if (item.type === 'block') {
+    const config = item.config || {};
+    
+    switch (item.blockType) {
+      case 'hero':
+        return (
+          <div className="w-full h-full p-8 text-white bg-gradient-to-r from-blue-600 to-purple-600 flex flex-col justify-center">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold mb-4">{config.title || 'Hero Title'}</h1>
+              <p className="text-xl opacity-90 mb-8">{config.subtitle || 'Hero subtitle'}</p>
+              <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold text-lg">
+                {config.ctaText || 'Get Started'}
+              </button>
+            </div>
+          </div>
+        );
+        
+      case 'text_section':
+        return (
+          <div className="w-full h-full p-6 overflow-auto bg-gray-100 text-gray-900">
+            <div className="prose prose-lg max-w-none">
+              {config.content ? (
+                <div dangerouslySetInnerHTML={{ __html: config.content }} />
+              ) : (
+                <p className="text-lg leading-relaxed">
+                  {config.text || 'Text section content goes here.'}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+        
+      default:
+        return (
+          <div className="w-full h-full bg-gray-700 text-white flex items-center justify-center rounded">
+            <div className="text-center">
+              <div className="text-lg font-medium">{item.blockType || 'Block'}</div>
+              <div className="text-sm opacity-70">Content Block</div>
+            </div>
+          </div>
+        );
+    }
+  }
+
+  // Fallback for unknown content
+  return (
+    <div className="w-full h-full border border-blue-500 bg-blue-900/20 text-white text-xs p-2 flex flex-col">
+      <div className="font-bold">{item.type || 'unknown'}</div>
+      <div className="opacity-70">{item.contentType || ''}</div>
+      <div className="text-xs opacity-50 mt-1 flex-1 overflow-hidden">
+        {item.snippet || item.title || 'No content'}
       </div>
     </div>
   );
