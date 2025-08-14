@@ -474,26 +474,26 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const headerHeightPx = 56; // h-14
 
   return (
-    <div className="bg-background text-foreground" style={{ height: `${design.height + headerHeightPx}px` }}>
+    <div className="bg-black text-white" style={{ height: `${design.height + headerHeightPx}px` }}>
       {/* Header */}
-      <div className="sticky top-0 z-50 h-14 border-b border-border bg-background/80 backdrop-blur flex items-center justify-between px-4">
+      <div className="sticky top-0 z-50 h-14 border-b border-neutral-800 bg-black/80 backdrop-blur flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           {onBack && (
             <Button variant="outline" size="sm" onClick={onBack}>Back</Button>
           )}
-          <h2 className="text-lg font-medium">{edited.title}</h2>
-          <div className="text-xs text-muted-foreground">• {edited.layout_data.items.length} items</div>
-          <div className="text-xs text-muted-foreground">• {design.width}×{design.height}px</div>
+          <h2 className="text-lg font-medium text-white">{edited.title}</h2>
+          <div className="text-xs text-neutral-400">• {edited.layout_data.items.length} items</div>
+          <div className="text-xs text-neutral-400">• {design.width}×{design.height}px</div>
           {selectedId && (
-            <div className="text-xs text-muted-foreground">
-              • 1 selected
-            </div>
+            <div className="text-xs text-neutral-400">
+               • 1 selected
+             </div>
           )}
         </div>
 
         <div className="flex items-center gap-2">
           {/* Breakpoint toggles */}
-          <div className="flex gap-1 border border-border rounded overflow-hidden">
+          <div className="flex gap-1 border border-neutral-700 rounded overflow-hidden">
             {(['desktop', 'tablet', 'mobile'] as const).map(bp => (
               <Button
                 key={bp}
@@ -507,11 +507,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           </div>
 
           {/* Snap / Guides */}
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1 text-xs text-neutral-300">
             <input type="checkbox" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} />
             Snap
           </label>
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1 text-xs text-neutral-300">
             <input type="checkbox" checked={showAlignmentGuides} onChange={e => setShowAlignmentGuides(e.target.checked)} />
             Guides
           </label>
@@ -541,7 +541,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         {/* Canvas area */}
         <div className="flex-1 p-2">
           <div
-            className="mx-auto border border-border relative layout-canvas rounded-md bg-background"
+            className="mx-auto border border-neutral-800 relative layout-canvas rounded-md bg-neutral-950"
             style={{
               width: design.width,
               height: design.height,
@@ -720,9 +720,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         {/* Right inspector */}
-        <Card className="w-64 bg-background border border-border p-2 space-y-2 flex-shrink-0 overflow-y-auto">
+        <Card className="w-64 bg-neutral-950 border border-neutral-800 p-2 space-y-2 flex-shrink-0 overflow-y-auto text-white">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-foreground font-medium">Inspector</div>
+            <div className="text-sm font-medium">Inspector</div>
             <div className="flex gap-1">
               <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" variant="outline">Duplicate</Button>
               <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" variant="destructive">Delete</Button>
@@ -739,7 +739,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           <ThemeSelector edited={edited} setEdited={setEdited} />
 
           {selectedIds.size === 0 ? (
-            <div className="text-xs text-muted-foreground">Select an item to edit.</div>
+            <div className="text-xs text-neutral-400">Select an item to edit.</div>
           ) : selectedIds.size === 1 && selectedId ? (
             <ItemInspector
               item={edited.layout_data.items.find(i => i.id === selectedId)!}
@@ -748,7 +748,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               onZ={(dir) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: bringZ(prev.layout_data.items, selectedId, dir) } }))}
             />
           ) : (
-            <div className="text-xs text-muted-foreground">{selectedIds.size} items selected</div>
+            <div className="text-xs text-neutral-400">{selectedIds.size} items selected</div>
           )}
         </Card>
       </div>
