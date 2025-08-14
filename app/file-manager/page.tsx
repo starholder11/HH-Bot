@@ -868,8 +868,8 @@ export default function FileManagerPage() {
         {/* Header with Search and Filters */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-light tracking-tight text-white">Media Library</h1>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-light tracking-tight text-white">Media Library</h1>
               <Button
                 onClick={() => setIsUploading(true)}
                 className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
@@ -878,18 +878,6 @@ export default function FileManagerPage() {
               >
                 {isUploading ? 'Uploading...' : 'Upload'}
               </Button>
-              <a
-                href="/keyframe-browser"
-                className="bg-neutral-800 border border-neutral-700 text-white px-3 py-1.5 text-sm rounded-md hover:bg-neutral-700 transition-colors font-medium inline-flex items-center gap-2"
-              >
-                Keyframe Browser
-              </a>
-              <a
-                href="/video-analysis"
-                className="bg-neutral-800 border border-neutral-700 text-white px-3 py-1.5 text-sm rounded-md hover:bg-neutral-700 transition-colors font-medium inline-flex items-center gap-2"
-              >
-                Analysis Dashboard
-              </a>
             </div>
           </div>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
@@ -1104,7 +1092,7 @@ export default function FileManagerPage() {
             <div className="space-y-6">
                             {/* Image Gallery Card */}
               {selectedAsset.media_type === 'image' || selectedAsset.media_type === 'keyframe_still' ? (
-                <Card className="p-6">
+                <Card className="p-6 bg-black border border-neutral-700 text-white">
                   {/* Header */}
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex-1">
@@ -1152,7 +1140,7 @@ export default function FileManagerPage() {
                           <div className="flex items-center space-x-2 flex-1">
                             <div className="flex-1">
                               <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
-                              <div className="text-xs text-gray-500">ID: {selectedAsset.id}</div>
+                              <div className="text-xs text-neutral-400">ID: {selectedAsset.id}</div>
                             </div>
                             {selectedAsset._keyframe_metadata && (
                               <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
@@ -1161,7 +1149,7 @@ export default function FileManagerPage() {
                             )}
                             <Button
                               onClick={startFilenameEdit}
-                              className="px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
+                              className="px-1.5 py-0.5 text-xs bg-neutral-800 hover:bg-neutral-700 text-white rounded transition-colors"
                             >
                               ✏️
                             </Button>
@@ -1177,11 +1165,11 @@ export default function FileManagerPage() {
                       {/* Project Assignment Section */}
                       <div className="mb-2">
                         <div className="flex items-center space-x-2">
-                          <span className="text-xs text-gray-500 font-medium">Project:</span>
+                          <span className="text-xs text-neutral-400 font-medium">Project:</span>
                           <select
                             value={selectedAsset.project_id || ''}
                             onChange={(e) => updateProjectAssignment(e.target.value || null)}
-                            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
+                            className="text-xs border border-neutral-700 rounded px-2 py-1 bg-neutral-900 text-white"
                           >
                             <option key="no-project" value="">No Project</option>
                             {projects.map(project => (
@@ -1193,7 +1181,7 @@ export default function FileManagerPage() {
                         </div>
                       </div>
 
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-neutral-400">
                         Created: {new Date(selectedAsset.created_at).toLocaleDateString()}
                       </div>
                     </div>
@@ -1203,8 +1191,8 @@ export default function FileManagerPage() {
                       onClick={() => isAILabeling ? null : runAILabeling(selectedAsset.id)}
                       className={`px-2 py-0.5 text-xs rounded text-white transition-colors ${
                         isAILabeling
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-purple-500 hover:bg-purple-600'
+                          ? 'bg-neutral-600 cursor-not-allowed'
+                          : 'bg-purple-700 hover:bg-purple-600'
                       }`}
                     >
                                               {isAILabeling ? 'Analyzing...' : 'AI Labels'}
@@ -1217,11 +1205,11 @@ export default function FileManagerPage() {
                       <img
                         src={encodePath(selectedAsset.cloudflare_url || selectedAsset.s3_url)}
                         alt={selectedAsset.title}
-                        className="w-96 h-96 object-cover rounded-lg shadow-md"
+                        className="w-96 h-96 object-cover rounded-lg shadow-md border border-neutral-700"
                       />
                     ) : (
-                      <div className="w-96 h-96 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <span className="text-gray-400">No preview available</span>
+                      <div className="w-96 h-96 bg-neutral-800 rounded-lg flex items-center justify-center border border-neutral-700">
+                        <span className="text-neutral-400">No preview available</span>
                       </div>
                     )}
                   </div>
@@ -1429,13 +1417,13 @@ export default function FileManagerPage() {
 
       {/* Upload Modal */}
       {isUploading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-black border border-neutral-700 text-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Upload Media</h2>
+              <h2 className="text-2xl font-semibold">Upload Media</h2>
               <Button
                 onClick={() => setIsUploading(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="bg-neutral-800 hover:bg-neutral-700 text-white"
               >
                 ✕
               </Button>
