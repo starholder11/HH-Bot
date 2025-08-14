@@ -183,12 +183,23 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           height: `${designSize.height}px`
         }}
       >
-        {items.map((item: any, index: number) => {
+        {items
+          .sort((a: any, b: any) => (a.z || 1) - (b.z || 1)) // Sort by z-index
+          .map((item: any, index: number) => {
           const cellSize = layout_data.cellSize || 20;
           const x = (item.x || 0) * cellSize;
           const y = (item.y || 0) * cellSize;
           const w = (item.w || 1) * cellSize;
           const h = (item.h || 1) * cellSize;
+
+          // Debug logging
+          console.log(`[L7] Item ${item.id || index}:`, {
+            type: item.type,
+            contentType: item.contentType,
+            coords: { x: item.x, y: item.y, w: item.w, h: item.h },
+            pixels: { x, y, w, h },
+            zIndex: item.z || 1
+          });
 
           return (
             <div
