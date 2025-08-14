@@ -1362,11 +1362,16 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
 
           {!isLoading && searchResults.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {searchResults.map((r: any) => (
-                <div key={r.id}>
-                  <VSResultCard r={r} onPin={() => {}} onOpen={() => onSelect(r)} />
-                </div>
-              ))}
+                {searchResults.map((r: any) => (
+                  <div key={r.id}>
+                    <VSResultCard
+                      r={r}
+                      onPin={() => {}}
+                      onOpen={() => onSelect(r)}
+                      hidePin
+                    />
+                  </div>
+                ))}
             </div>
           )}
         </div>

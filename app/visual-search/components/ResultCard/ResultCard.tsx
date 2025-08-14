@@ -46,7 +46,7 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-4xl text-neutral-600">🎨</div>
         </div>
-        
+
         {/* Layout Info Overlay */}
         <div className="absolute bottom-2 left-2 right-2 bg-black/70 rounded px-2 py-1">
           <div className="text-xs text-neutral-300">
@@ -56,7 +56,7 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
             {r.metadata?.width || 0}×{r.metadata?.height || 0}
           </div>
         </div>
-        
+
         {/* Mini Grid Representation */}
         <div className="absolute inset-4 opacity-20">
           <div className="w-full h-full border border-neutral-600" style={{
@@ -86,6 +86,8 @@ function ResultCardComponent({
   selectionEnabled,
   selected,
   onToggleSelect,
+  hidePin,
+  hideExpand,
 }: {
   r: UnifiedSearchResult;
   onPin: (r: UnifiedSearchResult) => void;
@@ -94,6 +96,8 @@ function ResultCardComponent({
   selectionEnabled?: boolean;
   selected?: boolean;
   onToggleSelect?: (r: UnifiedSearchResult, shiftKey?: boolean) => void;
+  hidePin?: boolean;
+  hideExpand?: boolean;
 }) {
   const scorePct = Math.round((Math.max(0, Math.min(1, r.score)) || 0) * 100);
 
@@ -104,7 +108,7 @@ function ResultCardComponent({
       const base = r.preview ?? r.description ?? '';
       const raw = typeof base === 'string' ? base : JSON.stringify(base);
       const cleaned = stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
-      
+
       // Different limits for different content types
       if (r.content_type === 'text') {
         // For text content, allow up to 70 words
@@ -144,6 +148,7 @@ function ResultCardComponent({
             <div className="text-[10px] text-neutral-400">{scorePct}%</div>
           </div>
           <div className="flex items-center gap-2">
+            {!hidePin && (
              <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -159,6 +164,8 @@ function ResultCardComponent({
             >
               📌
             </button>
+            )}
+            {!hideExpand && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -174,6 +181,7 @@ function ResultCardComponent({
             >
               ➕
             </button>
+            )}
           </div>
         </div>
         <div className="mt-2 font-medium text-neutral-100 line-clamp-1" title={r.title}>
