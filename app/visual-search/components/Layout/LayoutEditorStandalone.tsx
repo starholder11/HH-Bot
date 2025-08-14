@@ -25,6 +25,7 @@ import { TransformComponents } from './transforms';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/input';
+import { ImageIcon, BoxesIcon, TrophyIcon, GridIcon, FileTextIcon, TargetIcon, DownloadIcon, SquareIcon } from 'lucide-react';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -541,7 +542,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         {/* Canvas area */}
         <div className="flex-1 p-2">
           <div
-            className="mx-auto border border-border relative layout-canvas rounded-md bg-background"
+            className="mx-auto border border-neutral-800 relative layout-canvas rounded-md bg-neutral-950"
             style={{
               width: design.width,
               height: design.height,
@@ -720,9 +721,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         {/* Right inspector */}
-        <Card className="w-64 bg-background border border-border p-2 space-y-2 flex-shrink-0 overflow-y-auto">
+        <Card className="w-64 bg-neutral-950 border border-neutral-800 p-3 space-y-3 flex-shrink-0 overflow-y-auto text-white rounded-md">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-foreground font-medium">Inspector</div>
+            <div className="text-sm font-medium">Inspector</div>
             <div className="flex gap-1">
               <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" variant="outline">Duplicate</Button>
               <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" variant="destructive">Delete</Button>
@@ -733,13 +734,49 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           <LayoutDimensions edited={edited} setEdited={setEdited} />
 
           {/* Block Library */}
-          <BlockLibrary onAddBlock={addBlock} />
+          <div>
+            <div className="text-xs text-neutral-300 mb-2">Block Library</div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('inline_image');}}>
+                <ImageIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">Image</span>
+              </Button>
+              <Button variant="secondary" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); setShowAssetModal(true);}}>
+                <BoxesIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">Assets</span>
+              </Button>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('hero');}}>
+                <TrophyIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">Hero</span>
+              </Button>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('media_grid');}}>
+                <GridIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">Media Grid</span>
+              </Button>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('text_section');}}>
+                <FileTextIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">Rich Text</span>
+              </Button>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('cta');}}>
+                <TargetIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">CTA</span>
+              </Button>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('footer');}}>
+                <DownloadIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">Footer</span>
+              </Button>
+              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onAddBlock('spacer');}}>
+                <SquareIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">Spacer</span>
+              </Button>
+            </div>
+          </div>
 
           {/* Theme Selector */}
           <ThemeSelector edited={edited} setEdited={setEdited} />
 
           {selectedIds.size === 0 ? (
-            <div className="text-xs text-muted-foreground">Select an item to edit.</div>
+            <div className="text-xs text-neutral-400">Select an item to edit.</div>
           ) : selectedIds.size === 1 && selectedId ? (
             <ItemInspector
               item={edited.layout_data.items.find(i => i.id === selectedId)!}
@@ -748,7 +785,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               onZ={(dir) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: bringZ(prev.layout_data.items, selectedId, dir) } }))}
             />
           ) : (
-            <div className="text-xs text-muted-foreground">{selectedIds.size} items selected</div>
+            <div className="text-xs text-neutral-400">{selectedIds.size} items selected</div>
           )}
         </Card>
       </div>
