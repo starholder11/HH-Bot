@@ -495,9 +495,6 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700">Duplicate</Button>
-          <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" className="bg-red-900 border-red-800 text-white hover:bg-red-800">Delete</Button>
-          
           <Button onClick={handleSave} disabled={working} size="sm" className="bg-neutral-700 text-white hover:bg-neutral-600">
             {working ? 'Saving…' : 'Save'}
           </Button>
@@ -516,6 +513,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           >
             🚀 Publish
           </Button>
+
+          <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} size="sm" className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700">Duplicate</Button>
+          <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} size="sm" className="bg-red-900 border-red-800 text-white hover:bg-red-800">Delete</Button>
         </div>
       </div>
 
@@ -865,8 +865,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               ...prev,
               layout_data: {
                 ...prev.layout_data,
-                items: prev.layout_data.items.map(i => 
-                  i.id === imageModalTargetId 
+                items: prev.layout_data.items.map(i =>
+                  i.id === imageModalTargetId
                     ? { ...i, inlineContent: { ...(i.inlineContent || {}), imageUrl } } as Item
                     : i
                 )
@@ -1629,7 +1629,7 @@ function ImageModal({ item, onClose, onSave }: { item: Item | undefined; onClose
 
     try {
       setUploading(true);
-      
+
       // Create form data for upload
       const formData = new FormData();
       formData.append('file', file);
@@ -1716,8 +1716,8 @@ function ImageModal({ item, onClose, onSave }: { item: Item | undefined; onClose
           <Button onClick={onClose} className="bg-neutral-700 text-white hover:bg-neutral-600">
             Cancel
           </Button>
-          <Button 
-            onClick={() => onSave(imageUrl)} 
+          <Button
+            onClick={() => onSave(imageUrl)}
             disabled={!imageUrl}
             className="bg-blue-700 text-white hover:bg-blue-600"
           >
@@ -1919,7 +1919,7 @@ function ItemInspector({
       {item.type === 'inline_image' && (
         <div>
           <div className="text-xs text-white mb-1">Image</div>
-          <Button 
+          <Button
             onClick={() => onEditImage(item.id)}
             className="w-full bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700"
             size="sm"
