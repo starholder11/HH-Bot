@@ -71,11 +71,24 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         
         if (item.contentType === 'text') {
           // Handle text content
-          const slugMatch = assetId.match(/content_ref_(.+)/);
-          const slug = slugMatch ? slugMatch[1] : assetId;
+          console.log('[L7] Raw assetId for text:', assetId);
+          
+          // Extract slug from various possible formats
+          let slug = '';
+          if (assetId.includes('content_ref_')) {
+            slug = assetId.replace('content_ref_', '');
+          } else if (assetId.includes('text_timeline/')) {
+            // Handle text_timeline/slug#anchor format
+            const timelineMatch = assetId.match(/text_timeline\/([^#]+)/);
+            slug = timelineMatch ? timelineMatch[1] : '';
+          } else {
+            slug = assetId;
+          }
+          
+          console.log('[L7] Extracted slug:', slug);
           
           if (slug) {
-            console.log('[L7] Loading text content for:', slug);
+            console.log('[L7] Loading text content for slug:', slug);
             const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
             if (response.ok) {
               const textData = await response.json();
@@ -93,6 +106,8 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                   )
                 }
               }));
+            } else {
+              console.error('[L7] Failed to load text content, status:', response.status);
             }
           }
         } else if (assetId && (item.contentType === 'video' || item.contentType === 'image' || item.contentType === 'audio')) {
