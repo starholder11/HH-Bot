@@ -195,9 +195,6 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
 
     // General rule: sort by y asc, then x asc, then original order (stable)
     rects.sort((a, b) => {
-      const aEnd = a.y + a.h;
-      const bEnd = b.y + b.h;
-      if (aEnd !== bEnd) return aEnd - bEnd;
       if (a.y !== b.y) return a.y - b.y;
       if (a.x !== b.x) return a.x - b.x;
       return a.order - b.order;
@@ -246,6 +243,12 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   }
 
   const computedLayout = computeNonOverlappingLayout(items);
+  const maxBottomCells = items.reduce((max, it, idx) => {
+    const key = it.id || `item-${idx}`;
+    const pos = (computedLayout as any)[key] || { x: it.x || 0, y: it.y || 0, w: it.w || 1, h: it.h || 1 };
+    return Math.max(max, (pos.y || 0) + (pos.h || 1));
+  }, Math.ceil(designSize.height / (layout_data.cellSize || 20)));
+  const dynamicHeightPx = Math.max(designSize.height, maxBottomCells * cellSize);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
@@ -253,7 +256,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         className="relative border border-gray-600"
         style={{
           width: `${designSize.width}px`,
-          height: `${designSize.height}px`,
+          height: `${dynamicHeightPx}px`,
           backgroundColor: layout_data.styling?.colors?.background || '#171717',
           color: layout_data.styling?.colors?.text || '#ffffff',
           fontFamily: layout_data.styling?.typography?.fontFamily || 'inherit'
