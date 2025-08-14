@@ -249,7 +249,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                 top: topPx,
                 width: widthPx,
                 height: heightPx,
-                zIndex: item.z || (item.contentType === 'text' ? 0 : 1),
+                zIndex: 1,
                 overflow: 'hidden'
               }}
             >
