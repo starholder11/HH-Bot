@@ -183,19 +183,20 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
       <div 
         className="relative border border-gray-600"
-        style={{ 
-          width: `${designSize.width}px`, 
+        style={{
+          width: `${designSize.width}px`,
           height: `${designSize.height}px`,
           backgroundColor: layout_data.styling?.colors?.background || '#171717',
           color: layout_data.styling?.colors?.text || '#ffffff',
           fontFamily: layout_data.styling?.typography?.fontFamily || 'inherit'
         }}
       >
+        {/* Force a new paint when layout id changes to bust any client cache */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} data-layout-version={params.layoutId} />
         {items.map((item: any, index: number) => {
-          // Note: For published view we ignore per-breakpoint overrides for now
-          // and rely on base coordinates or normalized fractions to avoid
-          // mismatches with stale breakpoint data.
-          const bp = {} as any;
+          // Prefer explicit desktop breakpoint coordinates, then base x/y/w/h,
+          // finally fall back to normalized fractions.
+          const bp = item.breakpoints?.desktop || ({} as any);
 
           // Helper to decide if a numeric value is valid
           const isNum = (v: any) => typeof v === 'number' && Number.isFinite(v);
@@ -211,11 +212,16 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           const fromNormW = isNum(nwVal) ? Math.max(1, Math.round(nwVal * cols)) : undefined;
           const fromNormH = isNum(nhVal) ? Math.max(1, Math.round(nhVal * rows)) : undefined;
 
-          // Prefer normalized coordinates when available; fall back to grid units
-          const derivedX = isNum(fromNormX) ? (fromNormX as number) : (isNum(bp.x) ? bp.x : isNum(item.x) ? item.x : 0);
-          const derivedY = isNum(fromNormY) ? (fromNormY as number) : (isNum(bp.y) ? bp.y : isNum(item.y) ? item.y : 0);
-          const derivedW = isNum(fromNormW) ? (fromNormW as number) : (isNum(bp.w) ? bp.w : isNum(item.w) ? item.w : 1);
-          const derivedH = isNum(fromNormH) ? (fromNormH as number) : (isNum(bp.h) ? bp.h : isNum(item.h) ? item.h : 1);
+          // Helper to pick first valid number in priority order
+          const pick = (...vals: Array<number | undefined>) => {
+            for (const v of vals) { if (isNum(v)) return v as number; }
+            return undefined;
+          };
+
+          const derivedX = pick(bp.x, item.x, fromNormX) ?? 0;
+          const derivedY = pick(bp.y, item.y, fromNormY) ?? 0;
+          const derivedW = pick(bp.w, item.w, fromNormW) ?? 1;
+          const derivedH = pick(bp.h, item.h, fromNormH) ?? 1;
 
           const gridX = Math.max(0, derivedX);
           const gridY = Math.max(0, derivedY);
