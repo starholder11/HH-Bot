@@ -1167,6 +1167,7 @@ function BlockLibrary({ onAddBlock }: { onAddBlock: (blockType: any) => void }) 
         <AssetSearchModal
           onClose={() => setShowAssetModal(false)}
           onSelect={(asset) => {
+            console.log('[ASSET SEARCH] Adding asset to layout:', asset);
             onAddBlock({
               type: 'content_ref',
               contentId: asset.id,
@@ -1174,6 +1175,7 @@ function BlockLibrary({ onAddBlock }: { onAddBlock: (blockType: any) => void }) 
               mediaUrl: asset.cloudflare_url || asset.url || asset.s3_url,
               snippet: asset.title || asset.filename || asset.description || 'Asset'
             });
+            console.log('[ASSET SEARCH] Closing modal after asset add');
             setShowAssetModal(false);
           }}
         />
@@ -1254,15 +1256,19 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
       try {
         const activeTypes = overrideTypes && overrideTypes.length ? overrideTypes : selectedTypes;
         const typeParam = activeTypes.join(',');
+        console.log('[ASSET SEARCH] Query:', q, 'Types:', activeTypes, 'Param:', typeParam);
         const json = await searchService.get(q, { type: typeParam, limit: 50, signal: controller.signal });
         if (controller.signal.aborted || requestId !== lastRequestIdRef.current) return;
         const results = (json as any)?.results || {};
+        console.log('[ASSET SEARCH] Raw results:', results);
         // Choose list to show based on active filters
         const onlyText = activeTypes.length === 1 && activeTypes[0] === 'text';
         const onlyMedia = activeTypes.every(t => ['image','video','audio'].includes(t)) && !activeTypes.includes('text');
         const baseList = onlyText ? results.text : onlyMedia ? results.media : (results.all || []);
+        console.log('[ASSET SEARCH] Base list:', baseList?.length, 'items from', onlyText ? 'text' : onlyMedia ? 'media' : 'all');
         const allow = new Set<string>(activeTypes.includes('text') && activeTypes.length === 1 ? ['text'] : activeTypes);
         const filtered = (Array.isArray(baseList) ? baseList : []).filter((r: any) => allow.has((r.content_type || r.type || '').toLowerCase()));
+        console.log('[ASSET SEARCH] Filtered results:', filtered.length, 'items, first 3 types:', filtered.slice(0, 3).map((r: any) => r.content_type || r.type));
         setSearchResults(filtered);
       } catch (error: any) {
         // Ignore abort errors; they are expected during fast typing
@@ -1289,7 +1295,32 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
       <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[66vw] h-[66vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-700">
-          <h2 className="text-lg font-medium text-neutral-100">Search Assets</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-medium text-neutral-100">Search Assets</h2>
+            <div className="flex flex-wrap gap-1">
+              {['image','video','audio','text'].map(t => {
+                const active = selectedTypes.includes(t);
+                return (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      setSelectedTypes(prev => {
+                        const has = prev.includes(t);
+                        const next = has ? prev.filter(x => x !== t) : [...prev, t];
+                        const ensured = next.length ? next : [t];
+                        console.log('[ASSET SEARCH] Filter changed to:', ensured);
+                        void searchAssets(searchQuery, ensured);
+                        return ensured;
+                      });
+                    }}
+                    className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${active ? 'border-blue-500 bg-blue-600 text-white' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:border-neutral-500'}`}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <button
             onClick={onClose}
             className="p-1 hover:bg-neutral-800 rounded text-neutral-400 hover:text-neutral-200"
@@ -1298,41 +1329,8 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
           </button>
         </div>
 
-        {/* Filters + Search */}
-        <div className="p-4 border-b border-neutral-700 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="text-neutral-200 text-sm flex items-center gap-2">
-              <span>Search Assets</span>
-              <div className="flex flex-wrap gap-1">
-                {['image','video','audio','text'].map(t => {
-                  const active = selectedTypes.includes(t);
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => {
-                        setSelectedTypes(prev => {
-                          const has = prev.includes(t);
-                          const next = has ? prev.filter(x => x !== t) : [...prev, t];
-                          const ensured = next.length ? next : [t];
-                          void searchAssets(searchQuery, ensured);
-                          return ensured;
-                        });
-                      }}
-                      className={`px-2 py-0.5 text-xs rounded border ${active ? 'border-blue-600 bg-blue-900/30 text-blue-200' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-neutral-800 rounded text-neutral-400 hover:text-neutral-200"
-            >
-              ✕
-            </button>
-          </div>
+        {/* Search Input */}
+        <div className="p-4 border-b border-neutral-700">
           <input
             type="text"
             placeholder="Search for images, videos, and other media..."
