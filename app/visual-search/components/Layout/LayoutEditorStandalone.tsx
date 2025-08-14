@@ -16,10 +16,12 @@ import VSResultCard from '../ResultCard/ResultCard';
 import ResultsGrid from '@/app/visual-search/components/ResultsGrid';
 import dynamic from 'next/dynamic';
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+const TransformPanel = dynamic(() => import('./TransformPanel'), { ssr: false });
 import 'react-quill/dist/quill.snow.css';
 import 'katex/dist/katex.min.css';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
+import { TransformComponents } from './transforms';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -50,6 +52,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [showRteModal, setShowRteModal] = useState(false);
   const [rteTargetId, setRteTargetId] = useState<string | null>(null);
   const [rteHtml, setRteHtml] = useState<string>('');
+  const [showTransformPanel, setShowTransformPanel] = useState(false);
+  const [transformTargetId, setTransformTargetId] = useState<string | null>(null);
 
   const openRteForId = React.useCallback((id: string) => {
     setSelectedId(id);
@@ -60,6 +64,30 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     setRteTargetId(id);
     setShowRteModal(true);
   }, [edited.layout_data.items]);
+
+  const openTransformForId = React.useCallback((id: string) => {
+    setSelectedId(id);
+    setSelectedIds(new Set([id]));
+    setTransformTargetId(id);
+    setShowTransformPanel(true);
+  }, []);
+
+  const handleTransformChange = React.useCallback((transform: any) => {
+    if (!transformTargetId) return;
+
+    setEdited(prev => ({
+      ...prev,
+      layout_data: {
+        ...prev.layout_data,
+        items: prev.layout_data.items.map(item =>
+          item.id === transformTargetId
+            ? { ...item, transform }
+            : item
+        )
+      },
+      updated_at: new Date().toISOString()
+    } as LayoutAsset));
+  }, [transformTargetId]);
 
   // Keep layout in sync when prop changes
   useEffect(() => {
@@ -230,8 +258,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   // Keyboard shortcuts: delete, duplicate, nudge for multi-select, escape to clear
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      // Don't interfere with text editing
-      if (isEditingText || showRteModal) return;
+      // Don't interfere with text editing or modals
+      if (isEditingText || showRteModal || showTransformPanel) return;
 
       const isMeta = e.metaKey || e.ctrlKey;
 
@@ -659,6 +687,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                           ✎ Edit
                         </button>
                       )}
+                      <button
+                        className="px-1.5 py-0.5 text-[10px] rounded bg-neutral-900/80 border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTransformForId(it.id); }}
+                        title="Add animation/effect"
+                      >
+                        ✨ FX
+                      </button>
                       <span className="text-neutral-500">drag</span>
                     </div>
                   </div>
@@ -733,6 +768,17 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             } as LayoutAsset));
             setShowRteModal(false);
             setRteTargetId(null);
+          }}
+        />
+      )}
+      
+      {showTransformPanel && transformTargetId && (
+        <TransformPanel
+          transform={edited.layout_data.items.find(i => i.id === transformTargetId)?.transform}
+          onTransformChange={handleTransformChange}
+          onClose={() => {
+            setShowTransformPanel(false);
+            setTransformTargetId(null);
           }}
         />
       )}
@@ -946,6 +992,35 @@ function applyRichTextHtmlToItem(item: any, html: string): any {
   return { ...item, config: { ...cfg, content: html } };
 }
 
+function renderWithTransform(content: React.ReactNode, transform?: any) {
+  if (!transform?.component || typeof window === 'undefined') {
+    return content;
+  }
+
+  const TransformComponent = TransformComponents[transform.component];
+  if (!TransformComponent) {
+    console.warn(`Transform component "${transform.component}" not found`);
+    return content;
+  }
+
+  const transformProps = { ...transform.props };
+  
+  // Apply container styles if specified
+  const containerStyle: React.CSSProperties = {};
+  if (transform.container) {
+    if (transform.container.overflow) containerStyle.overflow = transform.container.overflow;
+    if (transform.container.background) containerStyle.background = transform.container.background;
+    if (transform.container.border) containerStyle.border = transform.container.border;
+    if (transform.container.borderRadius) containerStyle.borderRadius = transform.container.borderRadius;
+  }
+
+  return (
+    <TransformComponent {...transformProps} style={containerStyle}>
+      {content}
+    </TransformComponent>
+  );
+}
+
 function renderItem(
   it: Item,
   url?: string,
@@ -956,11 +1031,12 @@ function renderItem(
 
   // Handle block types
   if (it.type === 'block' && (it as any).blockType) {
-    return renderBlockItem(it as any, opts);
+    const blockContent = renderBlockItem(it as any, opts);
+    return renderWithTransform(blockContent, it.transform);
   }
 
     if (it.type === 'inline_text' && it.inlineContent?.text) {
-    return (
+    const textContent = (
       <div className="h-full w-full p-2 overflow-auto">
         <div className="text-xs opacity-60 mb-1">{label}</div>
         {opts?.isEditing ? (
@@ -978,15 +1054,17 @@ function renderItem(
         )}
       </div>
     );
+    return renderWithTransform(textContent, it.transform);
   }
 
   if (it.type === 'inline_image' && (it.inlineContent?.imageUrl || it.inlineContent?.imageData || url)) {
     const src = it.inlineContent?.imageUrl || it.inlineContent?.imageData || url || '';
-    return (
+    const imageContent = (
       <div className="h-full w-full flex items-center justify-center bg-black/50">
         <img src={src} alt="inline" className="max-w-full max-h-full object-contain" draggable={false} />
       </div>
     );
+    return renderWithTransform(imageContent, it.transform);
   }
 
   // Handle content_ref items (from S3)
@@ -1002,7 +1080,7 @@ function renderItem(
 
       if (fullTextContent) {
         // Render full content like visual-search DetailsOverlay
-        return (
+        const textContent = (
           <div className="h-full w-full p-4 bg-white text-black overflow-auto">
             <div className="prose prose-sm max-w-none">
               <h3 className="text-lg font-semibold mb-3 text-black">{title}</h3>
@@ -1012,60 +1090,67 @@ function renderItem(
             </div>
           </div>
         );
+        return renderWithTransform(textContent, it.transform);
       }
 
       // Loading state or fallback
       if (loading) {
-        return (
+        const loadingContent = (
           <div className="h-full w-full flex items-center justify-center text-xs text-neutral-400 bg-neutral-800/20">
             Loading text content...
           </div>
         );
+        return renderWithTransform(loadingContent, it.transform);
       }
 
       // Fallback to available title/snippet if full content not yet loaded
-      return (
+      const fallbackContent = (
         <div className="h-full w-full p-4 bg-white text-black overflow-auto">
           <div className="prose prose-sm max-w-none">
             <div className="text-sm leading-relaxed text-gray-800">{title || 'Loading text content...'}</div>
           </div>
         </div>
       );
+      return renderWithTransform(fallbackContent, it.transform);
     }
 
     if (loading) {
-      return (
+      const loadingContent = (
         <div className="h-full w-full flex items-center justify-center text-xs text-neutral-400 bg-neutral-800/20">
           Loading {contentType}...
         </div>
       );
+      return renderWithTransform(loadingContent, it.transform);
     }
 
     if (!src) {
-      return (
+      const noSourceContent = (
         <div className="h-full w-full flex items-center justify-center text-xs text-neutral-400 bg-red-900/20">
           No source for {contentType}
         </div>
       );
+      return renderWithTransform(noSourceContent, it.transform);
     }
 
     if (contentType === 'image' || src.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-      return (
+      const imageContent = (
         <div className="h-full w-full flex items-center justify-center bg-black/50">
           <img src={src} alt={(it as any).snippet || 'Content'} className="max-w-full max-h-full object-contain" draggable={false} />
         </div>
       );
+      return renderWithTransform(imageContent, it.transform);
     }
 
     if (contentType === 'video' || src.match(/\.(mp4|webm|mov|avi)$/i)) {
-      return (
+      const videoContent = (
         <div className="h-full w-full flex items-center justify-center bg-black/50">
           <video src={src} className="max-w-full max-h-full object-contain" controls muted />
         </div>
       );
+      return renderWithTransform(videoContent, it.transform);
     }
 
-    return (
+    const fallbackContent = (
       <div className="h-full w-full flex items-center justify-center text-xs text-neutral-300 bg-green-900/20">
         <div className="text-center">
           <div className="text-neutral-200 font-medium">{(it as any).snippet || 'Asset'}</div>
@@ -1073,13 +1158,15 @@ function renderItem(
         </div>
       </div>
     );
+    return renderWithTransform(fallbackContent, it.transform);
   }
 
-  return (
+  const unknownContent = (
     <div className="h-full w-full flex items-center justify-center text-xs text-neutral-300 bg-blue-500/10">
       {label}
     </div>
   );
+  return renderWithTransform(unknownContent, it.transform);
 }
 
 function renderBlockItem(it: any, opts?: any) {
