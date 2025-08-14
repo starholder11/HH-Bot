@@ -225,7 +225,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
                 top: `${y}px`,
                 width: `${w}px`,
                 height: `${h}px`,
-                zIndex: item.z || 1,
+                zIndex: item.z || (item.type === 'inline_image' ? 10 : 1),
               }}
             >
               {renderContent(item)}
@@ -294,8 +294,8 @@ function renderContent(item: any) {
     const content = item.fullTextContent || '';
     
     return (
-      <div className="w-full h-full p-6 bg-white text-black overflow-auto">
-        <div className="prose prose-lg max-w-none">
+      <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative">
+        <div className="prose prose-lg max-w-none h-full overflow-y-auto">
           {title && <h1 className="text-2xl font-bold mb-6 text-black">{title}</h1>}
           {content ? (
             <div className="text-base leading-relaxed whitespace-pre-wrap text-gray-800">
