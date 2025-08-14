@@ -944,6 +944,18 @@ function renderItem(
     const src = url || (it as any).mediaUrl || '';
     const contentType = (it as any).contentType || 'unknown';
 
+    // Render text content immediately (text does not require a media URL)
+    if (contentType === 'text') {
+      const textContent = (it as any).snippet || (it as any).title || 'Text content';
+      return (
+        <div className="h-full w-full p-4 bg-neutral-900 text-neutral-100 overflow-auto">
+          <div className="leading-relaxed text-sm whitespace-pre-wrap">
+            {textContent}
+          </div>
+        </div>
+      );
+    }
+
     if (loading) {
       return (
         <div className="h-full w-full flex items-center justify-center text-xs text-neutral-400 bg-neutral-800/20">
@@ -972,18 +984,6 @@ function renderItem(
       return (
         <div className="h-full w-full flex items-center justify-center bg-black/50">
           <video src={src} className="max-w-full max-h-full object-contain" controls muted />
-        </div>
-      );
-    }
-
-    if (contentType === 'text') {
-      // For text content_ref, render the text content in a proper text block
-      const textContent = (it as any).snippet || (it as any).title || 'Text content';
-      return (
-        <div className="h-full w-full p-4 bg-neutral-900 text-neutral-100 overflow-auto">
-          <div className="leading-relaxed text-sm whitespace-pre-wrap">
-            {textContent}
-          </div>
         </div>
       );
     }
