@@ -121,8 +121,8 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
 
   const { layout_data } = layout;
   const { designSize, styling, items } = layout_data;
-  const theme = styling?.theme || 'mono_noir';
-  const themeConfig = LAYOUT_THEMES[theme as keyof typeof LAYOUT_THEMES] || LAYOUT_THEMES.mono_noir;
+  const theme = styling?.theme || 'mono-noir';
+  const themeConfig = LAYOUT_THEMES.find(t => t.id === theme) || LAYOUT_THEMES[0];
 
   // Apply theme to document
   useEffect(() => {
