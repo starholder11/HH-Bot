@@ -38,6 +38,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [showAlignmentGuides, setShowAlignmentGuides] = useState(true);
   const [currentBreakpoint, setCurrentBreakpoint] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const isDraggingRef = React.useRef(false);
+  const lastPointerClientYRef = React.useRef(0);
+  const scrollRAFRef = React.useRef<number | null>(null);
 
   // Keep layout in sync when prop changes
   useEffect(() => {
@@ -120,14 +123,60 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     [visibleItems, currentBreakpoint]
   );
 
-  // Keyboard shortcuts: delete, duplicate, nudge for multi-select
+  // Auto-scroll window while dragging near viewport edges
+  const startAutoScrollLoop = React.useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (scrollRAFRef.current != null) return;
+    const step = () => {
+      if (!isDraggingRef.current) {
+        if (scrollRAFRef.current != null) {
+          cancelAnimationFrame(scrollRAFRef.current);
+          scrollRAFRef.current = null;
+        }
+        return;
+      }
+      const pointerY = lastPointerClientYRef.current;
+      const vh = window.innerHeight || 0;
+      const threshold = Math.max(40, Math.floor(vh * 0.08));
+      const maxStep = 24; // px per frame
+      const nearTop = pointerY < threshold;
+      const nearBottom = pointerY > vh - threshold;
+      if (nearTop) {
+        window.scrollBy(0, -maxStep);
+      } else if (nearBottom) {
+        window.scrollBy(0, maxStep);
+      }
+      scrollRAFRef.current = requestAnimationFrame(step);
+    };
+    scrollRAFRef.current = requestAnimationFrame(step);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scrollRAFRef.current != null) {
+        cancelAnimationFrame(scrollRAFRef.current);
+        scrollRAFRef.current = null;
+      }
+    };
+  }, []);
+
+  // Keyboard shortcuts: delete, duplicate, nudge for multi-select, escape to clear
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Don't interfere with text editing
       if (isEditingText) return;
-      if (selectedIds.size === 0) return;
 
       const isMeta = e.metaKey || e.ctrlKey;
+
+      // Escape to clear selection
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedId(null);
+        setSelectedIds(new Set());
+        return;
+      }
+
+      if (selectedIds.size === 0) return;
 
       // Duplicate selection
       if (isMeta && e.key.toLowerCase() === 'd') {
@@ -396,8 +445,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             onMouseDown={(e) => {
               if (e.button !== 0) return;
               // Clicking canvas background clears selection
-              setSelectedId(null);
-              setSelectedIds(new Set());
+              if (e.target === e.currentTarget) {
+                console.log('Canvas clicked - clearing selection');
+                setSelectedId(null);
+                setSelectedIds(new Set());
+              }
             }}
           >
             {/* Grid overlay */}
@@ -454,23 +506,32 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               }}
               isDraggable={true}
               isResizable={true}
-              draggableCancel={'input, textarea, select, button'}
+              draggableCancel={'input, textarea, select, button, .content-editable'}
               margin={[1, 1]}
               containerPadding={[2, 2]}
               useCSSTransforms={true}
               preventCollision={snapToGrid}
               compactType={null}
-              verticalCompact={false}
               isBounded={false}
               transformScale={1}
+              onDragStart={(layout: any, oldItem: any, newItem: any, placeholder: any, e: any) => {
+                isDraggingRef.current = true;
+                lastPointerClientYRef.current = (e?.clientY as number) || 0;
+                startAutoScrollLoop();
+              }}
+              onDrag={(layout: any, oldItem: any, newItem: any, placeholder: any, e: any) => {
+                lastPointerClientYRef.current = (e?.clientY as number) || lastPointerClientYRef.current;
+              }}
+              onDragStop={() => {
+                isDraggingRef.current = false;
+              }}
             >
                             {visibleItems.map((it) => (
                 <div
                   key={it.id}
                   className={`rounded-sm overflow-hidden border ${selectedIds.has(it.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
-                  onMouseDown={(e) => {
+                  onMouseDownCapture={(e) => {
                     if (e.button !== 0) return;
-                    e.stopPropagation();
                     const isMeta = e.metaKey || e.ctrlKey;
                     const isShift = e.shiftKey;
 
@@ -514,14 +575,16 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                     <span className="text-neutral-500">drag</span>
                   </div>
 
-                  {renderItem(it, previewUrls[it.id], loadingMap[it.id], {
-                    isSelected: selectedIds.has(it.id),
-                    isEditing: isEditingText && selectedId === it.id,
-                    draftText,
-                    setDraftText,
-                    onCommitText: (txt: string) => { updateInlineText(it.id, txt, setEdited); setIsEditingText(false); },
-                    onCancelEdit: () => setIsEditingText(false),
-                  })}
+                  <div className="block-content h-full w-full">
+                    {renderItem(it, previewUrls[it.id], loadingMap[it.id], {
+                      isSelected: selectedIds.has(it.id),
+                      isEditing: isEditingText && selectedId === it.id,
+                      draftText,
+                      setDraftText,
+                      onCommitText: (txt: string) => { updateInlineText(it.id, txt, setEdited); setIsEditingText(false); },
+                      onCancelEdit: () => setIsEditingText(false),
+                    })}
+                  </div>
                 </div>
               ))}
             </ResponsiveGridLayout>
