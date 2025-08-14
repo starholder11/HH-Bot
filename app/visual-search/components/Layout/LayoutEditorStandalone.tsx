@@ -1213,6 +1213,7 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['image','video','audio','text']);
   const [mounted, setMounted] = useState(false);
   const controllerRef = React.useRef<AbortController | null>(null);
   const debounceRef = React.useRef<number | null>(null);
@@ -1234,7 +1235,8 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
       const requestId = (lastRequestIdRef.current += 1);
       setIsLoading(true);
       try {
-        const json = await searchService.get(q, { type: 'media', limit: 50, signal: controller.signal });
+        const typeParam = selectedTypes.join(',');
+        const json = await searchService.get(q, { type: typeParam, limit: 50, signal: controller.signal });
         if (controller.signal.aborted || requestId !== lastRequestIdRef.current) return;
         const all = (json as any)?.results?.all || (json as any)?.results?.media || [];
         setSearchResults(Array.isArray(all) ? all : []);
@@ -1272,8 +1274,30 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
           </button>
         </div>
 
-        {/* Search */}
-        <div className="p-4 border-b border-neutral-700">
+        {/* Filters + Search */}
+        <div className="p-4 border-b border-neutral-700 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {['image','video','audio','text'].map(t => {
+              const active = selectedTypes.includes(t);
+              return (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setSelectedTypes(prev => {
+                      const has = prev.includes(t);
+                      const next = has ? prev.filter(x => x !== t) : [...prev, t];
+                      // Trigger search refresh
+                      void searchAssets(searchQuery);
+                      return next.length ? next : [t];
+                    });
+                  }}
+                  className={`px-2 py-1 text-xs rounded border ${active ? 'border-blue-600 bg-blue-900/30 text-blue-200' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
+                >
+                  {t}
+                </button>
+              );
+            })}
+          </div>
           <input
             type="text"
             placeholder="Search for images, videos, and other media..."
