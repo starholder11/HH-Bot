@@ -174,6 +174,10 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   const { layout_data } = data;
   const { designSize = { width: 1200, height: 800 }, items = [] } = layout_data;
 
+  const cellSize = layout_data.cellSize || 20;
+  const cols = Math.floor(designSize.width / cellSize);
+  const rowHeight = cellSize;
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
       <div 
@@ -183,28 +187,14 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           height: `${designSize.height}px`,
           backgroundColor: layout_data.styling?.colors?.background || '#171717',
           color: layout_data.styling?.colors?.text || '#ffffff',
-          fontFamily: layout_data.styling?.typography?.fontFamily || 'inherit'
+          fontFamily: layout_data.styling?.typography?.fontFamily || 'inherit',
+          display: 'grid',
+          gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
+          gridTemplateRows: `repeat(auto, ${rowHeight}px)`,
+          gap: 0
         }}
       >
-        {items
-          .sort((a: any, b: any) => {
-            // Sort by z-index first, then by Y position, then by type
-            const aZ = a.z || 1;
-            const bZ = b.z || 1;
-            if (aZ !== bZ) return aZ - bZ;
-            
-            const aY = (a.breakpoints?.desktop?.y ?? a.y ?? 0);
-            const bY = (b.breakpoints?.desktop?.y ?? b.y ?? 0);
-            if (aY !== bY) return aY - bY;
-            
-            // Render text content before inline images at the same Y level
-            if (a.contentType === 'text' && b.type === 'inline_image') return -1;
-            if (b.contentType === 'text' && a.type === 'inline_image') return 1;
-            
-            return 0;
-          })
-          .map((item: any, index: number) => {
-          const cellSize = layout_data.cellSize || 20;
+        {items.map((item: any, index: number) => {
           // Use desktop breakpoint overrides when available
           const bp = item.breakpoints?.desktop;
           const gridX = (bp?.x ?? item.x ?? 0);
@@ -212,19 +202,13 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           const gridW = (bp?.w ?? item.w ?? 1);
           const gridH = (bp?.h ?? item.h ?? 1);
 
-          const x = gridX * cellSize;
-          const y = gridY * cellSize;
-          const w = gridW * cellSize;
-          const h = gridH * cellSize;
-
           // Debug logging with expanded coordinates
           const actualZ = item.z || 1;
           
           console.log(`[L7] Item ${item.id || index}:`,
             `type=${item.type}`,
             `contentType=${item.contentType || 'none'}`,
-            `coords=(${gridX}, ${gridY}, ${gridW}, ${gridH})`,
-            `pixels=(${x}, ${y}, ${w}, ${h})`,
+            `grid=(${gridX + 1}, ${gridY + 1}, span ${gridW}, span ${gridH})`,
             `z=${actualZ}`,
             bp ? '[bp=desktop]' : '[bp=base]'
           );
@@ -232,13 +216,13 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           return (
             <div
               key={item.id || `item-${index}`}
-              className="absolute"
               style={{
-                left: `${x}px`,
-                top: `${y}px`,
-                width: `${w}px`,
-                height: `${h}px`,
+                gridColumnStart: gridX + 1,
+                gridColumnEnd: gridX + gridW + 1,
+                gridRowStart: gridY + 1,
+                gridRowEnd: gridY + gridH + 1,
                 zIndex: item.z || 1,
+                overflow: 'hidden'
               }}
             >
               {renderContent(item)}
@@ -307,15 +291,15 @@ function renderContent(item: any) {
     const content = item.fullTextContent || '';
     
     return (
-      <div className="w-full h-full p-4 bg-white text-black overflow-hidden relative shadow-lg border border-gray-300">
-        <div className="prose prose-sm max-w-none h-full overflow-y-auto">
-          {title && <h2 className="text-lg font-bold mb-3 text-black line-clamp-2">{title}</h2>}
+      <div className="w-full h-full p-6 bg-white text-black overflow-hidden relative shadow-lg border border-gray-300">
+        <div className="prose prose-lg max-w-none h-full overflow-y-auto">
+          {title && <h1 className="text-2xl font-bold mb-6 text-black">{title}</h1>}
           {content ? (
-            <div className="text-sm leading-relaxed text-gray-800 overflow-hidden">
-              {content.length > 500 ? content.substring(0, 500) + '...' : content}
+            <div className="text-base leading-relaxed whitespace-pre-wrap text-gray-800">
+              {content}
             </div>
           ) : (
-            <div className="text-gray-500 italic text-sm">Loading text content...</div>
+            <div className="text-gray-500 italic">Loading text content...</div>
           )}
         </div>
       </div>
