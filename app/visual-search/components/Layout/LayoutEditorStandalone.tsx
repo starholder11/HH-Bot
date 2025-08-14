@@ -530,9 +530,15 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           </button>
 
           <button
-            onClick={() => window.open(`/L7/${edited.id}`, '_blank')}
+            onClick={async () => {
+              try {
+                await handleSave();
+              } finally {
+                window.open(`/L7/${edited.id}`, '_blank');
+              }
+            }}
             className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-white text-sm"
-            title="View live published layout"
+            title="Save and open live published layout"
           >
             🚀 Publish
           </button>
