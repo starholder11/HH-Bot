@@ -73,7 +73,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         if (item.type === 'content_ref') {
           const contentType = (item as any).contentType || 'unknown';
           const assetId = (item as any).contentId || (item as any).refId;
-          
+
           // Handle text content using the same approach as visual-search
           if (contentType === 'text' && assetId && !(item as any).fullTextContent) {
             setLoadingMap(prev => ({ ...prev, [item.id]: true }));
@@ -86,7 +86,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 const subParts = beforeHash.split('/');
                 slug = subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || assetId;
               }
-              
+
               console.log('[TEXT CONTENT] Fetching full text for slug:', slug);
               const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
               if (response.ok) {
@@ -97,7 +97,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                     ...prev,
                     layout_data: {
                       ...prev.layout_data,
-                      items: prev.layout_data.items.map(i => i.id === item.id ? 
+                      items: prev.layout_data.items.map(i => i.id === item.id ?
                         ({ ...i, fullTextContent: data.content, textMetadata: data.metadata }) as any : i)
                     }
                   } as LayoutAsset));
@@ -147,8 +147,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
   const cellSize = edited.layout_data.cellSize || 20;
 
-  // Use actual layout design size, not hardcoded breakpoint sizes
-  const design = edited.layout_data.designSize || { width: 1200, height: 800 };
+  // Use breakpoint-specific design sizes
+  const breakpointSizes = {
+    desktop: { width: 1200, height: 800 },
+    tablet: { width: 768, height: 1024 },
+    mobile: { width: 375, height: 667 }
+  };
+  const design = breakpointSizes[currentBreakpoint];
   const cols = Math.floor(design.width / cellSize);
   const rowHeight = cellSize;
 
@@ -332,7 +337,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   function addBlock(blockType: any) {
     const id = typeof blockType === 'string' ? `${blockType}_${Date.now().toString(36)}` : `asset_${Date.now().toString(36)}`;
     const cellSize = edited.layout_data.cellSize || 20;
-    const design = edited.layout_data.designSize || { width: 1200, height: 800 };
+    // Use current breakpoint design size for block placement
+    const design = breakpointSizes[currentBreakpoint];
 
     // Find a good position that doesn't overlap
     const existingItems = edited.layout_data.items;
@@ -451,6 +457,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           )}
           <h2 className="text-lg font-medium text-white">{edited.title}</h2>
           <div className="text-xs text-neutral-500">• {edited.layout_data.items.length} items</div>
+          <div className="text-xs text-neutral-500">• {design.width}×{design.height}px</div>
           {selectedId && (
             <div className="text-xs text-blue-400">
               • 1 selected
@@ -558,7 +565,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                       layoutItem.y,
                       layoutItem.w,
                       layoutItem.h,
-                      edited.layout_data,
+                      cellSize,
                       currentBreakpoint
                     );
                   }
@@ -771,10 +778,9 @@ function updateItemPositionWithBreakpoint(
   y: number,
   w: number,
   h: number,
-  layoutData: LayoutAsset['layout_data'],
+  cellSize: number,
   breakpoint: 'desktop' | 'tablet' | 'mobile'
 ): any {
-  const cellSize = layoutData.cellSize || 20;
   const breakpointSizes = {
     desktop: { width: 1200, height: 800 },
     tablet: { width: 768, height: 1024 },
@@ -993,7 +999,7 @@ function renderItem(
     if (contentType === 'text') {
       const fullTextContent = (it as any).fullTextContent || '';
       const title = (it as any).snippet || (it as any).title || '';
-      
+
       if (fullTextContent) {
         // Render full content like visual-search DetailsOverlay
         return (
@@ -1007,7 +1013,7 @@ function renderItem(
           </div>
         );
       }
-      
+
       // Loading state or fallback
       if (loading) {
         return (
@@ -1016,7 +1022,7 @@ function renderItem(
           </div>
         );
       }
-      
+
       // Fallback to available title/snippet if full content not yet loaded
       return (
         <div className="h-full w-full p-4 bg-white text-black overflow-auto">
