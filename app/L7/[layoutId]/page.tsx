@@ -179,6 +179,73 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   const rowHeight = cellSize;
   const rows = Math.ceil(designSize.height / cellSize);
 
+  // Compute a collision-free layout at render time without mutating the saved data
+  function computeNonOverlappingLayout(rawItems: any[]) {
+    // Extract base grid rects
+    type Rect = { id: string; x: number; y: number; w: number; h: number; item: any };
+    const rects: Rect[] = rawItems.map((it: any, idx: number) => ({
+      id: it.id || `item-${idx}`,
+      x: Math.max(0, it.x ?? 0),
+      y: Math.max(0, it.y ?? 0),
+      w: Math.max(1, it.w ?? 1),
+      h: Math.max(1, it.h ?? 1),
+      item: it
+    }));
+
+    // Priority: place non-text first, then text content (so big text flows under)
+    rects.sort((a, b) => {
+      const aP = a.item.contentType === 'text' ? 1 : 0;
+      const bP = b.item.contentType === 'text' ? 1 : 0;
+      if (aP !== bP) return aP - bP;
+      if (a.y !== b.y) return a.y - b.y;
+      return a.x - b.x;
+    });
+
+    const placed: Rect[] = [];
+    const overlaps = (r1: Rect, r2: Rect) => {
+      return !(
+        r1.x + r1.w <= r2.x ||
+        r1.x >= r2.x + r2.w ||
+        r1.y + r1.h <= r2.y ||
+        r1.y >= r2.y + r2.h
+      );
+    };
+
+    for (const r of rects) {
+      // Shift down until no overlap
+      let currentY = r.y;
+      // Clamp within grid
+      const maxY = Math.max(0, rows - r.h);
+      while (true) {
+        const test: Rect = { ...r, y: currentY };
+        const colliders = placed.filter(p => overlaps(test, p));
+        if (colliders.length === 0) break;
+        // Move below the lowest collider
+        const nextY = Math.max(...colliders.map(p => p.y + p.h));
+        if (nextY > maxY) {
+          currentY = maxY;
+          break;
+        }
+        if (nextY === currentY) {
+          // Prevent infinite loop
+          currentY = Math.min(maxY, currentY + 1);
+        } else {
+          currentY = nextY;
+        }
+      }
+      placed.push({ ...r, y: currentY });
+    }
+
+    // Build lookup map
+    const byId: Record<string, { x: number; y: number; w: number; h: number }> = {};
+    placed.forEach(p => {
+      byId[p.id] = { x: p.x, y: p.y, w: p.w, h: p.h };
+    });
+    return byId;
+  }
+
+  const computedLayout = computeNonOverlappingLayout(items);
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
       <div
@@ -194,35 +261,14 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
         {/* Force a new paint when layout id changes to bust any client cache */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} data-layout-version={params.layoutId} />
         {items.map((item: any, index: number) => {
-          // Prefer explicit desktop breakpoint coordinates, then base x/y/w/h,
-          // finally fall back to normalized fractions.
-          const bp = item.breakpoints?.desktop || ({} as any);
-
-          // Helper to decide if a numeric value is valid
-          const isNum = (v: any) => typeof v === 'number' && Number.isFinite(v);
-
-          // Compute candidates from normalized coords
-          const nxVal = (bp as any).nx ?? item.nx;
-          const nyVal = (bp as any).ny ?? item.ny;
-          const nwVal = (bp as any).nw ?? item.nw;
-          const nhVal = (bp as any).nh ?? item.nh;
-
-          const fromNormX = isNum(nxVal) ? Math.round(nxVal * cols) : undefined;
-          const fromNormY = isNum(nyVal) ? Math.round(nyVal * rows) : undefined;
-          const fromNormW = isNum(nwVal) ? Math.max(1, Math.round(nwVal * cols)) : undefined;
-          const fromNormH = isNum(nhVal) ? Math.max(1, Math.round(nhVal * rows)) : undefined;
-
-          // Helper to pick first valid number in priority order
-          const pick = (...vals: Array<number | undefined>) => {
-            for (const v of vals) { if (isNum(v)) return v as number; }
-            return undefined;
-          };
-
-                    // Use the saved layout editor coordinates exactly as they were positioned
-          const gridX = Math.max(0, item.x ?? 0);
-          const gridY = Math.max(0, item.y ?? 0);
-          const gridW = Math.max(1, item.w ?? 1);
-          const gridH = Math.max(1, item.h ?? 1);
+          // Use computed non-overlapping positions derived from editor coords
+          const key = item.id || `item-${index}`;
+          const fallback = { x: Math.max(0, item.x ?? 0), y: Math.max(0, item.y ?? 0), w: Math.max(1, item.w ?? 1), h: Math.max(1, item.h ?? 1) };
+          const pos = computedLayout[key] || fallback;
+          const gridX = pos.x;
+          const gridY = pos.y;
+          const gridW = pos.w;
+          const gridH = pos.h;
 
           // Convert to pixel-based absolute positioning for bulletproof rendering
           const leftPx = gridX * cellSize;
