@@ -181,7 +181,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
-      <div 
+      <div
         className="relative border border-gray-600"
         style={{
           width: `${designSize.width}px`,
@@ -228,19 +228,21 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           const gridW = Math.max(1, derivedW);
           const gridH = Math.max(1, derivedH);
 
-          // Debug logging with expanded coordinates
-          console.log(`[L7] Item ${item.id || index}:`,
-            `type=${item.type}`,
-            `contentType=${item.contentType || 'none'}`,
-            `grid=(${gridX + 1}, ${gridY + 1}, span ${gridW}, span ${gridH})`,
-            '[published-layout]'
-          );
-
           // Convert to pixel-based absolute positioning for bulletproof rendering
           const leftPx = gridX * cellSize;
           const topPx = gridY * cellSize;
           const widthPx = gridW * cellSize;
           const heightPx = gridH * cellSize;
+
+          // Debug logging with expanded coordinates and pixel values
+          console.log(`[L7] Item ${item.id || index}:`,
+            `type=${item.type}`,
+            `contentType=${item.contentType || 'none'}`,
+            `grid=(${gridX}, ${gridY}, ${gridW}×${gridH})`,
+            `px=(${leftPx}, ${topPx}, ${widthPx}×${heightPx})`,
+            `cell=${cellSize}px`,
+            '[published-layout]'
+          );
 
           return (
             <div
