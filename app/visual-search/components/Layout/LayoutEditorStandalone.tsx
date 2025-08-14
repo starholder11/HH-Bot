@@ -1016,8 +1016,9 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
   const [mounted, setMounted] = useState(false);
   const controllerRef = React.useRef<AbortController | null>(null);
   const debounceRef = React.useRef<number | null>(null);
+  const lastRequestIdRef = React.useRef<number>(0);
 
-    const searchAssets = async (query: string) => {
+  const searchAssets = async (query: string) => {
     const q = query.trim();
     if (!q) {
       setSearchResults([]);
@@ -1025,19 +1026,27 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
     }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(async () => {
+      // Abort any in-flight request and start a new one
       controllerRef.current?.abort();
       const controller = new AbortController();
       controllerRef.current = controller;
+      // Track request ordering to prevent stale responses overwriting newer ones
+      const requestId = (lastRequestIdRef.current += 1);
       setIsLoading(true);
       try {
         const json = await searchService.get(q, { type: 'media', limit: 50, signal: controller.signal });
+        if (controller.signal.aborted || requestId !== lastRequestIdRef.current) return;
         const all = (json as any)?.results?.all || (json as any)?.results?.media || [];
         setSearchResults(Array.isArray(all) ? all : []);
-      } catch (error) {
-        console.error('Asset search failed:', error);
-        setSearchResults([]);
+      } catch (error: any) {
+        // Ignore abort errors; they are expected during fast typing
+        if (error?.name !== 'AbortError') {
+          // eslint-disable-next-line no-console
+          console.error('Asset search failed:', error);
+          // Do NOT clear existing results on transient errors
+        }
       } finally {
-        setIsLoading(false);
+        if (requestId === lastRequestIdRef.current) setIsLoading(false);
       }
     }, 200);
   };

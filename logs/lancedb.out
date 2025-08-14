@@ -1,24 +1,17 @@
-🚀 Initializing LanceDB...
-✅ Opened existing table
-✅ Connected to LanceDB
-🚀 LanceDB service running on port 8000
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 28 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 28 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 28 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 30 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 26 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
-[2025-08-01T15:16:39Z WARN  lance_index::vector::kmeans] KMeans: more than 10% of clusters are empty: 27 of 256.
-    Help: this could mean your dataset is too small to have a meaningful index (less than 5000 vectors) or has many duplicate vectors.
+/Users/c_fur1/Desktop/HH-Bot/lancedb-service/node_modules/openai/index.js:74
+            throw new Errors.OpenAIError("The OPENAI_API_KEY environment variable is missing or empty; either provide it, or instantiate the OpenAI client with an apiKey option, like new OpenAI({ apiKey: 'My API Key' }).");
+            ^
+
+OpenAIError: The OPENAI_API_KEY environment variable is missing or empty; either provide it, or instantiate the OpenAI client with an apiKey option, like new OpenAI({ apiKey: 'My API Key' }).
+    at new OpenAI (/Users/c_fur1/Desktop/HH-Bot/lancedb-service/node_modules/openai/index.js:74:19)
+    at Object.<anonymous> (/Users/c_fur1/Desktop/HH-Bot/lancedb-service/index.js:14:16)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49
+
+Node.js v22.17.0
