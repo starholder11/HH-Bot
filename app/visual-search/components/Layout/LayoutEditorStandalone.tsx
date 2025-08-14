@@ -393,6 +393,12 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               color: edited.layout_data.styling?.colors?.text || '#ffffff',
               fontFamily: edited.layout_data.styling?.typography?.fontFamily || 'inherit'
             }}
+            onMouseDown={(e) => {
+              if (e.button !== 0) return;
+              // Clicking canvas background clears selection
+              setSelectedId(null);
+              setSelectedIds(new Set());
+            }}
           >
             {/* Grid overlay */}
             {snapToGrid && (
@@ -462,13 +468,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 <div
                   key={it.id}
                   className={`rounded-sm overflow-hidden border ${selectedIds.has(it.id) ? 'border-blue-500' : 'border-blue-400/40'}`}
-                  onClick={(e) => {
+                  onMouseDown={(e) => {
+                    if (e.button !== 0) return;
                     e.stopPropagation();
                     const isMeta = e.metaKey || e.ctrlKey;
                     const isShift = e.shiftKey;
 
                     if (isMeta || isShift) {
-                      // Multi-select mode
                       const next = new Set(selectedIds);
                       if (next.has(it.id)) {
                         next.delete(it.id);
@@ -1052,8 +1058,8 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
   };
 
     // Ensure portal target exists
-  useEffect(() => { 
-    setMounted(true); 
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
   if (!mounted || typeof document === 'undefined') return null;
