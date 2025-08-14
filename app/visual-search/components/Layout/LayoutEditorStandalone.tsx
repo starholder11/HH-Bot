@@ -994,12 +994,18 @@ function renderBlockItem(it: any, opts?: any) {
     case 'hero':
       return (
         <div className="h-full w-full p-4 text-white bg-gradient-to-r from-blue-600 to-purple-600 overflow-hidden">
-          <div className="text-center h-full flex flex-col justify-center">
-            <h1 className="text-2xl font-bold mb-2">{config.title || 'Hero Title'}</h1>
-            <p className="text-lg opacity-90 mb-4">{config.subtitle || 'Hero subtitle'}</p>
-            <button className="bg-white text-blue-600 px-4 py-2 rounded font-medium">
-              {config.ctaText || 'Get Started'}
-            </button>
+          <div className="h-full flex flex-col justify-center">
+            {config.content ? (
+              <div className="ql-editor" dangerouslySetInnerHTML={{ __html: config.content }} />
+            ) : (
+              <div className="text-center">
+                <h1 className="text-2xl font-bold mb-2">{config.title || 'Hero Title'}</h1>
+                <p className="text-lg opacity-90 mb-4">{config.subtitle || 'Hero subtitle'}</p>
+                <button className="bg-white text-blue-600 px-4 py-2 rounded font-medium">
+                  {config.ctaText || 'Get Started'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -1022,32 +1028,43 @@ function renderBlockItem(it: any, opts?: any) {
 
     case 'cta':
       return (
-        <div className="h-full w-full p-4 bg-gradient-to-r from-green-600 to-blue-600 text-white flex flex-col justify-center items-center text-center">
-          <h3 className="text-xl font-bold mb-2">{config.title || 'Call to Action'}</h3>
-          <p className="text-sm opacity-90 mb-4">{config.description || 'Description'}</p>
-          <button className="bg-white text-green-600 px-4 py-2 rounded font-medium">
-            {config.buttonText || 'Click Here'}
-          </button>
+        <div className="h-full w-full p-4 bg-gradient-to-r from-green-600 to blue-600 text-white flex flex-col justify-center items-center text-center">
+          {config.content ? (
+            <div className="ql-editor" dangerouslySetInnerHTML={{ __html: config.content }} />
+          ) : (
+            <>
+              <h3 className="text-xl font-bold mb-2">{config.title || 'Call to Action'}</h3>
+              <p className="text-sm opacity-90 mb-4">{config.description || 'Description'}</p>
+              <button className="bg-white text-green-600 px-4 py-2 rounded font-medium">
+                {config.buttonText || 'Click Here'}
+              </button>
+            </>
+          )}
         </div>
       );
 
     case 'footer':
       return (
-        <div className="h-full w-full p-4 bg-neutral-800 text-neutral-200 flex items-center justify-between">
-          <div className="text-xs">{config.copyright || '© 2024 Your Company'}</div>
-          <div className="flex gap-4 text-xs">
-            {(config.links || []).map((link: any, i: number) => (
-              <span key={i} className="text-blue-400">{link.text}</span>
-            ))}
-          </div>
+        <div className="h-full w-full p-4 bg-neutral-800 text-neutral-200">
+          {config.content ? (
+            <div className="ql-editor" dangerouslySetInnerHTML={{ __html: config.content }} />
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="text-xs">{config.copyright || '© 2024 Your Company'}</div>
+              <div className="flex gap-4 text-xs">
+                {(config.links || []).map((link: any, i: number) => (
+                  <span key={i} className="text-blue-400">{link.text}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       );
 
     case 'text_section':
       return (
         <div className="h-full w-full p-4 bg-white text-neutral-900 overflow-auto">
-          <h2 className="text-lg font-bold mb-2">{config.title || 'Section Title'}</h2>
-          <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: config.content || 'Content goes here' }} />
+          <div className="ql-editor" dangerouslySetInnerHTML={{ __html: config.content || '' }} />
         </div>
       );
 
