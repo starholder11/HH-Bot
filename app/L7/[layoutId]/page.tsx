@@ -64,7 +64,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
 
   async function loadAllContent(asset: any) {
     const contentItems = asset.layout_data.items.filter((item: any) => 
-      item.type === 'content_ref' || item.type === 'inline_image'
+      item.type === 'content_ref'
     );
     
     for (const item of contentItems) {
@@ -112,7 +112,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
               console.error('[L7] Failed to load text content, status:', response.status);
             }
           }
-        } else if (assetId && (item.contentType === 'video' || item.contentType === 'image' || item.contentType === 'audio' || item.type === 'inline_image')) {
+        } else if (assetId && (item.contentType === 'video' || item.contentType === 'image' || item.contentType === 'audio')) {
           // Handle media content - get the asset to find mediaUrl
           console.log('[L7] Loading media asset for:', assetId);
           const response = await fetch(`/api/media-assets/${assetId}`);
@@ -242,14 +242,22 @@ function renderContent(item: any) {
   }
 
   // Handle inline_image type (like the TV with moth)
-  if (item.type === 'inline_image' && item.mediaUrl) {
+  if (item.type === 'inline_image') {
+    const imageUrl = item.mediaUrl || item.inlineContent?.imageUrl || '';
+    if (imageUrl) {
+      return (
+        <div className="w-full h-full bg-transparent flex items-center justify-center">
+          <img 
+            src={imageUrl} 
+            alt={item.snippet || item.inlineContent?.alt || 'Image'} 
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      );
+    }
     return (
-      <div className="w-full h-full bg-transparent flex items-center justify-center">
-        <img 
-          src={item.mediaUrl} 
-          alt={item.snippet || 'Image'} 
-          className="max-w-full max-h-full object-contain"
-        />
+      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">
+        No image
       </div>
     );
   }

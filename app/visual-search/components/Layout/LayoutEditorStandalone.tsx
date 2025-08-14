@@ -540,7 +540,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       </div>
 
       {/* Body */}
-      <div className="flex" style={{ height: `${design.height}px` }}>
+      <div className="flex min-h-0 flex-1">
         {/* Canvas area */}
         <div className="flex-1 p-2">
           <div
@@ -723,7 +723,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         {/* Right inspector */}
-        <div className="w-64 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-2 space-y-2 flex-shrink-0" style={{ height: `${design.height}px` }}>
+        <div className="w-64 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-2 space-y-2 flex-shrink-0 overflow-y-auto">
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-300 font-medium">Inspector</div>
             <div className="flex gap-1">
@@ -1839,18 +1839,40 @@ function ItemInspector({
             <label className="text-neutral-400">W</label>
             <input
               type="number"
-              value={item.w || 1}
-              onChange={(e) => onChange({ w: Math.max(1, parseInt(e.target.value) || 1) })}
+              value={item.w || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  onChange({ w: '' as any });
+                } else {
+                  const num = parseInt(val);
+                  if (!isNaN(num) && num > 0) {
+                    onChange({ w: num });
+                  }
+                }
+              }}
               className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              placeholder="Width"
             />
           </div>
           <div>
             <label className="text-neutral-400">H</label>
             <input
               type="number"
-              value={item.h || 1}
-              onChange={(e) => onChange({ h: Math.max(1, parseInt(e.target.value) || 1) })}
+              value={item.h || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  onChange({ h: '' as any });
+                } else {
+                  const num = parseInt(val);
+                  if (!isNaN(num) && num > 0) {
+                    onChange({ h: num });
+                  }
+                }
+              }}
               className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              placeholder="Height"
             />
           </div>
         </div>
