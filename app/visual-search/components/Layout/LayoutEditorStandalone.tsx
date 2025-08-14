@@ -22,6 +22,9 @@ import 'katex/dist/katex.min.css';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
 import { TransformComponents } from './transforms';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/input';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -473,15 +476,10 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   return (
     <div className="bg-neutral-950 text-neutral-100" style={{ height: `${design.height + headerHeightPx}px` }}>
       {/* Header */}
-      <div className="sticky top-0 z-50 h-14 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur flex items-center justify-between px-4">
+      <div className="sticky top-0 z-50 h-14 border-b border-input bg-background/80 backdrop-blur flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           {onBack && (
-            <button
-              onClick={onBack}
-              className="px-3 py-1.5 rounded border border-neutral-600 bg-neutral-700 hover:bg-neutral-600 text-white"
-            >
-              Back
-            </button>
+            <Button variant="outline" size="sm" onClick={onBack}>Back</Button>
           )}
           <h2 className="text-lg font-medium text-white">{edited.title}</h2>
           <div className="text-xs text-neutral-500">• {edited.layout_data.items.length} items</div>
@@ -495,19 +493,16 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
         <div className="flex items-center gap-2">
           {/* Breakpoint toggles */}
-          <div className="flex gap-1 border border-neutral-700 rounded overflow-hidden">
+          <div className="flex gap-1 border border-input rounded overflow-hidden">
             {(['desktop', 'tablet', 'mobile'] as const).map(bp => (
-              <button
+              <Button
                 key={bp}
                 onClick={() => setCurrentBreakpoint(bp)}
-                className={`px-2 py-1 text-xs ${
-                  currentBreakpoint === bp
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300'
-                }`}
+                size="sm"
+                variant={currentBreakpoint === bp ? 'default' : 'ghost'}
               >
                 {bp === 'desktop' ? '🖥️' : bp === 'tablet' ? '📱' : '📱'} {bp}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -521,15 +516,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             Guides
           </label>
 
-          <button
-            onClick={handleSave}
-            disabled={working}
-            className="px-3 py-1.5 rounded border border-green-600 bg-green-700 hover:bg-green-600 text-white disabled:opacity-50"
-          >
+          <Button onClick={handleSave} disabled={working} variant="secondary" size="sm">
             {working ? 'Saving…' : 'Save'}
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={async () => {
               try {
                 await handleSave();
@@ -537,11 +528,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 window.open(`/L7/${edited.id}`, '_blank');
               }
             }}
-            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-white text-sm"
+            size="sm"
             title="Save and open live published layout"
           >
             🚀 Publish
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -550,7 +541,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         {/* Canvas area */}
         <div className="flex-1 p-2">
           <div
-            className="mx-auto border border-neutral-800 relative layout-canvas"
+            className="mx-auto border border-input relative layout-canvas rounded-md bg-background"
             style={{
               width: design.width,
               height: design.height,
@@ -729,12 +720,12 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         {/* Right inspector */}
-        <div className="w-64 border-l border-neutral-800 bg-neutral-900/60 backdrop-blur p-2 space-y-2 flex-shrink-0 overflow-y-auto">
+        <Card className="w-64 bg-background border border-input p-2 space-y-2 flex-shrink-0 overflow-y-auto">
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-300 font-medium">Inspector</div>
             <div className="flex gap-1">
-              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} className="px-2 py-1 text-xs rounded border border-neutral-700 hover:bg-neutral-800 disabled:opacity-50">Duplicate</button>
-              <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} className="px-2 py-1 text-xs rounded border border-red-700 hover:bg-red-800 text-red-200 disabled:opacity-50">Delete</button>
+              <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" variant="outline">Duplicate</Button>
+              <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" variant="destructive">Delete</Button>
             </div>
           </div>
 
@@ -748,7 +739,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           <ThemeSelector edited={edited} setEdited={setEdited} />
 
           {selectedIds.size === 0 ? (
-            <div className="text-xs text-neutral-500">Select an item to edit.</div>
+            <div className="text-xs text-neutral-400">Select an item to edit.</div>
           ) : selectedIds.size === 1 && selectedId ? (
             <ItemInspector
               item={edited.layout_data.items.find(i => i.id === selectedId)!}
@@ -759,7 +750,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           ) : (
             <div className="text-xs text-neutral-400">{selectedIds.size} items selected</div>
           )}
-        </div>
+        </Card>
       </div>
       {showRteModal && rteTargetId && (
         <RteModal
