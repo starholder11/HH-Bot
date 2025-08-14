@@ -175,17 +175,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   const { designSize = { width: 1200, height: 800 }, items = [] } = layout_data;
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Starholder Header */}
-      <div className="bg-black border-b border-neutral-800 px-6 py-4">
-        <div className="flex items-center">
-          <div className="w-8 h-8 rounded-full bg-white mr-3 flex items-center justify-center">
-            <div className="w-6 h-6 bg-black rounded-full"></div>
-          </div>
-          <h1 className="text-xl font-bold text-white">Starholder</h1>
-        </div>
-      </div>
-      
+    <div className="min-h-screen bg-black flex items-center justify-center py-8">
       <div 
         className="relative bg-gray-800 border border-gray-600"
         style={{ 

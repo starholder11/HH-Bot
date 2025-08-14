@@ -50,9 +50,11 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
         {/* Logo and title */}
         <div className="flex items-center space-x-4">
           <Link href="/" className="inline-block">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-              <div className="w-6 h-6 bg-black rounded-full"></div>
-            </div>
+            <img
+              src="/logo.png"
+              alt="Starholder Logo"
+              className="w-8 h-8 rounded-full shadow-md object-cover hover:shadow-lg transition-shadow duration-200"
+            />
           </Link>
           <Link
             href="/"

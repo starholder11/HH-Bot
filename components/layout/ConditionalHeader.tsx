@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Header } from './Header';
 
 // Routes that should not show the header (iframe-ready routes)
-const IFRAME_ROUTES = ['/video-editor', '/audio-editor', '/L7'];
+const IFRAME_ROUTES = ['/video-editor', '/audio-editor'];
 
 // Routes that should use the original header styling
 const ORIGINAL_HEADER_ROUTES = ['/timeline', '/keystatic'];
