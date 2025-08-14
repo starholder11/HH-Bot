@@ -1744,11 +1744,11 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
     <div className="space-y-6">
       {/* Project Selection */}
       <div>
-        <label className="block text-sm font-medium mb-2">Assign to Project (optional)</label>
+        <label className="block text-sm font-medium mb-2 text-white">Assign to Project (optional)</label>
         <select
           value={selectedProject}
           onChange={(e) => setSelectedProject(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-neutral-700 bg-neutral-900 text-white rounded-lg focus:ring-2 focus:ring-blue-500"
         >
           <option value="">No Project</option>
           {projects.map(project => (
@@ -1761,8 +1761,8 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
       <div
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
           isDragOver
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400'
+            ? 'border-blue-500 bg-blue-900/20'
+            : 'border-neutral-600 hover:border-neutral-500'
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -1772,8 +1772,8 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
       >
         <div className="space-y-2">
           <div className="text-4xl">📁</div>
-          <div className="text-lg font-medium">Drop media files here or click to browse</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-lg font-medium text-white">Drop media files here or click to browse</div>
+          <div className="text-sm text-neutral-400">
             Supports audio (MP3, WAV, M4A up to 100MB), images (JPEG, PNG, GIF, WebP up to 50MB), and videos (MP4, MOV, AVI, WebM up to 500MB)
           </div>
           <input
@@ -1791,7 +1791,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
       {uploadFiles.length > 0 && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">
+            <h3 className="text-lg font-medium text-white">
               Upload Queue ({uploadFiles.length} files)
             </h3>
           </div>
@@ -1800,10 +1800,10 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
             {uploadFiles.map((uploadFile) => (
               <div
                 key={uploadFile.id}
-                className="flex items-center space-x-3 p-3 border rounded-lg"
+                className="flex items-center space-x-3 p-3 border border-neutral-700 bg-neutral-900 rounded-lg"
               >
                 {/* Preview - show appropriate preview for each file type */}
-                <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded border">
+                <div className="w-12 h-12 flex items-center justify-center bg-neutral-800 rounded border border-neutral-700">
                   {uploadFile.previewUrl ? (
                     <img
                       src={uploadFile.previewUrl}
@@ -1821,8 +1821,8 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
 
                 {/* File Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{uploadFile.file.name}</div>
-                  <div className="text-xs text-gray-500 flex items-center space-x-2">
+                  <div className="text-sm font-medium truncate text-white">{uploadFile.file.name}</div>
+                  <div className="text-xs text-neutral-400 flex items-center space-x-2">
                     <span>{(uploadFile.file.size / (1024 * 1024)).toFixed(1)} MB</span>
                     <span>•</span>
                     <span className="uppercase">
@@ -1835,11 +1835,11 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
                   {/* Progress Bar */}
                   {uploadFile.status === 'uploading' && (
                     <div className="mt-1">
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <div className="flex justify-between text-xs text-neutral-400 mb-1">
                         <span>Uploading...</span>
                         <span>{uploadFile.progress}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1">
+                      <div className="w-full bg-neutral-700 rounded-full h-1">
                         <div
                           className="bg-blue-600 h-1 rounded-full transition-all duration-300"
                           style={{ width: `${uploadFile.progress}%` }}
@@ -1850,22 +1850,22 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
 
                   {/* Error Message */}
                   {uploadFile.status === 'error' && uploadFile.error && (
-                    <div className="mt-1 text-xs text-red-600">{uploadFile.error}</div>
+                    <div className="mt-1 text-xs text-red-400">{uploadFile.error}</div>
                   )}
                 </div>
 
                 {/* Status & Actions */}
                 <div className="flex items-center space-x-2">
                   {uploadFile.status === 'completed' && (
-                    <span className="text-green-600 text-sm">✓</span>
+                    <span className="text-green-400 text-sm">✓</span>
                   )}
                   {uploadFile.status === 'error' && (
-                    <span className="text-red-600 text-sm">✗</span>
+                    <span className="text-red-400 text-sm">✗</span>
                   )}
                   {uploadFile.status === 'pending' && (
                     <Button
                       onClick={() => removeFile(uploadFile.id)}
-                      className="text-gray-400 hover:text-red-600 text-sm"
+                      className="text-neutral-400 hover:text-red-400 text-sm"
                     >
                       ✕
                     </Button>
@@ -1876,13 +1876,13 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
           </div>
 
           {/* Upload Actions */}
-          <div className="flex justify-between items-center pt-4 border-t">
+          <div className="flex justify-between items-center pt-4 border-t border-neutral-700">
             <Button
               onClick={isUploading ? undefined : () => setUploadFiles([])}
-              className={`px-4 py-2 ${
+              className={`px-4 py-2 text-white ${
                 isUploading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gray-500 hover:bg-gray-600'
+                  ? 'bg-neutral-600 cursor-not-allowed'
+                  : 'bg-neutral-700 hover:bg-neutral-600'
               }`}
             >
               Clear All
@@ -1890,20 +1890,20 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
             <div className="flex space-x-3">
               <Button
                 onClick={isUploading ? undefined : onClose}
-                className={`px-4 py-2 ${
+                className={`px-4 py-2 text-white ${
                   isUploading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gray-500 hover:bg-gray-600'
+                    ? 'bg-neutral-600 cursor-not-allowed'
+                    : 'bg-neutral-700 hover:bg-neutral-600'
                 }`}
               >
                 Cancel
               </Button>
               <Button
                 onClick={pendingCount > 0 && !isUploading ? uploadAllFiles : undefined}
-                className={`px-4 py-2 ${
+                className={`px-4 py-2 text-white ${
                   pendingCount > 0 && !isUploading
                     ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-neutral-600 cursor-not-allowed'
                 }`}
               >
                 {isUploading ? 'Uploading...' : `Upload ${pendingCount} Files`}
