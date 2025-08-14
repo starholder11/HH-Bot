@@ -722,12 +722,12 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         {/* Right inspector */}
-        <Card className="w-64 bg-neutral-950 border border-neutral-800 p-3 space-y-3 flex-shrink-0 overflow-y-auto text-white rounded-md">
+        <Card className="w-64 bg-black border border-neutral-700 p-3 space-y-3 flex-shrink-0 overflow-y-auto text-white rounded-md">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium">Inspector</div>
+            <div className="text-sm font-medium text-white">Inspector</div>
             <div className="flex gap-1">
-              <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" variant="outline">Duplicate</Button>
-              <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" variant="destructive">Delete</Button>
+              <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); duplicateSelected();}} disabled={selectedIds.size === 0} size="sm" className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700">Duplicate</Button>
+              <Button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); deleteSelected();}} disabled={selectedIds.size === 0} size="sm" className="bg-red-900 border-red-800 text-white hover:bg-red-800">Delete</Button>
             </div>
           </div>
 
@@ -736,37 +736,37 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
           {/* Block Library */}
           <div>
-            <div className="text-xs text-neutral-300 mb-2">Block Library</div>
+            <div className="text-xs text-white mb-2">Block Library</div>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('inline_image');}}>
+              <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('inline_image');}}>
                 <ImageIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Image</span>
               </Button>
-              <Button variant="secondary" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); setShowAssetModal(true);}}>
+              <Button className="h-auto justify-start bg-neutral-700 border-neutral-600 text-white hover:bg-neutral-600" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); setShowAssetModal(true);}}>
                 <BoxesIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Assets</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('hero');}}>
+              <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('hero');}}>
                 <TrophyIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Hero</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('media_grid');}}>
+              <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('media_grid');}}>
                 <GridIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Media Grid</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('text_section');}}>
+              <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('text_section');}}>
                 <FileTextIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Rich Text</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('cta');}}>
+              <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('cta');}}>
                 <TargetIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">CTA</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('footer');}}>
+              <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('footer');}}>
                 <DownloadIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Footer</span>
               </Button>
-              <Button variant="outline" className="h-auto justify-start" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('spacer');}}>
+              <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('spacer');}}>
                 <SquareIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Spacer</span>
               </Button>
@@ -777,7 +777,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           <ThemeSelector edited={edited} setEdited={setEdited} />
 
           {selectedIds.size === 0 ? (
-            <div className="text-xs text-neutral-400">Select an item to edit.</div>
+            <div className="text-xs text-white">Select an item to edit.</div>
           ) : selectedIds.size === 1 && selectedId ? (
             <ItemInspector
               item={edited.layout_data.items.find(i => i.id === selectedId)!}
@@ -786,7 +786,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               onZ={(dir) => setEdited(prev => ({ ...prev, layout_data: { ...prev.layout_data, items: bringZ(prev.layout_data.items, selectedId, dir) } }))}
             />
           ) : (
-            <div className="text-xs text-neutral-400">{selectedIds.size} items selected</div>
+            <div className="text-xs text-white">{selectedIds.size} items selected</div>
           )}
         </Card>
       </div>
@@ -1395,26 +1395,28 @@ function LayoutDimensions({ edited, setEdited }: { edited: LayoutAsset; setEdite
 
   return (
     <div>
-      <div className="text-xs text-muted-foreground mb-2">Layout Dimensions</div>
+      <div className="text-xs text-white mb-2">Layout Dimensions</div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-xs text-muted-foreground">Width</label>
+          <label className="text-xs text-white">Width</label>
           <Input
             type="number"
             value={localWidth}
             onChange={(e) => setLocalWidth(e.target.value)}
             onBlur={() => commit(localWidth, localHeight)}
             onKeyDown={handleKeyDown}
+            className="bg-neutral-800 border-neutral-700 text-white"
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Height</label>
+          <label className="text-xs text-white">Height</label>
           <Input
             type="number"
             value={localHeight}
             onChange={(e) => setLocalHeight(e.target.value)}
             onBlur={() => commit(localWidth, localHeight)}
             onKeyDown={handleKeyDown}
+            className="bg-neutral-800 border-neutral-700 text-white"
           />
         </div>
       </div>
@@ -1586,7 +1588,7 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
 
   return (
     <div>
-      <div className="text-xs text-neutral-400 mb-2">Theme</div>
+      <div className="text-xs text-white mb-2">Theme</div>
       <select
         value={currentTheme}
         onChange={(e) => {
@@ -1612,7 +1614,7 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
             updated_at: new Date().toISOString()
           } as LayoutAsset));
         }}
-        className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-200"
+        className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-white"
       >
         {LAYOUT_THEMES.map(theme => (
           <option key={theme.id} value={theme.id}>{theme.name}</option>
@@ -1620,7 +1622,7 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
       </select>
       <div className="mt-2 space-y-2">
         <div>
-          <label className="text-xs text-neutral-400">Background Color</label>
+          <label className="text-xs text-white">Background Color</label>
           <input
             type="color"
             value={edited.layout_data.styling?.colors?.background || '#171717'}
@@ -1642,7 +1644,7 @@ function ThemeSelector({ edited, setEdited }: { edited: LayoutAsset; setEdited: 
           />
         </div>
         <div>
-          <label className="text-xs text-neutral-400">Text Color</label>
+          <label className="text-xs text-white">Text Color</label>
           <input
             type="color"
             value={edited.layout_data.styling?.colors?.text || '#ffffff'}
@@ -1753,13 +1755,13 @@ function ItemInspector({
       {/* Primary content editing first */}
       {item.type === 'inline_text' && (
         <div>
-          <div className="text-xs text-neutral-400 mb-1">Text Content</div>
+          <div className="text-xs text-white mb-1">Text Content</div>
           <textarea
             value={item.inlineContent?.text || ''}
             onChange={(e) => onChange({
               inlineContent: { ...(item.inlineContent || {}), text: e.target.value }
             })}
-            className="w-full h-20 px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-200"
+            className="w-full h-20 px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-white"
             placeholder="Enter text content..."
           />
         </div>
@@ -1767,13 +1769,13 @@ function ItemInspector({
 
       {item.type === 'inline_image' && (
         <div>
-          <div className="text-xs text-neutral-400 mb-1">Image URL</div>
+          <div className="text-xs text-white mb-1">Image URL</div>
           <input
             type="text"
             value={localImageUrl}
             onChange={(e) => handleImageUrlChange(e.target.value)}
             placeholder="Enter image URL or upload..."
-            className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-200"
+            className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-white"
           />
           <input
             type="file"
@@ -1819,28 +1821,28 @@ function ItemInspector({
 
       {/* Position controls second */}
       <div>
-        <div className="text-xs text-neutral-400 mb-1">Position & Size</div>
+        <div className="text-xs text-white mb-1">Position & Size</div>
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
-            <label className="text-neutral-400">X</label>
+            <label className="text-white">X</label>
             <input
               type="number"
               value={item.x || 0}
               onChange={(e) => onChange({ x: parseInt(e.target.value) || 0 })}
-              className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              className="w-full px-2 py-1 bg-neutral-800 rounded text-white"
             />
           </div>
           <div>
-            <label className="text-neutral-400">Y</label>
+            <label className="text-white">Y</label>
             <input
               type="number"
               value={item.y || 0}
               onChange={(e) => onChange({ y: parseInt(e.target.value) || 0 })}
-              className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              className="w-full px-2 py-1 bg-neutral-800 rounded text-white"
             />
           </div>
           <div>
-            <label className="text-neutral-400">W</label>
+            <label className="text-white">W</label>
             <input
               type="number"
               value={item.w || ''}
@@ -1855,12 +1857,12 @@ function ItemInspector({
                   }
                 }
               }}
-              className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              className="w-full px-2 py-1 bg-neutral-800 rounded text-white"
               placeholder="Width"
             />
           </div>
           <div>
-            <label className="text-neutral-400">H</label>
+            <label className="text-white">H</label>
             <input
               type="number"
               value={item.h || ''}
@@ -1875,7 +1877,7 @@ function ItemInspector({
                   }
                 }
               }}
-              className="w-full px-2 py-1 bg-neutral-800 rounded text-neutral-200"
+              className="w-full px-2 py-1 bg-neutral-800 rounded text-white"
               placeholder="Height"
             />
           </div>
@@ -1883,7 +1885,7 @@ function ItemInspector({
       </div>
 
       <div>
-        <div className="text-xs text-neutral-400 mb-1">Z-Index</div>
+        <div className="text-xs text-white mb-1">Z-Index</div>
         <div className="flex gap-1">
           <button onClick={() => onZ('front')} className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded">Front</button>
           <button onClick={() => onZ('up')} className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded">Up</button>
