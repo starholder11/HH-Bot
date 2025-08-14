@@ -862,6 +862,7 @@ export default function FileManagerPage() {
   };
 
   // DEBUG: Check function structure here
+  console.log('Before early return');
   if (assets.length === 0) {
     return (
       <div className="min-h-screen bg-black text-white">
@@ -881,6 +882,7 @@ export default function FileManagerPage() {
     );
   }
 
+  console.log('Before main return');
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto p-6">
