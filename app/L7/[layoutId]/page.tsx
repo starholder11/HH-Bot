@@ -177,6 +177,7 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
   const cellSize = layout_data.cellSize || 20;
   const cols = Math.floor(designSize.width / cellSize);
   const rowHeight = cellSize;
+  const rows = Math.ceil(designSize.height / cellSize);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center py-8">
@@ -190,7 +191,11 @@ export default function LiveLayoutPage({ params }: LiveLayoutPageProps) {
           fontFamily: layout_data.styling?.typography?.fontFamily || 'inherit',
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
-          gridTemplateRows: `repeat(auto, ${rowHeight}px)`,
+          gridTemplateRows: `repeat(${rows}, ${rowHeight}px)`,
+          gridAutoRows: `${rowHeight}px`,
+          gridAutoColumns: `${cellSize}px`,
+          alignContent: 'start',
+          justifyContent: 'start',
           gap: 0
         }}
       >
