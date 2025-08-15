@@ -13,6 +13,7 @@ import ResultsGrid from './components/ResultsGrid';
 import VirtualResultsGrid from './components/VirtualResultsGrid';
 import Pagination from './components/Pagination';
 import VSResultCard from './components/ResultCard/ResultCard';
+import SkeletonCard from './components/SkeletonCard';
 import DetailsOverlay from './components/DetailsOverlay';
 // Dynamically import CanvasBoardRGL to avoid SSR issues with react-grid-layout
 const CanvasBoard = dynamic(() => import('./components/Canvas/CanvasBoardRGL'), {
@@ -1071,7 +1072,12 @@ function RightPane({
           </div>
           <div className="mt-2">
             {/* Show results using virtual scrolling for performance */}
-            {results.length > 0 ? (
+            {loading ? (
+              <VirtualResultsGrid
+                results={Array(12).fill(null).map((_, i) => ({ id: `skeleton-${i}` }))}
+                renderCard={() => <SkeletonCard />}
+              />
+            ) : results.length > 0 ? (
               <>
                 <VirtualResultsGrid
                   results={results}
@@ -1080,11 +1086,11 @@ function RightPane({
                       r={r}
                       onPin={onPin}
                       onOpen={onOpen}
-                      onLabelClick={(label) => {
-                        setQuery(label);
-                        executeSearch(label, 1);
-                        setTab('results');
-                      }}
+                                              onLabelClick={(label) => {
+                          setQuery(label);
+                          executeSearch(label, 1, undefined, true);
+                          setTab('results');
+                        }}
                       selectionEnabled={multiSelect}
                       selected={selectedIds.has(r.id)}
                       onToggleSelect={toggleSelect}
@@ -1096,7 +1102,7 @@ function RightPane({
                 {results.length >= 100 && (
                   <div className="flex items-center justify-center gap-4 mt-6">
                     <button
-                      onClick={() => executeSearch(query, Math.max(1, page - 1))}
+                      onClick={() => executeSearch(query, Math.max(1, page - 1), undefined, true)}
                       disabled={page <= 1}
                       className="px-3 py-2 text-sm border border-neutral-700 bg-neutral-800 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700 transition-colors"
                     >
@@ -1106,7 +1112,7 @@ function RightPane({
                       Page {page} • {results.length} results
                     </div>
                     <button
-                      onClick={() => executeSearch(query, page + 1)}
+                      onClick={() => executeSearch(query, page + 1, undefined, true)}
                       disabled={results.length < 100}
                       className="px-3 py-2 text-sm border border-neutral-700 bg-neutral-800 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700 transition-colors"
                     >
@@ -1115,7 +1121,7 @@ function RightPane({
                   </div>
                 )}
               </>
-            ) : !loading && (
+            ) : (
               <div className="text-neutral-400 text-sm mt-2">Try a search to see results.</div>
             )}
           </div>
