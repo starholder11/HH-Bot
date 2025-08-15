@@ -13,6 +13,7 @@ import ResultsGrid from './components/ResultsGrid';
 import VirtualResultsGrid from './components/VirtualResultsGrid';
 import Pagination from './components/Pagination';
 import VSResultCard from './components/ResultCard/ResultCard';
+import OptimizedResultCard from './components/ResultCard/OptimizedResultCard';
 import SkeletonCard from './components/SkeletonCard';
 import DetailsOverlay from './components/DetailsOverlay';
 // Dynamically import CanvasBoardRGL to avoid SSR issues with react-grid-layout
@@ -1088,15 +1089,15 @@ function RightPane({
                 <VirtualResultsGrid
                   results={results}
                   renderCard={(r) => (
-                    <VSResultCard
+                    <OptimizedResultCard
                       r={r}
                       onPin={onPin}
                       onOpen={onOpen}
-                                              onLabelClick={(label) => {
-                          setQuery(label);
-                          executeSearch(label, 1, undefined, true);
-                          setTab('results');
-                        }}
+                      onLabelClick={(label) => {
+                        setQuery(label);
+                        executeSearch(label, 1, undefined, true);
+                        setTab('results');
+                      }}
                       selectionEnabled={multiSelect}
                       selected={selectedIds.has(r.id)}
                       onToggleSelect={toggleSelect}

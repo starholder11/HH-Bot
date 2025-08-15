@@ -21,7 +21,7 @@ export default function VirtualResultsGrid({
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   // Progressive mount: render a small subset first, then grow in idle time
-  const [visibleCount, setVisibleCount] = useState<number>(Math.min(24, results.length));
+  const [visibleCount, setVisibleCount] = useState<number>(Math.min(6, results.length)); // Start with only 6 for instant render
 
   // Calculate visible range
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
@@ -76,17 +76,17 @@ export default function VirtualResultsGrid({
     const grow = () => {
       setVisibleCount((prev) => {
         if (prev >= results.length) return prev;
-        // Increase in small batches to keep FPS smooth
-        const next = Math.min(results.length, prev + 16);
+        // Increase in smaller batches for instant feel
+        const next = Math.min(results.length, prev + 6);
         return next;
       });
     };
 
     const schedule = () => {
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        idle = (window as any).requestIdleCallback(grow, { timeout: 120 });
+        idle = (window as any).requestIdleCallback(grow, { timeout: 50 });
       } else {
-        raf = setTimeout(grow, 60);
+        raf = setTimeout(grow, 20);
       }
     };
 

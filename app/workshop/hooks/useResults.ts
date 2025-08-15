@@ -24,10 +24,10 @@ export function useResults() {
         controllerRef.current?.abort();
         const controller = new AbortController();
         controllerRef.current = controller;
-        
+
         // Create cache key from query params
         const cacheKey = `${query}-${page || 1}-${type || 'all'}`;
-        
+
         // Check cache first
         const cached = searchCache.get(cacheKey);
         if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
@@ -36,33 +36,52 @@ export function useResults() {
           setResults(cached.results.slice(0, 100), cached.total);
           return;
         }
-        
+
         debug('vs:search', 'executing search:', query, 'page:', page, 'type:', type);
-        
-        const json = await searchService.get(query, { 
+
+        // Set loading state and show first batch immediately
+        setResults([], 0);
+        setAllResults([], 0);
+
+        const json = await searchService.get(query, {
           page: page || 1,
-          type, 
-          signal: controller.signal 
+          type,
+          signal: controller.signal
         });
-        
+
         if (!controller.signal.aborted) {
           const allResults = json.results.all || [];
           const totalResults = json.total_results || 0;
-          
+
           debug('vs:search', 'got results:', allResults.length);
-          
+
+          // Render first batch immediately (first 12 results)
+          const firstBatch = allResults.slice(0, 12);
+          setResults(firstBatch, totalResults);
+          setAllResults(allResults, totalResults);
+
+          // Progressive loading of remaining results
+          if (allResults.length > 12) {
+            // Render remaining results in batches after a short delay
+            setTimeout(() => {
+              if (!controller.signal.aborted) {
+                setResults(allResults.slice(0, 50), totalResults);
+              }
+            }, 100);
+
+            setTimeout(() => {
+              if (!controller.signal.aborted) {
+                setResults(allResults.slice(0, 100), totalResults);
+              }
+            }, 300);
+          }
+
           // Cache the results
           searchCache.set(cacheKey, {
             results: allResults,
             timestamp: Date.now(),
             total: totalResults
           });
-          
-          // Store all results for pagination
-          setAllResults(allResults, totalResults);
-          
-          // For backward compatibility, also set the paginated results
-          setResults(allResults.slice(0, 100), totalResults);
         }
       } catch (e: any) {
         if (e.name !== 'AbortError') {
