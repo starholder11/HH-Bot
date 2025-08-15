@@ -92,7 +92,7 @@ export default function CanvasToolbar({
         </div>
 
         {/* Train LoRA */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-1">
           <button
             type="button"
             onClick={() => void trainCanvasLora()}
@@ -103,7 +103,7 @@ export default function CanvasToolbar({
             {loraTraining ? `LoRA: ${loraTraining.status}` : 'Train'}
           </button>
           {Array.isArray(canvasLoras) && canvasLoras.length > 0 && (
-            <div className="text-xs text-neutral-400 truncate" title={canvasLoras.map((l: any) => `${l.status}${l.artifactUrl ? ' ✓' : ''}`).join(', ')}>
+            <div className="text-xs text-neutral-400 text-center" title={canvasLoras.map((l: any) => `${l.status}${l.artifactUrl ? ' ✓' : ''}`).join(', ')}>
               {canvasLoras.length} LoRA(s)
             </div>
           )}
