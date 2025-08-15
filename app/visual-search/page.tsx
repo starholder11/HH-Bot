@@ -1116,7 +1116,10 @@ function RightPane({
           <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 min-h-[640px] h-auto">
             {showCanvasManager ? (
               <CanvasManagerModal
-                onLoad={(id) => { void loadCanvas(id) }}
+                onLoad={(id) => { 
+                  setShowCanvasManager(false); // Hide canvas manager
+                  void loadCanvas(id); // Load the canvas
+                }}
                 onDelete={(id) => {
                   void deleteCanvas(id).then(() => {
                     void refreshCanvases()
@@ -1129,6 +1132,7 @@ function RightPane({
                 }}
                 onTrainLora={(id) => {
                   // Load the canvas first, then train LoRA
+                  setShowCanvasManager(false); // Hide canvas manager
                   void loadCanvas(id).then(() => {
                     void trainCanvasLora()
                   })
