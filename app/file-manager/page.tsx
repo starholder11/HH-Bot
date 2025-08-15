@@ -867,18 +867,8 @@ export default function FileManagerPage() {
       <div className="container mx-auto p-6">
         {/* Header with Search and Filters */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-light tracking-tight text-white">Media Library</h1>
-              <Button
-                onClick={() => setIsUploading(true)}
-                className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
-                  isUploading ? 'bg-neutral-600 text-white' : 'bg-neutral-800 border border-neutral-700 text-white hover:bg-neutral-700'
-                }`}
-              >
-                {isUploading ? 'Uploading...' : 'Upload'}
-              </Button>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-3xl font-light tracking-tight text-white">Media Library</h1>
           </div>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {/* Search */}
@@ -962,8 +952,16 @@ export default function FileManagerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
         {/* Asset List */}
         <div className="lg:col-span-1">
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-white">Assets</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-white">Assets</h2>
+            <Button
+              onClick={() => setIsUploading(true)}
+              className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
+                isUploading ? 'bg-neutral-600 text-white' : 'bg-neutral-800 border border-neutral-700 text-white hover:bg-neutral-700'
+              }`}
+            >
+              {isUploading ? 'Uploading...' : 'Upload'}
+            </Button>
           </div>
 
           <div
