@@ -1145,12 +1145,6 @@ export default function FileManagerPage() {
                                 Keyframe
                               </span>
                             )}
-                            <Button
-                              onClick={startFilenameEdit}
-                              className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
-                            >
-                              Edit
-                            </Button>
                           </div>
                         )}
                                                   {selectedAsset.labeling_complete && (
@@ -1184,17 +1178,25 @@ export default function FileManagerPage() {
                       </div>
                     </div>
 
-                    {/* Action Button */}
-                    <Button
-                      onClick={() => isAILabeling ? null : runAILabeling(selectedAsset.id)}
-                      className={`px-3 py-2 text-sm rounded text-white transition-colors ${
-                        isAILabeling
-                          ? 'bg-neutral-400 cursor-not-allowed'
-                          : 'bg-black hover:bg-neutral-800'
-                      }`}
-                    >
-                                              {isAILabeling ? 'Analyzing...' : 'AI Labels'}
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={startFilenameEdit}
+                        className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => isAILabeling ? null : runAILabeling(selectedAsset.id)}
+                        className={`px-3 py-2 text-sm rounded text-white transition-colors ${
+                          isAILabeling
+                            ? 'bg-neutral-400 cursor-not-allowed'
+                            : 'bg-black hover:bg-neutral-800'
+                        }`}
+                      >
+                        {isAILabeling ? 'Analyzing...' : 'AI Labels'}
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Image Section */}
