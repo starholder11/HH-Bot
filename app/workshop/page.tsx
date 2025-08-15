@@ -1093,7 +1093,7 @@ function RightPane({
                 />
                 
                 {/* Pagination Controls - simplified for now */}
-                {total > 100 && (
+                {results.length >= 100 && (
                   <div className="flex items-center justify-center gap-4 mt-6">
                     <button
                       onClick={() => executeSearch(query, Math.max(1, page - 1))}
@@ -1103,7 +1103,7 @@ function RightPane({
                       Previous
                     </button>
                     <div className="text-sm text-neutral-400">
-                      Page {page} • {total} total results
+                      Page {page} • {results.length} results
                     </div>
                     <button
                       onClick={() => executeSearch(query, page + 1)}
@@ -1320,7 +1320,7 @@ function RightPane({
 
 export default function VisualSearchPage() {
   const { executeSearch } = useResults();
-  const { query, results, total, setQuery, setResults, page, setPage } = useResultsStore();
+  const { query, results, setQuery, setResults, page, setPage } = useResultsStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { rightTab, setRightTab, multiSelect, selectedIds, toggleMultiSelect, setSelectedIds, toggleSelectedId } = useUiStore();
