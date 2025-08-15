@@ -1090,7 +1090,7 @@ export default function FileManagerPage() {
             <div className="space-y-6">
                             {/* Image Gallery Card */}
               {selectedAsset.media_type === 'image' || selectedAsset.media_type === 'keyframe_still' ? (
-                <Card className="p-6 bg-neutral-100 border border-neutral-300 text-black">
+                <Card className="p-6 bg-neutral-200 border border-neutral-300 text-black">
                   {/* Header */}
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex-1">
@@ -1098,7 +1098,7 @@ export default function FileManagerPage() {
                       <div className="flex items-center space-x-2 mb-3">
                         <Image className="w-6 h-6 text-black" />
                         {isEditingFilename ? (
-                          <div className="flex items-center space-x-2 flex-1">
+                          <div className="flex items-center gap-3 flex-1">
                             <div className="flex-1">
                               <input
                                 type="text"
@@ -1119,7 +1119,7 @@ export default function FileManagerPage() {
                                   saveFilename();
                                 }
                               }}
-                              className={`px-3 py-2 text-sm ${
+                              className={`px-3 py-2 text-sm rounded ${
                                 isRenamingFile || !newFilename.trim()
                                   ? 'bg-neutral-400 cursor-not-allowed text-white'
                                   : 'bg-black hover:bg-neutral-800 text-white'
@@ -1127,15 +1127,15 @@ export default function FileManagerPage() {
                             >
                               {isRenamingFile ? '...' : 'Save'}
                             </Button>
-                                                          <Button
-                                onClick={cancelFilenameEdit}
-                                className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 rounded text-white transition-colors"
-                              >
-                                Cancel
-                              </Button>
+                            <Button
+                              onClick={cancelFilenameEdit}
+                              className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 rounded text-white transition-colors"
+                            >
+                              Cancel
+                            </Button>
                           </div>
                         ) : (
-                          <div className="flex items-center space-x-2 flex-1">
+                          <div className="flex items-center gap-3 flex-1">
                             <div className="flex-1">
                               <h1 className="text-xl font-bold text-black">{selectedAsset.title}</h1>
                               <div className="text-xs text-neutral-600">ID: {selectedAsset.id}</div>
@@ -1149,7 +1149,7 @@ export default function FileManagerPage() {
                               onClick={startFilenameEdit}
                               className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
                             >
-                              ✏️
+                              Edit
                             </Button>
                           </div>
                         )}
