@@ -341,19 +341,19 @@ export default function VideoEditorPage() {
 
   if (!selectedVideo) {
     return (
-      <div className="p-6 text-center bg-black text-white">
-        <div className="text-neutral-400 text-6xl mb-4">🎬</div>
-        <h3 className="text-lg font-medium text-white mb-2">Loading Video...</h3>
-        <p className="text-neutral-400">Please wait while we load the video data.</p>
+      <div className="p-6 text-center bg-neutral-100 text-black">
+        <div className="text-neutral-600 text-6xl mb-4">🎬</div>
+        <h3 className="text-lg font-medium text-black mb-2">Loading Video...</h3>
+        <p className="text-neutral-600">Please wait while we load the video data.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 bg-black text-white">
+    <div className="space-y-6 bg-neutral-100 text-black">
       {/* Video Player Section - This is the main asset div */}
-      <div className="bg-black rounded-lg border border-neutral-700">
-        <div className="p-6 border-b border-neutral-800">
+      <div className="bg-white rounded-lg border border-neutral-300">
+        <div className="p-6 border-b border-neutral-200">
           {/* Single Top Row: Name (edit) | Analyze (settings) */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-6 flex-1">
@@ -367,14 +367,14 @@ export default function VideoEditorPage() {
                         type="text"
                         value={newFilename}
                         onChange={(e) => setNewFilename(e.target.value)}
-                        className="text-lg font-semibold text-white bg-neutral-900 border border-neutral-700 rounded px-2 py-1 min-w-[200px]"
+                        className="text-lg font-semibold text-black bg-white border border-neutral-300 rounded px-2 py-1 min-w-[200px]"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') saveFilename();
                           if (e.key === 'Escape') cancelFilenameEdit();
                         }}
                       />
-                      <div className="text-xs text-neutral-400 mt-1">ID: {selectedVideo.id}</div>
+                      <div className="text-xs text-neutral-600 mt-1">ID: {selectedVideo.id}</div>
                     </div>
                     <Button
                       onClick={() => {
@@ -392,7 +392,7 @@ export default function VideoEditorPage() {
                     </Button>
                     <Button
                       onClick={cancelFilenameEdit}
-                      className="px-1.5 py-0.5 text-xs bg-neutral-700 hover:bg-neutral-600 rounded text-white transition-colors"
+                      className="px-1.5 py-0.5 text-xs bg-neutral-200 hover:bg-neutral-300 rounded text-black transition-colors"
                     >
                       ✕
                     </Button>
@@ -400,12 +400,12 @@ export default function VideoEditorPage() {
                 ) : (
                   <div className="flex items-center space-x-2">
                     <div className="flex-1">
-                      <h2 className="text-lg font-semibold text-white">{selectedVideo.title}</h2>
-                      <div className="text-xs text-neutral-400">ID: {selectedVideo.id}</div>
+                      <h2 className="text-lg font-semibold text-black">{selectedVideo.title}</h2>
+                      <div className="text-xs text-neutral-600">ID: {selectedVideo.id}</div>
                     </div>
                     <Button
                       onClick={startFilenameEdit}
-                      className="px-1.5 py-0.5 text-xs bg-neutral-800 hover:bg-neutral-700 text-white rounded transition-colors"
+                      className="px-1.5 py-0.5 text-xs bg-neutral-200 hover:bg-neutral-300 text-black rounded transition-colors"
                     >
                       edit
                     </Button>
@@ -415,12 +415,12 @@ export default function VideoEditorPage() {
 
               {/* Project Selector */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-neutral-400">Project:</span>
+                <span className="text-sm text-neutral-600">Project:</span>
                 <select
                   value={selectedVideo.project_id || ''}
                   onChange={(e) => updateProjectAssignment(e.target.value || null)}
                   onClick={handleProjectDropdownClick}
-                  className="border border-neutral-700 rounded px-2 py-1 bg-neutral-900 text-white text-sm"
+                  className="border border-neutral-300 rounded px-2 py-1 bg-white text-black text-sm"
                 >
                   <option value="">No Project</option>
                   {projects.map(project => (
@@ -483,18 +483,18 @@ export default function VideoEditorPage() {
 
               {/* Settings Dropdown */}
               {showAnalysisSettings && (
-                <div ref={settingsRef} className="absolute right-0 top-12 z-10 bg-black border border-neutral-700 rounded-lg shadow-lg p-4 w-72 text-white">
-                  <h4 className="font-medium text-white mb-3">Analysis Settings</h4>
+                <div ref={settingsRef} className="absolute right-0 top-12 z-10 bg-white border border-neutral-300 rounded-lg shadow-lg p-4 w-72 text-black">
+                  <h4 className="font-medium text-black mb-3">Analysis Settings</h4>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-medium text-neutral-300 mb-1">
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">
                         Analysis Type
                       </label>
                       <select
                         value={analysisType}
                         onChange={(e) => setAnalysisType(e.target.value as any)}
-                        className="w-full p-2 border border-neutral-700 bg-neutral-900 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+                        className="w-full p-2 border border-neutral-300 bg-white rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                       >
                         <option value="comprehensive">Comprehensive Analysis</option>
                         <option value="style_focus">Style & Aesthetics Focus</option>
@@ -503,13 +503,13 @@ export default function VideoEditorPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-neutral-300 mb-1">
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">
                         Keyframe Strategy
                       </label>
                       <select
                         value={keyframeStrategy}
                         onChange={(e) => setKeyframeStrategy(e.target.value as any)}
-                        className="w-full p-2 border border-neutral-700 bg-neutral-900 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+                        className="w-full p-2 border border-neutral-300 bg-white rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                       >
                         <option value="adaptive">Adaptive (Smart Defaults)</option>
                         <option value="uniform">Uniform Distribution</option>
@@ -518,7 +518,7 @@ export default function VideoEditorPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-neutral-300 mb-1">
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">
                         Target Keyframes: {targetFrames}
                       </label>
                       <input
@@ -527,18 +527,18 @@ export default function VideoEditorPage() {
                         max="16"
                         value={targetFrames}
                         onChange={(e) => setTargetFrames(parseInt(e.target.value))}
-                        className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer"
+                        className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer"
                       />
-                      <div className="flex justify-between text-xs text-neutral-400 mt-1">
+                      <div className="flex justify-between text-xs text-neutral-600 mt-1">
                         <span>2</span>
                         <span>16</span>
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-neutral-800">
+                    <div className="pt-2 border-t border-neutral-200">
                       <button
                         onClick={() => setShowAnalysisSettings(false)}
-                        className="w-full bg-neutral-800 hover:bg-neutral-700 text-white py-2 px-3 rounded text-sm transition-colors"
+                        className="w-full bg-neutral-200 hover:bg-neutral-300 text-black py-2 px-3 rounded text-sm transition-colors"
                       >
                         Close
                       </button>
@@ -589,15 +589,15 @@ export default function VideoEditorPage() {
 
       {/* AI Analysis Results */}
       {selectedVideo.ai_labels && (
-        <div className="bg-black rounded-lg border border-neutral-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Video-Level AI Analysis</h3>
+        <div className="bg-white rounded-lg border border-neutral-300 p-6">
+          <h3 className="text-lg font-semibold text-black mb-4">Video-Level AI Analysis</h3>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <h4 className="font-medium text-white mb-2">Overall Scenes</h4>
+              <h4 className="font-medium text-black mb-2">Overall Scenes</h4>
               <div className="space-y-2">
                 {selectedVideo.ai_labels.scenes.slice(0, 3).map((scene, index) => (
-                  <div key={index} className="text-sm text-neutral-200 p-2 bg-neutral-900 rounded border border-neutral-800">
+                  <div key={index} className="text-sm text-neutral-700 p-2 bg-neutral-50 rounded border border-neutral-200">
                     {scene}
                   </div>
                 ))}
@@ -605,7 +605,7 @@ export default function VideoEditorPage() {
             </div>
 
             <div>
-              <h4 className="font-medium text-white mb-2">Objects & Style</h4>
+              <h4 className="font-medium text-black mb-2">Objects & Style</h4>
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-1">
                   {selectedVideo.ai_labels.objects.slice(0, 6).map((object, index) => (
@@ -631,7 +631,7 @@ export default function VideoEditorPage() {
             </div>
 
             <div>
-              <h4 className="font-medium text-white mb-2">Mood</h4>
+              <h4 className="font-medium text-black mb-2">Mood</h4>
               <div className="flex flex-wrap gap-1">
                 {selectedVideo.ai_labels.mood.map((mood, index) => (
                   <span
@@ -645,7 +645,7 @@ export default function VideoEditorPage() {
             </div>
 
             <div>
-              <h4 className="font-medium text-white mb-2">Themes</h4>
+              <h4 className="font-medium text-black mb-2">Themes</h4>
               <div className="flex flex-wrap gap-1">
                 {selectedVideo.ai_labels.themes.map((theme, index) => (
                   <span
@@ -663,14 +663,14 @@ export default function VideoEditorPage() {
 
       {/* Keyframes */}
       {selectedVideo.keyframe_stills && selectedVideo.keyframe_stills.length > 0 ? (
-        <div className="bg-black rounded-lg border border-neutral-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">
+        <div className="bg-white rounded-lg border border-neutral-300 p-6">
+          <h3 className="text-lg font-semibold text-black mb-4">
             Keyframes ({selectedVideo.keyframe_stills.length})
           </h3>
 
           <div className="space-y-6">
             {selectedVideo.keyframe_stills.map((keyframe, index) => (
-              <div key={keyframe.id} className="border border-neutral-800 rounded-lg p-4">
+              <div key={keyframe.id} className="border border-neutral-300 rounded-lg p-4">
                 <div className="flex gap-6">
                   {/* Keyframe Image */}
                   <div className="flex-shrink-0">
@@ -678,7 +678,7 @@ export default function VideoEditorPage() {
                       <img
                         src={keyframe.cloudflare_url}
                         alt={`Frame at ${keyframe.timestamp}`}
-                        className="w-48 aspect-video object-cover rounded border border-neutral-800"
+                        className="w-48 aspect-video object-cover rounded border border-neutral-300"
                       />
                       <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
                         {keyframe.timestamp}
@@ -689,7 +689,7 @@ export default function VideoEditorPage() {
                         </div>
                       )}
                     </div>
-                    <div className="text-center mt-2 text-sm text-neutral-400">
+                    <div className="text-center mt-2 text-sm text-neutral-600">
                       Frame #{keyframe.frame_number}
                     </div>
                   </div>
@@ -697,7 +697,7 @@ export default function VideoEditorPage() {
                   {/* Keyframe AI Labels */}
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-white">Frame {index + 1} Analysis</h4>
+                      <h4 className="font-medium text-black">Frame {index + 1} Analysis</h4>
                       <div className="flex items-center gap-2">
                         {keyframe.processing_status?.ai_labeling === 'completed' && (
                           <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
@@ -715,7 +715,7 @@ export default function VideoEditorPage() {
                           </span>
                         )}
                         {keyframe.processing_status?.ai_labeling === 'pending' && (
-                          <span className="px-2 py-1 bg-neutral-900 text-neutral-200 text-xs rounded border border-neutral-800">
+                          <span className="px-2 py-1 bg-neutral-100 text-neutral-700 text-xs rounded border border-neutral-300">
                             Pending
                           </span>
                         )}
@@ -727,8 +727,8 @@ export default function VideoEditorPage() {
                         {/* Scene Description */}
                         {keyframe.ai_labels.scenes && keyframe.ai_labels.scenes.length > 0 && (
                           <div>
-                            <h5 className="text-sm font-medium text-neutral-300 mb-2">Scene Description</h5>
-                            <div className="text-sm text-neutral-200 p-3 bg-neutral-900 rounded border border-neutral-800">
+                            <h5 className="text-sm font-medium text-black mb-2">Scene Description</h5>
+                            <div className="text-sm text-neutral-700 p-3 bg-neutral-50 rounded border border-neutral-200">
                               {keyframe.ai_labels.scenes[0]}
                             </div>
                           </div>
@@ -739,7 +739,7 @@ export default function VideoEditorPage() {
                           {/* Objects */}
                           {keyframe.ai_labels.objects && keyframe.ai_labels.objects.length > 0 && (
                             <div>
-                              <h5 className="text-sm font-medium text-neutral-300 mb-2">Objects</h5>
+                              <h5 className="text-sm font-medium text-black mb-2">Objects</h5>
                               <div className="flex flex-wrap gap-1">
                                 {keyframe.ai_labels.objects.slice(0, 6).map((object, idx) => (
                                   <span
@@ -750,7 +750,7 @@ export default function VideoEditorPage() {
                                   </span>
                                 ))}
                                 {keyframe.ai_labels.objects.length > 6 && (
-                                  <span className="px-2 py-1 bg-neutral-900 text-neutral-400 text-xs rounded border border-neutral-800">
+                                  <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded border border-neutral-300">
                                     +{keyframe.ai_labels.objects.length - 6}
                                   </span>
                                 )}
@@ -761,7 +761,7 @@ export default function VideoEditorPage() {
                           {/* Style */}
                           {keyframe.ai_labels.style && keyframe.ai_labels.style.length > 0 && (
                             <div>
-                              <h5 className="text-sm font-medium text-neutral-300 mb-2">Style</h5>
+                              <h5 className="text-sm font-medium text-black mb-2">Style</h5>
                               <div className="flex flex-wrap gap-1">
                                 {keyframe.ai_labels.style.map((style, idx) => (
                                   <span
@@ -778,7 +778,7 @@ export default function VideoEditorPage() {
                           {/* Mood */}
                           {keyframe.ai_labels.mood && keyframe.ai_labels.mood.length > 0 && (
                             <div>
-                              <h5 className="text-sm font-medium text-neutral-300 mb-2">Mood</h5>
+                              <h5 className="text-sm font-medium text-black mb-2">Mood</h5>
                               <div className="flex flex-wrap gap-1">
                                 {keyframe.ai_labels.mood.map((mood, idx) => (
                                   <span
@@ -795,7 +795,7 @@ export default function VideoEditorPage() {
                           {/* Themes */}
                           {keyframe.ai_labels.themes && keyframe.ai_labels.themes.length > 0 && (
                             <div>
-                              <h5 className="text-sm font-medium text-neutral-300 mb-2">Themes</h5>
+                              <h5 className="text-sm font-medium text-black mb-2">Themes</h5>
                               <div className="flex flex-wrap gap-1">
                                 {keyframe.ai_labels.themes.map((theme, idx) => (
                                   <span
@@ -811,7 +811,7 @@ export default function VideoEditorPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-neutral-400">
+                      <div className="text-center py-8 text-neutral-600">
                         {keyframe.processing_status?.ai_labeling === 'pending' ? (
                           'AI analysis pending...'
                         ) : keyframe.processing_status?.ai_labeling === 'processing' ? (
@@ -830,8 +830,8 @@ export default function VideoEditorPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-black rounded-lg border border-neutral-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Keyframes</h3>
+        <div className="bg-white rounded-lg border border-neutral-300 p-6">
+          <h3 className="text-lg font-semibold text-black mb-4">Keyframes</h3>
           <div className="text-center py-8">
             {isAnalyzing || selectedVideo.processing_status?.keyframe_extraction === 'processing' ? (
               <div className="space-y-4">
@@ -843,8 +843,8 @@ export default function VideoEditorPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="text-neutral-400 text-4xl">🎬</div>
-                <p className="text-neutral-400 mb-4">
+                <div className="text-neutral-600 text-4xl">🎬</div>
+                <p className="text-neutral-600 mb-4">
                   {selectedVideo.processing_status?.ai_labeling === 'completed'
                     ? 'No keyframes were generated for this video'
                     : 'Keyframes will appear here after analysis'}
