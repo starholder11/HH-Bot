@@ -354,35 +354,32 @@ export default function VideoEditorPage() {
       {/* Video Player Section - This is the main asset div */}
       <div className="bg-white rounded-lg border border-neutral-300">
         <div className="p-6 border-b border-neutral-200">
-          {/* Single Top Row: Name (edit) | Analyze (settings) */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-6 flex-1">
-              {/* Name Section */}
-              <div className="flex items-center space-x-2">
+          {/* Video Title and Controls */}
+          <div className="space-y-3">
+            {/* Title Row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
                 <span className="text-xl">🎬</span>
                 {isEditingFilename ? (
                   <div className="flex items-center space-x-2">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={newFilename}
-                        onChange={(e) => setNewFilename(e.target.value)}
-                        className="text-lg font-semibold text-black bg-white border border-neutral-300 rounded px-2 py-1 min-w-[200px]"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveFilename();
-                          if (e.key === 'Escape') cancelFilenameEdit();
-                        }}
-                      />
-                      <div className="text-xs text-neutral-600 mt-1">ID: {selectedVideo.id}</div>
-                    </div>
+                    <input
+                      type="text"
+                      value={newFilename}
+                      onChange={(e) => setNewFilename(e.target.value)}
+                      className="text-lg font-semibold text-black bg-white border border-neutral-300 rounded px-2 py-1 min-w-[300px]"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveFilename();
+                        if (e.key === 'Escape') cancelFilenameEdit();
+                      }}
+                    />
                     <Button
                       onClick={() => {
                         if (!isRenamingFile && newFilename.trim()) {
                           saveFilename();
                         }
                       }}
-                      className={`px-2 py-1 text-xs ${
+                      className={`px-3 py-2 text-sm ${
                         isRenamingFile || !newFilename.trim()
                           ? 'bg-neutral-600 cursor-not-allowed'
                           : 'bg-green-600 hover:bg-green-700'
@@ -392,35 +389,26 @@ export default function VideoEditorPage() {
                     </Button>
                     <Button
                       onClick={cancelFilenameEdit}
-                      className="px-1.5 py-0.5 text-xs bg-neutral-200 hover:bg-neutral-300 rounded text-black transition-colors"
+                      className="px-3 py-2 text-sm bg-neutral-200 hover:bg-neutral-300 rounded text-black transition-colors"
                     >
                       ✕
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-2">
-                    <div className="flex-1">
-                      <h2 className="text-lg font-semibold text-black">{selectedVideo.title}</h2>
-                      <div className="text-xs text-neutral-600">ID: {selectedVideo.id}</div>
-                    </div>
-                    <Button
-                      onClick={startFilenameEdit}
-                      className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
-                    >
-                      Edit
-                    </Button>
-                  </div>
+                  <>
+                    <h2 className="text-lg font-semibold text-black">{selectedVideo.title}</h2>
+                  </>
                 )}
               </div>
 
-              {/* Project Selector */}
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-neutral-600">Project:</span>
+              {/* Control Buttons Row */}
+              <div className="flex items-center space-x-3">
+                {/* Project Selector */}
                 <select
                   value={selectedVideo.project_id || ''}
                   onChange={(e) => updateProjectAssignment(e.target.value || null)}
                   onClick={handleProjectDropdownClick}
-                  className="border border-neutral-300 rounded px-2 py-1 bg-white text-black text-sm"
+                  className="border border-neutral-300 rounded px-3 py-2 bg-white text-black text-sm"
                 >
                   <option value="">No Project</option>
                   {projects.map(project => (
@@ -429,12 +417,16 @@ export default function VideoEditorPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-            </div>
 
-            {/* Analyze (settings) Button */}
-            <div className="relative">
-              <div className="flex items-center space-x-2">
+                {!isEditingFilename && (
+                  <Button
+                    onClick={startFilenameEdit}
+                    className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
+                  >
+                    Edit
+                  </Button>
+                )}
+
                 {(() => {
                   const status = selectedVideo.processing_status?.ai_labeling || 'not_started';
                   const isActive = ['triggering', 'pending', 'processing'].includes(status);
@@ -473,16 +465,16 @@ export default function VideoEditorPage() {
                   );
                 })()}
 
-                <Button
-                  onClick={() => setShowAnalysisSettings(!showAnalysisSettings)}
-                  className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
-                >
-                  Settings
-                </Button>
-              </div>
+                <div className="relative">
+                  <Button
+                    onClick={() => setShowAnalysisSettings(!showAnalysisSettings)}
+                    className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
+                  >
+                    Settings
+                  </Button>
 
-              {/* Settings Dropdown */}
-              {showAnalysisSettings && (
+                  {/* Settings Dropdown */}
+                  {showAnalysisSettings && (
                 <div ref={settingsRef} className="absolute right-0 top-12 z-10 bg-white border border-neutral-300 rounded-lg shadow-lg p-4 w-72 text-black">
                   <h4 className="font-medium text-black mb-3">Analysis Settings</h4>
 
@@ -545,9 +537,15 @@ export default function VideoEditorPage() {
                     </div>
                   </div>
                 </div>
-              )}
+                  )}
+                </div>
+              </div>
+
+              {/* ID Row */}
+              <div className="text-xs text-neutral-600 ml-8">
+                ID: {selectedVideo.id}
+              </div>
             </div>
-          </div>
 
           {/* Video Metadata */}
           <p className="text-sm text-neutral-400 mb-3">
@@ -853,7 +851,7 @@ export default function VideoEditorPage() {
                   <Button
                     onClick={handleAnalyzeVideo}
                     disabled={isAnalyzing}
-                    className="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 disabled:opacity-50"
+                    className="bg-black text-white px-4 py-2 rounded-md hover:bg-neutral-800 disabled:opacity-50"
                   >
                     {isAnalyzing ? 'Re-analyzing...' : 'Re-analyze Video'}
                   </Button>
