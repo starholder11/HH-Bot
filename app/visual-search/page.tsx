@@ -1296,6 +1296,20 @@ export default function VisualSearchPage() {
   const [error, setError] = useState<string | null>(null);
   const { rightTab, setRightTab, multiSelect, selectedIds, toggleMultiSelect, setSelectedIds, toggleSelectedId } = useUiStore();
   const [types, setTypes] = useState<Array<ContentType | "media" | "all">>(["all"]);
+
+  // Check localStorage for active tab preference (e.g., from layout editor)
+  useEffect(() => {
+    try {
+      const savedTab = localStorage.getItem('visual-search-active-tab');
+      if (savedTab === 'layouts' || savedTab === 'canvas' || savedTab === 'output' || savedTab === 'generate' || savedTab === 'results') {
+        setRightTab(savedTab as any);
+        // Clear the preference after using it
+        localStorage.removeItem('visual-search-active-tab');
+      }
+    } catch (e) {
+      console.warn('Failed to read localStorage:', e);
+    }
+  }, [setRightTab]);
   // Use persistent cache that survives component re-renders
   const getGlobalCache = (): Map<string, UnifiedSearchResult> => {
     const obj = cacheStore.get<Record<string, UnifiedSearchResult>>('globalResultsCache');

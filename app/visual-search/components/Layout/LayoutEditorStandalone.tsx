@@ -546,7 +546,19 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           <div className="text-xs text-white">• {edited.layout_data.items.length} items</div>
           <div className="text-xs text-white">• {design.width}×{design.height}px</div>
           {onBack && (
-            <Button variant="outline" size="sm" onClick={onBack} className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700">Back</Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              // Set the layouts tab to be active when returning to visual-search
+              try {
+                localStorage.setItem('visual-search-active-tab', 'layouts');
+              } catch (e) {
+                console.warn('Failed to set localStorage:', e);
+              }
+              
+              // Navigate to visual-search
+              window.location.href = '/visual-search';
+            }} className="bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700">
+              Layouts
+            </Button>
           )}
           {selectedId && (
             <div className="text-xs text-white">
