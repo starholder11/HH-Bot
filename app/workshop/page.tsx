@@ -448,6 +448,14 @@ function GenerationPanel({
           }
         } catch {}
       }
+
+      // Agent path: merge loras provided via values (from __genPanel.prepare)
+      if (mode === 'image' && Array.isArray((values as any).loras) && (values as any).loras.length > 0) {
+        body.options = body.options || {}
+        const lvs = (values as any).loras as any[]
+        body.options.loras = lvs.map((l: any) => ({ path: l.artifactUrl || l.path, scale: l.scale ?? 1.0 }))
+        body.model = 'fal-ai/flux-lora'
+      }
       const json = await (await import('./services/generateService')).runGenerate(body);
 
       // Try multiple common locations for media URL
@@ -1585,6 +1593,7 @@ export default function VisualSearchPage() {
             // Switch to Generate tab and prepare generation with this LoRA
             setRightTab('generate');
             const refUrlList = (window as any).__agentApi?.getPinnedRefs?.() || [];
+            // Pass lora info into values so handleGenerate can attach correctly
             (window as any).__genPanel?.prepare?.({
               type: 'image',
               model: 'fal-ai/flux-lora',
