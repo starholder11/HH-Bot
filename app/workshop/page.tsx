@@ -456,6 +456,8 @@ function GenerationPanel({
         body.options.loras = lvs.map((l: any) => ({ path: l.artifactUrl || l.path, scale: l.scale ?? 1.0 }))
         body.model = 'fal-ai/flux-lora'
       }
+      // Debug: surface lora info in console for verification
+      try { console.log('🧪 Generating with model:', body.model, 'loras:', body?.options?.loras); } catch {}
       const json = await (await import('./services/generateService')).runGenerate(body);
 
       // Try multiple common locations for media URL
@@ -1597,7 +1599,7 @@ export default function VisualSearchPage() {
             (window as any).__genPanel?.prepare?.({
               type: 'image',
               model: 'fal-ai/flux-lora',
-              options: { loras: [{ path: match.artifactUrl || match.path, scale: payload?.strength || 1.0 }] },
+              options: { loras: [{ path: match.artifactUrl || match.path, scale: payload?.strength || 1.0, triggerWord: match.triggerWord }] },
               refs: refUrlList,
               autoRun: false,
             });
