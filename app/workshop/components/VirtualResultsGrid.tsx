@@ -11,17 +11,18 @@ type Props = {
 };
 
 // Virtual scrolling implementation for better performance with large result sets
-export default function VirtualResultsGrid({ 
-  results, 
-  renderCard, 
+export default function VirtualResultsGrid({
+  results,
+  renderCard,
   itemHeight = 280,  // Approximate height of each result card
   overscan = 5       // Number of items to render outside viewport
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
+  const [containerTop, setContainerTop] = useState(0);
   // Progressive mount: render a small subset first, then grow in idle time
-  const [visibleCount, setVisibleCount] = useState<number>(Math.min(6, results.length)); // Start with only 6 for instant render
+  const [visibleCount, setVisibleCount] = useState<number>(Math.min(24, results.length));
 
   // Calculate visible range
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
@@ -38,27 +39,33 @@ export default function VirtualResultsGrid({
 
   // Handle scroll events
   const handleScroll = useCallback(() => {
-    if (containerRef.current) {
-      setScrollTop(containerRef.current.scrollTop);
-    }
-  }, []);
+    const y = window.scrollY || window.pageYOffset || 0;
+    const relative = Math.max(0, y - containerTop);
+    setScrollTop(relative);
+  }, [containerTop]);
 
-  // Setup scroll listener and measure container
+  // Setup scroll listener and measure container against window scroll
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const updateContainerHeight = () => {
-      setContainerHeight(container.clientHeight);
+    const measure = () => {
+      const rect = container.getBoundingClientRect();
+      const top = rect.top + (window.scrollY || window.pageYOffset || 0);
+      setContainerTop(top);
+      setContainerHeight(window.innerHeight);
+      // Update current scrollTop immediately
+      const y = window.scrollY || window.pageYOffset || 0;
+      setScrollTop(Math.max(0, y - top));
     };
 
-    updateContainerHeight();
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', updateContainerHeight);
+    measure();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', measure);
 
     return () => {
-      container.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', updateContainerHeight);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', measure);
     };
   }, [handleScroll]);
 
@@ -98,14 +105,10 @@ export default function VirtualResultsGrid({
   }, [visibleCount, results.length]);
 
   return (
-    <div 
-      ref={containerRef}
-      className="h-full overflow-auto"
-      style={{ height: '600px' }} // Set a fixed height for scrolling
-    >
+    <div ref={containerRef}>
       <div style={{ height: totalHeight, position: 'relative' }}>
-        <div 
-          style={{ 
+        <div
+          style={{
             transform: `translateY(${offsetY}px)`,
             position: 'absolute',
             top: 0,
