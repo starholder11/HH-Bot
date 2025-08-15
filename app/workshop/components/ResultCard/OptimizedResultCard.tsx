@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { UnifiedSearchResult } from '../../types';
 import { getResultMediaUrl } from '../../utils/mediaUrl';
+import { stripCircularDescription } from '../../utils/textCleanup';
 
 // Minimal initial render - only show placeholder and essential info
 function OptimizedResultCard({
@@ -45,6 +46,20 @@ function OptimizedResultCard({
   }, []);
 
   const scorePct = Math.round((r.score || 0) * 100);
+
+  // Prepare text snippet (used for text results and fallback)
+  const textSnippet: string | null = (() => {
+    if (r.content_type !== 'text') return null;
+    const base = r.preview ?? (r as any).description ?? '';
+    try {
+      const raw = typeof base === 'string' ? base : JSON.stringify(base);
+      const cleaned = stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
+      const words = cleaned.split(/\s+/);
+      return words.length > 70 ? `${words.slice(0, 70).join(' ')}…` : cleaned;
+    } catch {
+      return typeof base === 'string' ? base.slice(0, 320) : '';
+    }
+  })();
 
   return (
     <div
@@ -102,6 +117,7 @@ function OptimizedResultCard({
       {/* Media - only render when visible */}
       <div className="px-3">
         {isVisible ? (
+          // Images
           r.content_type === 'image' && getResultMediaUrl(r) ? (
             <img
               src={getResultMediaUrl(r)!}
@@ -114,17 +130,27 @@ function OptimizedResultCard({
                 e.currentTarget.style.display = 'none';
               }}
             />
+          // Videos
           ) : r.content_type === 'video' && getResultMediaUrl(r) ? (
             <video
               src={getResultMediaUrl(r)!}
               className="w-full h-40 object-cover rounded-md border border-neutral-800 bg-black"
+              controls
               muted
               playsInline
-              preload="none"
+              preload="metadata"
             />
-          ) : r.content_type === 'audio' ? (
+          // Audio
+          ) : r.content_type === 'audio' && getResultMediaUrl(r) ? (
             <div className="w-full h-40 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-950">
-              <div className="text-2xl text-neutral-300">🎵</div>
+              <audio src={getResultMediaUrl(r)!} controls preload="metadata" className="w-full" />
+            </div>
+          // Text
+          ) : r.content_type === 'text' && textSnippet ? (
+            <div className="w-full h-40 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 p-3 overflow-hidden">
+              <div className="text-xs leading-snug line-clamp-6 whitespace-pre-wrap">
+                {textSnippet}
+              </div>
             </div>
           ) : (
             <div className="w-full h-40 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-800 text-neutral-400 text-xs">
@@ -137,16 +163,19 @@ function OptimizedResultCard({
         )}
       </div>
 
-      {/* Content - simplified */}
-      <div className="p-3 h-16 flex flex-col justify-between">
-        <div className="flex-1">
-          {r.preview && (
-            <p className="text-sm text-neutral-300 line-clamp-2">
-              {r.preview.substring(0, 100)}...
-            </p>
-          )}
+      {/* Content - simplified (skip duplicate for text since shown above) */}
+      {r.content_type !== 'text' && (
+        <div className="p-3 h-16 flex flex-col justify-between">
+          <div className="flex-1">
+            {(r.preview || (r as any).description) && (
+              <p className="text-sm text-neutral-300 line-clamp-2">
+                {String(r.preview ?? (r as any).description).substring(0, 140)}
+                {String(r.preview ?? (r as any).description).length > 140 ? '…' : ''}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
