@@ -545,7 +545,7 @@ export default function VideoEditorPage() {
             </div>
 
             {/* ID Row */}
-            <div className="text-xs text-neutral-600 ml-8">
+            <div className="text-xs text-neutral-600">
               ID: {selectedVideo.id}
             </div>
           </div>
