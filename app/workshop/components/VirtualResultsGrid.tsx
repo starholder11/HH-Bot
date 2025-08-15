@@ -15,14 +15,16 @@ export default function VirtualResultsGrid({
   results,
   renderCard,
   itemHeight = 280,  // Approximate height of each result card
-  overscan = 5       // Number of items to render outside viewport
+  overscan = 10      // Render more ahead to feel instant
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   const [containerTop, setContainerTop] = useState(0);
-  // Progressive mount: render a small subset first, then grow in idle time
-  const [visibleCount, setVisibleCount] = useState<number>(Math.min(24, results.length));
+  // Progressive mount: render a generous subset first, then grow fast
+  const [visibleCount, setVisibleCount] = useState<number>(Math.min(48, results.length));
+  // Persist already-mounted items so scrolling back up does not unmount them
+  const [persistedEnd, setPersistedEnd] = useState<number>(Math.min(48, results.length));
 
   // Calculate visible range
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
@@ -33,9 +35,10 @@ export default function VirtualResultsGrid({
 
   // Progressive cap to avoid mounting too many nodes at once
   const cappedEnd = Math.min(endIndex + 1, visibleCount);
-  const visibleItems = results.slice(startIndex, cappedEnd);
+  const nextPersistedEnd = Math.max(persistedEnd, cappedEnd);
+  const visibleItems = results.slice(0, nextPersistedEnd);
   const totalHeight = results.length * itemHeight;
-  const offsetY = startIndex * itemHeight;
+  const offsetY = 0; // We render from the top, keeping earlier items mounted
 
   // Handle scroll events
   const handleScroll = useCallback(() => {
@@ -71,7 +74,9 @@ export default function VirtualResultsGrid({
 
   // When results change, reset progressive count
   useEffect(() => {
-    setVisibleCount(Math.min(24, results.length));
+    const initial = Math.min(48, results.length);
+    setVisibleCount(initial);
+    setPersistedEnd(initial);
   }, [results]);
 
   // Incrementally increase the number of mounted items without blocking paint
@@ -83,17 +88,18 @@ export default function VirtualResultsGrid({
     const grow = () => {
       setVisibleCount((prev) => {
         if (prev >= results.length) return prev;
-        // Increase in smaller batches for instant feel
-        const next = Math.min(results.length, prev + 6);
+        // Increase in larger batches to avoid visible pop-in
+        const next = Math.min(results.length, prev + 24);
         return next;
       });
+      setPersistedEnd((prev) => Math.min(results.length, Math.max(prev, visibleCount + 24)));
     };
 
     const schedule = () => {
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        idle = (window as any).requestIdleCallback(grow, { timeout: 50 });
+        idle = (window as any).requestIdleCallback(grow, { timeout: 16 });
       } else {
-        raf = setTimeout(grow, 20);
+        raf = setTimeout(grow, 16);
       }
     };
 
