@@ -953,7 +953,7 @@ function RightPane({
   toggleSelect: (r: UnifiedSearchResult, shiftKey?: boolean) => void;
   page: number;
   setPage: (p: number) => void;
-  executeSearch: (q: string, nextPage?: number) => void;
+  executeSearch: (q: string, nextPage?: number, type?: string, immediate?: boolean) => void;
   query: string;
   setQuery: (q: string) => void;
   isEditingName: boolean;
@@ -1074,7 +1074,7 @@ function RightPane({
             {/* Show results using virtual scrolling for performance */}
             {loading ? (
               <VirtualResultsGrid
-                results={Array(12).fill(null).map((_, i) => ({ 
+                results={Array(12).fill(null).map((_, i) => ({
                   id: `skeleton-${i}`,
                   content_type: 'skeleton' as any,
                   title: '',
