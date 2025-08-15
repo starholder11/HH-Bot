@@ -70,15 +70,6 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
         layout_type: 'blueprint_composer',
         s3_url: `layouts/${layoutId}.json`,
         cloudflare_url: '',
-        metadata: {
-          file_size: 0,
-          width: 1200,
-          height: 800,
-          cell_size: 20,
-          item_count: 0,
-          has_inline_content: false,
-          has_transforms: false
-        },
         layout_data: {
           designSize: { width: 1200, height: 800 },
           cellSize: 20,
