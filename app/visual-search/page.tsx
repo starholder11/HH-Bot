@@ -897,6 +897,7 @@ function RightPane({
   setCanvasProjectId,
   projectsList,
   saveCanvas,
+  showCanvasManager,
   setShowCanvasManager,
   clearCanvas,
   // canvasLayout removed
@@ -918,6 +919,10 @@ function RightPane({
   saveStatus,
   setSaveStatus,
   exportAsLayout,
+  // Canvas manager functions
+  loadCanvas,
+  deleteCanvas,
+  refreshCanvases,
 }: {
   results: UnifiedSearchResult[];
   loading: boolean;
@@ -956,6 +961,7 @@ function RightPane({
   setCanvasProjectId: (v: string) => void;
   projectsList: Array<{ project_id: string; name: string }>;
   saveCanvas: () => Promise<void> | void;
+  showCanvasManager: boolean;
   setShowCanvasManager: (v: boolean) => void;
   clearCanvas: () => void;
   // canvasLayout removed - only RGL canvas now
@@ -985,6 +991,10 @@ function RightPane({
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
   exportAsLayout: () => Promise<void>;
+  // Canvas manager functions
+  loadCanvas: (id: string) => Promise<void>;
+  deleteCanvas: (id: string) => Promise<void>;
+  refreshCanvases: () => Promise<void>;
 }) {
   return (
     <div className="w-full overflow-hidden">
@@ -2381,6 +2391,7 @@ export default function VisualSearchPage() {
             setCanvasProjectId={setCanvasProjectId}
             projectsList={projectsList}
             saveCanvas={() => saveCanvas()}
+            showCanvasManager={showCanvasManager}
             setShowCanvasManager={setShowCanvasManager}
             clearCanvas={clearCanvas}
             // canvasLayout removed
@@ -2425,6 +2436,9 @@ export default function VisualSearchPage() {
             saveStatus={saveStatus}
             setSaveStatus={setSaveStatus}
             exportAsLayout={exportAsLayout}
+            loadCanvas={loadCanvas}
+            deleteCanvas={deleteCanvas}
+            refreshCanvases={refreshCanvases}
           />
         </div>
       </div>
