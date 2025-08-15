@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Simple in-memory cache for query embeddings to avoid repeated OpenAI calls
+// Note: Serverless may evict between cold starts, but this helps during warm periods
+const embedCache: Map<string, { embedding: number[]; ts: number }> = new Map();
+const EMBED_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 interface SearchResult {
   id: string;
   content_type: 'video' | 'image' | 'audio' | 'text' | 'layout';
@@ -85,25 +90,35 @@ export async function POST(request: NextRequest) {
     console.log('🔑 Using OpenAI key:', `${openaiApiKey.slice(0, 10)}...${openaiApiKey.slice(-4)}`);
 
     const authHeader = `Bearer ${openaiApiKey}`;
-    const embedResponse = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader
-      },
-      body: JSON.stringify({
-        model: 'text-embedding-3-small',
-        input: query.trim()
-      })
-    });
+    const normalizedQuery = query.trim().toLowerCase();
+    let queryEmbedding: number[] | null = null;
 
-    if (!embedResponse.ok) {
-      const errText = await embedResponse.text();
-      console.log('❌ OpenAI API Error:', embedResponse.status, errText);
-      return NextResponse.json({ error: 'OpenAI embedding failed', details: errText }, { status: 502 });
+    // Try cache first
+    const cached = embedCache.get(normalizedQuery);
+    if (cached && Date.now() - cached.ts < EMBED_TTL_MS) {
+      queryEmbedding = cached.embedding;
+    } else {
+      const embedResponse = await fetch('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader
+        },
+        body: JSON.stringify({
+          model: 'text-embedding-3-small',
+          input: normalizedQuery
+        })
+      });
+
+      if (!embedResponse.ok) {
+        const errText = await embedResponse.text();
+        console.log('❌ OpenAI API Error:', embedResponse.status, errText);
+        return NextResponse.json({ error: 'OpenAI embedding failed', details: errText }, { status: 502 });
+      }
+      const { data: embedData } = await embedResponse.json();
+      queryEmbedding = embedData[0].embedding;
+      embedCache.set(normalizedQuery, { embedding: queryEmbedding, ts: Date.now() });
     }
-    const { data: embedData } = await embedResponse.json();
-    const queryEmbedding = embedData[0].embedding;
 
     // Call the LanceDB service specified by env
     // Prefer LANCEDB_URL (public-facing) for Vercel; fall back to internal API URL for Lambdas/local
@@ -117,8 +132,8 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         },
         body: JSON.stringify({
           query_embedding: queryEmbedding,
-          // Fetch a large enough pool to paginate from server-side without additional LanceDB calls per page
-          limit: Math.max(safeLimit * safePage * 100, 1000),
+          // Fetch a modest over-sample (4x), capped, to keep latency low while preserving quality
+          limit: Math.min(1000, Math.max(safeLimit * 4, safeLimit)),
         }),
       });
 

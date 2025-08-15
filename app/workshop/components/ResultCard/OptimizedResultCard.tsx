@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import type { UnifiedSearchResult } from '../../types';
+import { getResultMediaUrl } from '../../utils/mediaUrl';
 
 // Minimal initial render - only show placeholder and essential info
 function OptimizedResultCard({
@@ -101,9 +102,9 @@ function OptimizedResultCard({
       {/* Media - only render when visible */}
       <div className="px-3">
         {isVisible ? (
-          r.content_type === 'image' && r.cloudflare_url ? (
+          r.content_type === 'image' && getResultMediaUrl(r) ? (
             <img
-              src={r.cloudflare_url}
+              src={getResultMediaUrl(r)!}
               alt={r.title}
               className="w-full h-40 object-cover rounded-md border border-neutral-800"
               loading="lazy"
@@ -113,9 +114,9 @@ function OptimizedResultCard({
                 e.currentTarget.style.display = 'none';
               }}
             />
-          ) : r.content_type === 'video' && r.cloudflare_url ? (
+          ) : r.content_type === 'video' && getResultMediaUrl(r) ? (
             <video
-              src={r.cloudflare_url}
+              src={getResultMediaUrl(r)!}
               className="w-full h-40 object-cover rounded-md border border-neutral-800 bg-black"
               muted
               playsInline
