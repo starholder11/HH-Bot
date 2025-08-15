@@ -1790,7 +1790,7 @@ export default function VisualSearchPage() {
           searchType = types.filter(t => t !== "all" && t !== "media").join(",");
         }
 
-        await executeSearch(query, undefined, searchType);
+        await executeSearch(query, undefined, searchType, true);
       } catch (err: any) {
         setError(err.message || 'Search failed');
       } finally {
