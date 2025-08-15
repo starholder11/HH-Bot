@@ -10,6 +10,8 @@ import * as searchService from './services/searchService';
 import { useResults } from './hooks/useResults';
 import { cacheStore } from './services/cacheStore';
 import ResultsGrid from './components/ResultsGrid';
+import VirtualResultsGrid from './components/VirtualResultsGrid';
+import Pagination from './components/Pagination';
 import VSResultCard from './components/ResultCard/ResultCard';
 import DetailsOverlay from './components/DetailsOverlay';
 // Dynamically import CanvasBoardRGL to avoid SSR issues with react-grid-layout
@@ -1068,25 +1070,36 @@ function RightPane({
             <div className="text-xs text-neutral-500">{totalResults} total</div>
           </div>
           <div className="mt-2">
-            <ResultsGrid
-              results={results}
-              renderCard={(r) => (
-                <VSResultCard
-                r={r}
-                onPin={onPin}
-                onOpen={onOpen}
-                onLabelClick={(label) => {
-                  setQuery(label);
-                  executeSearch(label, 1);
-                  setTab('results');
-                }}
-                selectionEnabled={multiSelect}
-                selected={selectedIds.has(r.id)}
-                onToggleSelect={toggleSelect}
-              />
-              )}
-            />
-            {!loading && results.length === 0 && (
+            {/* Show paginated results using virtual scrolling for performance */}
+            {allResults.length > 0 ? (
+              <>
+                <VirtualResultsGrid
+                  results={getPaginatedResults()}
+                  renderCard={(r) => (
+                    <VSResultCard
+                      r={r}
+                      onPin={onPin}
+                      onOpen={onOpen}
+                      onLabelClick={(label) => {
+                        setQuery(label);
+                        executeSearch(label, 1);
+                        setTab('results');
+                      }}
+                      selectionEnabled={multiSelect}
+                      selected={selectedIds.has(r.id)}
+                      onToggleSelect={toggleSelect}
+                    />
+                  )}
+                />
+                
+                {/* Pagination Controls */}
+                <Pagination
+                  currentPage={page}
+                  totalPages={getTotalPages()}
+                  onPageChange={setPage}
+                />
+              </>
+            ) : !loading && (
               <div className="text-neutral-400 text-sm mt-2">Try a search to see results.</div>
             )}
           </div>
@@ -1291,7 +1304,7 @@ function RightPane({
 
 export default function VisualSearchPage() {
   const { executeSearch } = useResults();
-  const { query, page, results, total, setQuery, setPage, setResults } = useResultsStore();
+  const { query, results, total, setQuery, setResults, allResults, getPaginatedResults, getTotalPages, page, setPage } = useResultsStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { rightTab, setRightTab, multiSelect, selectedIds, toggleMultiSelect, setSelectedIds, toggleSelectedId } = useUiStore();

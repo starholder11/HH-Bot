@@ -22,7 +22,8 @@ export const GRID_CONSTANTS = {
 
 // Search constants
 export const SEARCH_CONSTANTS = {
-  DEFAULT_LIMIT: 1000,
+  DEFAULT_LIMIT: 400,      // Total results to fetch from backend
+  PAGE_SIZE: 100,          // Results per page for frontend pagination
   DEFAULT_PAGE: 1,
 } as const;
 

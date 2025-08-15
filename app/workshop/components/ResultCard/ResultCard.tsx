@@ -20,6 +20,12 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
         className="w-full h-40 object-cover rounded-md border border-neutral-800"
         draggable={false}
         loading="lazy"
+        decoding="async"
+        onError={(e) => {
+          // Fallback to a placeholder if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+        }}
       />
     );
   }
