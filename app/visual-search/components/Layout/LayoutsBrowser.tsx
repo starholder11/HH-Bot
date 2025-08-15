@@ -105,34 +105,13 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
         updated_at: now,
         project_id: undefined,
         timestamps: {
-          uploaded: now,
-          metadata_extracted: now,
-          labeled_ai: undefined,
-          labeled_reviewed: undefined,
+          created: now,
+          updated: now,
           html_generated: undefined
         },
         processing_status: {
-          upload: 'completed',
-          metadata_extraction: 'completed',
-          ai_labeling: 'not_started',
-          manual_review: 'pending',
-          html_generation: 'pending'
-        },
-        ai_labels: {
-          scenes: [],
-          objects: [],
-          style: [],
-          mood: [],
-          themes: [],
-          confidence_scores: {}
-        },
-        manual_labels: {
-          scenes: [],
-          objects: [],
-          style: [],
-          mood: [],
-          themes: [],
-          custom_tags: []
+          created: 'completed',
+          html_generated: 'pending'
         }
       };
 
