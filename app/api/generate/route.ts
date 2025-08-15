@@ -83,6 +83,29 @@ export async function POST(req: NextRequest) {
       // Keep options.loras as-is for response echoing if needed
     }
 
+    // Auto-detect LoRA by trigger word present in prompt if none explicitly provided
+    if (!hasLoras && effectiveMode === 'image') {
+      try {
+        const res = await fetch(`${process.env.PUBLIC_API_BASE_URL || ''}/api/loras` || '/api/loras', { next: { revalidate: 0 } })
+        if (res.ok) {
+          const list = await res.json()
+          const p = (input.prompt || '').toString().toLowerCase()
+          const matches = Array.isArray(list) ? list.filter((l: any) => (l.triggerWord || '').toLowerCase() && p.includes((l.triggerWord || '').toLowerCase())) : []
+          if (matches.length > 0) {
+            input.loras = matches.map((m: any) => ({ path: m.artifactUrl || m.path, scale: 1.0 }))
+            // Force flux-lora model if we auto-attached
+            console.log('[api/generate] ✅ Auto-attached LoRAs from prompt:', input.loras)
+            return await runFal('fal-ai/flux-lora').then((result) => {
+              // Return early with LoRA-applied result
+              const imageUrl: string | undefined = result?.images?.[0]?.url || result?.image?.url || result?.data?.images?.[0]?.url
+              if (imageUrl) return NextResponse.json({ success: true, url: imageUrl, result })
+              return NextResponse.json({ success: true, result })
+            })
+          }
+        }
+      } catch {}
+    }
+
     // Sanitize video-specific inputs to avoid 422s from provider
     if (effectiveMode === 'video') {
       // Coerce duration to seconds number and clamp to reasonable provider limits (e.g., many models cap at 6s)
