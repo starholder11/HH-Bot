@@ -1070,11 +1070,11 @@ function RightPane({
             <div className="text-xs text-neutral-500">{totalResults} total</div>
           </div>
           <div className="mt-2">
-            {/* Show paginated results using virtual scrolling for performance */}
-            {(allResults && allResults.length > 0) ? (
+            {/* Show results using virtual scrolling for performance */}
+            {results.length > 0 ? (
               <>
                 <VirtualResultsGrid
-                  results={getPaginatedResults ? getPaginatedResults() : []}
+                  results={results}
                   renderCard={(r) => (
                     <VSResultCard
                       r={r}
@@ -1092,12 +1092,28 @@ function RightPane({
                   )}
                 />
                 
-                {/* Pagination Controls */}
-                <Pagination
-                  currentPage={page}
-                  totalPages={getTotalPages ? getTotalPages() : 1}
-                  onPageChange={setPage}
-                />
+                {/* Pagination Controls - simplified for now */}
+                {total > 100 && (
+                  <div className="flex items-center justify-center gap-4 mt-6">
+                    <button
+                      onClick={() => executeSearch(query, Math.max(1, page - 1))}
+                      disabled={page <= 1}
+                      className="px-3 py-2 text-sm border border-neutral-700 bg-neutral-800 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700 transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <div className="text-sm text-neutral-400">
+                      Page {page} • {total} total results
+                    </div>
+                    <button
+                      onClick={() => executeSearch(query, page + 1)}
+                      disabled={results.length < 100}
+                      className="px-3 py-2 text-sm border border-neutral-700 bg-neutral-800 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700 transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </>
             ) : !loading && (
               <div className="text-neutral-400 text-sm mt-2">Try a search to see results.</div>
@@ -1304,19 +1320,7 @@ function RightPane({
 
 export default function VisualSearchPage() {
   const { executeSearch } = useResults();
-  const resultsStore = useResultsStore();
-  const {
-    query,
-    results,
-    total,
-    setQuery,
-    setResults,
-    page,
-    setPage,
-    allResults,
-    getPaginatedResults,
-    getTotalPages
-  } = resultsStore;
+  const { query, results, total, setQuery, setResults, page, setPage } = useResultsStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { rightTab, setRightTab, multiSelect, selectedIds, toggleMultiSelect, setSelectedIds, toggleSelectedId } = useUiStore();

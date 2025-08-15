@@ -3,7 +3,7 @@ import { SEARCH_CONSTANTS } from '../constants';
 
 export async function get(query: string, opts?: { limit?: number; page?: number; type?: string; signal?: AbortSignal }) {
   if (!query || query.trim().length === 0) throw new Error('Query is required');
-  const limit = opts?.limit ?? SEARCH_CONSTANTS.DEFAULT_LIMIT;
+  const limit = opts?.limit ?? SEARCH_CONSTANTS.PAGE_SIZE; // Use page size (100) as default instead of 400
   const page = opts?.page ?? SEARCH_CONSTANTS.DEFAULT_PAGE;
   
   // Handle multiple content types by converting to POST request with content_types array
