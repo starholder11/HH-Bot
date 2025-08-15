@@ -107,9 +107,9 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
         timestamps: {
           uploaded: now,
           metadata_extracted: now,
-          labeled_ai: null,
-          labeled_reviewed: null,
-          html_generated: null
+          labeled_ai: undefined,
+          labeled_reviewed: undefined,
+          html_generated: undefined
         },
         processing_status: {
           upload: 'completed',
