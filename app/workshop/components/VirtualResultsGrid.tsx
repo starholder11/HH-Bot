@@ -22,9 +22,9 @@ export default function VirtualResultsGrid({
   const [containerHeight, setContainerHeight] = useState(0);
   const [containerTop, setContainerTop] = useState(0);
   // Progressive mount: render a generous subset first, then grow fast
-  const [visibleCount, setVisibleCount] = useState<number>(Math.min(48, results.length));
+  const [visibleCount, setVisibleCount] = useState<number>(Math.min(60, results.length));
   // Persist already-mounted items so scrolling back up does not unmount them
-  const [persistedEnd, setPersistedEnd] = useState<number>(Math.min(48, results.length));
+  const [persistedEnd, setPersistedEnd] = useState<number>(Math.min(60, results.length));
 
   // Calculate visible range
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
@@ -74,7 +74,7 @@ export default function VirtualResultsGrid({
 
   // When results change, reset progressive count
   useEffect(() => {
-    const initial = Math.min(48, results.length);
+    const initial = Math.min(60, results.length);
     setVisibleCount(initial);
     setPersistedEnd(initial);
   }, [results]);

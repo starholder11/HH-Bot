@@ -37,13 +37,15 @@ export async function POST(request: NextRequest) {
       limit = 1000,
       page = 1,
       content_types = [],
-      filters = {}
+      filters = {},
+      fast = false
     }: {
       query: string;
       limit?: number;
       page?: number;
       content_types?: string[];
       filters?: SearchFilters;
+      fast?: boolean;
     } = await request.json();
 
     const safeLimit = Math.max(1, Math.min(5000, Number(limit) || 1000));
@@ -132,8 +134,10 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         },
         body: JSON.stringify({
           query_embedding: queryEmbedding,
-          // Fetch a modest over-sample (4x), capped, to keep latency low while preserving quality
-          limit: Math.min(1000, Math.max(safeLimit * 4, safeLimit)),
+          // Fast mode: smaller initial pool for quicker response; Full mode: larger pool
+          limit: fast
+            ? Math.min(400, Math.max(safeLimit * 2, safeLimit))
+            : Math.min(1000, Math.max(safeLimit * 4, safeLimit)),
         }),
       });
 

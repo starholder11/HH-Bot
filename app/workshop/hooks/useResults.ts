@@ -43,10 +43,11 @@ export function useResults() {
         setResults([], 0);
         setAllResults([], 0);
 
-        const json = await searchService.get(query, {
+        const json = await searchService.get(query, { 
           page: page || 1,
-          type,
-          signal: controller.signal
+          type, 
+          signal: controller.signal,
+          fast: true // ask server for a quicker initial pool
         });
 
         if (!controller.signal.aborted) {
