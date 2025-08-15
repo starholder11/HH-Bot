@@ -845,11 +845,11 @@ export default function FileManagerPage() {
 
   if (assets.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-600 text-slate-100">
+      <div className="min-h-screen bg-slate-300 text-slate-800">
         <div className="container mx-auto p-6">
-          <h1 className="text-3xl font-light tracking-tight mb-6 text-slate-100">Media Library</h1>
+          <h1 className="text-3xl font-light tracking-tight mb-6 text-slate-800">Media Library</h1>
           <div className="text-center py-8">
-            <p className="text-slate-300 mb-4">No media assets found. Upload some files to get started.</p>
+            <p className="text-slate-600 mb-4">No media assets found. Upload some files to get started.</p>
             <Button
               onClick={() => setIsUploading(true)}
               className="bg-black border border-neutral-300 text-white hover:bg-neutral-800"
@@ -863,12 +863,12 @@ export default function FileManagerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-600 text-slate-100">
+    <div className="min-h-screen bg-slate-300 text-slate-800">
       <div className="container mx-auto p-6">
         {/* Header with Search and Filters */}
         <div className="mb-6">
           <div className="mb-4">
-            <h1 className="text-3xl font-light tracking-tight text-slate-100">Media Library</h1>
+            <h1 className="text-3xl font-light tracking-tight text-slate-800">Media Library</h1>
           </div>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {/* Search */}
