@@ -29,10 +29,10 @@ export async function get(query: string, opts?: { limit?: number; page?: number;
     const json: UnifiedSearchResponse = await res.json();
     return json;
   } else {
-    // Single type or no type - use GET request
+    // Single type or no type - use GET request, include fast flag via query param
     const typeParam = opts?.type ? `&type=${encodeURIComponent(opts.type)}` : '';
-    const url = `/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}&page=${page}${typeParam}`;
-    // For GET, we cannot send fast; keep default behavior
+    const fastParam = opts?.fast ? `&fast=1` : '';
+    const url = `/api/unified-search?q=${encodeURIComponent(query)}&limit=${limit}&page=${page}${typeParam}${fastParam}`;
     const res = await fetch(url, { method: 'GET', signal: opts?.signal });
     if (!res.ok) {
       const text = await res.text();

@@ -106,6 +106,8 @@ export function useResults() {
             try {
               const fullAll = (fullJson?.results?.all as any[]) || [];
               const total = fullJson?.total_results || fullAll.length;
+              // Avoid work if the fast results already equal the full set
+              if (fullAll.length === allResults.length) return;
               const withUrls = fullAll.map((r: any) => ({ ...r, _url: getResultMediaUrl(r) }));
               setAllResults(withUrls as any, total);
               // Keep current page size but upgrade data to full set

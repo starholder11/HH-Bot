@@ -444,8 +444,9 @@ export async function GET(request: NextRequest) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       query,
-              limit: parseInt(searchParams.get('limit') || '1000'),
+      limit: parseInt(searchParams.get('limit') || '1000'),
       content_types: searchParams.get('type') ? [searchParams.get('type')] : [],
+      fast: searchParams.get('fast') === '1',
       filters: {
         content_type: searchParams.get('content_type') as any,
         media_type: searchParams.get('media_type') as any,
