@@ -1071,7 +1071,7 @@ function RightPane({
           </div>
           <div className="mt-2">
             {/* Show paginated results using virtual scrolling for performance */}
-            {allResults.length > 0 ? (
+            {(allResults?.length || 0) > 0 ? (
               <>
                 <VirtualResultsGrid
                   results={getPaginatedResults()}
@@ -1304,7 +1304,11 @@ function RightPane({
 
 export default function VisualSearchPage() {
   const { executeSearch } = useResults();
-  const { query, results, total, setQuery, setResults, allResults, getPaginatedResults, getTotalPages, page, setPage } = useResultsStore();
+  const { query, results, total, setQuery, setResults, page, setPage } = useResultsStore();
+  const resultsStore = useResultsStore();
+  const allResults = resultsStore.allResults;
+  const getPaginatedResults = resultsStore.getPaginatedResults;
+  const getTotalPages = resultsStore.getTotalPages;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { rightTab, setRightTab, multiSelect, selectedIds, toggleMultiSelect, setSelectedIds, toggleSelectedId } = useUiStore();
