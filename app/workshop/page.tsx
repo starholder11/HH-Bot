@@ -1571,6 +1571,34 @@ export default function VisualSearchPage() {
           console.error('🔴 Bridge: showResults failed:', e);
         }
       },
+      // Apply a LoRA from the agent
+      useCanvasLora: (payload: { loraName?: string; strength?: number; trigger?: string }) => {
+        try {
+          const name = payload?.loraName || payload?.trigger || '';
+          if (!name) return;
+          // Try to find LoRA by trigger or canvas name
+          const match = (allLoras || []).find((l) =>
+            (l.triggerWord && name && name.toLowerCase().includes(String(l.triggerWord).toLowerCase())) ||
+            (l.canvasName && name && name.toLowerCase().includes(String(l.canvasName).toLowerCase()))
+          );
+          if (match) {
+            // Switch to Generate tab and prepare generation with this LoRA
+            setRightTab('generate');
+            const refUrlList = (window as any).__agentApi?.getPinnedRefs?.() || [];
+            (window as any).__genPanel?.prepare?.({
+              type: 'image',
+              model: 'fal-ai/flux-lora',
+              options: { loras: [{ path: match.artifactUrl || match.path, scale: payload?.strength || 1.0 }] },
+              refs: refUrlList,
+              autoRun: false,
+            });
+          } else {
+            console.log('LoRA not found for', name);
+          }
+        } catch (e) {
+          console.warn('useCanvasLora bridge failed:', e);
+        }
+      },
       // Surface server tool messages (e.g., no LoRA found) to the user
       showMessage: (payload: any) => {
         try {
