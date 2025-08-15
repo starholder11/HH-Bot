@@ -15,10 +15,10 @@ const tools = {
       try {
         // Smart media type detection from query
         let detectedType = requestedMediaType;
-        
+
         if (!detectedType) {
           const queryLower = query.toLowerCase();
-          
+
           // Media type detection patterns
           if (/\b(video|videos|movie|movies|clip|clips|film|films|footage|animation|animations)\b/.test(queryLower)) {
             detectedType = 'video';
@@ -36,7 +36,7 @@ const tools = {
 
         const baseUrl = process.env.PUBLIC_API_BASE_URL || `http://localhost:3000`;
         let url = `${baseUrl}/api/unified-search?q=${encodeURIComponent(query)}&limit=100`;
-        
+
         // Add type filter if detected
         if (detectedType && detectedType !== 'all') {
           url += `&type=${encodeURIComponent(detectedType)}`;
@@ -109,8 +109,9 @@ const tools = {
       prompt: z.string().optional().describe('Generation prompt if specified'),
       model: z.string().optional(),
       refs: z.array(z.string()).optional(),
+      loraNames: z.array(z.string()).optional().describe('Names of LoRA models to use (e.g. ["petaflop sheen", "commissarsha"])'),
     }),
-    execute: async ({ userRequest, type, prompt, model, refs }) => {
+    execute: async ({ userRequest, type, prompt, model, refs, loraNames }) => {
       // Smart extraction from user request
       const request = userRequest.toLowerCase();
 
@@ -273,16 +274,28 @@ const tools = {
   }),
 
   useCanvasLora: tool({
-    description: 'Apply LoRA model to canvas generation',
+    description: 'Apply LoRA model to canvas generation. Extract LoRA name from user request like "use petaflop sheen lora"',
     parameters: z.object({
-      loraName: z.string(),
+      userRequest: z.string().describe('Full user request to extract LoRA name from'),
+      loraName: z.string().optional().describe('Explicit LoRA name if known'),
       strength: z.number().optional(),
       trigger: z.string().optional(),
     }),
-    execute: async ({ loraName, strength, trigger }) => {
+    execute: async ({ userRequest, loraName, strength, trigger }) => {
+      let finalLoraName = loraName;
+      
+      // Extract LoRA name from request if not provided explicitly
+      if (!finalLoraName && userRequest) {
+        // Pattern: "use [the] [name] lora"
+        const match = userRequest.match(/\b(use|apply|add)\s+(?:the\s+)?(.*?)\s+lora\b/i);
+        if (match && match[2]) {
+          finalLoraName = match[2].trim();
+        }
+      }
+      
       return {
         action: 'useCanvasLora',
-        payload: { loraName, strength: strength || 1.0, trigger: trigger || '' }
+        payload: { loraName: finalLoraName || 'unknown', strength: strength || 1.0, trigger: trigger || '' }
       };
     }
   }),
@@ -297,20 +310,20 @@ const tools = {
         const res = await fetch(url, { method: 'GET' });
         if (!res.ok) throw new Error(`LoRA list failed: ${res.status}`);
         const loras = await res.json();
-        
+
         if (!Array.isArray(loras) || loras.length === 0) {
           return { action: 'chat', payload: { text: 'No LoRA models found. LoRAs are custom styles trained from canvas images that can be used for generation.' } };
         }
 
-        const loraList = loras.map(l => 
+        const loraList = loras.map(l =>
           `• **${l.canvasName}** (${l.triggerWord}) - Canvas: ${l.canvasId}`
         ).join('\n');
 
-        return { 
-          action: 'chat', 
-          payload: { 
-            text: `Found ${loras.length} available LoRA models:\n\n${loraList}\n\nTo use a LoRA, select it in the Generate tab and it will automatically switch to the FLUX-LoRA model for image generation.` 
-          } 
+        return {
+          action: 'chat',
+          payload: {
+            text: `Found ${loras.length} available LoRA models:\n\n${loraList}\n\nTo use a LoRA, select it in the Generate tab and it will automatically switch to the FLUX-LoRA model for image generation.`
+          }
         };
       } catch (error) {
         return { action: 'chat', payload: { text: `Failed to fetch LoRA models: ${error instanceof Error ? error.message : 'Unknown error'}` } };
@@ -343,7 +356,7 @@ export async function POST(req: NextRequest) {
   const nameImageIntentRegex = /\b(name|title|call|label)\s+(this\s+)?(image|picture|photo|video)\b/i;
   const saveImageIntentRegex = /\b(save|store|keep)\s+(this\s+)?(image|picture|photo|video)\s*(to\s+)?(library|collection|gallery)?\b/i;
   const saveAsIntentRegex = /\b(save|name|call)\s+((this\s+)?(image|picture|photo|video)\s+)?as\s+[\w\-_]+\b/i;
-  const useLoraIntentRegex = /\b(use|apply|add)\s+(the\s+)?(lora|model)\b/i;
+  const useLoraIntentRegex = /\b(use|apply|add)\s+.*\b(lora|model)\b/i;
   const listLoraIntentRegex = /\b(list|show|what|which|available|get)\s+.*(lora|model|style)s?\b/i;
 
   // Hard guarantee: for specific intents, force appropriate tools (order matters - most specific first)
