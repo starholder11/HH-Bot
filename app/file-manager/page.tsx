@@ -1090,13 +1090,13 @@ export default function FileManagerPage() {
             <div className="space-y-6">
                             {/* Image Gallery Card */}
               {selectedAsset.media_type === 'image' || selectedAsset.media_type === 'keyframe_still' ? (
-                <Card className="p-6 bg-black border border-neutral-700 text-white">
+                <Card className="p-6 bg-neutral-100 border border-neutral-300 text-black">
                   {/* Header */}
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex-1">
                       {/* Title/Filename Section */}
                       <div className="flex items-center space-x-2 mb-3">
-                        <span className="text-xl">IMG</span>
+                        <Image className="w-6 h-6 text-black" />
                         {isEditingFilename ? (
                           <div className="flex items-center space-x-2 flex-1">
                             <div className="flex-1">
@@ -1111,7 +1111,7 @@ export default function FileManagerPage() {
                                   if (e.key === 'Escape') cancelFilenameEdit();
                                 }}
                               />
-                              <div className="text-xs text-gray-500 mt-1">ID: {selectedAsset.id}</div>
+                              <div className="text-xs text-neutral-600 mt-1">ID: {selectedAsset.id}</div>
                             </div>
                             <Button
                               onClick={() => {
@@ -1119,17 +1119,17 @@ export default function FileManagerPage() {
                                   saveFilename();
                                 }
                               }}
-                              className={`px-2 py-1 text-xs ${
+                              className={`px-3 py-2 text-sm ${
                                 isRenamingFile || !newFilename.trim()
-                                  ? 'bg-gray-400 cursor-not-allowed'
-                                  : 'bg-green-600 hover:bg-green-700'
+                                  ? 'bg-neutral-400 cursor-not-allowed text-white'
+                                  : 'bg-black hover:bg-neutral-800 text-white'
                               }`}
                             >
                               {isRenamingFile ? '...' : 'Save'}
                             </Button>
                                                           <Button
                                 onClick={cancelFilenameEdit}
-                                className="px-1.5 py-0.5 text-xs bg-gray-300 hover:bg-gray-400 rounded text-gray-700 transition-colors"
+                                className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 rounded text-white transition-colors"
                               >
                                 Cancel
                               </Button>
@@ -1137,8 +1137,8 @@ export default function FileManagerPage() {
                         ) : (
                           <div className="flex items-center space-x-2 flex-1">
                             <div className="flex-1">
-                              <h1 className="text-xl font-bold text-gray-900">{selectedAsset.title}</h1>
-                              <div className="text-xs text-neutral-400">ID: {selectedAsset.id}</div>
+                              <h1 className="text-xl font-bold text-black">{selectedAsset.title}</h1>
+                              <div className="text-xs text-neutral-600">ID: {selectedAsset.id}</div>
                             </div>
                             {selectedAsset._keyframe_metadata && (
                               <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
@@ -1147,7 +1147,7 @@ export default function FileManagerPage() {
                             )}
                             <Button
                               onClick={startFilenameEdit}
-                              className="px-1.5 py-0.5 text-xs bg-neutral-800 hover:bg-neutral-700 text-white rounded transition-colors"
+                              className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
                             >
                               ✏️
                             </Button>
@@ -1163,11 +1163,11 @@ export default function FileManagerPage() {
                       {/* Project Assignment Section */}
                       <div className="mb-2">
                         <div className="flex items-center space-x-2">
-                          <span className="text-xs text-neutral-400 font-medium">Project:</span>
+                          <span className="text-xs text-neutral-600 font-medium">Project:</span>
                           <select
                             value={selectedAsset.project_id || ''}
                             onChange={(e) => updateProjectAssignment(e.target.value || null)}
-                            className="text-xs border border-neutral-700 rounded px-2 py-1 bg-neutral-900 text-white"
+                            className="text-xs border border-neutral-300 rounded px-2 py-1 bg-white text-black"
                           >
                             <option key="no-project" value="">No Project</option>
                             {projects.map(project => (
@@ -1179,7 +1179,7 @@ export default function FileManagerPage() {
                         </div>
                       </div>
 
-                      <div className="text-xs text-neutral-400">
+                      <div className="text-xs text-neutral-600">
                         Created: {new Date(selectedAsset.created_at).toLocaleDateString()}
                       </div>
                     </div>
@@ -1187,10 +1187,10 @@ export default function FileManagerPage() {
                     {/* Action Button */}
                     <Button
                       onClick={() => isAILabeling ? null : runAILabeling(selectedAsset.id)}
-                      className={`px-2 py-0.5 text-xs rounded text-white transition-colors ${
+                      className={`px-3 py-2 text-sm rounded text-white transition-colors ${
                         isAILabeling
-                          ? 'bg-neutral-600 cursor-not-allowed'
-                          : 'bg-purple-700 hover:bg-purple-600'
+                          ? 'bg-neutral-400 cursor-not-allowed'
+                          : 'bg-black hover:bg-neutral-800'
                       }`}
                     >
                                               {isAILabeling ? 'Analyzing...' : 'AI Labels'}
@@ -1203,11 +1203,11 @@ export default function FileManagerPage() {
                       <img
                         src={encodePath(selectedAsset.cloudflare_url || selectedAsset.s3_url)}
                         alt={selectedAsset.title}
-                        className="w-96 h-96 object-cover rounded-lg shadow-md border border-neutral-700"
+                        className="w-96 h-96 object-cover rounded-lg shadow-md border border-neutral-300"
                       />
                     ) : (
-                      <div className="w-96 h-96 bg-neutral-800 rounded-lg flex items-center justify-center border border-neutral-700">
-                        <span className="text-neutral-400">No preview available</span>
+                      <div className="w-96 h-96 bg-neutral-200 rounded-lg flex items-center justify-center border border-neutral-300">
+                        <span className="text-neutral-600">No preview available</span>
                       </div>
                     )}
                   </div>
@@ -1217,7 +1217,7 @@ export default function FileManagerPage() {
                   {/* AI Labels */}
                   {selectedAsset.ai_labels && (
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-700">AI Analysis</h3>
+                      <h3 className="text-lg font-semibold text-black">AI Analysis</h3>
 
                       {/* Show processing state for keyframes with empty AI labels */}
                       {selectedAsset._keyframe_metadata &&
@@ -1240,9 +1240,9 @@ export default function FileManagerPage() {
                       {/* Scene Description */}
                       {selectedAsset.ai_labels.scenes.length > 0 && (
                         <div>
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Scene Description</h4>
+                          <h4 className="text-sm font-semibold text-black mb-2">Scene Description</h4>
                           <div className="bg-purple-50 border-l-4 border-purple-400 p-4 rounded-r-lg">
-                            <p className="text-gray-700 leading-relaxed text-sm">
+                            <p className="text-black leading-relaxed text-sm">
                               {selectedAsset.ai_labels.scenes[0]}
                             </p>
                           </div>
@@ -1253,7 +1253,7 @@ export default function FileManagerPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {selectedAsset.ai_labels.objects.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Objects</h4>
+                            <h4 className="text-sm font-semibold text-black mb-2">Objects</h4>
                             <div className="flex flex-wrap gap-1">
                               {selectedAsset.ai_labels.objects.slice(0, 8).map((object, index) => (
                                 <span key={index} className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
@@ -1271,7 +1271,7 @@ export default function FileManagerPage() {
 
                         {selectedAsset.ai_labels.style.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Style</h4>
+                            <h4 className="text-sm font-semibold text-black mb-2">Style</h4>
                             <div className="flex flex-wrap gap-1">
                               {selectedAsset.ai_labels.style.map((style, index) => (
                                 <span key={index} className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full">
@@ -1284,7 +1284,7 @@ export default function FileManagerPage() {
 
                         {selectedAsset.ai_labels.mood.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Mood</h4>
+                            <h4 className="text-sm font-semibold text-black mb-2">Mood</h4>
                             <div className="flex flex-wrap gap-1">
                               {selectedAsset.ai_labels.mood.map((mood, index) => (
                                 <span key={index} className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
@@ -1297,7 +1297,7 @@ export default function FileManagerPage() {
 
                         {selectedAsset.ai_labels.themes.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Themes</h4>
+                            <h4 className="text-sm font-semibold text-black mb-2">Themes</h4>
                             <div className="flex flex-wrap gap-1">
                               {selectedAsset.ai_labels.themes.map((theme, index) => (
                                 <span key={index} className="px-3 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
@@ -1314,7 +1314,7 @@ export default function FileManagerPage() {
                     {/* Image Details - moved after AI Analysis */}
                     {selectedAsset.metadata && (
                       <div className="mt-6">
-                        <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                        <h3 className="text-lg font-semibold text-black mb-3">
                           {selectedAsset._keyframe_metadata ? 'Keyframe Details' : 'Image Details'}
                         </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
