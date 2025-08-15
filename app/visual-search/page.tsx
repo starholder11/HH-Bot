@@ -1137,6 +1137,31 @@ function RightPane({
               </button>
             </div>
           </div>
+
+          {/* Canvas Manager Panel */}
+          {showCanvasManager && (
+            <div className="mt-3">
+              <CanvasManagerModal
+                onLoad={(id) => { void loadCanvas(id) }}
+                onDelete={(id) => {
+                  void deleteCanvas(id).then(() => {
+                    void refreshCanvases()
+                  })
+                }}
+                onRename={(id, newName) => {
+                  void renameCanvas(id, newName).then(() => {
+                    void refreshCanvases()
+                  })
+                }}
+                onTrainLora={(id) => {
+                  // Load the canvas first, then train LoRA
+                  void loadCanvas(id).then(() => {
+                    void trainCanvasLora()
+                  })
+                }}
+              />
+            </div>
+          )}
         </div>
       ) : tab === 'layouts' ? (
         <div className="mt-3 h-full">
@@ -2418,28 +2443,6 @@ export default function VisualSearchPage() {
           }
         }}
       />
-
-      {showCanvasManager && (
-        <CanvasManagerModal
-          onLoad={(id) => { void loadCanvas(id) }}
-          onDelete={(id) => {
-            void deleteCanvas(id).then(() => {
-              void refreshCanvases()
-            })
-          }}
-          onRename={(id, newName) => {
-            void renameCanvas(id, newName).then(() => {
-              void refreshCanvases()
-            })
-          }}
-          onTrainLora={(id) => {
-            // Load the canvas first, then train LoRA
-            void loadCanvas(id).then(() => {
-              void trainCanvasLora()
-            })
-          }}
-        />
-      )}
 
       {showCanvasModal && (
         <CanvasBoard
