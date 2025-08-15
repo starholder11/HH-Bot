@@ -36,9 +36,9 @@ export default function CanvasToolbar({
 }) {
   return (
     <>
-      <div className="mb-2 grid grid-cols-1 md:grid-cols-7 gap-2 items-center">
+      <div className="mb-2 grid grid-cols-1 md:grid-cols-8 gap-2 items-center">
         {/* Name */}
-        <div className="min-w-0">
+        <div className="min-w-0 md:col-span-2">
           {!isEditingName ? (
             <div
               className="cursor-text truncate text-neutral-100 text-base"
@@ -60,23 +60,23 @@ export default function CanvasToolbar({
           )}
         </div>
 
-        {/* Save */}
-        <button onClick={() => void saveCanvas()} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
+                {/* Save */}
+        <button onClick={() => void saveCanvas()} className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
 
         {/* Load */}
-        <button onClick={() => setShowCanvasManager(true)} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
+        <button onClick={() => setShowCanvasManager(true)} className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
 
         {/* Export */}
         <button 
           onClick={() => void exportAsLayout()} 
-          className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+          className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
           title="Export canvas as layout asset"
         >
           Export
         </button>
 
         {/* Project dropdown */}
-        <div>
+        <div className="md:col-span-2">
           <label htmlFor="canvas-project-select" className="sr-only">Project</label>
           <select
             id="canvas-project-select"
@@ -97,10 +97,10 @@ export default function CanvasToolbar({
             type="button"
             onClick={() => void trainCanvasLora()}
             disabled={!canvasLoras || !Array.isArray(canvasLoras) || !!(loraTraining && loraTraining.status !== 'failed' && loraTraining.status !== 'COMPLETED')}
-            className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+            className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
             title={!canvasLoras || canvasLoras.length === 0 ? 'Pin at least 3 images to train a LoRA' : 'Train a LoRA from pinned images'}
           >
-            {loraTraining ? `LoRA: ${loraTraining.status}` : 'Train LoRA'}
+            {loraTraining ? `LoRA: ${loraTraining.status}` : 'Train'}
           </button>
           {Array.isArray(canvasLoras) && canvasLoras.length > 0 && (
             <div className="text-xs text-neutral-400 truncate" title={canvasLoras.map((l: any) => `${l.status}${l.artifactUrl ? ' ✓' : ''}`).join(', ')}>
@@ -110,7 +110,7 @@ export default function CanvasToolbar({
         </div>
 
         {/* Clear */}
-        <button onClick={clearCanvas} className="px-2.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Clear</button>
+        <button onClick={clearCanvas} className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Clear</button>
       </div>
 
       {/* Freeform toggle removed - only RGL canvas now */}
