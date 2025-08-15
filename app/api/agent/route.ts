@@ -102,7 +102,7 @@ const tools = {
   }),
 
   prepareGenerate: tool({
-    description: 'Set up media generation with parameters. Call this for any "make/create" requests.',
+    description: 'Set up media generation with parameters. Call this for ANY generation request including "make", "create", "generate", "use X to make Y", etc.',
     parameters: z.object({
       userRequest: z.string().describe('The full user request text to analyze'),
       type: z.enum(['image', 'video', 'audio']).optional().describe('Media type if known'),
@@ -127,35 +127,100 @@ const tools = {
         }
       }
 
-      // Extract prompt from request
+      // Extract LoRA names and prompt from request
+      let finalLoraNames = loraNames || [];
       let finalPrompt = prompt;
-      if (!finalPrompt) {
-        // Try to extract descriptive content after media type
-        const patterns = [
-          // "make video of X" or "make a video of X"
-          /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:video|movie|clip|animation)\s+(?:of|about|with|showing)?\s*(.+)/i,
-          // "make audio of X" or "make a song of X"
-          /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:audio|song|track|music|sound)\s+(?:of|about|with|featuring)?\s*(.+)/i,
-          // "make image of X" or "make a picture of X"
-          /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(?:picture|image|photo)\s+(?:of|about|with|showing)?\s*(.+)/i,
-          // Generic fallback - anything after make/create
-          /(?:make|create|generate|produce|build|design|craft)\s+(.+)/i
+      
+      if (!finalLoraNames.length || !finalPrompt) {
+        // Enhanced patterns for LoRA + generation requests
+        const loraGeneratePatterns = [
+          // "use X lora to make Y" or "use the X lora to make Y"
+          /(?:use|apply|with)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)\s+(?:to\s+)?(?:make|create|generate|build|produce)\s+(.+)/i,
+          // "make Y with X lora" or "create Y using X lora"  
+          /(?:make|create|generate|build|produce)\s+(.+?)\s+(?:with|using)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)/i,
+          // "X lora Y" - simple pattern
+          /(.*?)\s+(?:lora|style)\s+(.+)/i
         ];
-
-        for (const pattern of patterns) {
+        
+        for (const pattern of loraGeneratePatterns) {
           const match = userRequest.match(pattern);
-          if (match && match[1]) {
-            const extracted = match[1].trim();
-            // Skip if it's just the media type
-            if (!['video', 'audio', 'image', 'picture', 'photo', 'song', 'track', 'music', 'movie', 'clip'].includes(extracted.toLowerCase())) {
-              finalPrompt = extracted;
-              break;
+          if (match) {
+            if (pattern.source.includes('use|apply|with')) {
+              // Pattern: "use X lora to make Y"
+              if (match[1] && match[2]) {
+                finalLoraNames = [match[1].trim()];
+                finalPrompt = match[2].trim();
+                break;
+              }
+            } else if (pattern.source.includes('make|create')) {
+              // Pattern: "make Y with X lora"
+              if (match[1] && match[2]) {
+                finalPrompt = match[1].trim();
+                finalLoraNames = [match[2].trim()];
+                break;
+              }
+            } else {
+              // Pattern: "X lora Y"
+              if (match[1] && match[2]) {
+                finalLoraNames = [match[1].trim()];
+                finalPrompt = match[2].trim();
+                break;
+              }
             }
           }
         }
-
+        
+        // Fallback: extract standard generation patterns
+        if (!finalPrompt) {
+          const standardPatterns = [
+            // "make/create X"
+            /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(.+)/i,
+            // Any descriptive content
+            /(.+)/i
+          ];
+          
+          for (const pattern of standardPatterns) {
+            const match = userRequest.match(pattern);
+            if (match && match[1]) {
+              const extracted = match[1].trim();
+              // Clean up common prefixes
+              finalPrompt = extracted
+                .replace(/^(?:a|an|some)\s+/i, '')
+                .replace(/^(?:picture|image|photo|video|audio|song|track|music|movie|clip)\s+(?:of|about|with|showing|featuring)?\s*/i, '');
+              if (finalPrompt) break;
+            }
+          }
+        }
+        
         if (!finalPrompt) {
           finalPrompt = 'Creative content';
+        }
+      }
+
+      // Look up actual LoRA data if names provided
+      let resolvedLoras: any[] = [];
+      if (finalLoraNames.length > 0) {
+        try {
+          const baseUrl = process.env.PUBLIC_API_BASE_URL || `http://localhost:3000`;
+          const res = await fetch(`${baseUrl}/api/loras`, { method: 'GET' });
+          if (res.ok) {
+            const allLoras = await res.json();
+            resolvedLoras = finalLoraNames.map(name => {
+              const cleanName = name.toLowerCase().trim();
+              return allLoras.find((l: any) => 
+                (l.canvasName && l.canvasName.toLowerCase().includes(cleanName)) ||
+                (l.triggerWord && l.triggerWord.toLowerCase().includes(cleanName)) ||
+                (cleanName.includes(l.canvasName?.toLowerCase() || ''))
+              );
+            }).filter(Boolean).map((l: any) => ({
+              path: l.artifactUrl || l.path,
+              scale: 1.0,
+              triggerWord: l.triggerWord,
+              canvasName: l.canvasName
+            }));
+          }
+        } catch (e) {
+          console.warn('Failed to resolve LoRA names:', e);
         }
       }
 
@@ -164,9 +229,12 @@ const tools = {
         payload: {
           type: finalType,
           prompt: finalPrompt,
-          model: model || 'default',
+          model: resolvedLoras.length > 0 ? 'fal-ai/flux-lora' : (model || 'default'),
           refs: refs || [],
-          originalRequest: userRequest
+          options: resolvedLoras.length > 0 ? { loras: resolvedLoras } : {},
+          originalRequest: userRequest,
+          extractedLoraNames: finalLoraNames,
+          resolvedLoras: resolvedLoras
         }
       };
     }
@@ -347,9 +415,9 @@ export async function POST(req: NextRequest) {
   const lastText = typeof lastUserMessage === 'string' ? lastUserMessage : '';
   const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|videos|audio|songs?|music|look.*up|gimme|give me|some|any|all|the)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?|documents?|articles?|posts?|writings?|stories?|text)\b|\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?)\s+(of|about|with|for|from|like|that|related|containing)\b/i;
   const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
-  const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft)\s+.*(picture|image|photo|video|audio|song|track|music|movie|clip|animation)\b/i;
-  const videoGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+.*(video|movie|clip|animation)\b/i;
-  const audioGenerateRegex = /\b(make|create|generate|produce|build|design|craft)\s+.*(audio|song|track|music|sound)\b/i;
+  // Much more flexible generation detection
+  const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft|draw|paint|render|synthesize)\b/i;
+  const loraGenerateRegex = /\b(use|apply|with)\s+.*\b(lora|model|style)\b.*\b(make|create|generate|build|produce|to\s+make)\b|\b(make|create|generate|build|produce)\b.*\b(with|using)\s+.*\b(lora|model|style)\b/i;
   const useContentGenerateRegex = /\b(use|with|using)\s+(the\s+)?(pinned|selected|this|that)\s+.*(to\s+)?(make|create|generate)\b/i;
   const pinIntentRegex = /\b(pin|save|bookmark|attach)\s+.*(to|on)\s+(the\s+)?(canvas|board)\b/i;
   const openCanvasIntentRegex = /\b(open|show|display)\s+(the\s+)?(canvas|board|generation\s+interface)\b/i;
@@ -360,8 +428,12 @@ export async function POST(req: NextRequest) {
   const listLoraIntentRegex = /\b(list|show|what|which|available|get)\s+.*(lora|model|style)s?\b/i;
 
   // Hard guarantee: for specific intents, force appropriate tools (order matters - most specific first)
-  const forcedToolChoice: any = useContentGenerateRegex.test(lastText)
-    ? { type: 'tool', toolName: 'prepareGenerate' }
+  const forcedToolChoice: any = 
+    // LoRA + generation requests (highest priority)
+    loraGenerateRegex.test(lastText)
+      ? { type: 'tool', toolName: 'prepareGenerate' }
+    : useContentGenerateRegex.test(lastText)
+      ? { type: 'tool', toolName: 'prepareGenerate' }
     : saveAsIntentRegex.test(lastText)
       ? { type: 'tool', toolName: 'nameImage' }  // "save as filename" should name first, then save
     : listLoraIntentRegex.test(lastText)
@@ -372,10 +444,10 @@ export async function POST(req: NextRequest) {
         ? { type: 'tool', toolName: 'nameImage' }
         : saveImageIntentRegex.test(lastText)
           ? { type: 'tool', toolName: 'saveImage' }
-          : useLoraIntentRegex.test(lastText)
-            ? { type: 'tool', toolName: 'useCanvasLora' }
-            : generateIntentRegex.test(lastText)
-              ? { type: 'tool', toolName: 'prepareGenerate' }
+          : generateIntentRegex.test(lastText)
+            ? { type: 'tool', toolName: 'prepareGenerate' }
+            : useLoraIntentRegex.test(lastText)
+              ? { type: 'tool', toolName: 'useCanvasLora' }
               : pinIntentRegex.test(lastText)
                 ? { type: 'tool', toolName: 'pinToCanvas' }
                 : searchIntentRegex.test(lastText)
@@ -391,7 +463,7 @@ export async function POST(req: NextRequest) {
     model: openai('gpt-4o-mini') as any,
     system:
       'You are a tool-calling agent. Call exactly ONE tool and stop. ' +
-      'For generation requests (make/create X): call prepareGenerate with userRequest parameter containing the full user message. ' +
+      'For ANY generation requests (make/create/generate X, use Y to make Z, etc.): call prepareGenerate with userRequest parameter containing the full user message. This includes LoRA + generation requests like "use petaflop lora to make X". ' +
       'For search requests: call searchUnified with the query. The tool automatically detects media types (videos, images, audio, etc.) from your query and filters accordingly. ' +
       'For pin requests (pin X to canvas): call pinToCanvas with contentId (extract the ID from user message like "2068-odyssey") and userRequest. ' +
       'For name/save requests (save as filename, name as X): call nameImage with userRequest parameter to extract the filename. ' +
