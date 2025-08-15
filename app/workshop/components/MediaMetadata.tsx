@@ -1,0 +1,468 @@
+"use client";
+import React from 'react';
+import type { UnifiedSearchResult } from '../types';
+
+// Ensure we never try to render objects/arrays directly in JSX
+const toDisplayText = (value: unknown, fallback: string = ''): string => {
+  try {
+    if (value == null) return fallback;
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (typeof value === 'object') {
+      // Avoid huge dumps; provide compact, readable info
+      const json = JSON.stringify(value, null, 2);
+      return json?.slice(0, 4000) || fallback; // hard cap to avoid huge renders
+    }
+    return String(value);
+  } catch {
+    return fallback;
+  }
+};
+
+interface MediaMetadataProps {
+  result: UnifiedSearchResult;
+  fullAsset?: any; // Complete asset data from S3
+  onSearch?: (query: string) => void;
+}
+
+export default function MediaMetadata({ result: r, fullAsset, onSearch }: MediaMetadataProps) {
+  // Use full asset data if available, otherwise fall back to search result metadata
+  const m: any = fullAsset || r.metadata || {};
+
+  // Debug: Log the actual metadata structure
+  console.log('MediaMetadata received:', { 
+    id: r.id, 
+    content_type: r.content_type, 
+    hasFullAsset: !!fullAsset,
+    fullAsset: fullAsset,
+    metadata: m 
+  });
+
+  // Handle audio data structure (SongData format from audio-labeling system)
+  const isAudioSong = r.content_type === 'audio' && fullAsset && 'manual_labels' in fullAsset;
+  const audioData = isAudioSong ? fullAsset : null;
+
+  // Handle keyframe data structure (keyframes appear as content_type 'image' but have special metadata)
+  const isKeyframe = fullAsset && fullAsset.media_type === 'keyframe_still';
+  const keyframeData = isKeyframe ? fullAsset : null;
+
+  // Prevent errors if data is malformed
+  if (!m || typeof m !== 'object') {
+    console.warn('MediaMetadata: Invalid metadata object for', r.id);
+    return (
+      <div className="text-center py-4">
+        <div className="text-yellow-400">No metadata available for this asset</div>
+      </div>
+    );
+  }
+
+  const pick = (...keys: Array<string>): any => {
+    for (const k of keys) {
+      const parts = k.split('.');
+      let cur: any = m;
+      let ok = true;
+      for (const p of parts) {
+        if (cur && typeof cur === 'object' && p in cur) cur = cur[p];
+        else { ok = false; break; }
+      }
+      if (ok && cur != null) return cur;
+    }
+    return undefined;
+  };
+
+  // Extract technical metadata with correct field paths
+  const meta = {
+    width: m.width ?? m.metadata?.width ?? pick('metadata.width', 'metadata.resolution.width'),
+    height: m.height ?? m.metadata?.height ?? pick('metadata.height', 'metadata.resolution.height'),
+    duration: m.duration ?? m.metadata?.duration ?? pick('metadata.duration') ?? audioData?.metadata?.duration,
+    format: m.format ?? m.metadata?.format ?? m.file_type ?? audioData?.metadata?.format,
+    fileSize: m.file_size ?? m.metadata?.file_size ?? pick('metadata.file_size'),
+    aspectRatio: m.aspect_ratio ?? m.metadata?.aspect_ratio ?? pick('metadata.aspect_ratio'),
+    bitrate: m.bitrate ?? m.metadata?.bitrate ?? pick('metadata.bitrate') ?? audioData?.metadata?.bitrate,
+    artist: m.artist ?? m.metadata?.artist ?? pick('metadata.artist') ?? audioData?.metadata?.artist,
+    // Keyframe-specific metadata
+    parentVideoId: keyframeData?.parent_video_id,
+    frameNumber: keyframeData?.frame_number || keyframeData?.source_info?.frame_number,
+    timestamp: keyframeData?.timestamp || keyframeData?.source_info?.timestamp,
+  } as const;
+
+  // Helper to create clickable labels
+  const createClickableLabel = (text: string, className: string, searchQuery?: string) => {
+    const handleClick = () => {
+      if (onSearch && searchQuery) {
+        onSearch(searchQuery);
+      }
+    };
+
+    return (
+      <span
+        key={text}
+        className={`${className} ${onSearch ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+        onClick={handleClick}
+        title={onSearch ? `Search for "${searchQuery || text}"` : undefined}
+      >
+        {text}
+      </span>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Technical Metadata */}
+      <div>
+        <h3 className="text-lg font-semibold text-neutral-200 mb-3">
+          {r.content_type === 'image' ? 'Image Details' :
+           r.content_type === 'video' ? 'Video Details' :
+           'Audio Details'}
+        </h3>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Dimensions for images/videos */}
+          {(r.content_type === 'image' || r.content_type === 'video') && meta.width && meta.height && (
+            <div className="text-center p-3 bg-neutral-800 rounded-lg">
+              <div className="text-xs text-neutral-400 font-medium">Dimensions</div>
+              <div className="text-sm font-bold text-neutral-100 mt-1">
+                {meta.width}×{meta.height}
+              </div>
+            </div>
+          )}
+
+          {/* Duration for video/audio */}
+          {(r.content_type === 'video' || r.content_type === 'audio') && meta.duration && (
+            <div className="text-center p-3 bg-neutral-800 rounded-lg">
+              <div className="text-xs text-neutral-400 font-medium">Duration</div>
+              <div className="text-sm font-bold text-neutral-100 mt-1">
+                {Math.floor(Number(meta.duration) / 60)}:{String(Math.floor(Number(meta.duration) % 60)).padStart(2, '0')}
+              </div>
+            </div>
+          )}
+
+          {/* Format */}
+          {meta.format && (
+            <div className="text-center p-3 bg-neutral-800 rounded-lg">
+              <div className="text-xs text-neutral-400 font-medium">Format</div>
+              <div className="text-sm font-bold text-neutral-100 mt-1">
+                {String(meta.format).toUpperCase()}
+              </div>
+            </div>
+          )}
+
+          {/* File Size */}
+          {meta.fileSize && (
+            <div className="text-center p-3 bg-neutral-800 rounded-lg">
+              <div className="text-xs text-neutral-400 font-medium">File Size</div>
+              <div className="text-sm font-bold text-neutral-100 mt-1">
+                {Number(meta.fileSize) > 1024 * 1024
+                  ? `${(Number(meta.fileSize) / (1024 * 1024)).toFixed(1)} MB`
+                  : `${Math.round(Number(meta.fileSize) / 1024)} KB`}
+              </div>
+            </div>
+          )}
+
+          {/* Aspect Ratio for images/videos */}
+          {(r.content_type === 'image' || r.content_type === 'video') && meta.aspectRatio && (
+            <div className="text-center p-3 bg-neutral-800 rounded-lg">
+              <div className="text-xs text-neutral-400 font-medium">Ratio</div>
+              <div className="text-sm font-bold text-neutral-100 mt-1">
+                {meta.aspectRatio}
+              </div>
+            </div>
+          )}
+
+          {/* Audio-specific metadata */}
+          {r.content_type === 'audio' && meta.bitrate && (
+            <div className="text-center p-3 bg-neutral-800 rounded-lg">
+              <div className="text-xs text-neutral-400 font-medium">Bitrate</div>
+              <div className="text-sm font-bold text-neutral-100 mt-1">
+                {meta.bitrate}
+              </div>
+            </div>
+          )}
+
+          {r.content_type === 'audio' && meta.artist && (
+            <div className="text-center p-3 bg-neutral-800 rounded-lg">
+              <div className="text-xs text-neutral-400 font-medium">Artist</div>
+              <div className="text-sm font-bold text-neutral-100 mt-1">
+                {toDisplayText(meta.artist, 'Unknown')}
+              </div>
+            </div>
+          )}
+
+          {/* Keyframe-specific technical metadata */}
+          {isKeyframe && meta.frameNumber && (
+            <div className="text-center p-3 bg-blue-900/40 rounded-lg border border-blue-800">
+              <div className="text-xs text-blue-300 font-medium">Frame #</div>
+              <div className="text-sm font-bold text-blue-100 mt-1 font-mono">
+                {meta.frameNumber}
+              </div>
+            </div>
+          )}
+
+          {isKeyframe && meta.timestamp && (
+            <div className="text-center p-3 bg-green-900/40 rounded-lg border border-green-800">
+              <div className="text-xs text-green-300 font-medium">Timestamp</div>
+              <div className="text-sm font-bold text-green-100 mt-1 font-mono">
+                {meta.timestamp}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* AI Labels - check metadata.ai_labels (from parsed references) */}
+      {m.ai_labels && (() => {
+        const aiLabels = m.ai_labels;
+        return (
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-200 mb-3">AI Analysis</h3>
+
+          {/* Scene Description */}
+          {aiLabels.scenes?.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold text-neutral-300 mb-2">Scene Description</h4>
+              <div className="bg-purple-950/40 border-l-4 border-purple-400 p-4 rounded-r-lg">
+                <p className="text-neutral-200 leading-relaxed text-sm">
+                  {aiLabels.scenes[0]}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Label Categories */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {aiLabels.objects?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Objects</h4>
+                <div className="flex flex-wrap gap-1">
+                  {aiLabels.objects.slice(0, 8).map((object: string, index: number) =>
+                    createClickableLabel(
+                      object,
+                      "px-3 py-1 text-xs bg-blue-900/40 text-blue-300 rounded-full border border-blue-800",
+                      object
+                    )
+                  )}
+                  {aiLabels.objects.length > 8 && (
+                    <span className="px-3 py-1 text-xs bg-neutral-800 text-neutral-400 rounded-full">
+                      +{aiLabels.objects.length - 8} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {aiLabels.style?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Style</h4>
+                <div className="flex flex-wrap gap-1">
+                  {aiLabels.style.map((style: string, index: number) =>
+                    createClickableLabel(
+                      style,
+                      "px-3 py-1 text-xs bg-green-900/40 text-green-300 rounded-full border border-green-800",
+                      style
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {aiLabels.mood?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Mood</h4>
+                <div className="flex flex-wrap gap-1">
+                  {aiLabels.mood.map((mood: string, index: number) =>
+                    createClickableLabel(
+                      mood,
+                      "px-3 py-1 text-xs bg-yellow-900/40 text-yellow-300 rounded-full border border-yellow-800",
+                      mood
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {aiLabels.themes?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Themes</h4>
+                <div className="flex flex-wrap gap-1">
+                  {aiLabels.themes.map((theme: string, index: number) =>
+                    createClickableLabel(
+                      theme,
+                      "px-3 py-1 text-xs bg-orange-900/40 text-orange-300 rounded-full border border-orange-800",
+                      theme
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* Manual Labels */}
+      {(m.manual_labels || audioData?.manual_labels) && (
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-200 mb-3">Manual Labels</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Use audio data if available, otherwise fall back to m.manual_labels */}
+            {(audioData?.manual_labels?.custom_tags || m.manual_labels?.custom_tags)?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Custom Tags</h4>
+                <div className="flex flex-wrap gap-1">
+                  {(audioData?.manual_labels?.custom_tags || m.manual_labels?.custom_tags || []).map((tag: string, index: number) =>
+                    createClickableLabel(
+                      tag,
+                      "px-3 py-1 text-xs bg-neutral-700 text-neutral-200 rounded-full border border-neutral-600",
+                      tag
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Audio-specific manual labels */}
+            {r.content_type === 'audio' && (audioData?.manual_labels?.primary_genre || m.manual_labels?.primary_genre) && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Genre</h4>
+                {createClickableLabel(
+                  audioData?.manual_labels?.primary_genre || m.manual_labels?.primary_genre,
+                  "px-3 py-1 text-xs bg-purple-900/40 text-purple-300 rounded-full border border-purple-800",
+                  audioData?.manual_labels?.primary_genre || m.manual_labels?.primary_genre
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Audio-specific metrics */}
+          {r.content_type === 'audio' && (audioData?.manual_labels || m.manual_labels) && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              {typeof (audioData?.manual_labels?.energy_level ?? m.manual_labels?.energy_level) === 'number' && (
+                <div className="text-center p-3 bg-neutral-800 rounded-lg">
+                  <div className="text-xs text-neutral-400 font-medium">Energy</div>
+                  <div className="text-sm font-bold text-neutral-100 mt-1">
+                    {audioData?.manual_labels?.energy_level ?? m.manual_labels?.energy_level}/10
+                  </div>
+                </div>
+              )}
+
+              {typeof (audioData?.manual_labels?.emotional_intensity ?? m.manual_labels?.emotional_intensity) === 'number' && (
+                <div className="text-center p-3 bg-neutral-800 rounded-lg">
+                  <div className="text-xs text-neutral-400 font-medium">Intensity</div>
+                  <div className="text-sm font-bold text-neutral-100 mt-1">
+                    {audioData?.manual_labels?.emotional_intensity ?? m.manual_labels?.emotional_intensity}/10
+                  </div>
+                </div>
+              )}
+              
+              {typeof (audioData?.manual_labels?.tempo ?? m.manual_labels?.tempo) === 'number' && (
+                <div className="text-center p-3 bg-neutral-800 rounded-lg">
+                  <div className="text-xs text-neutral-400 font-medium">Tempo</div>
+                  <div className="text-sm font-bold text-neutral-100 mt-1">
+                    {audioData?.manual_labels?.tempo ?? m.manual_labels?.tempo} BPM
+                  </div>
+                </div>
+              )}
+
+              {(audioData?.manual_labels?.vocals ?? m.manual_labels?.vocals) && (
+                <div className="text-center p-3 bg-neutral-800 rounded-lg">
+                  <div className="text-xs text-neutral-400 font-medium">Vocals</div>
+                  <div className="text-sm font-bold text-neutral-100 mt-1">
+                    {toDisplayText(audioData?.manual_labels?.vocals ?? m.manual_labels?.vocals)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Keyframe-specific metadata */}
+      {isKeyframe && keyframeData && (
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-200 mb-3">Keyframe Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Source Video Info */}
+            {keyframeData.source_info && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Source Video</h4>
+                <div className="space-y-2 text-sm text-neutral-300">
+                  <div>
+                    <span className="text-neutral-400">Video:</span>{' '}
+                    <span className="font-medium">{keyframeData.source_info.video_filename}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400">Timestamp:</span>{' '}
+                    <span className="font-mono bg-neutral-800 px-2 py-1 rounded text-green-300">
+                      {keyframeData.source_info.timestamp}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400">Frame:</span>{' '}
+                    <span className="font-mono bg-neutral-800 px-2 py-1 rounded text-blue-300">
+                      #{keyframeData.source_info.frame_number}
+                    </span>
+                  </div>
+                  {keyframeData.source_info.extraction_method && (
+                    <div>
+                      <span className="text-neutral-400">Method:</span>{' '}
+                      <span className="text-purple-300">{keyframeData.source_info.extraction_method}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Usage Tracking */}
+            {keyframeData.usage_tracking && (
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-300 mb-2">Usage</h4>
+                <div className="space-y-2 text-sm text-neutral-300">
+                  <div>
+                    <span className="text-neutral-400">Times Reused:</span>{' '}
+                    <span className="font-medium text-yellow-300">{keyframeData.usage_tracking.times_reused}</span>
+                  </div>
+                  {keyframeData.usage_tracking.projects_used_in?.length > 0 && (
+                    <div>
+                      <span className="text-neutral-400">Projects:</span>{' '}
+                      <span className="text-blue-300">{keyframeData.usage_tracking.projects_used_in.length}</span>
+                    </div>
+                  )}
+                  {keyframeData.usage_tracking.last_used && (
+                    <div>
+                      <span className="text-neutral-400">Last Used:</span>{' '}
+                      <span className="text-neutral-300">{new Date(keyframeData.usage_tracking.last_used).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Reusability */}
+            {typeof keyframeData.reusable_as_image === 'boolean' && (
+              <div className="md:col-span-2">
+                <div className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium ${
+                  keyframeData.reusable_as_image 
+                    ? 'bg-green-900/40 text-green-300 border border-green-800'
+                    : 'bg-orange-900/40 text-orange-300 border border-orange-800'
+                }`}>
+                  {keyframeData.reusable_as_image ? '✓ Reusable as Image' : '⚠ Video Context Required'}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Lyrics for audio - full height, no scroll constraint */}
+      {r.content_type === 'audio' && (audioData?.lyrics || m.lyrics || m.manual_labels?.lyrics) && (
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-200 mb-3">Lyrics</h3>
+          <div className="text-sm text-neutral-300 bg-blue-950/40 p-6 rounded-lg border-l-4 border-blue-400 whitespace-pre-wrap leading-relaxed">
+            {toDisplayText(audioData?.lyrics || m.lyrics || m.manual_labels?.lyrics)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -44,7 +44,7 @@ export default function LayoutEditorPage({ params }: { params: { id: string } })
       <div className="w-full min-h-screen bg-neutral-950 text-neutral-300 flex items-center justify-center p-6">
         <div className="max-w-lg text-center space-y-3">
           <div className="text-red-400 text-sm">{error || 'Layout not found'}</div>
-          <button onClick={() => router.push('/visual-search')} className="px-3 py-1.5 rounded border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm">Back to Visual Search</button>
+          <button onClick={() => router.push('/workshop')} className="px-3 py-1.5 rounded border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm">Back to Workshop</button>
         </div>
       </div>
     );
@@ -53,7 +53,7 @@ export default function LayoutEditorPage({ params }: { params: { id: string } })
   return (
     <LayoutEditorStandalone
       layout={layout}
-      onBack={() => router.push('/visual-search')}
+      onBack={() => router.push('/workshop')}
       onSaved={(updated) => setLayout(updated)}
     />
   );

@@ -1,0 +1,121 @@
+"use client";
+import React, { useEffect, useState } from 'react';
+
+export default function CanvasToolbar({
+  isEditingName,
+  setIsEditingName,
+  canvasName,
+  setCanvasName,
+  autoSaveCanvas,
+  canvasProjectId,
+  setCanvasProjectId,
+  projectsList,
+  saveCanvas,
+  setShowCanvasManager,
+  clearCanvas,
+  loraTraining,
+  trainCanvasLora,
+  canvasLoras,
+  exportAsLayout,
+}: {
+  isEditingName: boolean;
+  setIsEditingName: (v: boolean) => void;
+  canvasName: string;
+  setCanvasName: (v: string) => void;
+  autoSaveCanvas: () => Promise<void> | void;
+  canvasProjectId: string;
+  setCanvasProjectId: (v: string) => void;
+  projectsList: Array<{ project_id: string; name: string }>;
+  saveCanvas: () => Promise<void> | void;
+  setShowCanvasManager: (v: boolean) => void;
+  clearCanvas: () => void;
+  loraTraining: null | { status: string; requestId?: string };
+  trainCanvasLora: () => Promise<void>;
+  canvasLoras: any[];
+  exportAsLayout: () => Promise<void>;
+}) {
+  return (
+    <>
+      <div className="mb-2 grid grid-cols-1 md:grid-cols-8 gap-2 items-center">
+        {/* Name */}
+        <div className="min-w-0 md:col-span-2">
+          {!isEditingName ? (
+            <div
+              className="cursor-text truncate text-neutral-100 text-base"
+              title={canvasName || 'Untitled Canvas'}
+              onDoubleClick={() => setIsEditingName(true)}
+            >
+              {canvasName || 'Untitled Canvas'}
+            </div>
+          ) : (
+            <input
+              value={canvasName}
+              onChange={(e) => setCanvasName(e.target.value)}
+              onBlur={() => { setIsEditingName(false); setTimeout(() => { void autoSaveCanvas(); }, 150); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setIsEditingName(false); void autoSaveCanvas(); } if (e.key === 'Escape') { setIsEditingName(false); } }}
+              autoFocus
+              className="w-full px-2 py-1.5 rounded-md border border-neutral-700 bg-neutral-900 text-neutral-100"
+              placeholder="Canvas name"
+            />
+          )}
+        </div>
+
+                {/* Save */}
+        <button onClick={() => void saveCanvas()} className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-950 hover:bg-neutral-800 text-neutral-100">Save</button>
+
+        {/* Load */}
+        <button onClick={() => setShowCanvasManager(true)} className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Load</button>
+
+        {/* Export */}
+        <button 
+          onClick={() => void exportAsLayout()} 
+          className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100"
+          title="Export canvas as layout asset"
+        >
+          Export
+        </button>
+
+        {/* Project dropdown */}
+        <div className="md:col-span-2">
+          <label htmlFor="canvas-project-select" className="sr-only">Project</label>
+          <select
+            id="canvas-project-select"
+            value={canvasProjectId}
+            onChange={(e) => { setCanvasProjectId(e.target.value); void autoSaveCanvas(); }}
+            className="px-2 py-1.5 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100 w-full"
+          >
+            <option value="">No project</option>
+            {projectsList.map((p) => (
+              <option key={p.project_id} value={p.project_id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Train LoRA */}
+        <div className="flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => void trainCanvasLora()}
+            disabled={!canvasLoras || !Array.isArray(canvasLoras) || !!(loraTraining && loraTraining.status !== 'failed' && loraTraining.status !== 'COMPLETED')}
+            className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100 disabled:opacity-50"
+            title={!canvasLoras || canvasLoras.length === 0 ? 'Pin at least 3 images to train a LoRA' : 'Train a LoRA from pinned images'}
+          >
+            {loraTraining ? `LoRA: ${loraTraining.status}` : 'Train'}
+          </button>
+          {Array.isArray(canvasLoras) && canvasLoras.length > 0 && (
+            <div className="text-xs text-neutral-400 text-center" title={canvasLoras.map((l: any) => `${l.status}${l.artifactUrl ? ' ✓' : ''}`).join(', ')}>
+              {canvasLoras.length} LoRA(s)
+            </div>
+          )}
+        </div>
+
+        {/* Clear */}
+        <button onClick={clearCanvas} className="px-1.5 py-1 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-100">Clear</button>
+      </div>
+
+      {/* Freeform toggle removed - only RGL canvas now */}
+    </>
+  );
+}
+
+

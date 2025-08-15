@@ -33,10 +33,10 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
 
           {/* Site Navigation */}
           <nav className="flex items-center gap-6">
-            <Link href="/file-manager" className="text-lg text-black hover:text-gray-600 transition-colors">
+            <Link href="/library" className="text-lg text-black hover:text-gray-600 transition-colors">
               Library
             </Link>
-            <Link href="/visual-search" className="text-lg text-black hover:text-gray-600 transition-colors">
+            <Link href="/workshop" className="text-lg text-black hover:text-gray-600 transition-colors">
               Workshop
             </Link>
           </nav>
@@ -74,10 +74,10 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
 
         {/* Site Navigation */}
         <nav className="flex items-center gap-6">
-          <Link href="/file-manager" className="text-lg text-white hover:text-neutral-300 transition-colors">
+          <Link href="/library" className="text-lg text-white hover:text-neutral-300 transition-colors">
             Library
           </Link>
-          <Link href="/visual-search" className="text-lg text-white hover:text-neutral-300 transition-colors">
+          <Link href="/workshop" className="text-lg text-white hover:text-neutral-300 transition-colors">
             Workshop
           </Link>
         </nav>
