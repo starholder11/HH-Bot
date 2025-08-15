@@ -50,12 +50,25 @@ function OptimizedResultCard({
   // Prepare text snippet (used for text results and fallback)
   const textSnippet: string | null = (() => {
     if (r.content_type !== 'text') return null;
-    const base = r.preview ?? (r as any).description ?? '';
+    const meta: any = (r as any).metadata || {};
+    const base =
+      r.preview ??
+      (r as any).description ??
+      meta.excerpt ??
+      meta.summary ??
+      meta.text ??
+      meta.content ??
+      meta.body ??
+      meta.chunk_text ??
+      meta.chunkText ??
+      meta.raw ??
+      '';
     try {
       const raw = typeof base === 'string' ? base : JSON.stringify(base);
       const cleaned = stripCircularDescription(raw, { id: r.id, title: String(r.title ?? ''), type: r.content_type });
       const words = cleaned.split(/\s+/);
-      return words.length > 70 ? `${words.slice(0, 70).join(' ')}…` : cleaned;
+      // Allow a larger preview so cards are informative
+      return words.length > 120 ? `${words.slice(0, 120).join(' ')}…` : cleaned;
     } catch {
       return typeof base === 'string' ? base.slice(0, 320) : '';
     }
@@ -147,8 +160,8 @@ function OptimizedResultCard({
             </div>
           // Text
           ) : r.content_type === 'text' && textSnippet ? (
-            <div className="w-full h-40 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 p-3 overflow-hidden">
-              <div className="text-xs leading-snug line-clamp-6 whitespace-pre-wrap">
+            <div className="w-full rounded-md border border-neutral-800 bg-neutral-900 text-neutral-200 p-3 max-h-48 overflow-hidden" title={textSnippet}>
+              <div className="text-xs leading-snug whitespace-pre-wrap break-words">
                 {textSnippet}
               </div>
             </div>
