@@ -1112,9 +1112,29 @@ function RightPane({
             canvasLoras={canvasLoras}
             exportAsLayout={exportAsLayout}
           />
-          {/* Only RGL canvas now - no grid/freeform toggle */}
+          {/* Canvas Content Area - shows either canvas board or canvas manager */}
           <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 min-h-[640px] h-auto">
-            {pinned.length === 0 ? (
+            {showCanvasManager ? (
+              <CanvasManagerModal
+                onLoad={(id) => { void loadCanvas(id) }}
+                onDelete={(id) => {
+                  void deleteCanvas(id).then(() => {
+                    void refreshCanvases()
+                  })
+                }}
+                onRename={(id, newName) => {
+                  void renameCanvas(id, newName).then(() => {
+                    void refreshCanvases()
+                  })
+                }}
+                onTrainLora={(id) => {
+                  // Load the canvas first, then train LoRA
+                  void loadCanvas(id).then(() => {
+                    void trainCanvasLora()
+                  })
+                }}
+              />
+            ) : pinned.length === 0 ? (
               <div className="h-full flex items-center justify-center text-neutral-500 text-sm">Pin results here to build a visual board.</div>
             ) : (
               <GridPinned items={pinned} onReorder={reorderPinned} onRemove={removePinned} onOpen={onOpen} />
@@ -1149,31 +1169,6 @@ function RightPane({
               </button>
             </div>
           </div>
-
-          {/* Canvas Manager Panel */}
-          {showCanvasManager && (
-            <div className="mt-3">
-              <CanvasManagerModal
-                onLoad={(id) => { void loadCanvas(id) }}
-                onDelete={(id) => {
-                  void deleteCanvas(id).then(() => {
-                    void refreshCanvases()
-                  })
-                }}
-                onRename={(id, newName) => {
-                  void renameCanvas(id, newName).then(() => {
-                    void refreshCanvases()
-                  })
-                }}
-                onTrainLora={(id) => {
-                  // Load the canvas first, then train LoRA
-                  void loadCanvas(id).then(() => {
-                    void trainCanvasLora()
-                  })
-                }}
-              />
-            </div>
-          )}
         </div>
       ) : tab === 'layouts' ? (
         <div className="mt-3 h-full">
