@@ -923,6 +923,7 @@ function RightPane({
   loadCanvas,
   deleteCanvas,
   refreshCanvases,
+  renameCanvas,
 }: {
   results: UnifiedSearchResult[];
   loading: boolean;
@@ -995,6 +996,7 @@ function RightPane({
   loadCanvas: (id: string) => Promise<void>;
   deleteCanvas: (id: string) => Promise<void>;
   refreshCanvases: () => Promise<void>;
+  renameCanvas: (id: string, newName: string) => Promise<void>;
 }) {
   return (
     <div className="w-full overflow-hidden">
@@ -2439,6 +2441,7 @@ export default function VisualSearchPage() {
             loadCanvas={loadCanvas}
             deleteCanvas={deleteCanvas}
             refreshCanvases={refreshCanvases}
+            renameCanvas={renameCanvas}
           />
         </div>
       </div>
