@@ -382,7 +382,22 @@ function GenerationPanel({
           if (payload?.model) setAdvancedModelId(payload.model);
           if (payload?.prompt) setValues((prev) => ({ ...prev, prompt: payload.prompt }));
           if (Array.isArray(payload?.refs) && payload.refs.length > 0) setUploadedRefs(payload.refs);
-          if (payload?.options && typeof payload.options === 'object') setValues((prev) => ({ ...prev, ...payload.options }));
+          if (payload?.options && typeof payload.options === 'object') {
+            setValues((prev) => ({ ...prev, ...payload.options }));
+            // If loras provided, also mirror them into selectedLoras so UI reflects selection
+            try {
+              const lorasIn = Array.isArray(payload.options.loras) ? payload.options.loras : [];
+              if (lorasIn.length > 0) {
+                setSelectedLoras(lorasIn.map((l: any, idx: number) => ({
+                  id: l.id || String(idx),
+                  path: l.artifactUrl || l.path,
+                  scale: l.scale ?? 1.0,
+                  selected: true,
+                  label: l.triggerWord || l.canvasName || l.id || 'LoRA'
+                })));
+              }
+            } catch {}
+          }
           // Try to select a model by id if present in loaded list
           const match = (models || []).find((m) => m.id === payload?.model);
           if (match) setSelectedModel(match);

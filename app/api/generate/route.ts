@@ -12,6 +12,11 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   try {
     const { mode, model, prompt, refs = [], options = {} } = await req.json()
+    const normalizedModel = (() => {
+      const m = (model || '').toString().trim().toLowerCase()
+      if (!m || m === 'default' || m === 'auto' || m === 'none') return undefined
+      return model
+    })()
 
     if (!mode || !prompt) {
       return NextResponse.json({ error: 'mode and prompt are required' }, { status: 400 })
@@ -40,11 +45,11 @@ export async function POST(req: NextRequest) {
       if (m.includes('llama') || m.includes('text/')) return 'text'
       return (fallback as any) || 'image'
     }
-    const effectiveMode = inferModeFromModel(model, mode)
+    const effectiveMode = inferModeFromModel(normalizedModel, mode)
 
     // If caller supplied LoRAs via options, force a FLUX LoRA-capable model for image mode
     const hasLoras = Array.isArray((options as any)?.loras) && (options as any).loras.length > 0
-    const selectedModel = (hasLoras && effectiveMode === 'image') ? 'fal-ai/flux-lora' : (model || defaults[effectiveMode])
+    const selectedModel = (hasLoras && effectiveMode === 'image') ? 'fal-ai/flux-lora' : (normalizedModel || defaults[effectiveMode])
     if (!selectedModel) {
       return NextResponse.json({ error: `No default model for mode ${effectiveMode}` }, { status: 400 })
     }
