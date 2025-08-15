@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     const authHeader = `Bearer ${openaiApiKey}`;
     const normalizedQuery = query.trim().toLowerCase();
-    let queryEmbedding: number[] | null = null;
+    let queryEmbedding: number[];
 
     // Try cache first
     const cached = embedCache.get(normalizedQuery);
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'OpenAI embedding failed', details: errText }, { status: 502 });
       }
       const { data: embedData } = await embedResponse.json();
-      queryEmbedding = embedData[0].embedding;
+      queryEmbedding = embedData[0].embedding as number[];
       embedCache.set(normalizedQuery, { embedding: queryEmbedding, ts: Date.now() });
     }
 
@@ -153,12 +153,12 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
           console.log(`🎨 Searching layout assets for query: "${query}"`);
           const { searchMediaAssets } = await import('../../../lib/media-storage');
           const layouts = await searchMediaAssets(query, 'layout');
-          
+
           layoutResults = layouts.filter(layout => layout.media_type === 'layout').map(layout => {
             // Safe type assertion - we know these are layout assets
             const layoutAsset = layout as any;
             const description = layoutAsset.description || layout.ai_labels?.themes?.join(', ') || layout.filename;
-            
+
             return {
               id: layout.id,
               content_type: 'layout' as const,
