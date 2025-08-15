@@ -2347,7 +2347,7 @@ export default function VisualSearchPage() {
           <RightPane
             results={results}
             loading={loading}
-            totalResults={total}
+            totalResults={results.length}
             onPin={pinResult}
             onOpen={(result) => {
               try {
