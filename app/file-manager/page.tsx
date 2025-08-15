@@ -845,14 +845,14 @@ export default function FileManagerPage() {
 
   if (assets.length === 0) {
     return (
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen bg-neutral-100 text-black">
         <div className="container mx-auto p-6">
-          <h1 className="text-3xl font-light tracking-tight mb-6 text-white">Media Library</h1>
+          <h1 className="text-3xl font-light tracking-tight mb-6 text-black">Media Library</h1>
           <div className="text-center py-8">
-            <p className="text-neutral-400 mb-4">No media assets found. Upload some files to get started.</p>
+            <p className="text-neutral-600 mb-4">No media assets found. Upload some files to get started.</p>
             <Button
               onClick={() => setIsUploading(true)}
-              className="bg-neutral-800 border border-neutral-700 text-white hover:bg-neutral-700"
+              className="bg-black border border-neutral-300 text-white hover:bg-neutral-800"
             >
               Upload Media
             </Button>
@@ -863,12 +863,12 @@ export default function FileManagerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-neutral-100 text-black">
       <div className="container mx-auto p-6">
         {/* Header with Search and Filters */}
         <div className="mb-6">
           <div className="mb-4">
-            <h1 className="text-3xl font-light tracking-tight text-white">Media Library</h1>
+            <h1 className="text-3xl font-light tracking-tight text-black">Media Library</h1>
           </div>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {/* Search */}
@@ -938,7 +938,7 @@ export default function FileManagerPage() {
             </Select>
             <Button
               onClick={() => setShowCreateProject(true)}
-              className="px-2 py-0.5 text-xs bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 rounded text-white transition-colors whitespace-nowrap"
+              className="px-2 py-0.5 text-xs bg-black border border-neutral-300 hover:bg-neutral-800 rounded text-white transition-colors whitespace-nowrap"
             >
               New Project
             </Button>
@@ -953,11 +953,11 @@ export default function FileManagerPage() {
         {/* Asset List */}
         <div className="lg:col-span-1">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-white">Assets</h2>
+            <h2 className="text-2xl font-semibold text-black">Assets</h2>
             <Button
               onClick={() => setIsUploading(true)}
               className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-                isUploading ? 'bg-neutral-600 text-white' : 'bg-neutral-800 border border-neutral-700 text-white hover:bg-neutral-700'
+                isUploading ? 'bg-neutral-400 text-white' : 'bg-black border border-neutral-300 text-white hover:bg-neutral-800'
               }`}
             >
               {isUploading ? 'Uploading...' : 'Upload'}
@@ -965,7 +965,7 @@ export default function FileManagerPage() {
           </div>
 
           <div
-            className="space-y-2 max-h-96 overflow-y-auto outline-none"
+            className="space-y-2 max-h-[453px] overflow-y-auto outline-none"
             tabIndex={0}
             onKeyDown={handleAssetListKeyDown}
             onMouseEnter={() => setAssetListFocused(true)}
@@ -996,14 +996,14 @@ export default function FileManagerPage() {
           {/* Pagination Controls over cached list with progressive prefetch */}
           {totalAssetCount > itemsPerPage && (
             <div className="mt-4 flex items-center justify-between border-t border-neutral-700 pt-4">
-              <div className="text-sm text-neutral-400">
+              <div className="text-sm text-neutral-600">
                 Page {currentPage} of {Math.max(1, Math.ceil(totalAssetCount / itemsPerPage))} ({totalAssetCount} loaded)
               </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 text-xs border border-neutral-700 bg-neutral-800 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700"
+                  className="px-3 py-1 text-xs border border-neutral-300 bg-black text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800"
                 >
                   Previous
                 </button>
@@ -1021,7 +1021,7 @@ export default function FileManagerPage() {
                         className={`px-2 py-1 text-xs border rounded ${
                           currentPage === pageNumber
                             ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700'
+                            : 'bg-black border-neutral-300 text-white hover:bg-neutral-800'
                         }`}
                       >
                         {pageNumber}
@@ -1033,7 +1033,7 @@ export default function FileManagerPage() {
                 <button
                   onClick={() => setCurrentPage(prev => prev + 1)}
                   disabled={currentPage === Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)) && !isFetchingChunkRef.current && !serverHasMoreRef.current}
-                  className="px-3 py-1 text-xs border border-neutral-700 bg-neutral-800 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700"
+                  className="px-3 py-1 text-xs border border-neutral-300 bg-black text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800"
                 >
                   Next
                 </button>
