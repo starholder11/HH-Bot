@@ -852,7 +852,7 @@ export default function FileManagerPage() {
             <p className="text-slate-600 mb-4">No media assets found. Upload some files to get started.</p>
             <Button
               onClick={() => setIsUploading(true)}
-              className="bg-black border border-neutral-300 text-white hover:bg-neutral-800"
+              className="bg-slate-700 border border-slate-600 text-white hover:bg-slate-600"
             >
               Upload Media
             </Button>
@@ -938,7 +938,7 @@ export default function FileManagerPage() {
             </Select>
             <Button
               onClick={() => setShowCreateProject(true)}
-              className="px-2 py-0.5 text-xs bg-black border border-neutral-300 hover:bg-neutral-800 rounded text-white transition-colors whitespace-nowrap"
+              className="px-2 py-0.5 text-xs bg-slate-700 border border-slate-600 hover:bg-slate-600 rounded text-white transition-colors whitespace-nowrap"
             >
               New Project
             </Button>
@@ -958,7 +958,7 @@ export default function FileManagerPage() {
             <Button
               onClick={() => setIsUploading(true)}
               className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-                isUploading ? 'bg-neutral-400 text-white' : 'bg-black border border-neutral-300 text-white hover:bg-neutral-800'
+                isUploading ? 'bg-neutral-400 text-white' : 'bg-slate-700 border border-slate-600 text-white hover:bg-slate-600'
               }`}
             >
               {isUploading ? 'Uploading...' : 'Upload'}
@@ -1004,7 +1004,7 @@ export default function FileManagerPage() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 text-xs border border-neutral-300 bg-black text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800"
+                  className="px-3 py-1 text-xs border border-slate-600 bg-slate-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800"
                 >
                   Previous
                 </button>
@@ -1022,7 +1022,7 @@ export default function FileManagerPage() {
                         className={`px-2 py-1 text-xs border rounded ${
                           currentPage === pageNumber
                             ? 'bg-blue-100 text-blue-800 border-blue-400'
-                            : 'bg-black border-neutral-300 text-white hover:bg-neutral-800'
+                            : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'
                         }`}
                       >
                         {pageNumber}
@@ -1034,7 +1034,7 @@ export default function FileManagerPage() {
                 <button
                   onClick={() => setCurrentPage(prev => prev + 1)}
                   disabled={currentPage === Math.max(1, Math.ceil(totalAssetCount / itemsPerPage)) && !isFetchingChunkRef.current && !serverHasMoreRef.current}
-                  className="px-3 py-1 text-xs border border-neutral-300 bg-black text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800"
+                  className="px-3 py-1 text-xs border border-slate-600 bg-slate-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800"
                 >
                   Next
                 </button>
@@ -1124,14 +1124,14 @@ export default function FileManagerPage() {
                               className={`px-3 py-2 text-sm rounded ${
                                 isRenamingFile || !newFilename.trim()
                                   ? 'bg-neutral-400 cursor-not-allowed text-white'
-                                  : 'bg-black hover:bg-neutral-800 text-white'
+                                  : 'bg-slate-700 hover:bg-slate-600 text-white'
                               }`}
                             >
                               {isRenamingFile ? '...' : 'Save'}
                             </Button>
                             <Button
                               onClick={cancelFilenameEdit}
-                              className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 rounded text-white transition-colors"
+                              className="px-3 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors"
                             >
                               Cancel
                             </Button>
@@ -1184,7 +1184,7 @@ export default function FileManagerPage() {
                     <div className="flex items-center gap-3">
                       <Button
                         onClick={startFilenameEdit}
-                        className="px-3 py-2 text-sm bg-black hover:bg-neutral-800 text-white rounded transition-colors"
+                        className="px-3 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-white rounded transition-colors"
                       >
                         Edit
                       </Button>
@@ -1193,7 +1193,7 @@ export default function FileManagerPage() {
                         className={`px-3 py-2 text-sm rounded text-white transition-colors ${
                           isAILabeling
                             ? 'bg-neutral-400 cursor-not-allowed'
-                            : 'bg-black hover:bg-neutral-800'
+                            : 'bg-slate-700 hover:bg-slate-600'
                         }`}
                       >
                         {isAILabeling ? 'Analyzing...' : 'AI Labels'}
@@ -1420,7 +1420,7 @@ export default function FileManagerPage() {
       {/* Upload Modal */}
       {isUploading && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-black border border-neutral-700 text-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-700 border border-slate-600 text-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold">Upload Media</h2>
               <Button
