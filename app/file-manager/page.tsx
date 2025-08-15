@@ -129,25 +129,25 @@ const AssetListItem = memo(function AssetListItem({
       onClick={() => onSelect(asset)}
       className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
         isSelected
-          ? 'bg-blue-900/50 border-blue-600 shadow-md'
-          : 'bg-neutral-900 border-neutral-700 hover:bg-neutral-800 hover:border-neutral-600'
+          ? 'bg-blue-100 border-blue-400 shadow-md'
+          : 'bg-neutral-200 border-neutral-300 hover:bg-neutral-300 hover:border-neutral-400'
       }`}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2">
             <span className="text-sm">{getAssetIcon(asset)}</span>
-            <div className="text-sm font-medium truncate text-white">{asset.title}</div>
+            <div className="text-sm font-medium truncate text-black">{asset.title}</div>
           </div>
-          <div className="text-xs text-neutral-400 truncate">{asset.filename}</div>
-          <div className="text-xs text-blue-400 mt-1">
+          <div className="text-xs text-neutral-600 truncate">{asset.filename}</div>
+          <div className="text-xs text-blue-600 mt-1">
             {displayInfo.primaryLabel}
           </div>
-          <div className="text-xs text-neutral-500 mt-1">
+          <div className="text-xs text-neutral-700 mt-1">
             {displayInfo.secondaryInfo}
           </div>
           {asset.manual_labels?.mood?.length > 0 && (
-            <div className="text-xs text-purple-400 mt-1">
+            <div className="text-xs text-purple-600 mt-1">
               {(asset.manual_labels?.mood || []).slice(0, 2).join(', ')}
               {(asset.manual_labels?.mood || []).length > 2 && '...'}
             </div>
@@ -158,7 +158,7 @@ const AssetListItem = memo(function AssetListItem({
             <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓</span>
           )}
           {asset.cover_art && (
-            <span className="text-xs text-gray-400">🖼️</span>
+            <span className="text-xs text-neutral-600">🖼️</span>
           )}
         </div>
       </div>
@@ -170,20 +170,20 @@ const AssetListItem = memo(function AssetListItem({
 const getAssetIcon = (asset: MediaAsset) => {
   switch (asset.media_type) {
     case 'image':
-      return <Image className="w-5 h-5 text-neutral-400" />;
+      return <Image className="w-5 h-5 text-neutral-600" />;
     case 'keyframe_still':
       return (
         <span className="flex items-center space-x-0.5">
-          <Video className="w-4 h-4 text-neutral-400" />
-          <Image className="w-4 h-4 text-neutral-400" />
+          <Video className="w-4 h-4 text-neutral-600" />
+          <Image className="w-4 h-4 text-neutral-600" />
         </span>
       );
     case 'video':
-      return <Video className="w-5 h-5 text-neutral-400" />;
+      return <Video className="w-5 h-5 text-neutral-600" />;
     case 'audio':
-      return <Music className="w-5 h-5 text-neutral-400" />;
+      return <Music className="w-5 h-5 text-neutral-600" />;
     default:
-      return <FileText className="w-5 h-5 text-neutral-400" />;
+      return <FileText className="w-5 h-5 text-neutral-600" />;
   }
 };
 
@@ -845,11 +845,11 @@ export default function FileManagerPage() {
 
   if (assets.length === 0) {
     return (
-      <div className="min-h-screen bg-neutral-100 text-black">
+      <div className="min-h-screen bg-black text-white">
         <div className="container mx-auto p-6">
-          <h1 className="text-3xl font-light tracking-tight mb-6 text-black">Media Library</h1>
+          <h1 className="text-3xl font-light tracking-tight mb-6 text-white">Media Library</h1>
           <div className="text-center py-8">
-            <p className="text-neutral-600 mb-4">No media assets found. Upload some files to get started.</p>
+            <p className="text-neutral-400 mb-4">No media assets found. Upload some files to get started.</p>
             <Button
               onClick={() => setIsUploading(true)}
               className="bg-black border border-neutral-300 text-white hover:bg-neutral-800"
@@ -863,12 +863,12 @@ export default function FileManagerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 text-black">
+    <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto p-6">
         {/* Header with Search and Filters */}
         <div className="mb-6">
           <div className="mb-4">
-            <h1 className="text-3xl font-light tracking-tight text-black">Media Library</h1>
+            <h1 className="text-3xl font-light tracking-tight text-white">Media Library</h1>
           </div>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {/* Search */}
@@ -878,7 +878,7 @@ export default function FileManagerPage() {
               placeholder="Search titles, tags, AI labels, scenes, objects, moods, themes, lyrics..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 bg-white border border-neutral-300 rounded-lg text-black placeholder-neutral-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
@@ -890,7 +890,7 @@ export default function FileManagerPage() {
                 setMediaTypeFilter(val === 'all' ? '' : val);
               }}
             >
-              <SelectTrigger className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <SelectTrigger className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <SelectValue placeholder="All Media" />
               </SelectTrigger>
               <SelectContent>
@@ -926,7 +926,7 @@ export default function FileManagerPage() {
                 setProjectFilter(val === 'none' ? '' : val);
               }}
             >
-              <SelectTrigger className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <SelectTrigger className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <SelectValue placeholder="All Projects" />
               </SelectTrigger>
               <SelectContent>
@@ -953,7 +953,7 @@ export default function FileManagerPage() {
         {/* Asset List */}
         <div className="lg:col-span-1">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-black">Assets</h2>
+            <h2 className="text-2xl font-semibold text-white">Assets</h2>
             <Button
               onClick={() => setIsUploading(true)}
               className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
@@ -995,8 +995,8 @@ export default function FileManagerPage() {
 
           {/* Pagination Controls over cached list with progressive prefetch */}
           {totalAssetCount > itemsPerPage && (
-            <div className="mt-4 flex items-center justify-between border-t border-neutral-700 pt-4">
-              <div className="text-sm text-neutral-600">
+            <div className="mt-4 flex items-center justify-between border-t border-neutral-300 pt-4">
+              <div className="text-sm text-neutral-400">
                 Page {currentPage} of {Math.max(1, Math.ceil(totalAssetCount / itemsPerPage))} ({totalAssetCount} loaded)
               </div>
               <div className="flex items-center space-x-2">
