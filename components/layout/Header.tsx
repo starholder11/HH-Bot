@@ -31,8 +31,15 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
             </Link>
           </div>
 
-          {/* Spacer to push search to the right */}
-          <div className="flex-1" />
+          {/* Site Navigation */}
+          <nav className="flex items-center gap-6">
+            <Link href="/file-manager" className="text-lg text-black hover:text-gray-600 transition-colors">
+              Library
+            </Link>
+            <Link href="/visual-search" className="text-lg text-black hover:text-gray-600 transition-colors">
+              Workshop
+            </Link>
+          </nav>
 
           {/* Right-aligned search */}
           <div className="flex items-center justify-end pr-2 min-w-[400px]">
@@ -46,7 +53,7 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
   // New black styling for all other routes
   return (
     <header className="bg-black w-full py-6 border-b border-neutral-800">
-      <div className="max-w-7xl mx-auto flex items-center px-6">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-6">
         {/* Logo and title */}
         <div className="flex items-center space-x-4">
           <Link href="/" className="inline-block">
@@ -64,6 +71,16 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
             Starholder
           </Link>
         </div>
+
+        {/* Site Navigation */}
+        <nav className="flex items-center gap-6">
+          <Link href="/file-manager" className="text-lg text-white hover:text-neutral-300 transition-colors">
+            Library
+          </Link>
+          <Link href="/visual-search" className="text-lg text-white hover:text-neutral-300 transition-colors">
+            Workshop
+          </Link>
+        </nav>
       </div>
     </header>
   );
