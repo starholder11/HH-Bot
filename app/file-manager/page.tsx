@@ -963,7 +963,7 @@ export default function FileManagerPage() {
         {/* Asset List */}
         <div className="lg:col-span-1">
           <div className="mb-4">
-            <h2 className="text-xl font-semibold">Assets</h2>
+            <h2 className="text-xl font-semibold text-white">Assets</h2>
           </div>
 
           <div
