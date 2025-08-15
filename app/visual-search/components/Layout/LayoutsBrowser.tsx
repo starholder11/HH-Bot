@@ -55,6 +55,110 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
     return () => window.removeEventListener('layouts:refresh', handler);
   }, []);
 
+  // Create new layout
+  const createNewLayout = async () => {
+    try {
+      const layoutId = `layout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+
+      const newLayout: LayoutAsset = {
+        id: layoutId,
+        filename: `new_layout_${Date.now()}.json`,
+        title: 'Untitled Layout',
+        description: 'A new empty layout',
+        media_type: 'layout',
+        layout_type: 'blueprint_composer',
+        s3_url: `layouts/${layoutId}.json`,
+        cloudflare_url: '',
+        metadata: {
+          file_size: 0,
+          width: 1200,
+          height: 800,
+          cell_size: 20,
+          item_count: 0,
+          has_inline_content: false,
+          has_transforms: false
+        },
+        layout_data: {
+          designSize: { width: 1200, height: 800 },
+          cellSize: 20,
+          styling: {
+            theme: 'dark',
+            colors: {
+              background: '#0b0b0b',
+              text: '#ffffff',
+              primary: '#3b82f6',
+              secondary: '#6b7280',
+              accent: '#8b5cf6'
+            },
+            typography: {
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              headingFont: 'system-ui, -apple-system, sans-serif',
+              bodyFont: 'system-ui, -apple-system, sans-serif'
+            }
+          },
+          items: []
+        },
+        html: '',
+        css: '',
+        created_at: now,
+        updated_at: now,
+        project_id: undefined,
+        timestamps: {
+          uploaded: now,
+          metadata_extracted: now,
+          labeled_ai: null,
+          labeled_reviewed: null,
+          html_generated: null
+        },
+        processing_status: {
+          upload: 'completed',
+          metadata_extraction: 'completed',
+          ai_labeling: 'not_started',
+          manual_review: 'pending',
+          html_generation: 'pending'
+        },
+        ai_labels: {
+          scenes: [],
+          objects: [],
+          style: [],
+          mood: [],
+          themes: [],
+          confidence_scores: {}
+        },
+        manual_labels: {
+          scenes: [],
+          objects: [],
+          style: [],
+          mood: [],
+          themes: [],
+          custom_tags: []
+        }
+      };
+
+      // Create layout via API
+      const response = await fetch('/api/media-assets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newLayout)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create layout');
+      }
+
+      // Load the new layout in the layout editor
+      onSelectLayout(newLayout);
+
+      // Refresh layouts list
+      loadLayouts().catch((e) => console.warn('Background refresh failed after create:', e));
+
+    } catch (err) {
+      console.error('Failed to create new layout:', err);
+      alert('Failed to create new layout: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
   // Delete layout
   const deleteLayout = async (layoutId: string) => {
     if (!confirm('Are you sure you want to delete this layout?')) return;
@@ -140,12 +244,20 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-neutral-100">Saved Layouts ({layouts.length})</h3>
-        <button
-          onClick={loadLayouts}
-          className="px-2 py-1 text-xs rounded border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={createNewLayout}
+            className="px-2 py-1 text-xs rounded border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300"
+          >
+            New Layout
+          </button>
+          <button
+            onClick={loadLayouts}
+            className="px-2 py-1 text-xs rounded border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4 max-h-96 overflow-y-auto">
