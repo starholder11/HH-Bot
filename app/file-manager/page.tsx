@@ -130,7 +130,7 @@ const AssetListItem = memo(function AssetListItem({
       className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
         isSelected
           ? 'bg-blue-100 border-blue-400 shadow-md'
-          : 'bg-neutral-200 border-neutral-300 hover:bg-neutral-300 hover:border-neutral-400'
+          : 'bg-neutral-50 border-neutral-200 hover:bg-neutral-100 hover:border-neutral-300'
       }`}
     >
       <div className="flex justify-between items-start">
@@ -952,8 +952,9 @@ export default function FileManagerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
         {/* Asset List */}
         <div className="lg:col-span-1">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-white">Assets</h2>
+          <div className="bg-neutral-100 border border-neutral-300 rounded-lg p-4">
+            <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-black">Assets</h2>
             <Button
               onClick={() => setIsUploading(true)}
               className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
@@ -965,7 +966,7 @@ export default function FileManagerPage() {
           </div>
 
           <div
-            className="space-y-2 max-h-[453px] overflow-y-auto outline-none"
+            className="space-y-2 max-h-[453px] overflow-y-auto outline-none px-2"
             tabIndex={0}
             onKeyDown={handleAssetListKeyDown}
             onMouseEnter={() => setAssetListFocused(true)}
@@ -996,7 +997,7 @@ export default function FileManagerPage() {
           {/* Pagination Controls over cached list with progressive prefetch */}
           {totalAssetCount > itemsPerPage && (
             <div className="mt-4 flex items-center justify-between border-t border-neutral-300 pt-4">
-              <div className="text-sm text-neutral-400">
+              <div className="text-sm text-neutral-600">
                 Page {currentPage} of {Math.max(1, Math.ceil(totalAssetCount / itemsPerPage))} ({totalAssetCount} loaded)
               </div>
               <div className="flex items-center space-x-2">
@@ -1040,6 +1041,7 @@ export default function FileManagerPage() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Main Content */}
