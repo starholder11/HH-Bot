@@ -1021,7 +1021,7 @@ export default function FileManagerPage() {
                         onClick={() => setCurrentPage(pageNumber)}
                         className={`px-2 py-1 text-xs border rounded ${
                           currentPage === pageNumber
-                            ? 'bg-blue-600 text-white border-blue-600'
+                            ? 'bg-blue-100 text-blue-800 border-blue-400'
                             : 'bg-black border-neutral-300 text-white hover:bg-neutral-800'
                         }`}
                       >
@@ -1050,7 +1050,7 @@ export default function FileManagerPage() {
           {/* Search Results Thumbnail Grid */}
           {isSearchActive && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Search Results ({filteredAssets?.length || 0})</h2>
+              <h2 className="text-xl font-semibold text-white">Search Results ({filteredAssets?.length || 0})</h2>
               {!filteredAssets || filteredAssets.length === 0 ? (
                 <div className="text-gray-500">No assets match your search.</div>
               ) : (
