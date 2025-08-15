@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react';
 import { useResultsStore } from '../store/resultsStore';
 import * as searchService from '../services/searchService';
 import { debug } from '../utils/log';
+import { getResultMediaUrl } from '../utils/mediaUrl';
 
 // Simple in-memory cache for search results
 const searchCache = new Map<string, { results: any; timestamp: number; total: number }>();
@@ -11,6 +12,8 @@ export function useResults() {
   const controllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const { setAllResults, setResults } = useResultsStore();
+
+  const requestIdRef = useRef(0);
 
   const executeSearch = useCallback(async (query: string, page?: number, type?: string, immediate = false) => {
     // Clear existing debounce timer
@@ -24,7 +27,7 @@ export function useResults() {
         controllerRef.current?.abort();
         const controller = new AbortController();
         controllerRef.current = controller;
-
+        const reqId = ++requestIdRef.current;
         // Create cache key from query params
         const cacheKey = `${query}-${page || 1}-${type || 'all'}`;
 
@@ -43,12 +46,21 @@ export function useResults() {
         setResults([], 0);
         setAllResults([], 0);
 
-        const json = await searchService.get(query, { 
+        // Kick off fast and full requests in parallel
+        const fastPromise = searchService.get(query, { 
           page: page || 1,
           type, 
           signal: controller.signal,
-          fast: true // ask server for a quicker initial pool
+          fast: true
         });
+        const fullPromise = searchService.get(query, { 
+          page: page || 1,
+          type, 
+          signal: controller.signal,
+          fast: false
+        });
+
+        const json = await fastPromise; // await only fast for quicker first paint
 
         if (!controller.signal.aborted) {
           const allResults = json.results.all || [];
@@ -58,7 +70,9 @@ export function useResults() {
 
           // Render first batch immediately (first 12 results)
           const firstBatch = allResults.slice(0, 12);
-          setResults(firstBatch, totalResults);
+          // Precompute media URLs to avoid work during render
+          const firstBatchWithUrls = firstBatch.map((r: any) => ({ ...r, _url: getResultMediaUrl(r) }));
+          setResults(firstBatchWithUrls as any, totalResults);
           setAllResults(allResults, totalResults);
 
           // Progressive loading of remaining results
@@ -66,13 +80,15 @@ export function useResults() {
             // Render remaining results in batches after a short delay
             setTimeout(() => {
               if (!controller.signal.aborted) {
-                setResults(allResults.slice(0, 50), totalResults);
+                const b = allResults.slice(0, 50).map((r: any) => ({ ...r, _url: getResultMediaUrl(r) }));
+                setResults(b as any, totalResults);
               }
             }, 100);
 
             setTimeout(() => {
               if (!controller.signal.aborted) {
-                setResults(allResults.slice(0, 100), totalResults);
+                const b = allResults.slice(0, 100).map((r: any) => ({ ...r, _url: getResultMediaUrl(r) }));
+                setResults(b as any, totalResults);
               }
             }, 300);
           }
@@ -83,6 +99,22 @@ export function useResults() {
             timestamp: Date.now(),
             total: totalResults
           });
+
+          // When full request completes, upgrade results seamlessly
+          void fullPromise.then((fullJson) => {
+            if (controller.signal.aborted || reqId !== requestIdRef.current) return;
+            try {
+              const fullAll = (fullJson?.results?.all as any[]) || [];
+              const total = fullJson?.total_results || fullAll.length;
+              const withUrls = fullAll.map((r: any) => ({ ...r, _url: getResultMediaUrl(r) }));
+              setAllResults(withUrls as any, total);
+              // Keep current page size but upgrade data to full set
+              setResults(withUrls.slice(0, 100) as any, total);
+              searchCache.set(cacheKey, { results: withUrls as any, timestamp: Date.now(), total });
+            } catch (e) {
+              debug('vs:search', 'full upgrade failed', (e as any)?.message);
+            }
+          }).catch(() => undefined);
         }
       } catch (e: any) {
         if (e.name !== 'AbortError') {
