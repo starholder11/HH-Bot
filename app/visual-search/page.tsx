@@ -2421,8 +2421,7 @@ export default function VisualSearchPage() {
 
       {showCanvasManager && (
         <CanvasManagerModal
-          onClose={() => setShowCanvasManager(false)}
-          onLoad={(id) => { setShowCanvasManager(false); void loadCanvas(id) }}
+          onLoad={(id) => { void loadCanvas(id) }}
           onDelete={(id) => {
             void deleteCanvas(id).then(() => {
               void refreshCanvases()
