@@ -1001,6 +1001,24 @@ function RightPane({
             Results
           </button>
           <button
+            onClick={() => setTab('generate')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'generate' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Generate
+          </button>
+          <button
+            onClick={() => setTab('output')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'output' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Output
+          </button>
+          <button
             onClick={() => setTab('canvas')}
             className={classNames(
               'px-3 py-1.5 text-sm rounded-md border',
@@ -1017,24 +1035,6 @@ function RightPane({
             )}
           >
             Layouts
-          </button>
-          <button
-            onClick={() => setTab('output')}
-            className={classNames(
-              'px-3 py-1.5 text-sm rounded-md border',
-              tab === 'output' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
-            )}
-          >
-            Output
-          </button>
-          <button
-            onClick={() => setTab('generate')}
-            className={classNames(
-              'px-3 py-1.5 text-sm rounded-md border',
-              tab === 'generate' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
-            )}
-          >
-            Generate
           </button>
         </div>
       </div>
