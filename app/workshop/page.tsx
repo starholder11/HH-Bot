@@ -1071,10 +1071,10 @@ function RightPane({
           </div>
           <div className="mt-2">
             {/* Show paginated results using virtual scrolling for performance */}
-            {(allResults?.length || 0) > 0 ? (
+            {(allResults && allResults.length > 0) ? (
               <>
                 <VirtualResultsGrid
-                  results={getPaginatedResults()}
+                  results={getPaginatedResults ? getPaginatedResults() : []}
                   renderCard={(r) => (
                     <VSResultCard
                       r={r}
@@ -1095,7 +1095,7 @@ function RightPane({
                 {/* Pagination Controls */}
                 <Pagination
                   currentPage={page}
-                  totalPages={getTotalPages()}
+                  totalPages={getTotalPages ? getTotalPages() : 1}
                   onPageChange={setPage}
                 />
               </>
@@ -1304,11 +1304,19 @@ function RightPane({
 
 export default function VisualSearchPage() {
   const { executeSearch } = useResults();
-  const { query, results, total, setQuery, setResults, page, setPage } = useResultsStore();
   const resultsStore = useResultsStore();
-  const allResults = resultsStore.allResults;
-  const getPaginatedResults = resultsStore.getPaginatedResults;
-  const getTotalPages = resultsStore.getTotalPages;
+  const {
+    query,
+    results,
+    total,
+    setQuery,
+    setResults,
+    page,
+    setPage,
+    allResults,
+    getPaginatedResults,
+    getTotalPages
+  } = resultsStore;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { rightTab, setRightTab, multiSelect, selectedIds, toggleMultiSelect, setSelectedIds, toggleSelectedId } = useUiStore();
