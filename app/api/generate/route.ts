@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // If caller supplied LoRAs via options, force a FLUX LoRA-capable model for image mode
     const hasLoras = Array.isArray((options as any)?.loras) && (options as any).loras.length > 0
-    const selectedModel = (hasLoras && effectiveMode === 'image') ? 'fal-ai/flux-lora' : (normalizedModel || defaults[effectiveMode])
+    let selectedModel: string = (hasLoras && effectiveMode === 'image') ? 'fal-ai/flux-lora' : (normalizedModel || defaults[effectiveMode])
     if (!selectedModel) {
       return NextResponse.json({ error: `No default model for mode ${effectiveMode}` }, { status: 400 })
     }
@@ -75,15 +75,8 @@ export async function POST(req: NextRequest) {
       input.reference_images = input.reference_images || filteredRefs
     }
 
-    // Attach LoRAs if provided in options and using a FLUX model
-    if (hasLoras && typeof selectedModel === 'string' && selectedModel.includes('flux')) {
-      const loras = (options as any).loras as any[]
-      input.loras = loras.map((l) => ({ path: l.artifactUrl || l.path, scale: l.scale ?? 1.0 }))
-      // Ensure any accidental nesting is not forwarded to provider in duplicate
-      // Keep options.loras as-is for response echoing if needed
-    }
-
     // Auto-detect LoRA by trigger word present in prompt if none explicitly provided
+    let lorasFromPrompt: Array<{ path: string; scale: number }> = []
     if (!hasLoras && effectiveMode === 'image') {
       try {
         const res = await fetch(`${process.env.PUBLIC_API_BASE_URL || ''}/api/loras` || '/api/loras', { next: { revalidate: 0 } })
@@ -92,18 +85,22 @@ export async function POST(req: NextRequest) {
           const p = (input.prompt || '').toString().toLowerCase()
           const matches = Array.isArray(list) ? list.filter((l: any) => (l.triggerWord || '').toLowerCase() && p.includes((l.triggerWord || '').toLowerCase())) : []
           if (matches.length > 0) {
-            input.loras = matches.map((m: any) => ({ path: m.artifactUrl || m.path, scale: 1.0 }))
-            // Force flux-lora model if we auto-attached
-            console.log('[api/generate] ✅ Auto-attached LoRAs from prompt:', input.loras)
-            return await runFal('fal-ai/flux-lora').then((result) => {
-              // Return early with LoRA-applied result
-              const imageUrl: string | undefined = result?.images?.[0]?.url || result?.image?.url || result?.data?.images?.[0]?.url
-              if (imageUrl) return NextResponse.json({ success: true, url: imageUrl, result })
-              return NextResponse.json({ success: true, result })
-            })
+            lorasFromPrompt = matches.map((m: any) => ({ path: m.artifactUrl || m.path, scale: 1.0 }))
+            selectedModel = 'fal-ai/flux-lora'
+            console.log('[api/generate] ✅ Auto-detected LoRAs from prompt; forcing flux-lora:', lorasFromPrompt)
           }
         }
       } catch {}
+    }
+
+    // Attach LoRAs if provided in options or detected from prompt, when using a FLUX model
+    if (selectedModel.includes('flux')) {
+      if (hasLoras) {
+        const loras = (options as any).loras as any[]
+        input.loras = loras.map((l) => ({ path: l.artifactUrl || l.path, scale: l.scale ?? 1.0 }))
+      } else if (lorasFromPrompt.length > 0) {
+        input.loras = lorasFromPrompt
+      }
     }
 
     // Sanitize video-specific inputs to avoid 422s from provider
