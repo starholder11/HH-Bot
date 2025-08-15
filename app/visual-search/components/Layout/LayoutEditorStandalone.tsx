@@ -60,6 +60,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [imageModalTargetId, setImageModalTargetId] = useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(edited.title);
 
   const openRteForId = React.useCallback((id: string) => {
     setSelectedId(id);
@@ -474,6 +476,36 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     }
   };
 
+  const handleTitleSave = async () => {
+    if (editingTitle.trim() && editingTitle !== edited.title) {
+      const updatedLayout = {
+        ...edited,
+        title: editingTitle.trim(),
+        updated_at: new Date().toISOString()
+      };
+      
+      setEdited(updatedLayout);
+      
+      // Auto-save the title change
+      try {
+        const response = await fetch(`/api/media-assets/${edited.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedLayout),
+        });
+
+        if (!response.ok) throw new Error('Title save failed');
+        
+        onSaved?.(updatedLayout);
+      } catch (error) {
+        console.error('Failed to save title:', error);
+        // Revert on error
+        setEditingTitle(edited.title);
+      }
+    }
+    setIsEditingTitle(false);
+  };
+
   const headerHeightPx = 56; // h-14
 
   return (
@@ -481,7 +513,36 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       {/* Header */}
       <div className="sticky top-0 z-50 h-14 border-b border-neutral-700 bg-black flex items-center justify-between px-4">
         <div className="flex items-center gap-4 ml-32">
-          <h2 className="text-lg font-medium text-white">{edited.title}</h2>
+          {isEditingTitle ? (
+            <input
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onBlur={handleTitleSave}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleTitleSave();
+                }
+                if (e.key === 'Escape') {
+                  setEditingTitle(edited.title);
+                  setIsEditingTitle(false);
+                }
+              }}
+              autoFocus
+              className="text-lg font-medium bg-transparent border border-neutral-600 rounded px-2 py-1 text-white min-w-[200px]"
+              placeholder="Layout title"
+            />
+          ) : (
+            <h2 
+              className="text-lg font-medium text-white cursor-pointer hover:text-neutral-300 transition-colors"
+              onDoubleClick={() => {
+                setIsEditingTitle(true);
+                setEditingTitle(edited.title);
+              }}
+              title="Double-click to edit title"
+            >
+              {edited.title}
+            </h2>
+          )}
           <div className="text-xs text-white">• {edited.layout_data.items.length} items</div>
           <div className="text-xs text-white">• {design.width}×{design.height}px</div>
           {onBack && (
