@@ -563,11 +563,11 @@ export default function AudioEditorPage() {
   }
 
   return (
-    <div className="space-y-6 bg-black text-white">
+    <div className="space-y-6">
       {selectedSong && (
         <div className="space-y-6">
           {/* Song Info with Cover Art */}
-          <Card className="p-6 bg-black border border-neutral-700 text-white">
+          <Card className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
                 {/* Top Row: Title (edit) | Category Selector */}
@@ -599,12 +599,12 @@ export default function AudioEditorPage() {
                       <div className="flex items-center space-x-2 group flex-1">
                         <span className="text-xl">🎵</span>
                         <div className="flex-1">
-                          <h2 className="text-2xl font-bold text-white">{selectedSong.title}</h2>
-                          <div className="text-xs text-neutral-400">ID: {selectedSong.id}</div>
+                          <h2 className="text-2xl font-bold">{selectedSong.title}</h2>
+                          <div className="text-xs text-gray-500">ID: {selectedSong.id}</div>
                         </div>
                         <Button
                           onClick={startEditingTitle}
-                          className="opacity-0 group-hover:opacity-100 px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 transition-opacity text-white"
+                          className="opacity-0 group-hover:opacity-100 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 transition-opacity"
                         >
                           edit
                         </Button>
@@ -690,7 +690,7 @@ export default function AudioEditorPage() {
                     );
                   })()
                 ) : (
-                  <div className="w-32 h-32 border-2 border-dashed border-neutral-700 rounded-lg flex items-center justify-center bg-neutral-900 hover:bg-neutral-800 transition-colors">
+                  <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
                     <label className="cursor-pointer text-center text-gray-500 hover:text-gray-700">
                       <div className="text-3xl mb-2">🖼️</div>
                       <div className="text-xs font-medium">Add Cover Art</div>
@@ -729,7 +729,7 @@ export default function AudioEditorPage() {
             {/* Production Prompt */}
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold">Prompt:</h3>
+                <h3 className="font-semibold text-gray-700">Prompt:</h3>
                 {!editingPrompt && (
                   <Button
                     onClick={startEditingPrompt}
@@ -749,17 +749,17 @@ export default function AudioEditorPage() {
                     autoFocus
                   />
                   <div className="flex space-x-2">
-                    <Button onClick={savePrompt} className="px-3 py-1 text-sm bg-green-700 hover:bg-green-600 text-white">
+                    <Button onClick={savePrompt} className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700">
                       Save
                     </Button>
-                    <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 text-white">
+                    <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600">
                       Cancel
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className={`text-sm p-3 rounded-lg border border-neutral-700 ${selectedSong.prompt ? 'text-neutral-200 bg-neutral-900' : 'text-neutral-400 bg-neutral-900'}`}>
-                  {selectedSong.prompt || <em className="text-neutral-500">No prompt provided - click Edit to add</em>}
+                <div className={`text-sm p-3 rounded-lg border-l-4 ${selectedSong.prompt ? 'text-gray-600 bg-amber-50 border-amber-400' : 'text-gray-400 bg-gray-50 border-gray-300'}`}>
+                  {selectedSong.prompt || <em>No prompt provided - click Edit to add</em>}
                 </div>
               )}
             </div>
@@ -767,7 +767,7 @@ export default function AudioEditorPage() {
             {/* Lyrics */}
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold">Lyrics:</h3>
+                <h3 className="font-semibold text-gray-700">Lyrics:</h3>
                 {!editingLyrics && (
                   <Button
                     onClick={startEditingLyrics}
@@ -787,17 +787,17 @@ export default function AudioEditorPage() {
                     autoFocus
                   />
                   <div className="flex space-x-2">
-                    <Button onClick={saveLyrics} className="px-3 py-1 text-sm bg-green-700 hover:bg-green-600 text-white">
+                    <Button onClick={saveLyrics} className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700">
                       Save
                     </Button>
-                    <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 text-white">
+                    <Button onClick={cancelEdit} className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600">
                       Cancel
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className={`text-sm p-3 rounded-lg max-h-40 overflow-y-auto whitespace-pre-wrap font-mono border border-neutral-700 ${selectedSong.lyrics ? 'text-neutral-200 bg-neutral-900' : 'text-neutral-400 bg-neutral-900'}`}>
-                  {selectedSong.lyrics || <em className="text-neutral-500">No lyrics provided - click Edit to add</em>}
+                <div className={`text-sm p-3 rounded-lg max-h-40 overflow-y-auto whitespace-pre-wrap font-mono ${selectedSong.lyrics ? 'text-gray-600 bg-gray-50' : 'text-gray-400 bg-gray-50 border-2 border-dashed border-gray-300'}`}>
+                  {selectedSong.lyrics || <em>No lyrics provided - click Edit to add</em>}
                 </div>
               )}
             </div>
