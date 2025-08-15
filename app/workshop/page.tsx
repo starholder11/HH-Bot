@@ -1074,7 +1074,13 @@ function RightPane({
             {/* Show results using virtual scrolling for performance */}
             {loading ? (
               <VirtualResultsGrid
-                results={Array(12).fill(null).map((_, i) => ({ id: `skeleton-${i}` }))}
+                results={Array(12).fill(null).map((_, i) => ({ 
+                  id: `skeleton-${i}`,
+                  content_type: 'skeleton' as any,
+                  title: '',
+                  score: 0,
+                  metadata: {}
+                }))}
                 renderCard={() => <SkeletonCard />}
               />
             ) : results.length > 0 ? (
@@ -1097,7 +1103,7 @@ function RightPane({
                     />
                   )}
                 />
-                
+
                 {/* Pagination Controls - simplified for now */}
                 {results.length >= 100 && (
                   <div className="flex items-center justify-center gap-4 mt-6">
@@ -1151,7 +1157,7 @@ function RightPane({
           <div className="rounded-xl border border-neutral-800 p-2 bg-neutral-950 min-h-[640px] h-auto">
             {showCanvasManager ? (
               <CanvasManagerModal
-                onLoad={(id) => { 
+                onLoad={(id) => {
                   setShowCanvasManager(false); // Hide canvas manager
                   void loadCanvas(id); // Load the canvas
                 }}
