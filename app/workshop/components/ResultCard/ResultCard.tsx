@@ -10,7 +10,7 @@ function classNames(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
 }
 
-function MediaPreview({ r }: { r: UnifiedSearchResult }) {
+function MediaPreview({ r, index = 0 }: { r: UnifiedSearchResult; index?: number }) {
   const mediaUrl = getResultMediaUrl(r);
   if (r.content_type === 'image' && mediaUrl) {
     return (
@@ -19,7 +19,10 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
         alt={r.title}
         className="w-full h-40 object-cover rounded-md border border-neutral-800"
         draggable={false}
-        loading="lazy"
+        loading={index < 6 ? 'eager' : 'lazy'}
+        // Provide an explicit size hint to avoid layout shifts
+        width={640}
+        height={360}
         decoding="async"
         onError={(e) => {
           // Fallback to a placeholder if image fails to load
@@ -34,6 +37,7 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
       <video
         src={mediaUrl}
         controls
+        preload="metadata"
         className="w-full h-40 object-cover rounded-md border border-neutral-800 bg-black"
       />
     );
@@ -41,7 +45,7 @@ function MediaPreview({ r }: { r: UnifiedSearchResult }) {
   if (r.content_type === 'audio' && mediaUrl) {
     return (
       <div className="w-full h-40 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-950">
-        <audio src={mediaUrl} controls className="w-full px-2" />
+        <audio src={mediaUrl} controls preload="none" className="w-full px-2" />
       </div>
     );
   }
@@ -195,7 +199,8 @@ function ResultCardComponent({
         </div>
       </div>
       <div className="px-3">
-        <MediaPreview r={r} />
+        {/* Pass index to optimize above-the-fold items */}
+        <MediaPreview r={r} index={(r as any)._idx ?? 0} />
       </div>
       <div className={classNames(
         "p-3 flex flex-col justify-between",

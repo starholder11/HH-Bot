@@ -20,6 +20,8 @@ export default function VirtualResultsGrid({
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
+  // Progressive mount: render a small subset first, then grow in idle time
+  const [visibleCount, setVisibleCount] = useState<number>(Math.min(24, results.length));
 
   // Calculate visible range
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
@@ -28,7 +30,9 @@ export default function VirtualResultsGrid({
     Math.floor((scrollTop + containerHeight) / itemHeight) + overscan
   );
 
-  const visibleItems = results.slice(startIndex, endIndex + 1);
+  // Progressive cap to avoid mounting too many nodes at once
+  const cappedEnd = Math.min(endIndex + 1, visibleCount);
+  const visibleItems = results.slice(startIndex, cappedEnd);
   const totalHeight = results.length * itemHeight;
   const offsetY = startIndex * itemHeight;
 
@@ -58,6 +62,41 @@ export default function VirtualResultsGrid({
     };
   }, [handleScroll]);
 
+  // When results change, reset progressive count
+  useEffect(() => {
+    setVisibleCount(Math.min(24, results.length));
+  }, [results]);
+
+  // Incrementally increase the number of mounted items without blocking paint
+  useEffect(() => {
+    if (visibleCount >= results.length) return;
+    let raf = 0;
+    let idle: number | null = null;
+
+    const grow = () => {
+      setVisibleCount((prev) => {
+        if (prev >= results.length) return prev;
+        // Increase in small batches to keep FPS smooth
+        const next = Math.min(results.length, prev + 16);
+        return next;
+      });
+    };
+
+    const schedule = () => {
+      if ('requestIdleCallback' in window) {
+        idle = (window as any).requestIdleCallback(grow, { timeout: 120 });
+      } else {
+        raf = window.setTimeout(grow, 60);
+      }
+    };
+
+    schedule();
+    return () => {
+      if (idle) (window as any).cancelIdleCallback?.(idle);
+      if (raf) clearTimeout(raf);
+    };
+  }, [visibleCount, results.length]);
+
   return (
     <div 
       ref={containerRef}
@@ -77,7 +116,7 @@ export default function VirtualResultsGrid({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {visibleItems.map((result, idx) => (
               <div key={result.id ?? (startIndex + idx)} className="w-full">
-                {renderCard(result, startIndex + idx)}
+                {renderCard({ ...(result as any), _idx: startIndex + idx }, startIndex + idx)}
               </div>
             ))}
           </div>
