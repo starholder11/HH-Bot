@@ -94,7 +94,7 @@ export default function LayoutsBrowser({ onSelectLayout, selectedLayoutId }: Lay
         css: '',
         created_at: now,
         updated_at: now,
-        project_id: undefined,
+        projectId: undefined,
         timestamps: {
           created: now,
           updated: now,
