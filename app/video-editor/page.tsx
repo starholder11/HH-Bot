@@ -472,17 +472,9 @@ export default function VideoEditorPage() {
                   >
                     Settings
                   </Button>
-              </div>
-            </div>
 
-            {/* ID Row */}
-            <div className="text-xs text-neutral-600 ml-8">
-              ID: {selectedVideo.id}
-            </div>
-          </div>
-
-              {/* Settings Dropdown */}
-              {showAnalysisSettings && (
+                  {/* Settings Dropdown */}
+                  {showAnalysisSettings && (
                 <div ref={settingsRef} className="absolute right-0 top-12 z-10 bg-white border border-neutral-300 rounded-lg shadow-lg p-4 w-72 text-black">
                   <h4 className="font-medium text-black mb-3">Analysis Settings</h4>
 
@@ -545,9 +537,15 @@ export default function VideoEditorPage() {
                     </div>
                   </div>
                 </div>
-              )}
+                  )}
+                </div>
+              </div>
+
+              {/* ID Row */}
+              <div className="text-xs text-neutral-600 ml-8">
+                ID: {selectedVideo.id}
+              </div>
             </div>
-          </div>
 
           {/* Video Metadata */}
           <p className="text-sm text-neutral-400 mb-3">
