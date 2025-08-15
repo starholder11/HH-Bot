@@ -70,8 +70,8 @@ export default function VirtualResultsGrid({
   // Incrementally increase the number of mounted items without blocking paint
   useEffect(() => {
     if (visibleCount >= results.length) return;
-    let raf = 0;
-    let idle: number | null = null;
+    let raf: ReturnType<typeof setTimeout> | null = null;
+    let idle: any = null;
 
     const grow = () => {
       setVisibleCount((prev) => {
@@ -83,17 +83,17 @@ export default function VirtualResultsGrid({
     };
 
     const schedule = () => {
-      if ('requestIdleCallback' in window) {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
         idle = (window as any).requestIdleCallback(grow, { timeout: 120 });
       } else {
-        raf = window.setTimeout(grow, 60);
+        raf = setTimeout(grow, 60);
       }
     };
 
     schedule();
     return () => {
       if (idle) (window as any).cancelIdleCallback?.(idle);
-      if (raf) clearTimeout(raf);
+      if (raf) clearTimeout(raf as any);
     };
   }, [visibleCount, results.length]);
 
