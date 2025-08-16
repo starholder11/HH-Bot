@@ -135,32 +135,33 @@ const tools = {
         // Enhanced patterns for LoRA + generation requests
         const loraGeneratePatterns = [
           // "use X lora to make Y" or "use the X lora to make Y"
-          /(?:use|apply|with)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)\s+(?:to\s+)?(?:make|create|generate|build|produce)\s+(.+)/i,
-          // "make Y with X lora" or "create Y using X lora"  
-          /(?:make|create|generate|build|produce)\s+(.+?)\s+(?:with|using)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)/i,
-          // "X lora Y" - simple pattern
+          /(?:use|apply)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)\s+(?:to\s+)?(?:make|create|generate|build|produce)\s+(.+)/i,
+          // "make Y using the X lora" - match from the END to avoid greedy matching
+          /(?:make|create|generate|build|produce)\s+(.+)\s+(?:using|with)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)$/i,
+          // "X lora Y" - simple pattern (keep as fallback)
           /(.*?)\s+(?:lora|style)\s+(.+)/i
         ];
         
-        for (const pattern of loraGeneratePatterns) {
+        for (let i = 0; i < loraGeneratePatterns.length; i++) {
+          const pattern = loraGeneratePatterns[i];
           const match = userRequest.match(pattern);
           if (match) {
-            if (pattern.source.includes('use|apply|with')) {
+            if (i === 0) {
               // Pattern: "use X lora to make Y"
               if (match[1] && match[2]) {
                 finalLoraNames = [match[1].trim()];
                 finalPrompt = match[2].trim();
                 break;
               }
-            } else if (pattern.source.includes('make|create')) {
-              // Pattern: "make Y with X lora"
+            } else if (i === 1) {
+              // Pattern: "make Y using X lora"
               if (match[1] && match[2]) {
                 finalPrompt = match[1].trim();
                 finalLoraNames = [match[2].trim()];
                 break;
               }
             } else {
-              // Pattern: "X lora Y"
+              // Pattern: "X lora Y" (fallback)
               if (match[1] && match[2]) {
                 finalLoraNames = [match[1].trim()];
                 finalPrompt = match[2].trim();
