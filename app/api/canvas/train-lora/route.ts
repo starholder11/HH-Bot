@@ -29,7 +29,7 @@ async function fetchCanvas(canvasId: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { canvasId, baseModel = 'fal-ai/flux.1-dev', triggerWord = 'CANVAS_STYLE' } = await req.json()
+    const { canvasId, baseModel = 'fal-ai/flux.1-dev', triggerWord } = await req.json()
     if (!canvasId) return NextResponse.json({ error: 'canvasId is required' }, { status: 400 })
 
     const apiKey = (process.env.FAL_KEY || '').trim()
@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
 
     const canvas = await fetchCanvas(canvasId)
     const items: any[] = Array.isArray(canvas?.items) ? canvas.items : []
+    
+    // Generate meaningful trigger word from canvas name if not provided
+    const finalTriggerWord = triggerWord || (() => {
+      const name = canvas?.name || canvasId
+      // Convert to safe trigger word: "Petaflop Sheen" -> "PETAFLOP_SHEEN"
+      return name.toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'CANVAS_STYLE'
+    })()
     // Extract image URLs from item metadata
     const imageUrls: string[] = items
       .filter((it) => (it?.type || '').toLowerCase() === 'image')
@@ -66,7 +73,7 @@ export async function POST(req: NextRequest) {
     // Submit training job
     const input = {
       images_data_url: uploaded.url,
-      trigger_word: triggerWord,
+      trigger_word: finalTriggerWord,
       is_style: true,
     } as any
 
@@ -77,7 +84,7 @@ export async function POST(req: NextRequest) {
       provider: 'fal',
       family: 'flux',
       baseModel,
-      triggerWord,
+      triggerWord: finalTriggerWord,
       version: 1,
       status: 'training',
       images: imageUrls.length,

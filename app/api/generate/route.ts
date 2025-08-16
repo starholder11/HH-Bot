@@ -59,10 +59,14 @@ export async function POST(req: NextRequest) {
     const filteredRefs: string[] = Array.isArray(refs) ? refs.filter(urlLike) : []
     // Basic input shaping; pass prompt and refs; allow options passthrough
     const input: any = { prompt, refs: filteredRefs, ...options }
-    // If any LoRA triggerWord provided, append to prompt to activate style
+    // Only append trigger words if they're meaningful (not generic CANVAS_STYLE)
     try {
       const lorasIn = Array.isArray((options as any)?.loras) ? (options as any).loras : []
-      const triggers = lorasIn.map((l: any) => l?.triggerWord).filter((t: any) => typeof t === 'string' && t.trim().length > 0)
+      const triggers = lorasIn.map((l: any) => l?.triggerWord).filter((t: any) => 
+        typeof t === 'string' && 
+        t.trim().length > 0 && 
+        t.trim().toLowerCase() !== 'canvas_style'
+      )
       if (triggers.length > 0) {
         input.prompt = `${prompt}\n\n${triggers.map((t: string) => t.trim()).join(' ')}`
       }
