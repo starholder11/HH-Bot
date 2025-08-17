@@ -417,7 +417,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Route to the Phase 2 comprehensive agent system
-    const agentResponse = await fetch(`${process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com'}/api/agent-comprehensive`, {
+    const agentResponse = await fetch(`http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com/api/agent-comprehensive`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -450,7 +450,7 @@ export async function POST(req: NextRequest) {
               cost: agentResult.cost
             }
           };
-          
+
           // Send as data stream format expected by frontend
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolAction)}\n\n`));
           controller.close();
@@ -476,7 +476,7 @@ export async function POST(req: NextRequest) {
               error: true
             }
           };
-          
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorAction)}\n\n`));
           controller.close();
         }
@@ -492,14 +492,14 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error('Phase 2 agent request failed:', error);
-    
+
     // Fallback to original system if Phase 2 is unavailable
     const lastText = userMessage;
     const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|videos|audio|songs?|music|look.*up|gimme|give me|some|any|all|the)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?|documents?|articles?|posts?|writings?|stories?|text)\b|\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?)\s+(of|about|with|for|from|like|that|related|containing)\b/i;
     const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
     const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft|draw|paint|render|synthesize)\b/i;
-    
-    const forcedToolChoice: any = 
+
+    const forcedToolChoice: any =
       searchIntentRegex.test(lastText) ? { type: 'tool', toolName: 'searchUnified' }
       : generateIntentRegex.test(lastText) ? { type: 'tool', toolName: 'prepareGenerate' }
       : greetingIntentRegex.test(lastText) ? { type: 'tool', toolName: 'chat' }
