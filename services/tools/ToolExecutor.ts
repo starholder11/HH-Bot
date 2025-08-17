@@ -1,5 +1,14 @@
 // services/tools/ToolExecutor.ts
-import { ToolRegistry, ToolDefinition } from './ToolRegistry';
+import { UniversalToolRegistry } from './UniversalToolRegistry';
+
+interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: any;
+  execute: (params: any, context?: any) => Promise<any>;
+  category: string;
+  requiresContext?: boolean;
+}
 import { RedisContextService } from '../context/RedisContextService';
 
 export interface ToolExecution {

@@ -1,27 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SimpleWorkflowGenerator } from '../../../services/intelligence/SimpleWorkflowGenerator';
-import { ToolRegistry } from '../../../services/tools/ToolRegistry';
+import { SimpleIntentClassifier } from '../../../services/intelligence/SimpleIntentClassifier';
+import { UniversalToolRegistry } from '../../../services/tools/UniversalToolRegistry';
 import { ToolExecutor } from '../../../services/tools/ToolExecutor';
 import { RedisContextService } from '../../../services/context/RedisContextService';
 
 // Lazy service initialization to avoid build-time Redis connection
 let contextService: RedisContextService | null = null;
-let toolRegistry: ToolRegistry | null = null;
+let universalRegistry: UniversalToolRegistry | null = null;
 let toolExecutor: ToolExecutor | null = null;
+let intentClassifier: SimpleIntentClassifier | null = null;
 let workflowGenerator: SimpleWorkflowGenerator | null = null;
 
-function initializeServices() {
+async function initializeServices() {
   if (!contextService) {
-    contextService = new RedisContextService();
-    toolRegistry = new ToolRegistry(contextService);
-    toolExecutor = new ToolExecutor(toolRegistry, contextService);
-    workflowGenerator = new SimpleWorkflowGenerator(toolRegistry, toolExecutor, contextService);
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    contextService = new RedisContextService(redisUrl);
+    
+    universalRegistry = new UniversalToolRegistry(
+      contextService,
+      process.env.LANCEDB_API_URL || 'http://localhost:3000',
+      process.cwd()
+    );
+    await universalRegistry.initializeAllTools();
+    
+    toolExecutor = new ToolExecutor(universalRegistry);
+    intentClassifier = new SimpleIntentClassifier(undefined, universalRegistry.getToolNames());
+    workflowGenerator = new SimpleWorkflowGenerator(toolExecutor);
   }
-  return { contextService, toolRegistry, toolExecutor, workflowGenerator };
+  return { contextService, universalRegistry, toolExecutor, intentClassifier, workflowGenerator };
 }
 
 export async function POST(request: NextRequest) {
-  const { contextService, workflowGenerator } = initializeServices();
+  const { contextService, intentClassifier, workflowGenerator } = await initializeServices();
   const correlationId = contextService!.generateCorrelationId();
 
   try {
@@ -37,17 +48,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process the natural language request with comprehensive workflow generation
-    const result = await workflowGenerator!.processNaturalLanguageRequest(
+    // Classify intent and generate workflow
+    const { intent, cost: intentCost } = await intentClassifier!.classifyIntent(
       message,
-      userId,
-      tenantId
+      { userId, tenantId }
     );
 
-    console.log(`[${correlationId}] Comprehensive workflow processing: ${result.success ? 'success' : 'failed'}`);
+    // Create workflow execution
+    const workflowExecution = {
+      id: `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`,
+      userId,
+      tenantId,
+      intent,
+      status: 'pending' as const,
+      createdAt: new Date(),
+      correlationId
+    };
+
+    // Execute workflow
+    const result = await workflowGenerator!.executeWorkflow(workflowExecution);
+
+    console.log(`[${correlationId}] Workflow execution: ${result.status}`);
 
     return NextResponse.json({
-      success: result.success,
+      success: result.status === 'completed',
       message: result.message,
       execution: {
         id: result.execution.id,
