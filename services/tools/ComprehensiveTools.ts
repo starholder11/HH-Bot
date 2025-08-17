@@ -642,16 +642,19 @@ export class ComprehensiveTools {
     console.log(`[${correlationId}] Generating ${params.type}: "${params.prompt}"`);
 
     try {
-      const response = await this.apiClient.post('/api/generate', {
+      // Align with /api/generate signature: { mode, model, prompt, refs, options }
+      const body: any = {
+        mode: params.type,
+        model: (params.settings as any)?.model,
         prompt: params.prompt,
-        type: params.type,
-        settings: params.settings || {}
-      });
+        options: (params.settings as any)?.options || params.settings || {}
+      };
+      const response = await this.apiClient.post('/api/generate', body);
 
       return {
         success: true,
-        result: response.result,
-        jobId: response.jobId,
+        result: (response as any)?.result ?? response,
+        jobId: (response as any)?.jobId,
         correlationId
       };
     } catch (error) {
