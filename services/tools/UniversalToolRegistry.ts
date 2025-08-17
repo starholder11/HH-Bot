@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { ToolFactory } from './ToolFactory';
 import { ComprehensiveTools } from './ComprehensiveTools';
+import { CoreTools } from './CoreTools';
 import { RedisContextService } from '../context/RedisContextService';
 
 export interface UniversalToolDefinition {
@@ -17,6 +18,7 @@ export class UniversalToolRegistry {
   private tools: Map<string, UniversalToolDefinition> = new Map();
   private toolFactory: ToolFactory;
   private comprehensiveTools: ComprehensiveTools;
+  private coreTools: CoreTools;
 
   constructor(
     contextService: RedisContextService,
@@ -63,10 +65,50 @@ export class UniversalToolRegistry {
         }
       }
     );
+
+    // CoreTools API client expects { data, status }
+    const coreApiClient = {
+      get: async (url: string, config?: any) => {
+        const response = await fetch(`${baseUrl}${url}`, { method: 'GET', headers: { 'Content-Type': 'application/json', ...config?.headers } });
+        return { data: await response.json(), status: response.status };
+      },
+      post: async (url: string, data?: any, config?: any) => {
+        const response = await fetch(`${baseUrl}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...config?.headers }, body: JSON.stringify(data) });
+        return { data: await response.json(), status: response.status };
+      },
+      put: async (url: string, data?: any, config?: any) => {
+        const response = await fetch(`${baseUrl}${url}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...config?.headers }, body: JSON.stringify(data) });
+        return { data: await response.json(), status: response.status };
+      },
+      delete: async (url: string, config?: any) => {
+        const response = await fetch(`${baseUrl}${url}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...config?.headers } });
+        return { data: await response.json(), status: response.status };
+      }
+    } as any;
+    this.coreTools = new CoreTools(contextService, coreApiClient);
   }
 
   async initializeAllTools(): Promise<void> {
     console.log('[UniversalToolRegistry] Initializing all tools...');
+
+    // 0. Register CoreTools (search, canvas, generation prep, etc.)
+    try {
+      const coreToolMap = this.coreTools.getAllTools();
+      for (const [name, aiTool] of Object.entries(coreToolMap)) {
+        this.registerTool({
+          name,
+          description: this.getToolDescription(name, 'core'),
+          category: 'core',
+          // @ts-ignore - aiTool carries parameters schema from ai.tool
+          parameters: (aiTool as any).parameters,
+          requiresContext: true,
+          // @ts-ignore - aiTool carries execute
+          execute: (aiTool as any).execute
+        });
+      }
+    } catch (e) {
+      console.warn('[UniversalToolRegistry] Failed to register CoreTools:', e);
+    }
 
     // 1. Register comprehensive tools (manually curated, high-quality)
     const comprehensiveToolDefs = ComprehensiveTools.getAllTools();
