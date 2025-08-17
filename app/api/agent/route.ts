@@ -409,81 +409,115 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   const { messages } = await req.json();
 
-  // Server-side intent routing to guarantee correct tool usage
+  // Extract the latest user message
   const lastUserMessage = Array.isArray(messages)
     ? [...messages].reverse().find((m: any) => m?.role === 'user')?.content ?? ''
     : '';
-  const lastText = typeof lastUserMessage === 'string' ? lastUserMessage : '';
-  const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|videos|audio|songs?|music|look.*up|gimme|give me|some|any|all|the)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?|documents?|articles?|posts?|writings?|stories?|text)\b|\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?)\s+(of|about|with|for|from|like|that|related|containing)\b/i;
-  const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
-  // Much more flexible generation detection
-  const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft|draw|paint|render|synthesize)\b/i;
-  const loraGenerateRegex = /\b(use|apply|with)\s+.*\b(lora|model|style)\b.*\b(make|create|generate|build|produce|to\s+make)\b|\b(make|create|generate|build|produce)\b.*\b(with|using)\s+.*\b(lora|model|style)\b/i;
-  const useContentGenerateRegex = /\b(use|with|using)\s+(the\s+)?(pinned|selected|this|that)\s+.*(to\s+)?(make|create|generate)\b/i;
-  const pinIntentRegex = /\b(pin|save|bookmark|attach)\s+.*(to|on)\s+(the\s+)?(canvas|board)\b/i;
-  const openCanvasIntentRegex = /\b(open|show|display)\s+(the\s+)?(canvas|board|generation\s+interface)\b/i;
-  const nameImageIntentRegex = /\b(name|title|call|label)\s+(this\s+)?(image|picture|photo|video)\b/i;
-  const saveImageIntentRegex = /\b(save|store|keep)\s+(this\s+)?(image|picture|photo|video)\s*(to\s+)?(library|collection|gallery)?\b/i;
-  const saveAsIntentRegex = /\b(save|name|call)\s+((this\s+)?(image|picture|photo|video)\s+)?as\s+[\w\-_]+\b/i;
-  const useLoraIntentRegex = /\b(use|apply|add)\s+.*\b(lora|model)\b/i;
-  const listLoraIntentRegex = /\b(list|show|what|which|available|get)\s+.*(lora|model|style)s?\b/i;
+  const userMessage = typeof lastUserMessage === 'string' ? lastUserMessage : '';
 
-  // Hard guarantee: for specific intents, force appropriate tools (order matters - most specific first)
-  const forcedToolChoice: any =
-    // LoRA + generation requests (highest priority)
-    loraGenerateRegex.test(lastText)
-      ? { type: 'tool', toolName: 'prepareGenerate' }
-    : useContentGenerateRegex.test(lastText)
-      ? { type: 'tool', toolName: 'prepareGenerate' }
-    : saveAsIntentRegex.test(lastText)
-      ? { type: 'tool', toolName: 'nameImage' }  // "save as filename" should name first, then save
-    : listLoraIntentRegex.test(lastText)
-      ? { type: 'tool', toolName: 'listLoras' }
-    : openCanvasIntentRegex.test(lastText)
-      ? { type: 'tool', toolName: 'openCanvas' }
-      : nameImageIntentRegex.test(lastText)
-        ? { type: 'tool', toolName: 'nameImage' }
-        : saveImageIntentRegex.test(lastText)
-          ? { type: 'tool', toolName: 'saveImage' }
-          : generateIntentRegex.test(lastText)
-            ? { type: 'tool', toolName: 'prepareGenerate' }
-            : useLoraIntentRegex.test(lastText)
-              ? { type: 'tool', toolName: 'useCanvasLora' }
-              : pinIntentRegex.test(lastText)
-                ? { type: 'tool', toolName: 'pinToCanvas' }
-                : searchIntentRegex.test(lastText)
-                  ? { type: 'tool', toolName: 'searchUnified' }
-                  : greetingIntentRegex.test(lastText)
-                    ? { type: 'tool', toolName: 'chat' }
-                    : 'auto';
+  try {
+    // Route to the Phase 2 comprehensive agent system
+    const agentResponse = await fetch(`${process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com'}/api/agent-comprehensive`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: userMessage,
+        userId: 'workshop-user',
+        tenantId: 'default'
+      })
+    });
 
-  // Disable in production unless explicitly enabled
-  if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_DEBUG_ENDPOINTS) {
-    return NextResponse.json({ error: 'Disabled in production' }, { status: 404 });
+    if (!agentResponse.ok) {
+      throw new Error(`Agent request failed: ${agentResponse.status}`);
+    }
+
+    const agentResult = await agentResponse.json();
+
+    // Convert the comprehensive agent response to the expected streaming format
+    if (agentResult.success) {
+      // Create a streaming response that matches the expected format
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          // Send the response as a tool action
+          const toolAction = {
+            action: 'chat',
+            payload: {
+              text: agentResult.message || 'Task completed successfully!',
+              execution: agentResult.execution,
+              cost: agentResult.cost
+            }
+          };
+          
+          // Send as data stream format expected by frontend
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolAction)}\n\n`));
+          controller.close();
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    } else {
+      // Handle error case
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          const errorAction = {
+            action: 'chat',
+            payload: {
+              text: `I encountered an issue: ${agentResult.message || 'Unknown error'}`,
+              error: true
+            }
+          };
+          
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorAction)}\n\n`));
+          controller.close();
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Phase 2 agent request failed:', error);
+    
+    // Fallback to original system if Phase 2 is unavailable
+    const lastText = userMessage;
+    const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|videos|audio|songs?|music|look.*up|gimme|give me|some|any|all|the)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?|documents?|articles?|posts?|writings?|stories?|text)\b|\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?)\s+(of|about|with|for|from|like|that|related|containing)\b/i;
+    const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
+    const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft|draw|paint|render|synthesize)\b/i;
+    
+    const forcedToolChoice: any = 
+      searchIntentRegex.test(lastText) ? { type: 'tool', toolName: 'searchUnified' }
+      : generateIntentRegex.test(lastText) ? { type: 'tool', toolName: 'prepareGenerate' }
+      : greetingIntentRegex.test(lastText) ? { type: 'tool', toolName: 'chat' }
+      : 'auto';
+
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+    const result = await streamText({
+      model: openai('gpt-4o-mini') as any,
+      system: 'You are a helpful assistant. The advanced agent system is temporarily unavailable, so provide a simple response using the available tools.',
+      messages,
+      tools,
+      toolChoice: forcedToolChoice,
+      maxSteps: 1,
+    });
+
+    return result.toDataStreamResponse();
   }
-  const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-
-  const result = await streamText({
-    // Cast to any to avoid versioned type conflicts between subpackages during CI type check
-    model: openai('gpt-4o-mini') as any,
-    system:
-      'You are a tool-calling agent. Call exactly ONE tool and stop. ' +
-      'For ANY generation requests (make/create/generate X, use Y to make Z, etc.): call prepareGenerate with userRequest parameter containing the full user message. This includes LoRA + generation requests like "use petaflop lora to make X". ' +
-      'For search requests: call searchUnified with the query. The tool automatically detects media types (videos, images, audio, etc.) from your query and filters accordingly. ' +
-      'For pin requests (pin X to canvas): call pinToCanvas with contentId (extract the ID from user message like "2068-odyssey") and userRequest. ' +
-      'For name/save requests (save as filename, name as X): call nameImage with userRequest parameter to extract the filename. ' +
-      'For other canvas operations: call openCanvas, saveImage, or useCanvasLora as appropriate. ' +
-      'For greetings: call chat tool. ' +
-      'For status: call agentStatus. ' +
-      'ALWAYS extract the content ID when pinning (e.g. "pin 2068-odyssey" → contentId: "2068-odyssey"). ' +
-      'NEVER call multiple tools. NEVER give text responses after tool calls.',
-    messages,
-    tools,
-    toolChoice: forcedToolChoice,
-    maxSteps: 1,
-  });
-
-  return result.toDataStreamResponse();
 }
 
 
