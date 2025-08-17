@@ -95,12 +95,41 @@ export class UniversalToolRegistry {
     try {
       const coreToolMap = this.coreTools.getAllTools();
       for (const [name, aiTool] of Object.entries(coreToolMap)) {
+        // Explicitly register prepareGenerate with a permissive schema and wrapper
+        if (name === 'prepareGenerate') {
+          this.registerTool({
+            name,
+            description: this.getToolDescription(name, 'generation'),
+            category: 'generation',
+            parameters: z.object({
+              userRequest: z.string().optional(),
+              type: z.enum(['image', 'video', 'audio']).optional(),
+              prompt: z.string().optional(),
+              model: z.string().optional(),
+              loraNames: z.array(z.string()).optional(),
+              userId: z.string().optional(),
+            }),
+            requiresContext: true,
+            execute: async (params: any, context?: any) => {
+              const input = {
+                userRequest: params.userRequest || params.prompt || 'generate content',
+                type: params.type,
+                prompt: params.prompt,
+                model: params.model,
+                loraNames: params.loraNames,
+              };
+              // @ts-ignore
+              return await (this.coreTools as any).prepareGenerateTool.execute(input, context);
+            }
+          });
+          continue;
+        }
+
         this.registerTool({
           name,
           description: this.getToolDescription(name, 'core'),
           category: 'core',
-          // @ts-ignore - aiTool carries parameters schema from ai.tool
-          parameters: (aiTool as any).parameters,
+          parameters: z.any(),
           requiresContext: true,
           // @ts-ignore - aiTool carries execute
           execute: (aiTool as any).execute
