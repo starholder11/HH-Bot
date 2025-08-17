@@ -1462,6 +1462,37 @@ export default function VisualSearchPage() {
           setRightTab('results');
         }
       },
+      // Universal UI Action Tools
+      navigate: (payload: { page?: string; params?: any }) => {
+        if (payload.page) {
+          window.location.href = `/${payload.page}${payload.params ? '?' + new URLSearchParams(payload.params).toString() : ''}`;
+        }
+      },
+      openModal: (payload: { modalType?: string; data?: any }) => {
+        if (payload.modalType === 'canvas') {
+          setShowCanvasModal(true);
+        }
+        // Add other modal types as needed
+      },
+      changeView: (payload: { viewType?: string; options?: any }) => {
+        if (payload.viewType === 'results') setRightTab('results');
+        if (payload.viewType === 'canvas') setRightTab('canvas');
+        if (payload.viewType === 'generate') setRightTab('generate');
+        if (payload.viewType === 'output') setRightTab('output');
+        if (payload.viewType === 'layouts') setRightTab('layouts');
+      },
+      selectContent: (payload: { selectionAction?: string; itemIds?: string[] }) => {
+        // Implement content selection logic
+        console.log('Content selection:', payload);
+      },
+      spatialControl: (payload: { spatialAction?: string; parameters?: any }) => {
+        // Implement spatial environment controls
+        console.log('Spatial control:', payload);
+      },
+      workflowControl: (payload: { workflowId?: string; workflowAction?: string }) => {
+        // Implement workflow management
+        console.log('Workflow control:', payload);
+      },
       // Called by client after tool pinToCanvas returns
       pin: (payload: { id?: string; title?: string; url?: string; needsLookup?: boolean }) => {
         // debug: agent pin bridge invoked

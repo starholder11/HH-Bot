@@ -65,31 +65,31 @@ export default function AgentChat() {
             try {
               const payload = possibleResult?.payload ?? possibleResult;
               const action = possibleResult?.action;
-              
+
               // Handle chat action - this should be clean assistant text
               if (action === 'chat' && payload?.text) {
                 setMessages((prev) => [...prev, { role: 'assistant', content: String(payload.text) } as Msg]);
                 return;
               }
-              
+
               // Handle search action
               if (action === 'searchUnified') {
                 (window as any).__agentApi?.searchUnified?.(payload);
                 return;
               }
-              
+
               // Handle showResults action
               if (action === 'showResults') {
                 (window as any).__agentApi?.showResults?.(payload);
                 return;
               }
-              
+
               // Legacy fallback for results without action
               if (possibleResult?.results) {
                 (window as any).__agentApi?.showResults?.(possibleResult);
                 return;
               }
-              
+
               // Handle other UI actions
               if (action === 'pinToCanvas') {
                 (window as any).__agentApi?.pin?.(payload || possibleResult);
@@ -119,7 +119,7 @@ export default function AgentChat() {
                 (window as any).__agentApi?.useCanvasLora?.(payload);
                 return;
               }
-              
+
               // If we get here, it's unhandled - don't show raw JSON
               console.log('Unhandled agent tool result:', possibleResult);
             } catch (e) {

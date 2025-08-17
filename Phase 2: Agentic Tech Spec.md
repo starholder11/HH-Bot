@@ -3111,7 +3111,7 @@ Use existing ECR pattern:
 # Context Service
 781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-bot-context-service:latest
 
-# Orchestration Service  
+# Orchestration Service
 781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-bot-orchestration-service:latest
 
 # Agent App Service
