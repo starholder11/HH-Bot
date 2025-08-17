@@ -1,7 +1,6 @@
 // services/tools/ApiDiscovery.ts
-import * as ts from 'typescript';
 import * as path from 'path';
-import { glob } from 'glob';
+import * as fs from 'fs';
 
 export interface RouteDefinition {
   path: string;
@@ -19,18 +18,7 @@ export interface ParameterDefinition {
 }
 
 export class ApiDiscovery {
-  private program: ts.Program;
-  private checker: ts.TypeChecker;
-
-  constructor(private projectRoot: string) {
-    // Create TypeScript program for AST analysis
-    const configPath = ts.findConfigFile(projectRoot, ts.sys.fileExists, 'tsconfig.json');
-    const configFile = ts.readConfigFile(configPath || '', ts.sys.readFile);
-    const compilerOptions = ts.parseJsonConfigFileContent(configFile.config, ts.sys, projectRoot);
-    
-    this.program = ts.createProgram(compilerOptions.fileNames, compilerOptions.options);
-    this.checker = this.program.getTypeChecker();
-  }
+  constructor(private projectRoot: string) {}
 
   async discoverRoutes(): Promise<RouteDefinition[]> {
     const routeFiles = await glob('app/api/**/route.ts', {
