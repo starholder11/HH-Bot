@@ -471,49 +471,61 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 2) Derive actions from workflow steps if present
+      // 2) Generalized: emit UI event for each workflow step
       const steps = agentResult?.execution?.intent?.workflow_steps || [];
       for (const step of steps) {
         const tool = (step?.tool_name || '').toLowerCase();
         const params = step?.parameters || {};
-        if (tool === 'searchunified') {
-          const query = params.query || extractQuery(userMessage);
-          events.push({ action: 'searchUnified', payload: { query, correlationId } });
-        } else if (tool === 'preparegenerate') {
-          const prompt = params.prompt || params.message || userMessage;
-          const type = params.type || 'image';
-          const model = params.model || 'default';
-          const options = params.options || {};
-          const refs = params.refs || [];
-          events.push({
-            action: 'prepareGenerate',
-            payload: { type, prompt, model, options, refs, originalRequest: userMessage, correlationId }
-          });
-        } else if (tool === 'generatecontent') {
-          const prompt = params.prompt || params.message || userMessage;
-          const type = params.type || 'image';
-          const model = params.model || 'default';
-          const options = params.options || {};
-          const refs = params.refs || [];
-          events.push({
-            action: 'prepareGenerate',
-            payload: { type, prompt, model, options, refs, originalRequest: userMessage, correlationId, isFollowUp: true }
-          });
-        } else if (tool === 'pin' || tool === 'pintocanvas') {
-          const contentId = params.contentId;
-          events.push({
-            action: 'pinToCanvas',
-            payload: {
-              id: contentId || null,
-              contentId: contentId || null,
-              needsLookup: !contentId,
+        
+        // Map backend tool names to UI actions
+        const toolToActionMap: Record<string, string> = {
+          'searchunified': 'searchUnified',
+          'preparegenerate': 'prepareGenerate',
+          'generatecontent': 'prepareGenerate',
+          'pintocanvas': 'pinToCanvas',
+          'pin': 'pinToCanvas',
+          'renameasset': 'nameImage',
+          'nameimage': 'nameImage',
+          'createcanvas': 'canvasCreated',
+          'createproject': 'projectCreated',
+          'chat': 'chat'
+        };
+        
+        const uiAction = toolToActionMap[tool];
+        if (uiAction) {
+          let payload: any = { ...params, correlationId, originalRequest: userMessage };
+          
+          // Tool-specific payload shaping
+          if (tool === 'searchunified') {
+            payload.query = params.query || extractQuery(userMessage);
+          } else if (tool === 'preparegenerate' || tool === 'generatecontent') {
+            payload = {
+              type: params.type || 'image',
+              prompt: params.prompt || params.message || userMessage,
+              model: params.model || 'default',
+              options: params.options || {},
+              refs: params.refs || [],
+              originalRequest: userMessage,
+              correlationId,
+              isFollowUp: tool === 'generatecontent'
+            };
+          } else if (tool === 'pin' || tool === 'pintocanvas') {
+            payload = {
+              id: params.contentId || null,
+              contentId: params.contentId || null,
+              needsLookup: !params.contentId,
               originalRequest: userMessage,
               correlationId
-            }
-          });
-        } else if (tool === 'nameimage' || tool === 'renameasset') {
-          const name = params.name || extractName(userMessage) || 'Untitled';
-          events.push({ action: 'nameImage', payload: { imageId: params.imageId || 'current', name, correlationId } });
+            };
+          } else if (tool === 'nameimage' || tool === 'renameasset') {
+            payload = {
+              imageId: params.imageId || params.assetId || 'current',
+              name: params.name || params.newFilename || extractName(userMessage) || 'Untitled',
+              correlationId
+            };
+          }
+          
+          events.push({ action: uiAction, payload });
         }
       }
 
