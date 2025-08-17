@@ -3088,14 +3088,40 @@ Extend existing templates in `/infrastructure/`:
 
 ### Container Deployment
 
+**CRITICAL: PLATFORM ARCHITECTURE ALIGNMENT**
+
+**DO NOT FUCK THIS UP AGAIN:**
+- **Docker build**: ALWAYS use `--platform linux/amd64` (Intel/AMD)
+- **ECS task definition**: ALWAYS use `"cpuArchitecture": "X86_64"`
+- **NEVER mix ARM64 task definitions with AMD64 images**
+
+```bash
+# CORRECT Docker build command:
+docker build --platform linux/amd64 -t hh-agent-app .
+
+# CORRECT task definition runtimePlatform:
+"runtimePlatform": {
+  "cpuArchitecture": "X86_64",
+  "operatingSystemFamily": "LINUX"
+}
+```
+
 Use existing ECR pattern:
 ```bash
 # Context Service
 781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-bot-context-service:latest
 
-# Orchestration Service
+# Orchestration Service  
 781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-bot-orchestration-service:latest
+
+# Agent App Service
+781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-agent-app:latest
 ```
+
+**PLATFORM MISMATCH = DEPLOYMENT FAILURE**
+- Symptoms: `CannotPullContainerError: image Manifest does not contain descriptor matching platform`
+- Fix: Rebuild image with correct platform OR update task definition platform
+- Prevention: Always verify platform alignment before deploy
 
 ### Environment Variables
 
