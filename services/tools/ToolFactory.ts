@@ -249,7 +249,7 @@ export class ToolFactory {
     params: any,
     context: any
   ): Promise<any> {
-    const url = `${this.baseUrl}${route.path}`;
+    let url = `${this.baseUrl}${route.path}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
