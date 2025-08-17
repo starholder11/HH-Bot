@@ -13,11 +13,18 @@ The specification prioritizes practical implementations that can ship within 4 w
 #### LangGraph Integration and Setup
 
 **Technology Stack:**
-- Redis 7+ as primary context and session store
-- PostgreSQL 15+ for workflow execution logs
-- LangGraph 0.2+ for basic workflow orchestration
-- Docker containers for service deployment
+- **ElastiCache Redis 7+** in existing VPC `vpc-45bdcd38` as primary context store
+- **RDS Aurora Serverless PostgreSQL 15+** in existing VPC for workflow execution logs
+- **LangGraph 0.2+** for basic workflow orchestration
+- **ECS Fargate containers** deployed to existing cluster `hh-bot-lancedb-cluster`
+- **Existing ALB** `lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com` for routing
 - Correlation IDs for request tracing
+
+**Deployment Strategy:**
+- **Extend existing CloudFormation templates** in `/infrastructure/` directory
+- **Use existing ECR repository** pattern: `781939061434.dkr.ecr.us-east-1.amazonaws.com/`
+- **Leverage existing IAM roles** and security groups where possible
+- **Add new ECS services** to existing cluster rather than creating new infrastructure
 
 **Database Schema:**
 ```sql
@@ -391,20 +398,32 @@ export class OrchestrationService {
 
 #### AWS Infrastructure Setup
 
-**ECS Task Definition:**
+**Existing Infrastructure to Extend:**
+- **AWS Account**: `781939061434`
+- **VPC**: `vpc-45bdcd38` (existing, contains LanceDB service)
+- **ECS Cluster**: `hh-bot-lancedb-cluster` (existing)
+- **S3 Bucket**: `hh-bot-images-2025-prod` (existing)
+- **Secrets Manager**: OpenAI API key already stored at `arn:aws:secretsmanager:us-east-1:781939061434:secret:openai-api-key-plain-ObIbHG`
+
+**New Infrastructure to Add:**
+- **ElastiCache Redis**: Add to existing VPC for context management
+- **RDS Aurora Serverless**: Add to existing VPC for workflow logging
+- **New ECS Services**: Context and Orchestration services in existing cluster
+
+**ECS Task Definition for Context Service:**
 ```json
 {
-  "family": "orchestration-service",
+  "family": "hh-bot-context-service",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
   "memory": "2048",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::ACCOUNT:role/orchestrationServiceRole",
+  "executionRoleArn": "arn:aws:iam::781939061434:role/hh-bot-lancedb-task-execution-role",
+  "taskRoleArn": "arn:aws:iam::781939061434:role/hh-bot-lancedb-task-role",
   "containerDefinitions": [
     {
-      "name": "orchestration-service",
-      "image": "your-registry/orchestration-service:latest",
+      "name": "context-service",
+      "image": "781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-bot-context-service:latest",
       "portMappings": [
         {
           "containerPort": 3000,
@@ -417,12 +436,8 @@ export class OrchestrationService {
           "value": "production"
         },
         {
-          "name": "DATABASE_URL",
-          "value": "postgresql://user:pass@rds-endpoint:5432/orchestration"
-        },
-        {
           "name": "REDIS_URL",
-          "value": "redis://elasticache-endpoint:6379"
+          "value": "redis://hh-bot-elasticache.cache.amazonaws.com:6379"
         }
       ],
       "logConfiguration": {
@@ -3052,6 +3067,49 @@ interface InteractionConfig {
   enableRotation: boolean;
 }
 ```
+
+## AWS Deployment Guide
+
+### Infrastructure Extension Strategy
+
+**DO NOT CREATE NEW INFRASTRUCTURE**. Extend existing AWS resources:
+
+1. **ElastiCache Redis**: Add to existing VPC `vpc-45bdcd38` using existing security groups
+2. **RDS Aurora Serverless**: Add to existing VPC alongside current resources
+3. **ECS Services**: Deploy to existing cluster `hh-bot-lancedb-cluster`
+4. **ALB Target Groups**: Add new target groups to existing ALB `lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com`
+
+### CloudFormation Template Extensions
+
+Extend existing templates in `/infrastructure/`:
+- `ecs-cluster.yml` - Add context and orchestration services
+- Create `elasticache-redis.yml` - Redis cluster in existing VPC
+- Create `rds-aurora.yml` - Aurora Serverless in existing VPC
+
+### Container Deployment
+
+Use existing ECR pattern:
+```bash
+# Context Service
+781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-bot-context-service:latest
+
+# Orchestration Service
+781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-bot-orchestration-service:latest
+```
+
+### Environment Variables
+
+**Production Environment:**
+- `REDIS_URL`: ElastiCache endpoint in existing VPC
+- `DATABASE_URL`: Aurora Serverless endpoint in existing VPC
+- `AWS_REGION`: `us-east-1`
+- `AWS_ACCOUNT_ID`: `781939061434`
+
+**Development Environment:**
+- Services include mock implementations when AWS resources unavailable
+- No local Redis/PostgreSQL required for development
+
+This technical specification provides the foundation for implementing the Phase 2 agentic system with a focus on practical, deployable solutions that leverage existing AWS infrastructure.
 
 This technical specification focuses on the essential components needed for the vertical slice approach. The implementations prioritize working functionality over comprehensive features, with Redis-based context management, correlation ID tracing, and simplified tool coverage.
 

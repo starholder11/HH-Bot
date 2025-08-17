@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { streamText, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -130,7 +130,7 @@ const tools = {
       // Extract LoRA names and prompt from request
       let finalLoraNames = loraNames || [];
       let finalPrompt = prompt;
-      
+
       if (!finalLoraNames.length || !finalPrompt) {
         // Enhanced patterns for LoRA + generation requests
         const loraGeneratePatterns = [
@@ -141,7 +141,7 @@ const tools = {
           // "X lora Y" - simple pattern (keep as fallback)
           /(.*?)\s+(?:lora|style)\s+(.+)/i
         ];
-        
+
         for (let i = 0; i < loraGeneratePatterns.length; i++) {
           const pattern = loraGeneratePatterns[i];
           const match = userRequest.match(pattern);
@@ -170,7 +170,7 @@ const tools = {
             }
           }
         }
-        
+
         // Fallback: extract standard generation patterns
         if (!finalPrompt) {
           const standardPatterns = [
@@ -179,7 +179,7 @@ const tools = {
             // Any descriptive content
             /(.+)/i
           ];
-          
+
           for (const pattern of standardPatterns) {
             const match = userRequest.match(pattern);
             if (match && match[1]) {
@@ -192,7 +192,7 @@ const tools = {
             }
           }
         }
-        
+
         if (!finalPrompt) {
           finalPrompt = 'Creative content';
         }
@@ -208,7 +208,7 @@ const tools = {
             const allLoras = await res.json();
             resolvedLoras = finalLoraNames.map(name => {
               const cleanName = name.toLowerCase().trim();
-              return allLoras.find((l: any) => 
+              return allLoras.find((l: any) =>
                 (l.canvasName && l.canvasName.toLowerCase().includes(cleanName)) ||
                 (l.triggerWord && l.triggerWord.toLowerCase().includes(cleanName)) ||
                 (cleanName.includes(l.canvasName?.toLowerCase() || ''))
@@ -352,7 +352,7 @@ const tools = {
     }),
     execute: async ({ userRequest, loraName, strength, trigger }) => {
       let finalLoraName = loraName;
-      
+
       // Extract LoRA name from request if not provided explicitly
       if (!finalLoraName && userRequest) {
         // Pattern: "use [the] [name] lora"
@@ -361,7 +361,7 @@ const tools = {
           finalLoraName = match[2].trim();
         }
       }
-      
+
       return {
         action: 'useCanvasLora',
         payload: { loraName: finalLoraName || 'unknown', strength: strength || 1.0, trigger: trigger || '' }
@@ -429,7 +429,7 @@ export async function POST(req: NextRequest) {
   const listLoraIntentRegex = /\b(list|show|what|which|available|get)\s+.*(lora|model|style)s?\b/i;
 
   // Hard guarantee: for specific intents, force appropriate tools (order matters - most specific first)
-  const forcedToolChoice: any = 
+  const forcedToolChoice: any =
     // LoRA + generation requests (highest priority)
     loraGenerateRegex.test(lastText)
       ? { type: 'tool', toolName: 'prepareGenerate' }
@@ -457,6 +457,10 @@ export async function POST(req: NextRequest) {
                     ? { type: 'tool', toolName: 'chat' }
                     : 'auto';
 
+  // Disable in production unless explicitly enabled
+  if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_DEBUG_ENDPOINTS) {
+    return NextResponse.json({ error: 'Disabled in production' }, { status: 404 });
+  }
   const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
   const result = await streamText({

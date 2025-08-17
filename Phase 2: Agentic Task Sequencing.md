@@ -23,16 +23,20 @@ The foundation phase delivers a complete working workflow that demonstrates the 
 ### Week 1: Core Infrastructure
 
 **Redis Context Management**
-- Set up Redis for all session state, user context, and workflow persistence
+- **Add ElastiCache Redis to existing VPC** (`vpc-45bdcd38`) alongside current LanceDB infrastructure
+- **Extend existing ECS cluster** (`hh-bot-lancedb-cluster`) with new context service
 - Implement context service with TTL policies and tenant isolation
 - Build basic user preference and session history tracking
 - Create context injection for all service calls
+- **Deploy as containerized ECS service** using existing ALB and security groups
 
 **Basic Orchestration**
+- **Add RDS Aurora Serverless** to existing AWS account (`781939061434`) in same VPC
 - Install and configure LangGraph for simple workflow execution
-- Set up PostgreSQL for workflow execution logs and results
+- **Containerize orchestration service** for deployment to existing ECS cluster
 - Implement correlation IDs throughout all services for tracing
 - Create basic error handling with clear user communication
+- **Use existing Secrets Manager** for database credentials and API keys
 
 **Success Criteria:**
 - Redis maintains consistent context across service restarts

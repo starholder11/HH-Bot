@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  // Security check - only allow in development or with special header
+  // Security check - only allow in development or when explicitly enabled
+  if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_DEBUG_ENDPOINTS) {
+    return NextResponse.json({ error: 'Disabled in production' }, { status: 404 });
+  }
   const isDev = process.env.NODE_ENV === 'development';
   const hasDebugHeader = request.headers.get('x-debug-key') === process.env.DEBUG_KEY;
 

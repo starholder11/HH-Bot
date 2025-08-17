@@ -22,7 +22,8 @@ ENV FFPROBE_PATH="/usr/local/bin/ffprobe"
 COPY package*.json ${LAMBDA_TASK_ROOT}/
 
 # Install dependencies
-RUN npm install --only=production
+ENV NODE_ENV=production
+RUN npm ci --omit=dev
 
 # Copy function code
 COPY index.js ${LAMBDA_TASK_ROOT}/

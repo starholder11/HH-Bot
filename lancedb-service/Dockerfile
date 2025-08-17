@@ -8,6 +8,7 @@ WORKDIR /app
 
 # Copy package files and install prod deps only
 COPY package.json package-lock.json ./
+ENV NODE_ENV=production
 RUN npm ci --omit=dev
 
 # Copy service source
@@ -16,6 +17,7 @@ COPY index.js ./index.js
 # Create data dir used by LanceDB (can be overridden)
 RUN mkdir -p /tmp/lancedb-data
 ENV LANCEDB_PATH=/tmp/lancedb-data
+ENV NODE_ENV=production
 
 # Healthcheck – adjust port if changed
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
@@ -23,4 +25,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+CMD ["node", "index.js"]

@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:20-slim
 
 # Install system dependencies for LanceDB
 RUN apt-get update && apt-get install -y \
@@ -14,7 +14,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+ENV NODE_ENV=production
+RUN npm ci --omit=dev
 
 # Copy source code
 COPY src/ ./src/
@@ -29,5 +30,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Start service
+# Start service (adjust to actual entrypoint if used)
 CMD ["node", "src/lancedb-service.js"]

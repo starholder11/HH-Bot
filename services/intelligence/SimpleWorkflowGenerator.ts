@@ -1,0 +1,303 @@
+import { SimpleIntentClassifier, SimpleIntent } from './SimpleIntentClassifier';
+import { SimpleLLMRouter } from './SimpleLLMRouter';
+import { ToolRegistry } from '../tools/ToolRegistry';
+import { ToolExecutor } from '../tools/ToolExecutor';
+import { RedisContextService } from '../context/RedisContextService';
+
+export interface WorkflowExecution {
+  id: string;
+  intent: SimpleIntent;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  totalCost: number;
+  llmCost: number;
+  toolCost: number;
+  correlationId: string;
+  userId: string;
+  startTime: number;
+  endTime?: number;
+  result?: any;
+  error?: string;
+}
+
+export interface WorkflowResult {
+  success: boolean;
+  execution: WorkflowExecution;
+  message: string;
+  cost: number;
+}
+
+export class SimpleWorkflowGenerator {
+  private intentClassifier: SimpleIntentClassifier;
+  private llmRouter: SimpleLLMRouter;
+  private activeWorkflows: Map<string, WorkflowExecution> = new Map();
+
+  constructor(
+    private toolRegistry: ToolRegistry,
+    private toolExecutor: ToolExecutor,
+    private contextService: RedisContextService
+  ) {
+    const availableTools = this.toolRegistry.getAllTools().map(t => t.name);
+    this.intentClassifier = new SimpleIntentClassifier(availableTools);
+    this.llmRouter = new SimpleLLMRouter();
+  }
+
+  async processNaturalLanguageRequest(
+    userMessage: string,
+    userId: string,
+    tenantId: string = 'default'
+  ): Promise<WorkflowResult> {
+    const correlationId = `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    const startTime = Date.now();
+
+    console.log(`[${correlationId}] Processing: "${userMessage}"`);
+
+    try {
+      // Get user context
+      const userContext = await this.contextService.getUserContext(userId, tenantId);
+
+      // Classify intent with cost tracking
+      const { intent } = await this.intentClassifier.classifyIntent(userMessage, { userId });
+      const llmCost = this.intentClassifier.getCostStats().totalCost;
+
+      console.log(`[${correlationId}] Intent: ${intent.intent} (confidence: ${intent.confidence})`);
+
+      // Create workflow execution
+      const workflowExecution: WorkflowExecution = {
+        id: correlationId,
+        intent,
+        status: 'pending',
+        totalCost: 0,
+        llmCost,
+        toolCost: 0,
+        correlationId,
+        userId,
+        startTime
+      };
+
+      this.activeWorkflows.set(correlationId, workflowExecution);
+
+      // Execute the workflow
+      const result = await this.executeWorkflow(workflowExecution);
+
+      const totalTime = Date.now() - startTime;
+      console.log(`[${correlationId}] Workflow completed in ${totalTime}ms (cost: $${result.cost.toFixed(4)})`);
+
+      return result;
+
+    } catch (error) {
+      console.error(`[${correlationId}] Workflow processing failed:`, error);
+
+      return {
+        success: false,
+        execution: {
+          id: correlationId,
+          intent: {
+            intent: 'chat',
+            confidence: 0,
+            tool_name: 'chat',
+            parameters: { message: userMessage, userId },
+            reasoning: 'Failed to process request'
+          },
+          status: 'failed',
+          totalCost: 0,
+          llmCost: 0,
+          toolCost: 0,
+          correlationId,
+          userId,
+          startTime,
+          endTime: Date.now(),
+          error: error instanceof Error ? error.message : 'Unknown error'
+        },
+        message: `I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        cost: 0
+      };
+    }
+  }
+
+  private async executeWorkflow(workflow: WorkflowExecution): Promise<WorkflowResult> {
+    workflow.status = 'running';
+    this.activeWorkflows.set(workflow.id, workflow);
+
+    console.log(`[${workflow.correlationId}] Executing workflow: ${workflow.intent.tool_name}`);
+
+    try {
+      // Execute the recommended tool
+      const execution = await this.toolExecutor.executeTool(
+        workflow.intent.tool_name,
+        workflow.intent.parameters,
+        { userId: workflow.userId, tenantId: 'default' }
+      );
+
+      // Calculate costs
+      const toolCost = 0.001; // Rough estimate for tool execution
+      workflow.toolCost = toolCost;
+      workflow.totalCost = workflow.llmCost + workflow.toolCost;
+
+      if (execution.status === 'completed') {
+        workflow.status = 'completed';
+        workflow.result = execution.result;
+        workflow.endTime = Date.now();
+
+        // Update user context based on successful execution
+        await this.updateUserContextFromWorkflow(workflow);
+
+        const message = this.generateSuccessMessage(workflow);
+
+        return {
+          success: true,
+          execution: workflow,
+          message,
+          cost: workflow.totalCost
+        };
+
+      } else {
+        workflow.status = 'failed';
+        workflow.error = execution.error;
+        workflow.endTime = Date.now();
+
+        return {
+          success: false,
+          execution: workflow,
+          message: `I encountered an issue: ${execution.error}`,
+          cost: workflow.totalCost
+        };
+      }
+
+    } catch (error) {
+      workflow.status = 'failed';
+      workflow.error = error instanceof Error ? error.message : 'Unknown error';
+      workflow.endTime = Date.now();
+
+      console.error(`[${workflow.correlationId}] Workflow execution failed:`, error);
+
+      return {
+        success: false,
+        execution: workflow,
+        message: `Workflow execution failed: ${workflow.error}`,
+        cost: workflow.totalCost
+      };
+    }
+  }
+
+  private generateSuccessMessage(workflow: WorkflowExecution): string {
+    const intent = workflow.intent;
+
+    switch (intent.intent) {
+      case 'search':
+        const query = intent.parameters.query;
+        return query ? `Found results for "${query}".` : 'Search completed successfully.';
+
+      case 'create':
+        return `Successfully created your ${intent.tool_name.replace('create', '').toLowerCase()}.`;
+
+      case 'update':
+        return 'Update completed successfully.';
+
+      case 'chat':
+        return workflow.result?.response || 'Hello! How can I help you?';
+
+      default:
+        return 'Request completed successfully.';
+    }
+  }
+
+  private async updateUserContextFromWorkflow(workflow: WorkflowExecution) {
+    try {
+      const updates: any = {};
+
+      // Update context based on successful workflow results
+      if (workflow.result) {
+        switch (workflow.intent.tool_name) {
+          case 'createCanvas':
+            if (workflow.result.canvas?.id) {
+              updates.lastCanvasId = workflow.result.canvas.id;
+            }
+            break;
+
+          case 'createProject':
+            if (workflow.result.project?.id) {
+              updates.lastProjectId = workflow.result.project.id;
+            }
+            break;
+
+          case 'searchUnified':
+            if (workflow.intent.parameters.query) {
+              await this.contextService.addRecentSearch(workflow.userId, 'default', workflow.intent.parameters.query
+              );
+            }
+            break;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await this.contextService.updateUserContextWithParams(workflow.userId, 'default', updates);
+      }
+
+    } catch (error) {
+      console.error(`Failed to update user context from workflow:`, error);
+    }
+  }
+
+  // Workflow management
+  getActiveWorkflows(userId?: string): WorkflowExecution[] {
+    const workflows = Array.from(this.activeWorkflows.values());
+    return userId ? workflows.filter(w => w.userId === userId) : workflows;
+  }
+
+  getWorkflow(workflowId: string): WorkflowExecution | undefined {
+    return this.activeWorkflows.get(workflowId);
+  }
+
+  // Cost and usage statistics
+  getUsageStats() {
+    const intentStats = this.intentClassifier.getCostStats();
+    const llmStats = this.llmRouter.getCostStats();
+    const providerStatus = this.llmRouter.getProviderStatus();
+
+    const workflows = Array.from(this.activeWorkflows.values());
+    const totalWorkflowCost = workflows.reduce((sum, w) => sum + w.totalCost, 0);
+
+    return {
+      intent: intentStats,
+      llm: llmStats,
+      providers: providerStatus,
+      workflows: {
+        active: workflows.filter(w => w.status === 'running').length,
+        total: workflows.length,
+        completed: workflows.filter(w => w.status === 'completed').length,
+        failed: workflows.filter(w => w.status === 'failed').length,
+        totalCost: totalWorkflowCost,
+        averageCost: workflows.length > 0 ? totalWorkflowCost / workflows.length : 0
+      }
+    };
+  }
+
+  // Cost controls
+  checkCostLimits(dailyLimit: number = 10, monthlyLimit: number = 100) {
+    const llmLimits = this.llmRouter.checkCostLimits(dailyLimit);
+    const stats = this.getUsageStats();
+
+    return {
+      llm: llmLimits,
+      workflow: {
+        exceeded: stats.workflows.totalCost > dailyLimit,
+        warning: stats.workflows.totalCost > dailyLimit * 0.8
+      },
+      total: {
+        exceeded: llmLimits.exceeded || stats.workflows.totalCost > dailyLimit,
+        warning: llmLimits.warning || stats.workflows.totalCost > dailyLimit * 0.8
+      }
+    };
+  }
+
+  // Provider health monitoring
+  async checkProviderHealth() {
+    return await this.llmRouter.checkProviderHealth();
+  }
+
+  resetUsageStats() {
+    this.intentClassifier.resetCostTracking();
+    this.llmRouter.resetCostTracking();
+    this.activeWorkflows.clear();
+  }
+}

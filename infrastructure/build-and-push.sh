@@ -17,6 +17,7 @@ AWS_REGION="us-east-1"
 ECR_REPOSITORY_NAME="lancedb-service"
 IMAGE_TAG="latest"
 DOCKERFILE_PATH="../lancedb-service"
+export DOCKER_BUILDKIT=1
 
 # Functions
 log_info() {
