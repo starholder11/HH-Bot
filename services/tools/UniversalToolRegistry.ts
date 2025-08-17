@@ -129,6 +129,10 @@ export class UniversalToolRegistry {
     return Array.from(this.tools.keys());
   }
 
+  getAllTools(): Map<string, UniversalToolDefinition> {
+    return this.tools;
+  }
+
   // Convert tools to AI SDK format
   getAISDKTools(): Record<string, any> {
     const aiTools: Record<string, any> = {};
