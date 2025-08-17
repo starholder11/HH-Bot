@@ -30,72 +30,134 @@ export class ApiDiscovery {
       const routeFiles = await this.findRouteFiles(apiDir);
       
       for (const routeFile of routeFiles) {
-      const filePath = path.join(this.projectRoot, file);
-      const sourceFile = this.program.getSourceFile(filePath);
-
-      if (sourceFile) {
-        const fileRoutes = this.analyzeRouteFile(sourceFile, file);
-        routes.push(...fileRoutes);
+        const routeDefinitions = this.extractRouteDefinitionsFromPath(routeFile);
+        routes.push(...routeDefinitions);
       }
+    } catch (error) {
+      console.warn('API discovery failed, using fallback routes:', error);
+      // Return basic routes for known endpoints
+      return this.getFallbackRoutes();
     }
-
+    
     return routes;
   }
 
-  private analyzeRouteFile(sourceFile: ts.SourceFile, filePath: string): RouteDefinition[] {
-    const routes: RouteDefinition[] = [];
-    const routePath = this.extractRoutePath(filePath);
-
-    ts.forEachChild(sourceFile, (node) => {
-      if (ts.isFunctionDeclaration(node) && node.name) {
-        const methodName = node.name.text;
-        const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-
-        if (httpMethods.includes(methodName)) {
-          const route = this.analyzeRouteFunction(node, routePath, methodName);
-          if (route) {
-            routes.push(route);
-          }
+  private async findRouteFiles(apiDir: string): Promise<string[]> {
+    const routeFiles: string[] = [];
+    
+    const scanDirectory = (dir: string, basePath: string = '') => {
+      if (!fs.existsSync(dir)) return;
+      
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        const relativePath = path.join(basePath, entry.name);
+        
+        if (entry.isDirectory()) {
+          scanDirectory(fullPath, relativePath);
+        } else if (entry.name === 'route.ts' || entry.name === 'route.js') {
+          routeFiles.push(relativePath.replace(/[\\\/]route\.(ts|js)$/, ''));
         }
       }
-    });
+    };
+    
+    scanDirectory(apiDir);
+    return routeFiles;
+  }
 
+  private extractRouteDefinitionsFromPath(routePath: string): RouteDefinition[] {
+    const routes: RouteDefinition[] = [];
+    const apiPath = '/api/' + routePath.replace(/\\/g, '/');
+    
+    // For each route path, assume common HTTP methods
+    const methods = this.getMethodsForRoute(routePath);
+    
+    for (const method of methods) {
+      routes.push({
+        path: apiPath,
+        method: method,
+        parameters: this.getParametersForRoute(routePath, method),
+        responseType: 'any',
+        description: `${method} ${apiPath}`
+      });
+    }
+    
     return routes;
   }
 
-  private analyzeRouteFunction(
-    node: ts.FunctionDeclaration,
-    routePath: string,
-    method: string
-  ): RouteDefinition | null {
-    const parameters: ParameterDefinition[] = [];
+  private getMethodsForRoute(routePath: string): string[] {
+    // Determine likely methods based on route name
+    if (routePath.includes('health') || routePath.includes('debug')) {
+      return ['GET'];
+    }
     
-    // Extract JSDoc comments for description
-    const jsDocTags = ts.getJSDocTags(node);
-    const description = jsDocTags
-      .find(tag => tag.tagName.text === 'description')
-      ?.comment?.toString();
-
-    // For now, use simplified parameter extraction
-    // In a full implementation, this would analyze the function body for req.json(), req.query, etc.
+    if (routePath.includes('upload') || routePath.includes('generate')) {
+      return ['POST'];
+    }
     
-    return {
-      path: routePath,
-      method,
-      parameters,
-      responseType: 'any',
-      description
-    };
+    if (routePath.includes('search') || routePath.includes('list')) {
+      return ['GET', 'POST'];
+    }
+    
+    // Default to common methods
+    return ['GET', 'POST'];
   }
 
-  private extractRoutePath(filePath: string): string {
-    // Convert file path to API route path
-    // app/api/unified-search/route.ts -> /api/unified-search
-    const apiPath = filePath
-      .replace('app/api/', '')
-      .replace('/route.ts', '')
-      .replace(/\[([^\]]+)\]/g, ':$1'); // Convert [param] to :param
+  private getParametersForRoute(routePath: string, method: string): ParameterDefinition[] {
+    const params: ParameterDefinition[] = [];
+    
+    if (method === 'GET') {
+      // GET methods typically use query parameters
+      if (routePath.includes('search')) {
+        params.push({
+          name: 'query',
+          type: 'string',
+          required: true,
+          description: 'Search query'
+        });
+      }
+    } else if (method === 'POST') {
+      // POST methods typically use request body
+      if (routePath.includes('generate')) {
+        params.push({
+          name: 'prompt',
+          type: 'string',
+          required: true,
+          description: 'Generation prompt'
+        });
+      } else if (routePath.includes('search')) {
+        params.push({
+          name: 'query',
+          type: 'string',
+          required: true,
+          description: 'Search query'
+        });
+      }
+    }
+    
+    return params;
+  }
 
-    return `/api/${apiPath}`;
+  private getFallbackRoutes(): RouteDefinition[] {
+    // Hardcoded fallback routes for known endpoints
+    return [
+      {
+        path: '/api/health',
+        method: 'GET',
+        parameters: [],
+        responseType: 'any',
+        description: 'Health check endpoint'
+      },
+      {
+        path: '/api/unified-search',
+        method: 'POST',
+        parameters: [
+          { name: 'query', type: 'string', required: true, description: 'Search query' }
+        ],
+        responseType: 'any',
+        description: 'Unified search endpoint'
+      }
+    ];
   }
 }
