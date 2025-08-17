@@ -7,13 +7,13 @@ export const SimpleIntentSchema = z.object({
   intent: z.enum(['search', 'create', 'update', 'chat']).describe('Primary user intent'),
   confidence: z.number().min(0).max(1).describe('Confidence score'),
   tool_name: z.string().describe('Recommended tool to use'),
-  parameters: z.record(z.any()).describe('Parameters for the tool'),
+  parameters: z.record(z.any()).optional().default({}).describe('Parameters for the tool'),
   reasoning: z.string().describe('Why this classification was chosen'),
   primary_intent: z.string().optional().describe('Primary intent string'),
   classification: z.string().optional().describe('Classification string'),
   workflow_steps: z.array(z.object({
     tool_name: z.string(),
-    parameters: z.record(z.any()),
+    parameters: z.record(z.any()).optional().default({}),
     description: z.string().optional()
   })).optional().describe('Workflow steps to execute')
 });
@@ -38,11 +38,21 @@ export class SimpleIntentClassifier {
         model: this.model as any,
         schema: SimpleIntentSchema,
         system: `You are an intent classifier for a multimedia platform. Available tools: ${this.availableTools?.join(', ') || ''}.
-        Always include userId if provided in context.
+
+        CRITICAL: Always extract relevant parameters from the user message:
+        - For search requests: ALWAYS include "query" parameter with the search terms
+        - For chat requests: ALWAYS include "message" parameter with the full user message
+        - For creation requests: extract relevant parameters like "name", "type", etc.
+
         Examples:
         - "search for cats" → intent: search, tool: searchUnified, parameters: {query: "cats"}
+        - "find me some desert pictures" → intent: search, tool: searchUnified, parameters: {query: "desert pictures"}
+        - "show me videos of dogs" → intent: search, tool: searchUnified, parameters: {query: "videos of dogs"}
         - "create a canvas" → intent: create, tool: createCanvas, parameters: {name: "New Canvas"}
-        - "hello" → intent: chat, tool: chat, parameters: {message: "hello"}`,
+        - "hello" → intent: chat, tool: chat, parameters: {message: "hello"}
+        - "What is 2+2?" → intent: chat, tool: chat, parameters: {message: "What is 2+2?"}
+        
+        NEVER return empty parameters object. Always extract meaningful parameters from the user input.`,
         prompt: userMessage,
         temperature: 0.1
       });
@@ -58,7 +68,13 @@ export class SimpleIntentClassifier {
         classification: result.object.intent,
         workflow_steps: [{
           tool_name: result.object.tool_name,
-          parameters: { ...result.object.parameters, ...(context?.userId ? { userId: context.userId } : {}) },
+          parameters: {
+            ...result.object.parameters,
+            ...(context?.userId ? { userId: context.userId } : {}),
+            ...(result.object.tool_name === 'chat' ? { message: userMessage } : {}),
+            // Ensure search tools always have a query parameter
+            ...(result.object.tool_name === 'searchUnified' && !result.object.parameters?.query ? { query: userMessage } : {})
+          },
           description: `Execute ${result.object.tool_name} with classified intent`
         }]
       };
