@@ -479,7 +479,7 @@ export async function POST(req: NextRequest) {
         if (tool === 'searchunified') {
           const query = params.query || extractQuery(userMessage);
           events.push({ action: 'searchUnified', payload: { query, correlationId } });
-        } else if (tool === 'preparegenerate' || tool === 'generate' || tool === 'create' || tool === 'generatecontent') {
+        } else if (tool === 'preparegenerate') {
           const prompt = params.prompt || params.message || userMessage;
           const type = params.type || 'image';
           const model = params.model || 'default';
@@ -488,6 +488,16 @@ export async function POST(req: NextRequest) {
           events.push({
             action: 'prepareGenerate',
             payload: { type, prompt, model, options, refs, originalRequest: userMessage, correlationId }
+          });
+        } else if (tool === 'generatecontent') {
+          const prompt = params.prompt || params.message || userMessage;
+          const type = params.type || 'image';
+          const model = params.model || 'default';
+          const options = params.options || {};
+          const refs = params.refs || [];
+          events.push({
+            action: 'prepareGenerate',
+            payload: { type, prompt, model, options, refs, originalRequest: userMessage, correlationId, isFollowUp: true }
           });
         } else if (tool === 'pin' || tool === 'pintocanvas') {
           const contentId = params.contentId;
