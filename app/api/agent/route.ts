@@ -507,23 +507,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 3) Heuristic chaining for common compound intents if steps did not include them
-      const wantsGenerate = /\b(make|create|generate|produce|draw|paint|render)\b/i.test(userMessage);
-      const renameTo = extractName(userMessage);
-      if (wantsGenerate && !events.find(e => e.action === 'prepareGenerate')) {
-        events.push({ action: 'prepareGenerate', payload: { type: 'image', prompt: userMessage, model: 'default', options: {}, refs: [], originalRequest: userMessage, correlationId } });
-      }
-      if (renameTo && !events.find(e => e.action === 'nameImage')) {
-        events.push({ action: 'nameImage', payload: { imageId: 'current', name: renameTo, correlationId } });
-      }
-      const wantsSearch = /\b(search|find|show me|pics?|images?)\b/i.test(userMessage);
-      if (wantsSearch && !events.find(e => e.action === 'searchUnified')) {
-        events.push({ action: 'searchUnified', payload: { query: extractQuery(userMessage), correlationId } });
-      }
-      const wantsPinFirst = /\bpin\b.*\b(first|top)\b/i.test(userMessage);
-      if (wantsPinFirst && !events.find(e => e.action === 'pinToCanvas')) {
-        events.push({ action: 'pinToCanvas', payload: { id: null, contentId: null, needsLookup: true, originalRequest: userMessage, correlationId } });
-      }
+      // 3) Remove heuristic fallbacks since backend now plans all steps
 
       const stream = new ReadableStream({
         start(controller) {
