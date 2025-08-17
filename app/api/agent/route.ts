@@ -435,25 +435,105 @@ export async function POST(req: NextRequest) {
 
     const agentResult = await agentResponse.json();
 
-    // Convert the comprehensive agent response to the expected streaming format
+    // Convert the Phase 2 response into a sequence of actionable UI events
     if (agentResult.success) {
-      // Create a streaming response that matches the expected format
       const encoder = new TextEncoder();
+      const correlationId = agentResult.correlationId || `corr_${Date.now()}`;
+
+      // Helper: extract simple query/name from user message
+      const extractQuery = (msg: string) => {
+        const patterns = [
+          /search for ([^.!?]+)/i,
+          /find (?:me\s+)?([^.!?]+)/i,
+          /show me ([^.!?]+)/i,
+        ];
+        for (const p of patterns) {
+          const m = msg.match(p);
+          if (m && m[1]) return m[1].trim();
+        }
+        return msg.trim();
+      };
+      const extractName = (msg: string) => {
+        const m = msg.match(/\b(save|name|rename|call)\s+(?:this\s+)?(?:image|picture|photo|video)?\s*(?:as|to)\s+([\w\-_.]+)/i);
+        return m && m[2] ? m[2] : undefined;
+      };
+
+      const events: any[] = [];
+
+      // 1) Always send a chat acknowledgement with summary + correlation
+      events.push({
+        action: 'chat',
+        payload: {
+          text: agentResult.message || 'Working on it…',
+          execution: agentResult.execution,
+          cost: agentResult.cost,
+          correlationId
+        }
+      });
+
+      // 2) Derive actions from workflow steps if present
+      const steps = agentResult?.execution?.intent?.workflow_steps || [];
+      for (const step of steps) {
+        const tool = (step?.tool_name || '').toLowerCase();
+        const params = step?.parameters || {};
+        if (tool === 'searchunified') {
+          const query = params.query || extractQuery(userMessage);
+          events.push({ action: 'searchUnified', payload: { query, correlationId } });
+        } else if (tool === 'preparegenerate' || tool === 'generate' || tool === 'create') {
+          const prompt = params.prompt || params.message || userMessage;
+          const type = params.type || 'image';
+          const model = params.model || 'default';
+          const options = params.options || {};
+          const refs = params.refs || [];
+          events.push({
+            action: 'prepareGenerate',
+            payload: { type, prompt, model, options, refs, originalRequest: userMessage, correlationId }
+          });
+        } else if (tool === 'pin' || tool === 'pintocanvas') {
+          const contentId = params.contentId;
+          events.push({
+            action: 'pinToCanvas',
+            payload: {
+              id: contentId || null,
+              contentId: contentId || null,
+              needsLookup: !contentId,
+              originalRequest: userMessage,
+              correlationId
+            }
+          });
+        } else if (tool === 'nameimage' || tool === 'renameasset') {
+          const name = params.name || extractName(userMessage) || 'Untitled';
+          events.push({ action: 'nameImage', payload: { imageId: params.imageId || 'current', name, correlationId } });
+        }
+      }
+
+      // 3) Heuristic chaining for common compound intents if steps did not include them
+      const wantsGenerate = /\b(make|create|generate|produce|draw|paint|render)\b/i.test(userMessage);
+      const renameTo = extractName(userMessage);
+      if (wantsGenerate && !events.find(e => e.action === 'prepareGenerate')) {
+        events.push({ action: 'prepareGenerate', payload: { type: 'image', prompt: userMessage, model: 'default', options: {}, refs: [], originalRequest: userMessage, correlationId } });
+      }
+      if (renameTo && !events.find(e => e.action === 'nameImage')) {
+        events.push({ action: 'nameImage', payload: { imageId: 'current', name: renameTo, correlationId } });
+      }
+      const wantsSearch = /\b(search|find|show me|pics?|images?)\b/i.test(userMessage);
+      if (wantsSearch && !events.find(e => e.action === 'searchUnified')) {
+        events.push({ action: 'searchUnified', payload: { query: extractQuery(userMessage), correlationId } });
+      }
+      const wantsPinFirst = /\bpin\b.*\b(first|top)\b/i.test(userMessage);
+      if (wantsPinFirst && !events.find(e => e.action === 'pinToCanvas')) {
+        events.push({ action: 'pinToCanvas', payload: { id: null, contentId: null, needsLookup: true, originalRequest: userMessage, correlationId } });
+      }
+
       const stream = new ReadableStream({
         start(controller) {
-          // Send the response as a tool action
-          const toolAction = {
-            action: 'chat',
-            payload: {
-              text: agentResult.message || 'Task completed successfully!',
-              execution: agentResult.execution,
-              cost: agentResult.cost
+          try {
+            for (const evt of events) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
             }
-          };
-
-          // Send as data stream format expected by frontend
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolAction)}\n\n`));
-          controller.close();
+          } finally {
+            controller.close();
+          }
         }
       });
 
