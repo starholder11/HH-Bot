@@ -417,7 +417,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Route to the Phase 2 comprehensive agent system
-    const agentResponse = await fetch(`http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com/api/agent-comprehensive`, {
+    const agentResponse = await fetch(`${process.env.LANCEDB_API_URL}/api/agent-comprehensive`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
