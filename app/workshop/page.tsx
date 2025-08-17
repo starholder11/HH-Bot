@@ -1453,6 +1453,15 @@ export default function VisualSearchPage() {
   // Bridge for agent → UI actions
   useEffect(() => {
     (window as any).__agentApi = {
+      // Called by agent for searchUnified actions
+      searchUnified: (payload: { query?: string; correlationId?: string }) => {
+        if (payload.query) {
+          debug('vs:agent:search', 'executing search:', payload.query);
+          setQuery(payload.query);
+          executeSearch(payload.query, 1, undefined, true);
+          setRightTab('results');
+        }
+      },
       // Called by client after tool pinToCanvas returns
       pin: (payload: { id?: string; title?: string; url?: string; needsLookup?: boolean }) => {
         // debug: agent pin bridge invoked

@@ -72,6 +72,12 @@ export default function AgentChat() {
                 return;
               }
               
+              // Handle search action
+              if (action === 'searchUnified') {
+                (window as any).__agentApi?.searchUnified?.(payload);
+                return;
+              }
+              
               // Handle showResults action
               if (action === 'showResults') {
                 (window as any).__agentApi?.showResults?.(payload);
