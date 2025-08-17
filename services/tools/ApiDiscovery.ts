@@ -21,13 +21,15 @@ export class ApiDiscovery {
   constructor(private projectRoot: string) {}
 
   async discoverRoutes(): Promise<RouteDefinition[]> {
-    const routeFiles = await glob('app/api/**/route.ts', {
-      cwd: this.projectRoot
-    });
-
     const routes: RouteDefinition[] = [];
-
-    for (const file of routeFiles) {
+    
+    // Find all route files in app/api
+    const apiDir = path.join(this.projectRoot, 'app', 'api');
+    
+    try {
+      const routeFiles = await this.findRouteFiles(apiDir);
+      
+      for (const routeFile of routeFiles) {
       const filePath = path.join(this.projectRoot, file);
       const sourceFile = this.program.getSourceFile(filePath);
 
