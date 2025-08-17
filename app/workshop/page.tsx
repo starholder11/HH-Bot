@@ -1450,6 +1450,7 @@ export default function VisualSearchPage() {
   const [genRaw, setGenRaw] = useState<any>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const agentRunLockRef = useRef(false);
+  const genQueueRef = useRef<any[]>([]);
   // Bridge for agent → UI actions
   useEffect(() => {
     (window as any).__agentApi = {
@@ -1683,7 +1684,12 @@ export default function VisualSearchPage() {
       prepareGenerate: async (payload: any) => {
         debug('vs:agent:gen', 'prepareGenerate');
         try {
-          if (agentRunLockRef.current || genLoading) return; agentRunLockRef.current = true;
+          if (agentRunLockRef.current || genLoading) {
+            debug('vs:agent:gen', 'queueing generate request');
+            genQueueRef.current.push(payload);
+            return;
+          }
+          agentRunLockRef.current = true;
           const mode = payload?.type as 'image' | 'video' | 'audio' | 'text' | undefined;
           const model = payload?.model as string | undefined;
           const prompt = payload?.prompt as string | undefined;
@@ -1790,7 +1796,17 @@ export default function VisualSearchPage() {
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), error: (e as any)?.message || 'Unknown error' } }) });
           } catch {}
-        } finally { agentRunLockRef.current = false; }
+        } finally {
+          agentRunLockRef.current = false;
+          // Drain queued generation requests sequentially
+          if (genQueueRef.current.length > 0) {
+            const nextPayload = genQueueRef.current.shift();
+            debug('vs:agent:gen', 'dequeue next generate request');
+            setTimeout(() => {
+              try { (window as any).__agentApi?.prepareGenerate?.(nextPayload); } catch {}
+            }, 0);
+          }
+        }
       },
       showOutput: (payload: any) => {
         try {
