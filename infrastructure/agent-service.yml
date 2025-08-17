@@ -1,0 +1,154 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'HH Agent App Service - ECS Task, Target Group, Listener Rule, and Service'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'hh-bot-phase2'
+  ClusterName:
+    Type: String
+    Description: 'Existing ECS cluster name'
+  VpcId:
+    Type: String
+    Description: 'VPC ID for Target Group'
+  Subnets:
+    Type: CommaDelimitedList
+    Description: 'Subnets for ECS service (awsvpc)'
+  SecurityGroups:
+    Type: CommaDelimitedList
+    Description: 'Security groups for ECS tasks'
+  ContainerImage:
+    Type: String
+    Description: 'ECR image URI for hh-agent-app'
+  ListenerArn:
+    Type: String
+    Description: 'Existing ALB HTTP listener ARN (e.g., port 80)'
+  OpenAISecretArn:
+    Type: String
+    Description: 'Secrets Manager ARN for OPENAI_API_KEY'
+  RedisUrl:
+    Type: String
+    Description: 'Redis URL for context service'
+  DesiredCount:
+    Type: Number
+    Default: 1
+  TaskExecutionRoleArn:
+    Type: String
+    Description: 'ECS Task Execution Role ARN'
+  TaskRoleArn:
+    Type: String
+    Description: 'ECS Task Role ARN'
+  LancedbApiUrl:
+    Type: String
+    Description: 'LanceDB API URL reachable from the service'
+
+Resources:
+  AgentTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub '${EnvironmentName}-agent-tg'
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: 3000
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckPath: /api/health
+      Matcher:
+        HttpCode: '200-399'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-agent-tg'
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  AgentListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ListenerArn
+      Priority: 60
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /api/*
+              - /agent*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref AgentTargetGroup
+
+  AgentTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: hh-agent-app-task
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '512'
+      Memory: '1024'
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      TaskRoleArn: !Ref TaskRoleArn
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: hh-agent-app
+          Image: !Ref ContainerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: LANCEDB_API_URL
+              Value: !Ref LancedbApiUrl
+            - Name: REDIS_URL
+              Value: !Ref RedisUrl
+          Secrets:
+            - Name: OPENAI_API_KEY
+              ValueFrom: !Ref OpenAISecretArn
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/hh-agent-app
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: ecs
+
+  AgentService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - AgentListenerRule
+    Properties:
+      ServiceName: hh-agent-app-service-lb
+      Cluster: !Ref ClusterName
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      TaskDefinition: !Ref AgentTaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref Subnets
+          SecurityGroups: !Ref SecurityGroups
+      LoadBalancers:
+        - TargetGroupArn: !Ref AgentTargetGroup
+          ContainerName: hh-agent-app
+          ContainerPort: 3000
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      EnableECSManagedTags: false
+      SchedulingStrategy: REPLICA
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: ManagedBy
+          Value: CloudFormation
+
+Outputs:
+  AgentServiceName:
+    Description: 'ECS Service name for the Agent app'
+    Value: !Ref AgentService
+  AgentTargetGroupArn:
+    Description: 'Target Group ARN for the Agent app'
+    Value: !Ref AgentTargetGroup
+

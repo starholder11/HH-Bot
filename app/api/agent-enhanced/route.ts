@@ -8,18 +8,24 @@ import { EnhancedWorkflowGenerator, WorkflowProgress } from '../../../services/i
 
 export const dynamic = 'force-dynamic';
 
-// Initialize services (prod-safe Redis guard)
-const isProd = process.env.NODE_ENV === 'production';
-const redisUrl = process.env.REDIS_URL || (!isProd ? 'redis://localhost:6379' : undefined);
-if (isProd && !redisUrl) {
-  throw new Error('REDIS_URL must be set in production');
+// Lazy service initialization to avoid build-time Redis connection
+let contextService: RedisContextService | null = null;
+let toolRegistry: ToolRegistry | null = null;
+let toolExecutor: ToolExecutor | null = null;
+let llmRouter: SimpleLLMRouter | null = null;
+
+function initializeServices() {
+  if (!contextService) {
+    contextService = new RedisContextService();
+    toolRegistry = new ToolRegistry(contextService);
+    toolExecutor = new ToolExecutor(toolRegistry, contextService);
+    llmRouter = new SimpleLLMRouter();
+  }
+  return { contextService, toolRegistry, toolExecutor, llmRouter };
 }
-const contextService = new RedisContextService(redisUrl!);
-const toolRegistry = new ToolRegistry(contextService);
-const toolExecutor = new ToolExecutor(toolRegistry, contextService);
-const llmRouter = new SimpleLLMRouter();
-const intentClassifier = new SimpleIntentClassifier(llmRouter, toolRegistry.getAllTools().map(t => t.name));
-const enhancedWorkflowGenerator = new EnhancedWorkflowGenerator(intentClassifier, llmRouter, toolExecutor, contextService);
+// Initialize services lazily in request handlers
+let intentClassifier: SimpleIntentClassifier | null = null;
+let enhancedWorkflowGenerator: EnhancedWorkflowGenerator | null = null;
 
 // Store active workflows for progress tracking
 const activeWorkflows = new Map<string, {
@@ -40,7 +46,15 @@ const COST_LIMITS = {
 };
 
 export async function POST(request: NextRequest) {
-  const correlationId = contextService.generateCorrelationId();
+  const { contextService, toolRegistry, toolExecutor, llmRouter } = initializeServices();
+
+  // Initialize enhanced services if not already done
+  if (!intentClassifier) {
+    intentClassifier = new SimpleIntentClassifier(llmRouter!, toolRegistry!.getAllTools().map(t => t.name));
+    enhancedWorkflowGenerator = new EnhancedWorkflowGenerator(intentClassifier, llmRouter!, toolExecutor!, contextService!);
+  }
+
+  const correlationId = contextService!.generateCorrelationId();
   console.log(`[${correlationId}] Enhanced Agent request received`);
 
   try {
@@ -62,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check cost limits
-    const currentCosts = enhancedWorkflowGenerator.getWorkflowCostStats();
+    const currentCosts = enhancedWorkflowGenerator!.getWorkflowCostStats();
     const costCheck = {
       llm: {
         exceeded: currentCosts.llm > COST_LIMITS.LLM_DAILY_HARD,
@@ -95,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (resumeWorkflow) {
       // Resume existing workflow
       console.log(`[${correlationId}] Resuming workflow: ${resumeWorkflow.workflowId}`);
-      workflowResult = await enhancedWorkflowGenerator.resumeWorkflow(
+      workflowResult = await enhancedWorkflowGenerator!.resumeWorkflow(
         resumeWorkflow.workflowId,
         resumeWorkflow.checkpointId,
         correlationId,
@@ -120,7 +134,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Execute new workflow
-      workflowResult = await enhancedWorkflowGenerator.generateAndExecuteWorkflow(
+      workflowResult = await enhancedWorkflowGenerator!.generateAndExecuteWorkflow(
         message,
         userId,
         tenantId,
@@ -182,7 +196,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const correlationId = contextService.generateCorrelationId();
+  const { contextService, toolRegistry, toolExecutor, llmRouter } = initializeServices();
+
+  // Initialize enhanced services if not already done
+  if (!intentClassifier) {
+    intentClassifier = new SimpleIntentClassifier(llmRouter!, toolRegistry!.getAllTools().map(t => t.name));
+    enhancedWorkflowGenerator = new EnhancedWorkflowGenerator(intentClassifier, llmRouter!, toolExecutor!, contextService!);
+  }
+
+  const correlationId = contextService!.generateCorrelationId();
   console.log(`[${correlationId}] Enhanced Agent GET request received`);
 
   try {
@@ -193,8 +215,8 @@ export async function GET(request: NextRequest) {
 
     switch (action) {
       case 'health':
-        const contextHealth = await contextService.checkHealth();
-        const providerHealth = await llmRouter.checkProviderHealth();
+        const contextHealth = await contextService!.checkHealth();
+        const providerHealth = await llmRouter!.checkProviderHealth();
         return NextResponse.json({
           success: true,
           service: 'agent-enhanced',
@@ -211,7 +233,7 @@ export async function GET(request: NextRequest) {
         const tags = searchParams.get('tags')?.split(',');
         const query = searchParams.get('query');
 
-        const templates = enhancedWorkflowGenerator['workflowTemplates'].searchTemplates({
+        const templates = enhancedWorkflowGenerator!['workflowTemplates'].searchTemplates({
           category: category || undefined,
           complexity: complexity || undefined,
           tags: tags || undefined,
@@ -242,7 +264,7 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        const template = enhancedWorkflowGenerator['workflowTemplates'].getTemplate(templateId);
+        const template = enhancedWorkflowGenerator!['workflowTemplates'].getTemplate(templateId);
         if (!template) {
           return NextResponse.json(
             { error: 'Template not found', correlationId },
@@ -294,7 +316,7 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        const checkpoints = enhancedWorkflowGenerator['errorHandler'].getWorkflowCheckpoints(checkpointWorkflowId);
+        const checkpoints = enhancedWorkflowGenerator!['errorHandler'].getWorkflowCheckpoints(checkpointWorkflowId);
         return NextResponse.json({
           success: true,
           checkpoints: checkpoints.map(cp => ({
@@ -309,9 +331,9 @@ export async function GET(request: NextRequest) {
         });
 
       case 'cost-stats':
-        const llmCostStats = llmRouter.getCostStats();
-        const toolExecutionStats = toolExecutor.getExecutionStats(userId, tenantId);
-        const workflowCostStats = enhancedWorkflowGenerator.getWorkflowCostStats();
+        const llmCostStats = llmRouter!.getCostStats();
+        const toolExecutionStats = toolExecutor!.getExecutionStats(userId, tenantId);
+        const workflowCostStats = enhancedWorkflowGenerator!.getWorkflowCostStats();
         return NextResponse.json({
           success: true,
           llm: llmCostStats,
@@ -325,7 +347,7 @@ export async function GET(request: NextRequest) {
         });
 
       case 'cost-check':
-        const currentCosts = enhancedWorkflowGenerator.getWorkflowCostStats();
+        const currentCosts = enhancedWorkflowGenerator!.getWorkflowCostStats();
         const costCheck = {
           llm: {
             current: currentCosts.llm,
@@ -353,7 +375,7 @@ export async function GET(request: NextRequest) {
         });
 
       case 'reset-costs':
-        enhancedWorkflowGenerator.resetCostTracking();
+        enhancedWorkflowGenerator!.resetCostTracking();
         return NextResponse.json({
           success: true,
           message: 'Cost tracking reset.',
@@ -363,7 +385,7 @@ export async function GET(request: NextRequest) {
       case 'cleanup-checkpoints':
         const hoursParam = searchParams.get('hours');
         const hours = hoursParam ? parseInt(hoursParam) : 24;
-        enhancedWorkflowGenerator['errorHandler'].cleanupCheckpoints(hours);
+        enhancedWorkflowGenerator!['errorHandler'].cleanupCheckpoints(hours);
         return NextResponse.json({
           success: true,
           message: `Cleaned up checkpoints older than ${hours} hours.`,

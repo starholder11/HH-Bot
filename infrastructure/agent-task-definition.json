@@ -1,0 +1,60 @@
+{
+  "family": "hh-agent-app-task-v2",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::781939061434:role/lancedb-bulletproof-simple-ExecutionRole-HH1BCYupM12n",
+  "taskRoleArn": "arn:aws:iam::781939061434:role/lancedb-bulletproof-simple-TaskRole-UZYQhahdNXVb",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "hh-agent-app",
+      "image": "781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-agent-app:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "LANCEDB_API_URL",
+          "value": "http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com"
+        },
+        {
+          "name": "REDIS_URL",
+          "value": "redis://hh-bot-phase2-redis.5eblzz.ng.0001.use1.cache.amazonaws.com:6379"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "value": "sk-placeholder-key-will-be-updated"
+        }
+      ],
+      "secrets": [
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/hh-agent-app",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

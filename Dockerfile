@@ -1,34 +1,59 @@
-FROM node:20-slim
+FROM node:20-slim AS builder
 
-# Install system dependencies for LanceDB
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+ARG REDIS_URL
+ENV NODE_ENV=development \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000
 
 WORKDIR /app
 
-# Copy package files
+# Install Python and build tools for native dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install all dependencies (including dev) for build
 COPY package*.json ./
+RUN npm ci --legacy-peer-deps
 
-# Install dependencies
-ENV NODE_ENV=production
-RUN npm ci --omit=dev
+# Copy source
+COPY . .
 
-# Copy source code
-COPY src/ ./src/
+# Build Next.js app
+RUN REDIS_URL=${REDIS_URL} npm run build:web
 
-# Create data directory
-RUN mkdir -p /tmp/lancedb
+# --- Runtime image ---
+FROM node:20-slim AS runner
 
-# Health check
+ARG REDIS_URL
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    REDIS_URL=${REDIS_URL}
+
+WORKDIR /app
+
+# Install Python and build tools for native dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install production deps only
+COPY package*.json ./
+RUN npm ci --omit=dev --legacy-peer-deps
+
+# Copy built app
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.js ./next.config.js
+
+EXPOSE 3000
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+  CMD node -e "fetch('http://localhost:3000/api/debug-production').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
-# Expose port
-EXPOSE 8000
-
-# Start service (adjust to actual entrypoint if used)
-CMD ["node", "src/lancedb-service.js"]
+CMD ["npm", "run", "start:web"]

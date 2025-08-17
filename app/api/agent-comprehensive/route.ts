@@ -4,14 +4,25 @@ import { ToolRegistry } from '../../../services/tools/ToolRegistry';
 import { ToolExecutor } from '../../../services/tools/ToolExecutor';
 import { RedisContextService } from '../../../services/context/RedisContextService';
 
-// Initialize services
-const contextService = new RedisContextService(process.env.REDIS_URL || 'redis://localhost:6379');
-const toolRegistry = new ToolRegistry(contextService);
-const toolExecutor = new ToolExecutor(toolRegistry, contextService);
-const workflowGenerator = new SimpleWorkflowGenerator(toolRegistry, toolExecutor, contextService);
+// Lazy service initialization to avoid build-time Redis connection
+let contextService: RedisContextService | null = null;
+let toolRegistry: ToolRegistry | null = null;
+let toolExecutor: ToolExecutor | null = null;
+let workflowGenerator: SimpleWorkflowGenerator | null = null;
+
+function initializeServices() {
+  if (!contextService) {
+    contextService = new RedisContextService();
+    toolRegistry = new ToolRegistry(contextService);
+    toolExecutor = new ToolExecutor(toolRegistry, contextService);
+    workflowGenerator = new SimpleWorkflowGenerator(toolRegistry, toolExecutor, contextService);
+  }
+  return { contextService, toolRegistry, toolExecutor, workflowGenerator };
+}
 
 export async function POST(request: NextRequest) {
-  const correlationId = contextService.generateCorrelationId();
+  const { contextService, workflowGenerator } = initializeServices();
+  const correlationId = contextService!.generateCorrelationId();
 
   try {
     const body = await request.json();
@@ -27,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Process the natural language request with comprehensive workflow generation
-    const result = await workflowGenerator.processNaturalLanguageRequest(
+    const result = await workflowGenerator!.processNaturalLanguageRequest(
       message,
       userId,
       tenantId
@@ -70,7 +81,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const correlationId = contextService.generateCorrelationId();
+  const { contextService } = initializeServices();
+  const correlationId = contextService!.generateCorrelationId();
 
   try {
     const { searchParams } = new URL(request.url);
@@ -81,7 +93,7 @@ export async function GET(request: NextRequest) {
 
     switch (action) {
       case 'stats':
-        const stats = workflowGenerator.getUsageStats();
+        const stats = workflowGenerator!.getUsageStats();
         return NextResponse.json({
           success: true,
           stats,
@@ -89,7 +101,7 @@ export async function GET(request: NextRequest) {
         });
 
       case 'workflows':
-        const workflows = workflowGenerator.getActiveWorkflows(userId || undefined);
+        const workflows = workflowGenerator!.getActiveWorkflows(userId || undefined);
         return NextResponse.json({
           success: true,
           workflows: workflows.map(w => ({
@@ -111,7 +123,7 @@ export async function GET(request: NextRequest) {
       case 'cost-check':
         const dailyLimit = parseFloat(searchParams.get('dailyLimit') || '10');
         const monthlyLimit = parseFloat(searchParams.get('monthlyLimit') || '100');
-        const costLimits = workflowGenerator.checkCostLimits(dailyLimit, monthlyLimit);
+        const costLimits = workflowGenerator!.checkCostLimits(dailyLimit, monthlyLimit);
         return NextResponse.json({
           success: true,
           costLimits,
@@ -119,7 +131,7 @@ export async function GET(request: NextRequest) {
         });
 
       case 'provider-health':
-        const providerHealth = await workflowGenerator.checkProviderHealth();
+        const providerHealth = await workflowGenerator!.checkProviderHealth();
         return NextResponse.json({
           success: true,
           providerHealth,
@@ -127,8 +139,8 @@ export async function GET(request: NextRequest) {
         });
 
       case 'health':
-        const usageStats = workflowGenerator.getUsageStats();
-        const health = await workflowGenerator.checkProviderHealth();
+        const usageStats = workflowGenerator!.getUsageStats();
+        const health = await workflowGenerator!.checkProviderHealth();
         return NextResponse.json({
           success: true,
           service: 'agent-comprehensive',
@@ -167,12 +179,12 @@ export async function GET(request: NextRequest) {
 
 // Reset usage statistics
 export async function DELETE(request: NextRequest) {
-  const correlationId = contextService.generateCorrelationId();
+  const correlationId = contextService!.generateCorrelationId();
 
   try {
     console.log(`[${correlationId}] DELETE /api/agent-comprehensive - Resetting usage stats`);
 
-    workflowGenerator.resetUsageStats();
+    workflowGenerator!.resetUsageStats();
 
     return NextResponse.json({
       success: true,

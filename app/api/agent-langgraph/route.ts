@@ -9,26 +9,33 @@ import { WebSocketManager } from '../../../services/websocket/WebSocketManager';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize services (prod-safe Redis guard)
-const isProd = process.env.NODE_ENV === 'production';
-const redisUrl = process.env.REDIS_URL || (!isProd ? 'redis://localhost:6379' : undefined);
-if (isProd && !redisUrl) {
-  throw new Error('REDIS_URL must be set in production');
-}
-const contextService = new RedisContextService(redisUrl!);
-const toolRegistry = new ToolRegistry(contextService);
-const toolExecutor = new ToolExecutor(toolRegistry, contextService);
-const qualityController = new QualityController(contextService);
-const conversationManager = new ConversationManager(contextService);
-const wsManager = new WebSocketManager(contextService);
+// Lazy service initialization to avoid build-time Redis connection
+let contextService: RedisContextService | null = null;
+let toolRegistry: ToolRegistry | null = null;
+let toolExecutor: ToolExecutor | null = null;
 
-// Initialize LangGraph orchestrator
-const langGraphOrchestrator = new LangGraphOrchestrator(
-  toolExecutor,
-  toolRegistry,
-  contextService,
-  qualityController
-);
+let qualityController: QualityController | null = null;
+let conversationManager: ConversationManager | null = null;
+let wsManager: WebSocketManager | null = null;
+let langGraphOrchestrator: LangGraphOrchestrator | null = null;
+
+function initializeServices() {
+  if (!contextService) {
+    contextService = new RedisContextService();
+    toolRegistry = new ToolRegistry(contextService);
+    toolExecutor = new ToolExecutor(toolRegistry, contextService);
+    qualityController = new QualityController(contextService);
+    conversationManager = new ConversationManager(contextService);
+    wsManager = new WebSocketManager(contextService);
+    langGraphOrchestrator = new LangGraphOrchestrator(
+      toolExecutor,
+      toolRegistry,
+      contextService,
+      qualityController
+    );
+  }
+  return { contextService, toolRegistry, toolExecutor, qualityController, conversationManager, wsManager, langGraphOrchestrator };
+}
 
 // Cost limits
 const COST_LIMITS = {
@@ -41,6 +48,7 @@ const COST_LIMITS = {
 };
 
 export async function POST(request: NextRequest) {
+  const { contextService, langGraphOrchestrator } = initializeServices();
   const correlationId = contextService.generateCorrelationId();
   console.log(`[${correlationId}] LangGraph Agent request received`);
 
@@ -211,6 +219,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const { contextService } = initializeServices();
   const correlationId = contextService.generateCorrelationId();
   console.log(`[${correlationId}] LangGraph Agent GET request received`);
 

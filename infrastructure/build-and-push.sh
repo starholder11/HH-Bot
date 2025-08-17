@@ -80,25 +80,26 @@ create_ecr_repository() {
     local account_id=$(get_aws_account_id)
     local repository_uri="${account_id}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY_NAME}"
 
-    log_info "Checking if ECR repository exists..."
+    log_info "Checking if ECR repository exists..." >&2
 
     # Check if repository exists
     if aws ecr describe-repositories \
         --repository-names "$ECR_REPOSITORY_NAME" \
         --region "$AWS_REGION" &> /dev/null; then
-        log_info "ECR repository already exists: $ECR_REPOSITORY_NAME"
+        log_info "ECR repository already exists: $ECR_REPOSITORY_NAME" >&2
     else
-        log_info "Creating ECR repository: $ECR_REPOSITORY_NAME"
+        log_info "Creating ECR repository: $ECR_REPOSITORY_NAME" >&2
         aws ecr create-repository \
             --repository-name "$ECR_REPOSITORY_NAME" \
             --region "$AWS_REGION" \
             --image-scanning-configuration scanOnPush=true \
             --encryption-configuration encryptionType=AES256 \
-            --tags Key=Project,Value=HH-Bot-LanceDB Key=ManagedBy,Value=Script
+            --tags Key=Project,Value=HH-Bot-LanceDB Key=ManagedBy,Value=Script > /dev/null
 
-        log_success "ECR repository created successfully"
+        log_success "ECR repository created successfully" >&2
     fi
 
+    # Return URI cleanly to stdout
     echo "$repository_uri"
 }
 
@@ -119,10 +120,18 @@ build_docker_image() {
     log_info "Build context: $DOCKERFILE_PATH"
     log_info "Target image: $repository_uri:$IMAGE_TAG"
 
+    # Build args
+    local build_args=""
+    if [[ -n "$REDIS_URL" ]]; then
+        log_info "Passing REDIS_URL as build-arg"
+        build_args+=" --build-arg REDIS_URL=$REDIS_URL"
+    fi
+
     # Build the image
     docker build \
         -t "$ECR_REPOSITORY_NAME:$IMAGE_TAG" \
         -t "$repository_uri:$IMAGE_TAG" \
+        $build_args \
         "$DOCKERFILE_PATH"
 
     log_success "Docker image built successfully"

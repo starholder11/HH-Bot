@@ -37,6 +37,11 @@ export DESIRED_TASK_COUNT="2"
 export TASK_CPU="2048"
 export TASK_MEMORY="8192"
 
+# Redis Configuration for Phase 2 Agentic System
+export REDIS_STACK_NAME="hh-bot-phase2-redis-v2"
+export REDIS_NODE_TYPE="cache.t3.micro"
+export REDIS_URL="redis://hh-bot-phase2-redis.5eblzz.ng.0001.use1.cache.amazonaws.com:6379"
+
 # Optional: Domain Configuration
 export DOMAIN_NAME=""  # e.g., "lancedb.yourdomain.com"
 
@@ -47,3 +52,4 @@ echo "Bucket: $AWS_S3_BUCKET"
 echo ""
 echo "⚠️  REQUIRED: Update VPC_ID and SUBNET_IDS with your actual values"
 echo "⚠️  REQUIRED: Create OpenAI secret in Secrets Manager"
+echo "⚠️  REQUIRED: Deploy ElastiCache Redis for Phase 2 agentic system"

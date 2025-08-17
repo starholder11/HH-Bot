@@ -63,16 +63,36 @@ export class RedisContextService {
   private readonly WORKFLOW_TTL = 7 * 24 * 60 * 60; // 7 days
   private readonly SESSION_HISTORY_LIMIT = 100;
   private readonly RECENT_SEARCHES_LIMIT = 20;
+  private hasValidConfig: boolean = false;
 
   constructor(redisUrl?: string) {
-    this.redis = new Redis(redisUrl || process.env.REDIS_URL || 'redis://localhost:6379');
+    const redisConnectionUrl = redisUrl || process.env.REDIS_URL;
+
+    if (!redisConnectionUrl) {
+      // Do NOT throw at import/build time; defer to runtime usage
+      this.hasValidConfig = false;
+      // Create a throwing proxy so any accidental use clearly errors at runtime
+      const throwingProxy = new Proxy({}, {
+        get() {
+          return () => {
+            throw new Error('REDIS_URL not configured; Redis is unavailable in this environment.');
+          };
+        }
+      });
+      this.redis = throwingProxy as unknown as Redis;
+      return;
+    }
+
+    this.hasValidConfig = true;
+    this.redis = new Redis(redisConnectionUrl);
 
     this.redis.on('connect', () => {
-      console.log('Redis connected successfully');
+      console.log('Redis connected successfully to:', redisConnectionUrl.replace(/\/\/.*@/, '//***@'));
     });
 
     this.redis.on('error', (error) => {
       console.error('Redis connection error:', error);
+      // Do not throw here to avoid crashing processes; callers will see errors on use
     });
   }
 
@@ -307,6 +327,12 @@ export class RedisContextService {
    */
   async getHealthStatus(): Promise<{ status: string; details: any }> {
     try {
+      if (!this.hasValidConfig) {
+        return {
+          status: 'unhealthy',
+          details: { connected: false, error: 'REDIS_URL not configured' }
+        };
+      }
       const info = await this.redis.info();
       const keyCount = await this.redis.dbsize();
 
@@ -322,7 +348,7 @@ export class RedisContextService {
     } catch (error) {
       return {
         status: 'unhealthy',
-        details: { error: error instanceof Error ? error.message : 'Unknown error' }
+        details: { connected: false, error: error instanceof Error ? error.message : 'Unknown error' }
       };
     }
   }

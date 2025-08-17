@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ElastiCache Redis for HH-Bot Phase 2 Agentic System'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'hh-bot-phase2'
+    Description: 'Environment name for resource naming'
+
+  VpcId:
+    Type: String
+    Description: 'VPC ID where Redis will be deployed'
+    Default: 'vpc-45bdcd38'
+
+  SubnetIds:
+    Type: CommaDelimitedList
+    Description: 'Private subnet IDs for Redis subnet group'
+    Default: 'subnet-fc7b5c9a,subnet-d20b60e3'
+
+  NodeType:
+    Type: String
+    Default: 'cache.t3.micro'
+    Description: 'ElastiCache node type'
+    AllowedValues:
+      - cache.t3.micro
+      - cache.t3.small
+      - cache.t3.medium
+      - cache.r6g.large
+
+Resources:
+  # Security Group for ECS (to allow outbound to Redis)
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-ecs-redis-sg'
+      GroupDescription: 'Security group for ECS tasks accessing Redis'
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          CidrIp: 10.0.0.0/16
+          Description: 'Allow outbound to Redis'
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: 'Allow HTTPS outbound'
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: 'Allow HTTP outbound'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-ecs-redis-sg'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # Security Group for Redis
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-redis-sg'
+      GroupDescription: 'Security group for ElastiCache Redis'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+          Description: 'Allow Redis access from ECS tasks'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-redis-sg'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # Redis Subnet Group
+  RedisSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: 'Subnet group for ElastiCache Redis'
+      SubnetIds: !Ref SubnetIds
+      CacheSubnetGroupName: !Sub '${EnvironmentName}-redis-subnet-group'
+
+  # Using default parameter group to avoid service-linked role issues
+
+  # ElastiCache Redis Cluster
+  RedisCluster:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      ReplicationGroupId: !Sub '${EnvironmentName}-redis'
+      ReplicationGroupDescription: 'Redis cluster for Phase 2 agentic system'
+      Engine: redis
+      EngineVersion: '7.0'
+      CacheNodeType: !Ref NodeType
+      NumCacheClusters: 1
+      Port: 6379
+      # Using default parameter group
+      CacheSubnetGroupName: !Ref RedisSubnetGroup
+      SecurityGroupIds:
+        - !Ref RedisSecurityGroup
+      AtRestEncryptionEnabled: true
+      TransitEncryptionEnabled: false  # Simplified for now, can enable later
+      AutomaticFailoverEnabled: false  # Single node for cost efficiency
+      MultiAZEnabled: false
+      PreferredMaintenanceWindow: 'sun:03:00-sun:04:00'
+      SnapshotRetentionLimit: 1
+      SnapshotWindow: '02:00-03:00'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-redis'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+Outputs:
+  RedisEndpoint:
+    Description: 'Redis primary endpoint'
+    Value: !GetAtt RedisCluster.PrimaryEndPoint.Address
+    Export:
+      Name: !Sub '${EnvironmentName}-redis-endpoint'
+
+  RedisPort:
+    Description: 'Redis port'
+    Value: !GetAtt RedisCluster.PrimaryEndPoint.Port
+    Export:
+      Name: !Sub '${EnvironmentName}-redis-port'
+
+  RedisURL:
+    Description: 'Complete Redis URL for applications'
+    Value: !Sub 'redis://${RedisCluster.PrimaryEndPoint.Address}:${RedisCluster.PrimaryEndPoint.Port}'
+    Export:
+      Name: !Sub '${EnvironmentName}-redis-url'
+
+  ECSSecurityGroupId:
+    Description: 'Security group ID for ECS tasks'
+    Value: !Ref ECSSecurityGroup
+    Export:
+      Name: !Sub '${EnvironmentName}-ecs-security-group'

@@ -1,0 +1,58 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticache:CreateReplicationGroup",
+                "elasticache:CreateCacheSubnetGroup",
+                "elasticache:CreateCacheParameterGroup",
+                "elasticache:DescribeReplicationGroups",
+                "elasticache:DescribeCacheSubnetGroups",
+                "elasticache:DescribeCacheParameterGroups",
+                "elasticache:DescribeCacheClusters",
+                "elasticache:ListTagsForResource",
+                "elasticache:AddTagsToResource",
+                "elasticache:ModifyReplicationGroup",
+                "elasticache:DeleteReplicationGroup",
+                "elasticache:DeleteCacheSubnetGroup",
+                "elasticache:DeleteCacheParameterGroup"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateSecurityGroup",
+                "ec2:AuthorizeSecurityGroupIngress",
+                "ec2:AuthorizeSecurityGroupEgress",
+                "ec2:RevokeSecurityGroupIngress",
+                "ec2:RevokeSecurityGroupEgress",
+                "ec2:DeleteSecurityGroup",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeSubnets",
+                "ec2:CreateTags"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:UpdateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:GetTemplate",
+                "cloudformation:ListStacks",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:DeleteChangeSet"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

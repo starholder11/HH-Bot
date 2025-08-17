@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RedisContextService } from '../../../../services/context/RedisContextService';
 
-// Initialize Redis context service
-const contextService = new RedisContextService();
+// Ensure this route is always dynamic and not statically evaluated at build time
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
+// Initialize Redis context service lazily to avoid build-time network calls
+let contextService: RedisContextService | null = null;
 
 export async function GET(request: NextRequest) {
+  if (!contextService) {
+    contextService = new RedisContextService();
+  }
   const correlationId = contextService.generateCorrelationId();
 
   console.log(`[${correlationId}] GET /api/health/redis - Health check requested`);
