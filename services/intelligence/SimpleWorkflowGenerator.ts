@@ -121,23 +121,59 @@ export class SimpleWorkflowGenerator {
     console.log(`[${workflow.correlationId}] Executing workflow: ${workflow.intent.tool_name}`);
 
     try {
-      // Execute the recommended tool
-      const stepParameters = workflow.intent.workflow_steps?.[0]?.parameters || workflow.intent.parameters;
-      console.log(`[${workflow.correlationId}] DEBUG: stepParameters =`, JSON.stringify(stepParameters));
-      const execution = await this.toolExecutor.executeTool(
-        workflow.intent.tool_name,
-        stepParameters,
-        { userId: workflow.userId, tenantId: 'default' }
-      );
+      const userContext = { userId: workflow.userId, tenantId: 'default' };
+
+      // Execute all planned steps in order (generalized chaining)
+      const steps = workflow.intent.workflow_steps && workflow.intent.workflow_steps.length > 0
+        ? workflow.intent.workflow_steps
+        : [{ tool_name: workflow.intent.tool_name, parameters: workflow.intent.parameters }];
+
+      let lastExecution: any = null;
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        const params = { ...step.parameters };
+        // Propagate generated IDs where possible
+        if (!params.imageId && lastExecution?.result?.generatedId) {
+          params.imageId = lastExecution.result.generatedId;
+        }
+
+        // Skip UI-only rename if we don't have an asset identifier to rename server-side
+        if (step.tool_name === 'renameAsset') {
+          const hasAssetId = typeof params.assetId === 'string' && params.assetId.length > 0;
+          const hasFilename = typeof params.newFilename === 'string' && params.newFilename.length > 0;
+          if (!hasAssetId) {
+            console.log(`[${workflow.correlationId}] INFO: Skipping renameAsset step (no assetId yet). Defer to UI action.`);
+            continue;
+          }
+          // Normalize name -> newFilename if classifier provided 'name'
+          if (!hasFilename && typeof (params as any).name === 'string') {
+            (params as any).newFilename = (params as any).name;
+            delete (params as any).name;
+          }
+        }
+        console.log(`[${workflow.correlationId}] DEBUG: step ${i + 1}/${steps.length} -> ${step.tool_name} params=`, JSON.stringify(params));
+        lastExecution = await this.toolExecutor.executeTool(step.tool_name, params, userContext);
+        if (lastExecution.status === 'failed') {
+          workflow.status = 'failed';
+          workflow.error = lastExecution.error;
+          workflow.endTime = Date.now();
+          return {
+            success: false,
+            execution: workflow,
+            message: `I encountered an issue: ${lastExecution.error}`,
+            cost: workflow.totalCost
+          };
+        }
+      }
 
       // Calculate costs
       const toolCost = 0.001; // Rough estimate for tool execution
       workflow.toolCost = toolCost;
       workflow.totalCost = workflow.llmCost + workflow.toolCost;
 
-      if (execution.status === 'completed') {
+      if (lastExecution?.status === 'completed') {
         workflow.status = 'completed';
-        workflow.result = execution.result;
+        workflow.result = lastExecution.result;
         workflow.endTime = Date.now();
 
         // Update user context based on successful execution
@@ -153,16 +189,11 @@ export class SimpleWorkflowGenerator {
         };
 
       } else {
+        // Should not reach here, but keep defensive fallback
         workflow.status = 'failed';
-        workflow.error = execution.error;
+        workflow.error = 'Unknown execution state';
         workflow.endTime = Date.now();
-
-        return {
-          success: false,
-          execution: workflow,
-          message: `I encountered an issue: ${execution.error}`,
-          cost: workflow.totalCost
-        };
+        return { success: false, execution: workflow, message: 'Unknown execution state', cost: workflow.totalCost };
       }
 
     } catch (error) {

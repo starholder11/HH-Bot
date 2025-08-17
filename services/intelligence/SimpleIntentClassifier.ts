@@ -52,7 +52,7 @@ export class SimpleIntentClassifier {
         - "pin item-123 to canvas" → intent: create, tool: pinToCanvas, parameters: {contentId: "item-123"}
         - "make me a picture of a cat" → intent: create, tool: prepareGenerate, parameters: {prompt: "cat", type: "image"}
         - "hello" → intent: chat, tool: chat, parameters: {message: "hello"}
-        
+
         NEVER return empty parameters object for search. For pin/generate, extract what you can but don't invent IDs.`,
         prompt: userMessage,
         temperature: 0.1
@@ -79,6 +79,30 @@ export class SimpleIntentClassifier {
           description: `Execute ${result.object.tool_name} with classified intent`
         }]
       };
+
+      // Generalized chaining: augment with additional steps when requested in natural language
+      // 1) generate → rename
+      const renameMatch = userMessage.match(/\b(?:rename|name|call)\b.*\b(?:to|as)\s+([\w\-.]+)/i);
+      if (renameMatch) {
+        const targetName = renameMatch[1];
+        intent.workflow_steps!.push({
+          tool_name: 'renameAsset',
+          parameters: { name: targetName },
+          description: 'Plan to rename the generated asset (handled by UI if assetId unknown)'
+        });
+      }
+
+      // 2) generate image → then make a video
+      const wantsVideo = /\b(make|create|generate)\b.*\b(video|animation|movie|clip)\b/i.test(userMessage)
+        || /\bthen\b.*\b(video|animation|movie|clip)\b/i.test(userMessage)
+        || /\buse that image to (?:then )?make a video\b/i.test(userMessage);
+      if (wantsVideo) {
+        intent.workflow_steps!.push({
+          tool_name: 'generateContent',
+          parameters: { type: 'video', prompt: userMessage },
+          description: 'Generate a video based on the described prompt'
+        });
+      }
 
       const cost = 0.00001; // Estimated cost for gpt-4o-mini
 

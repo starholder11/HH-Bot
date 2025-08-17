@@ -479,7 +479,7 @@ export async function POST(req: NextRequest) {
         if (tool === 'searchunified') {
           const query = params.query || extractQuery(userMessage);
           events.push({ action: 'searchUnified', payload: { query, correlationId } });
-        } else if (tool === 'preparegenerate' || tool === 'generate' || tool === 'create') {
+        } else if (tool === 'preparegenerate' || tool === 'generate' || tool === 'create' || tool === 'generatecontent') {
           const prompt = params.prompt || params.message || userMessage;
           const type = params.type || 'image';
           const model = params.model || 'default';

@@ -1457,7 +1457,7 @@ export default function VisualSearchPage() {
       searchUnified: (payload: { query?: string; correlationId?: string }) => {
         if (payload.query) {
           debug('vs:agent:search', 'executing search:', payload.query);
-          setQuery(payload.query);
+          // Do not overwrite the user's search input; execute in-place
           executeSearch(payload.query, 1, undefined, true);
           setRightTab('results');
         }
