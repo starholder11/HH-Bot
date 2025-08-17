@@ -1,6 +1,6 @@
 import { SimpleIntentClassifier, SimpleIntent } from './SimpleIntentClassifier';
 import { SimpleLLMRouter } from './SimpleLLMRouter';
-import { ToolRegistry } from '../tools/ToolRegistry';
+import { UniversalToolRegistry } from '../tools/UniversalToolRegistry';
 import { ToolExecutor } from '../tools/ToolExecutor';
 import { RedisContextService } from '../context/RedisContextService';
 
@@ -32,11 +32,11 @@ export class SimpleWorkflowGenerator {
   private activeWorkflows: Map<string, WorkflowExecution> = new Map();
 
   constructor(
-    private toolRegistry: ToolRegistry,
+    private toolRegistry: UniversalToolRegistry,
     private toolExecutor: ToolExecutor,
     private contextService: RedisContextService
   ) {
-    const availableTools = this.toolRegistry.getAllTools().map(t => t.name);
+    const availableTools = Array.from(this.toolRegistry.getAllTools().keys());
     this.intentClassifier = new SimpleIntentClassifier(availableTools);
     this.llmRouter = new SimpleLLMRouter();
   }

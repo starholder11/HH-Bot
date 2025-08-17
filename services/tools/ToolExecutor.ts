@@ -39,12 +39,12 @@ export interface ToolChain {
 }
 
 export class ToolExecutor {
-  private registry: ToolRegistry;
+  private registry: UniversalToolRegistry;
   private contextService?: RedisContextService;
   private executions: Map<string, ToolExecution> = new Map();
   private chains: Map<string, ToolChain> = new Map();
 
-  constructor(registry: ToolRegistry, contextService?: RedisContextService) {
+  constructor(registry: UniversalToolRegistry, contextService?: RedisContextService) {
     this.registry = registry;
     this.contextService = contextService;
   }

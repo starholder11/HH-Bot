@@ -117,9 +117,6 @@ export class UniversalToolRegistry {
     return this.tools.get(name);
   }
 
-  getAllTools(): Map<string, UniversalToolDefinition> {
-    return new Map(this.tools);
-  }
 
   getToolsByCategory(category: string): UniversalToolDefinition[] {
     return Array.from(this.tools.values()).filter(tool => tool.category === category);

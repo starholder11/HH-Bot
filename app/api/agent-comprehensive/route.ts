@@ -16,23 +16,24 @@ async function initializeServices() {
   if (!contextService) {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     contextService = new RedisContextService(redisUrl);
-    
+
     universalRegistry = new UniversalToolRegistry(
       contextService,
       process.env.LANCEDB_API_URL || 'http://localhost:3000',
       process.cwd()
     );
     await universalRegistry.initializeAllTools();
-    
-    toolExecutor = new ToolExecutor(universalRegistry);
+
+    toolExecutor = new ToolExecutor(universalRegistry, contextService);
+    // Intent classifier is encapsulated inside the workflow generator path when using processNaturalLanguageRequest
     intentClassifier = new SimpleIntentClassifier(undefined, universalRegistry.getToolNames());
-    workflowGenerator = new SimpleWorkflowGenerator(toolExecutor);
+    workflowGenerator = new SimpleWorkflowGenerator(universalRegistry as any, toolExecutor, contextService);
   }
   return { contextService, universalRegistry, toolExecutor, intentClassifier, workflowGenerator };
 }
 
 export async function POST(request: NextRequest) {
-  const { contextService, intentClassifier, workflowGenerator } = await initializeServices();
+  const { contextService, workflowGenerator } = await initializeServices();
   const correlationId = contextService!.generateCorrelationId();
 
   try {
@@ -48,45 +49,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Classify intent and generate workflow
-    const { intent, cost: intentCost } = await intentClassifier!.classifyIntent(
+    // End-to-end processing (classification + execution)
+    const result = await workflowGenerator!.processNaturalLanguageRequest(
       message,
-      { userId, tenantId }
-    );
-
-    // Create workflow execution
-    const workflowExecution = {
-      id: `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`,
       userId,
-      tenantId,
-      intent,
-      status: 'pending' as const,
-      createdAt: new Date(),
-      correlationId
-    };
-
-    // Execute workflow
-    const result = await workflowGenerator!.executeWorkflow(workflowExecution);
+      tenantId
+    );
 
     console.log(`[${correlationId}] Workflow execution: ${result.status}`);
 
     return NextResponse.json({
-      success: result.status === 'completed',
+      success: result.success,
       message: result.message,
-      execution: {
-        id: result.execution.id,
-        intent: result.execution.intent,
-        status: result.execution.status,
-        costs: {
-          total: result.execution.totalCost,
-          llm: result.execution.llmCost,
-          tool: result.execution.toolCost
-        },
-        duration: result.execution.startTime && result.execution.endTime
-          ? result.execution.endTime - result.execution.startTime
-          : undefined,
-        error: result.execution.error
-      },
+      execution: result.execution,
       cost: result.cost,
       correlationId
     });
