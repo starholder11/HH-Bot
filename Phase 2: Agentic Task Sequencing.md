@@ -363,3 +363,102 @@ Each phase includes risk assessment and mitigation strategies to ensure successf
 **Market Readiness** is ensured through continuous user feedback, competitive analysis, and feature prioritization based on user needs.
 
 This implementation sequence provides a structured approach to building the sophisticated agentic system outlined in the Phase 2: Agentic Spatial Expansion specification while maintaining system stability and enabling continuous validation of progress toward the ultimate vision of conversational creative workflows.
+
+### Week 99: debug work
+
+Purpose: Close the gap between current behavior and Phase 2 specs. Focus is on event streaming, multi-step execution, context references, and end-to-end UX parity (search → pin, generate → rename) with robust observability.
+
+Priority order (execute top-to-bottom):
+1) Stream Phase 2 tool actions to the UI
+2) Enable minimal multi-step chains (generate → rename, search → pin)
+3) Add working-set context so deictic refs like “first one” resolve
+4) Harden parameter extraction and schema alignment
+5) Improve deploy reliability, health, and logs
+
+Cleanup tasks (acceptance criteria included)
+
+- Streamed actions passthrough (Proxy)
+  - Update `app/api/agent/route.ts` to forward each backend action as `data: { action, payload }` lines instead of collapsing into a single `chat` message.
+  - Preserve ordering and include `correlationId` on every event.
+  - Acceptance: DevTools Network for `/api/agent` shows multiple action events (e.g., `searchUnified`, `pinToCanvas`, `prepareGenerate`, `nameImage`) in one turn.
+
+- Single-turn tool chaining (minimal stepper)
+  - Add a tiny stepper in Phase 2 agent to chain up to two steps when clearly requested:
+    - generate → name/rename
+    - search → pin (top result)
+  - Emit interim events: `{ action: "status", payload: { step: "generate", state: "started|done" } }`.
+  - Acceptance: “make me a picture of a cat and rename it to catpic2000” yields two streamed actions and final confirmation; asset is renamed server-side.
+
+- Working set context for result references
+  - On `searchUnified`, write a Redis entry keyed by `{tenantId}:{userId}:results:active` with an ordered array `[ { id, slug, title, url, content_type }, ... ]` and a TTL.
+  - Resolve phrases like “first one/second one/top result” to stable `contentId` via this cache.
+  - Acceptance: “pin the first one to the canvas” succeeds without the user providing an explicit ID.
+
+- Canvas targeting defaults
+  - If no `canvasId` is provided, ensure there is an “Active Canvas” per user (create if missing) and pin to it.
+  - Emit a UI action to open/show the canvas after pin.
+  - Acceptance: After “pin…”, UI focuses the canvas with the new item visible.
+
+- Parameter extraction hardening
+  - Intent classifier: never return empty `parameters` for search; guarantee `{ query }` fallback to the full user message when extraction is uncertain.
+  - Add unit tests for “find me some desert pictures”, “show me videos of dogs”, “search for ambient audio”.
+  - Acceptance: No `query Required` errors in logs on these prompts.
+
+- Tool schema alignment
+  - Ensure `searchUnified`, `pinToCanvas`, `prepareGenerate`, `nameImage/renameAsset` schemas match the executor and registry.
+  - Add `requiresContext` injection for `userId`/`tenantId` before validation everywhere.
+  - Acceptance: Zod validation errors for these tools drop to zero in a 15‑minute soak test.
+
+- UI Action Tools registration path
+  - Register UI action tools (navigate/openModal/changeView/selectContent) in the Phase 2 runtime and allow them to pass unchanged through the proxy to the workshop.
+  - Acceptance: “open the canvas”, “switch to results view” stream actionable UI events and the workshop responds.
+
+- WebSocket optional channel (non-blocking)
+  - Provide WS endpoint in Phase 2 that mirrors SSE events for long workflows; keep SSE as default for workshop.
+  - Acceptance: Smoke test shows identical event payloads over SSE and WS for a generate request.
+
+- Orchestration logging hooks
+  - Attach correlation IDs to each streamed event and tool call.
+  - Persist per-step summaries to Aurora (if available) or structured logs as an interim.
+  - Acceptance: Given a `correlationId`, we can reconstruct “generate → rename” with timestamps.
+
+- Deployment and health
+  - ECS service: fix health checks to `/api/health` that reflect readiness of the app (Redis reachable, OpenAI key loaded).
+  - Ensure new task defs roll cleanly and ALB target health transitions to healthy within 90s.
+  - Acceptance: Two consecutive deploys succeed without manual task drains; 0× 503 during steady state.
+
+- Observability and debug toggles
+  - Add `LOG_ACTIONS=1` to include concise per-event logs; redact secrets.
+  - Add `/api/debug-production` gated by `ENABLE_DEBUG_ENDPOINTS` to dump last 10 actions for current user.
+  - Acceptance: On failure reports, we can pull last events without CloudWatch.
+
+- Frontend integration tests (workshop)
+  - Script tests that drive `/api/agent` with prompts and assert streamed actions:
+    - “find me some pics from the desert” → search action present
+    - “pin the first one to the canvas” → pin action present
+    - “make me a picture of a cat and rename it to catpic2000” → generate then name actions present
+  - Acceptance: All three pass locally and against staging ALB.
+
+- Config hygiene
+  - Use `LANCEDB_API_URL` from env everywhere; no hardcoded ALB URLs.
+  - Validate required env at boot (fail fast with clear message).
+  - Acceptance: Missing var produces a single clear startup error; present var yields green health.
+
+- Rollback plan
+  - Keep previous task definition pinned; add `rollback.sh` to switch service back within 1 command.
+  - Acceptance: Rollback completes < 2 minutes and restores prior health.
+
+Deliverables
+- Updated proxy that streams real actions
+- Minimal stepper supporting 2-step chains
+- Redis working-set cache with deictic resolution
+- Hardened schemas and extraction with tests
+- Deployment reliability, logs, and health checks
+- Frontend integration tests proving the three core conversational flows
+
+Exit criteria (must pass)
+- Conversational flows work end-to-end in the workshop:
+  - “find me some pics from the desert” → results populate
+  - “pin the first one to the canvas” → item appears on canvas
+  - “make me a picture of a cat and rename it to catpic2000” → new asset shows and is renamed
+- No validation errors for the above in 15‑minute soak; ALB 5xx rate < 0.1% during tests.

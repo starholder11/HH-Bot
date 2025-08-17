@@ -122,9 +122,11 @@ export class SimpleWorkflowGenerator {
 
     try {
       // Execute the recommended tool
+      const stepParameters = workflow.intent.workflow_steps?.[0]?.parameters || workflow.intent.parameters;
+      console.log(`[${workflow.correlationId}] DEBUG: stepParameters =`, JSON.stringify(stepParameters));
       const execution = await this.toolExecutor.executeTool(
         workflow.intent.tool_name,
-        workflow.intent.parameters,
+        stepParameters,
         { userId: workflow.userId, tenantId: 'default' }
       );
 

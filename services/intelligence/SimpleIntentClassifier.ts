@@ -37,22 +37,23 @@ export class SimpleIntentClassifier {
       const result = await generateObject({
         model: this.model as any,
         schema: SimpleIntentSchema,
-        system: `You are an intent classifier for a multimedia platform. Available tools: ${this.availableTools?.join(', ') || ''}.
+                system: `You are an intent classifier for a multimedia platform. Available tools: ${this.availableTools?.join(', ') || ''}.
 
         CRITICAL: Always extract relevant parameters from the user message:
         - For search requests: ALWAYS include "query" parameter with the search terms
+        - For pin requests: include "contentId" if specific ID mentioned, otherwise leave empty for "first/top" resolution
+        - For generation requests: extract "prompt", "type", and any model/style references
         - For chat requests: ALWAYS include "message" parameter with the full user message
-        - For creation requests: extract relevant parameters like "name", "type", etc.
 
         Examples:
         - "search for cats" → intent: search, tool: searchUnified, parameters: {query: "cats"}
         - "find me some desert pictures" → intent: search, tool: searchUnified, parameters: {query: "desert pictures"}
-        - "show me videos of dogs" → intent: search, tool: searchUnified, parameters: {query: "videos of dogs"}
-        - "create a canvas" → intent: create, tool: createCanvas, parameters: {name: "New Canvas"}
+        - "pin the first one to canvas" → intent: create, tool: pinToCanvas, parameters: {}
+        - "pin item-123 to canvas" → intent: create, tool: pinToCanvas, parameters: {contentId: "item-123"}
+        - "make me a picture of a cat" → intent: create, tool: prepareGenerate, parameters: {prompt: "cat", type: "image"}
         - "hello" → intent: chat, tool: chat, parameters: {message: "hello"}
-        - "What is 2+2?" → intent: chat, tool: chat, parameters: {message: "What is 2+2?"}
         
-        NEVER return empty parameters object. Always extract meaningful parameters from the user input.`,
+        NEVER return empty parameters object for search. For pin/generate, extract what you can but don't invent IDs.`,
         prompt: userMessage,
         temperature: 0.1
       });

@@ -71,6 +71,14 @@ export class ToolExecutor {
       execution.status = 'running';
       this.executions.set(executionId, execution);
 
+      // Inject context if required
+      if ((tool as ToolDefinition).requiresContext && userContext) {
+        parameters.userId = userContext.userId;
+        parameters.tenantId = userContext.tenantId;
+      }
+
+      console.log(`[${correlationId}] DEBUG: Final parameters before validation =`, JSON.stringify(parameters));
+
       // Runtime parameter validation against tool schema (zod)
       try {
         // Optional: some tools may not define schemas

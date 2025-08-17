@@ -11,6 +11,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       status: 'healthy',
+      service: 'hh-agent-app',
       checks: {
         openaiConfigured: hasOpenAI,
         lancedbApiUrlConfigured: hasApiUrl,
@@ -20,14 +21,4 @@ export async function GET() {
   } catch (e: any) {
     return NextResponse.json({ ok: false, status: 'unhealthy', error: e?.message || 'unknown' }, { status: 500 });
   }
-}
-
-import { NextResponse } from 'next/server';
-
-export async function GET() {
-  return NextResponse.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    service: 'hh-agent-app'
-  });
 }

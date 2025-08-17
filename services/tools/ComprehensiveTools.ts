@@ -38,9 +38,25 @@ export class ComprehensiveTools {
         limit: params.limit || 20
       });
 
+      // Store results in Redis working set for "first one" references
+      const results = response.results || [];
+      if (results.length > 0) {
+        const workingSet = results.map((r: any) => ({
+          id: r.id || r.slug,
+          slug: r.slug || r.id,
+          title: r.title || r.name || r.id,
+          url: r.url || r.media_url,
+          content_type: r.content_type || 'image'
+        }));
+        
+        const redisKey = `working_set:${params.userId}`;
+        await this.contextService.redis.setex(redisKey, 3600, JSON.stringify(workingSet));
+        console.log(`[${correlationId}] Stored ${workingSet.length} results in working set`);
+      }
+
       return {
         success: true,
-        results: response.results || [],
+        results: results,
         total: response.total || 0,
         correlationId
       };
@@ -411,21 +427,78 @@ export class ComprehensiveTools {
     userId: z.string().describe('User ID for context tracking')
   });
 
-  async pinToCanvas(params: { canvasId: string; items: any[]; userId: string }) {
+  async pinToCanvas(params: { canvasId?: string; contentId?: string; items?: any[]; userId: string }) {
     const correlationId = `pin_to_canvas_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-    console.log(`[${correlationId}] Pinning ${params.items.length} items to canvas: ${params.canvasId}`);
+    
+    // Resolve contentId from working set if not provided or if "first/top" references
+    let resolvedContentId = params.contentId;
+    if (!resolvedContentId || /\b(first|top|1st)\b/i.test(resolvedContentId)) {
+      try {
+        const redisKey = `working_set:${params.userId}`;
+        const workingSetData = await this.contextService.redis.get(redisKey);
+        if (workingSetData) {
+          const workingSet = JSON.parse(workingSetData);
+          if (workingSet.length > 0) {
+            resolvedContentId = workingSet[0].id || workingSet[0].slug;
+            console.log(`[${correlationId}] Resolved "first one" to: ${resolvedContentId}`);
+          }
+        }
+      } catch (e) {
+        console.warn(`[${correlationId}] Failed to resolve working set:`, e);
+      }
+    }
+
+    // Resolve canvasId - create "Active Canvas" if not provided
+    let resolvedCanvasId = params.canvasId;
+    if (!resolvedCanvasId) {
+      try {
+        const activeCanvasKey = `active_canvas:${params.userId}`;
+        let activeCanvasId = await this.contextService.redis.get(activeCanvasKey);
+        
+        if (!activeCanvasId) {
+          // Create a new "Active Canvas"
+          const canvasResponse = await this.apiClient.post('/api/canvas', {
+            name: 'Active Canvas',
+            description: 'Default canvas for pinned items',
+            userId: params.userId
+          });
+          activeCanvasId = canvasResponse.id;
+          await this.contextService.redis.setex(activeCanvasKey, 86400, activeCanvasId);
+          console.log(`[${correlationId}] Created new Active Canvas: ${activeCanvasId}`);
+        }
+        
+        resolvedCanvasId = activeCanvasId;
+      } catch (e) {
+        console.warn(`[${correlationId}] Failed to resolve canvas:`, e);
+        throw new Error('No canvas ID provided and failed to create default canvas');
+      }
+    }
+
+    // Handle both single item and multiple items
+    let itemsToPin = params.items || [];
+    if (resolvedContentId && !itemsToPin.length) {
+      itemsToPin = [{ contentId: resolvedContentId, position: { x: 100, y: 100 } }];
+    }
+
+    if (!itemsToPin.length) {
+      throw new Error('No content to pin - provide contentId or items array');
+    }
+
+    console.log(`[${correlationId}] Pinning ${itemsToPin.length} items to canvas: ${resolvedCanvasId}`);
 
     try {
       const response = await this.apiClient.put('/api/canvas', {
-        id: params.canvasId,
+        id: resolvedCanvasId,
         action: 'pin',
-        items: params.items
+        items: itemsToPin
       });
 
       return {
         success: true,
         canvas: response.canvas,
-        message: `Pinned ${params.items.length} items to canvas`,
+        canvasId: resolvedCanvasId,
+        contentId: resolvedContentId,
+        message: `Pinned ${itemsToPin.length} items to canvas`,
         correlationId
       };
     } catch (error) {
@@ -438,8 +511,9 @@ export class ComprehensiveTools {
     }
   }
   static pinToCanvasSchema = z.object({
-    canvasId: z.string().describe('Canvas ID to pin items to'),
-    items: z.array(z.any()).describe('Items to pin (with position, size, etc.)'),
+    canvasId: z.string().optional().describe('Canvas ID to pin items to (creates Active Canvas if not provided)'),
+    contentId: z.string().optional().describe('Single content ID to pin (resolves from recent search if "first/top")'),
+    items: z.array(z.any()).optional().describe('Multiple items to pin (with position, size, etc.)'),
     userId: z.string().describe('User ID for context tracking')
   });
 
