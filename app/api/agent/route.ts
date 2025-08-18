@@ -624,20 +624,43 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
               console.log(`[${correlationId}] Emitted step: ${stepName}`);
 
-              // If this was prepareGenerate with deferred materialization, inject deferred steps
+              // If this was prepareGenerate with deferred materialization, wait for its ack then emit deferred steps
               if (stepName === 'preparegenerate' && evt.payload?.__deferredMaterialize) {
                 try {
-                  // Insert deferred steps right after current index so normal gating applies
-                  const insertAt = i + 1;
                   const deferred = Array.isArray(evt.payload.__deferredMaterialize)
                     ? evt.payload.__deferredMaterialize
                     : [];
                   if (deferred.length > 0) {
-                    events.splice(insertAt, 0, ...deferred);
-                    console.log(`[${correlationId}] Injected ${deferred.length} deferred steps after preparegenerate`);
+                    console.log(`[${correlationId}] Waiting for preparegenerate ack before emitting ${deferred.length} deferred steps`);
+                    await waitForAck(correlationId, 'preparegenerate');
+                    console.log(`[${correlationId}] preparegenerate acked, now emitting deferred steps`);
+                    
+                    for (const deferredEvt of deferred) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify(deferredEvt)}\n\n`));
+                      console.log(`[${correlationId}] Emitted deferred step: ${deferredEvt.action.toLowerCase()}`);
+                      
+                      // Auto-ack the deferred step immediately since it's UI-only
+                      const deferredStepName = deferredEvt.action.toLowerCase();
+                      try {
+                        const backendUrl = process.env.LANCEDB_API_URL || '';
+                        setTimeout(async () => {
+                          try {
+                            await fetch(`${backendUrl}/api/agent-comprehensive/ack`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                correlationId,
+                                step: deferredStepName,
+                                artifacts: { synthetic: true, deferred: true }
+                              })
+                            });
+                          } catch {}
+                        }, 100);
+                      } catch {}
+                    }
                   }
                 } catch (e) {
-                  console.warn(`[${correlationId}] Failed to inject deferred steps:`, e);
+                  console.warn(`[${correlationId}] Failed to emit deferred steps:`, e);
                 }
               }
 
