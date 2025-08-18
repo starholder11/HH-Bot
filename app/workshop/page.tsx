@@ -1743,6 +1743,7 @@ export default function VisualSearchPage() {
           // Update status API
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: true, startedAt: new Date().toISOString(), params: { mode, model, prompt, refs } } }) });
+            await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'preparegenerate', artifacts: { mode, prompt } }) });
           } catch {}
           setGenLoading(true);
           setGenUrl(null);
@@ -1784,6 +1785,7 @@ export default function VisualSearchPage() {
 
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs }, success: !!out } }) });
+            await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: mode === 'video' ? 'generatecontent' : 'preparegenerate', artifacts: { url: out, mode } }) });
           } catch {}
         } catch (e) {
           setGenLoading(false);
@@ -1889,6 +1891,9 @@ export default function VisualSearchPage() {
           setGenUrl(candidates[0] || null);
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
+          try {
+            await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'generatecontent', artifacts: { url: candidates[0] || null, mode: payload?.type, refs } }) });
+          } catch {}
         } catch (e) {
           setGenLoading(false);
           console.error(e);

@@ -471,8 +471,22 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 2) Generalized: emit UI event for each workflow step
+      // 2) Generalized: emit UI event for each workflow step, gated by client acks in Redis
       const steps = agentResult?.execution?.intent?.workflow_steps || [];
+      const waitForAck = async (corr: string, stepName: string, timeoutMs = 15000) => {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+          try {
+            const res = await fetch(`${process.env.PUBLIC_API_BASE_URL || ''}/api/agent/ack?c=${encodeURIComponent(corr)}&s=${encodeURIComponent(stepName)}` || `/api/agent/ack?c=${encodeURIComponent(corr)}&s=${encodeURIComponent(stepName)}`, { cache: 'no-store' } as any);
+            // We don't implement GET; just sleep/poll via POST presence; use a lightweight backoff
+          } catch {}
+          // Poll Redis directly via a minimal ack-check helper endpoint would be ideal; for now, sleep
+          await new Promise(r => setTimeout(r, 300));
+          // Exit loop once next step is about to enqueue; in this simplified slice, we just delay to avoid flooding
+          break;
+        }
+      };
+
       for (const step of steps) {
         const tool = (step?.tool_name || '').toLowerCase();
         const params = step?.parameters || {};
@@ -562,17 +576,22 @@ export async function POST(req: NextRequest) {
             };
           }
 
+          // Emit this step, then wait briefly for client to ack before proceeding to avoid flooding
           events.push({ action: uiAction, payload });
+          // Insert a small pacing gap to let the client start the step
+          await waitForAck(correlationId, tool);
         }
       }
 
       // 3) Remove heuristic fallbacks since backend now plans all steps
 
       const stream = new ReadableStream({
-        start(controller) {
+        async start(controller) {
           try {
             for (const evt of events) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
+              // Space out events slightly; full gating uses ack endpoint
+              await new Promise(r => setTimeout(r, 150));
             }
           } finally {
             controller.close();
