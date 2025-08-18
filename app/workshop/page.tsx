@@ -1837,16 +1837,19 @@ export default function VisualSearchPage() {
         } catch {}
       },
       // When server requests pinned refs, call /api/generate on client using current pins
-      requestPinnedThenGenerate: async (payload: any) => {
+            requestPinnedThenGenerate: async (payload: any) => {
         try {
+          console.log(`🎬 requestPinnedThenGenerate called with payload:`, payload);
           // Collect refs from pinned items; if none, fall back to current output URL
           const pinnedUrls: string[] = (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
-
+          
           // Always prefer current genUrl for video follow-up (most recent generation)
           const fallbackFromCurrent = genUrl ? [genUrl] : [];
           const refs: string[] = fallbackFromCurrent.length > 0 ? fallbackFromCurrent : pinnedUrls;
+          
+          console.log(`🎬 Video refs:`, { pinnedUrls: pinnedUrls.length, fallbackFromCurrent: fallbackFromCurrent.length, finalRefs: refs.length, genUrl });
 
           // If we still don't have refs, wait longer and retry with more aggressive fallback
           if (refs.length === 0) {
