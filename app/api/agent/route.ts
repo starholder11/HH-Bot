@@ -630,6 +630,26 @@ export async function POST(req: NextRequest) {
                   console.warn(`[${correlationId}] Failed to inject deferred steps:`, e);
                 }
               }
+
+              // Safety: auto-ack UI-only steps if client is slow to respond
+              if (stepName === 'nameimage' || stepName === 'saveimage') {
+                try {
+                  const backendUrl = process.env.LANCEDB_API_URL || '';
+                  setTimeout(async () => {
+                    try {
+                      await fetch(`${backendUrl}/api/agent-comprehensive/ack`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          correlationId,
+                          step: stepName,
+                          artifacts: { synthetic: true }
+                        })
+                      });
+                    } catch {}
+                  }, 1500);
+                } catch {}
+              }
             }
           } catch (error) {
             console.error(`[${correlationId}] Stream error:`, error);
