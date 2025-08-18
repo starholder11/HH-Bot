@@ -1446,6 +1446,7 @@ export default function VisualSearchPage() {
   // rightTab now from uiStore
   const [genLoading, setGenLoading] = useState(false);
   const [genUrl, setGenUrl] = useState<string | null>(null);
+  const genUrlRef = useRef<string | null>(null); // Ref for handlers to access latest URL
   const [genMode, setGenMode] = useState<'image' | 'video' | 'audio' | 'text' | null>(null);
   const [genRaw, setGenRaw] = useState<any>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -1773,6 +1774,7 @@ export default function VisualSearchPage() {
           setGenMode(mode);
           const out = candidates[0] || null;
           setGenUrl(out);
+          genUrlRef.current = out; // Update ref for handlers
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
 
@@ -1851,11 +1853,11 @@ export default function VisualSearchPage() {
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
 
-          // Always prefer current genUrl for video follow-up (most recent generation)
-          const fallbackFromCurrent = genUrl ? [genUrl] : [];
+                    // Always prefer current genUrl for video follow-up (most recent generation)
+          const fallbackFromCurrent = (genUrlRef.current || genUrl) ? [genUrlRef.current || genUrl] : [];
           const refs: string[] = fallbackFromCurrent.length > 0 ? fallbackFromCurrent : pinnedUrls;
-
-          console.log(`🎬 Video refs:`, { pinnedUrls: pinnedUrls.length, fallbackFromCurrent: fallbackFromCurrent.length, finalRefs: refs.length, genUrl });
+          
+          console.log(`🎬 Video refs:`, { pinnedUrls: pinnedUrls.length, fallbackFromCurrent: fallbackFromCurrent.length, finalRefs: refs.length, genUrl, genUrlRef: genUrlRef.current });
 
                     // If we still don't have refs, wait for image generation to complete
           if (refs.length === 0) {
@@ -1865,7 +1867,7 @@ export default function VisualSearchPage() {
             let retryCount = 0;
             const pollForGenUrl = () => {
               retryCount++;
-              const currentUrl = genUrl;
+              const currentUrl = genUrlRef.current || genUrl;
               console.log(`🎬 Retry ${retryCount}: genUrl = ${currentUrl}`);
 
               if (currentUrl) {
@@ -1944,22 +1946,24 @@ export default function VisualSearchPage() {
       // Name/save/pin handlers required for gated workflow
       nameImage: async (payload: any) => {
         try {
-          console.log(`🏷️ nameImage called with payload:`, payload, `genUrl:`, genUrl);
-
+                    console.log(`🏷️ nameImage called with payload:`, payload, `genUrl:`, genUrl, `genUrlRef:`, genUrlRef.current);
+          
           // Wait for image generation to complete if it hasn't yet
-          if (!genUrl && !(window as any).__imageGenerationComplete) {
+          const currentUrl = genUrlRef.current || genUrl;
+          if (!currentUrl && !(window as any).__imageGenerationComplete) {
             console.log(`🏷️ Waiting for image generation to complete...`);
             let retries = 0;
-            while (retries < 20 && !genUrl && !(window as any).__imageGenerationComplete) {
+            while (retries < 20 && !genUrlRef.current && !(window as any).__imageGenerationComplete) {
               await new Promise(r => setTimeout(r, 250));
               retries++;
             }
-            console.log(`🏷️ After waiting: genUrl = ${genUrl}, imageComplete = ${(window as any).__imageGenerationComplete}`);
+            console.log(`🏷️ After waiting: genUrl = ${genUrl}, genUrlRef = ${genUrlRef.current}, imageComplete = ${(window as any).__imageGenerationComplete}`);
           }
-
+          
           const name = payload?.name || 'Untitled';
+          const finalUrl = genUrlRef.current || genUrl;
           // For now, just rename the current output in memory
-          if (genUrl) {
+          if (finalUrl) {
             console.log(`🏷️ Naming current image: ${name}`);
             // In a full implementation, this would update metadata
             await fetch('/api/agent/ack', {
@@ -1968,7 +1972,7 @@ export default function VisualSearchPage() {
               body: JSON.stringify({
                 correlationId: payload?.correlationId || 'workshop',
                 step: 'nameimage',
-                artifacts: { name, url: genUrl }
+                artifacts: { name, url: finalUrl }
               })
             });
           } else {
@@ -1990,20 +1994,22 @@ export default function VisualSearchPage() {
       },
       saveImage: async (payload: any) => {
         try {
-          console.log(`💾 saveImage called with payload:`, payload, `genUrl:`, genUrl);
-
+                    console.log(`💾 saveImage called with payload:`, payload, `genUrl:`, genUrl, `genUrlRef:`, genUrlRef.current);
+          
           // Wait for image generation to complete if it hasn't yet
-          if (!genUrl && !(window as any).__imageGenerationComplete) {
+          const currentUrl = genUrlRef.current || genUrl;
+          if (!currentUrl && !(window as any).__imageGenerationComplete) {
             console.log(`💾 Waiting for image generation to complete...`);
             let retries = 0;
-            while (retries < 20 && !genUrl && !(window as any).__imageGenerationComplete) {
+            while (retries < 20 && !genUrlRef.current && !(window as any).__imageGenerationComplete) {
               await new Promise(r => setTimeout(r, 250));
               retries++;
             }
-            console.log(`💾 After waiting: genUrl = ${genUrl}, imageComplete = ${(window as any).__imageGenerationComplete}`);
+            console.log(`💾 After waiting: genUrl = ${genUrl}, genUrlRef = ${genUrlRef.current}, imageComplete = ${(window as any).__imageGenerationComplete}`);
           }
-
-          if (genUrl) {
+          
+          const finalUrl = genUrlRef.current || genUrl;
+          if (finalUrl) {
             // Create a mock asset ID and ADD TO PINNED ITEMS so requestPinnedThenGenerate can find it
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             console.log(`💾 Saving image as asset: ${assetId}`);
@@ -2012,7 +2018,7 @@ export default function VisualSearchPage() {
             const mockResult = {
               id: assetId,
               title: payload?.name || 'Generated Image',
-              url: genUrl,
+              url: finalUrl,
               type: 'image',
               metadata: { collection: payload?.collection || 'default' }
             };
@@ -2032,7 +2038,7 @@ export default function VisualSearchPage() {
               body: JSON.stringify({
                 correlationId: payload?.correlationId || 'workshop',
                 step: 'saveimage',
-                artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default', pinned: true }
+                artifacts: { assetId, url: finalUrl, collection: payload?.collection || 'default', pinned: true }
               })
             });
           } else {
