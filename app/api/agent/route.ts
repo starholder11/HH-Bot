@@ -510,7 +510,8 @@ export async function POST(req: NextRequest) {
           if (tool === 'searchunified') {
             payload.query = params.query || extractQuery(userMessage);
           } else if (tool === 'preparegenerate') {
-            payload = {
+            // Emit prepareGenerate first to ensure the client starts the image step
+            const pgPayload = {
               type: params.type || 'image',
               prompt: params.prompt || params.message || userMessage,
               model: params.model || 'default',
@@ -520,7 +521,8 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
-            // Lookahead: if the next step depends on a materialized asset (pin, video, rename), insert name+save now
+            events.push({ action: 'prepareGenerate', payload: pgPayload });
+            // Then, if the next step depends on a materialized asset, insert name+save after prepareGenerate
             try {
               const stepIndex = steps.findIndex(s => s === step);
               const next = steps[stepIndex + 1];
@@ -531,6 +533,8 @@ export async function POST(req: NextRequest) {
                 events.push({ action: 'saveImage', payload: { imageId: 'current', collection: 'default', metadata: {}, correlationId } });
               }
             } catch {}
+            // Skip the generic push for this branch, we've already emitted
+            continue;
           } else if (tool === 'generatecontent') {
             // For generateContent (e.g., video), request client to gather refs from current output/pins
             payload = {

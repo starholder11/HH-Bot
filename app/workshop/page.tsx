@@ -1845,6 +1845,15 @@ export default function VisualSearchPage() {
           const fallbackFromCurrent = genUrl ? [genUrl] : [];
           const refs: string[] = (pinnedUrls.length > 0 ? pinnedUrls : fallbackFromCurrent) as string[];
 
+          // If we still don't have refs, delay this follow-up briefly and retry to allow name/save to complete
+          if (refs.length === 0) {
+            debug('vs:agent:gen', 'no refs yet; retrying follow-up after delay');
+            setTimeout(() => {
+              try { (window as any).__agentApi?.requestPinnedThenGenerate?.(payload); } catch {}
+            }, 500);
+            return;
+          }
+
           const body = {
             mode: payload?.type,
             model: payload?.model,
