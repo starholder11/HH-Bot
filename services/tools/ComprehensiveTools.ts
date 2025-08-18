@@ -38,10 +38,15 @@ export class ComprehensiveTools {
         limit: params.limit || 20
       });
 
+      // Normalize results shape to an array for downstream handling
+      const rawResults = response.results;
+      const resultArray = Array.isArray(rawResults)
+        ? rawResults
+        : (Array.isArray(rawResults?.all) ? rawResults.all : []);
+
       // Store results in Redis working set for "first one" references
-      const results = response.results || [];
-      if (results.length > 0) {
-        const workingSet = results.map((r: any) => ({
+      if (resultArray.length > 0) {
+        const workingSet = resultArray.map((r: any) => ({
           id: r.id || r.slug,
           slug: r.slug || r.id,
           title: r.title || r.name || r.id,
@@ -56,8 +61,8 @@ export class ComprehensiveTools {
 
       return {
         success: true,
-        results: results,
-        total: response.total || 0,
+        results: resultArray,
+        total: (Array.isArray(rawResults?.all) ? rawResults.all.length : (Array.isArray(rawResults) ? rawResults.length : (response.total || 0))),
         correlationId
       };
     } catch (error) {

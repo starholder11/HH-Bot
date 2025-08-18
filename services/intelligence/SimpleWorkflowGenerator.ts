@@ -133,15 +133,33 @@ export class SimpleWorkflowGenerator {
 
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
-        const params = { ...step.parameters };
+        const params = { ...step.parameters } as any;
 
         // Pass search results to pinToCanvas step
-        if (step.tool_name === 'pinToCanvas' && lastExecution?.result?.results) {
-          // Take the requested count or default to all results
-          const count = params.count || lastExecution.result.results.length;
-          const itemsToPin = lastExecution.result.results.slice(0, count);
-          params.items = itemsToPin;
-          console.log(`[${workflow.correlationId}] INFO: Passing ${itemsToPin.length} search results to pinToCanvas`);
+        if (step.tool_name === 'pinToCanvas' && lastExecution?.result) {
+          // Unified search result normalized to array earlier, but be defensive
+          const raw = (lastExecution.result as any);
+          const rawResults = raw?.results || raw?.payload?.results || raw;
+          const resultArray = Array.isArray(rawResults)
+            ? rawResults
+            : (Array.isArray(rawResults?.all) ? rawResults.all : []);
+
+          const requestedCount = typeof params.count === 'number' && params.count > 0 ? params.count : resultArray.length;
+
+          const itemsToPin = resultArray
+            .slice(0, requestedCount)
+            .map((r: any) => ({
+              contentId: r?.id || r?.slug || r?.contentId || r?._id || r?.uuid || '',
+              position: { x: 100, y: 100 }
+            }))
+            .filter((it: any) => typeof it.contentId === 'string' && it.contentId.length > 0);
+
+          if (itemsToPin.length > 0) {
+            params.items = itemsToPin;
+            console.log(`[${workflow.correlationId}] INFO: Passing ${itemsToPin.length} search results to pinToCanvas`);
+          } else {
+            console.warn(`[${workflow.correlationId}] WARN: No pin-ready items derived from search results`);
+          }
         }
 
         // Resolve tool name to a registered backend tool, or skip if UI-only
