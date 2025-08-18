@@ -1891,7 +1891,7 @@ export default function VisualSearchPage() {
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
           try {
-            await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'generatecontent', artifacts: { url: candidates[0] || null, mode: payload?.type, refs } }) });
+            await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'requestpinnedthengenerate', artifacts: { url: candidates[0] || null, mode: payload?.type, refs } }) });
           } catch {}
         } catch (e) {
           setGenLoading(false);
