@@ -21,7 +21,7 @@ export const SimpleIntentSchema = z.object({
 export type SimpleIntent = z.infer<typeof SimpleIntentSchema>;
 
 export class SimpleIntentClassifier {
-  private model = openai('gpt-4o-mini'); // Use cheaper model for testing
+  private model = openai('gpt-4o'); // Use more powerful model for better workflow planning
   private totalCost = 0;
 
   constructor(private llmRouter?: any, private availableTools?: string[]) {
@@ -37,40 +37,33 @@ export class SimpleIntentClassifier {
       const result = await generateObject({
         model: this.model as any,
         schema: SimpleIntentSchema,
-                system: `You are an AI workflow planner for a multimedia platform. Available tools: ${this.availableTools?.join(', ') || ''}.
+                system: `You are an AI workflow planner. Available tools: ${this.availableTools?.join(', ') || ''}.
 
-        CRITICAL INSTRUCTION: You MUST plan multi-step workflows when users request compound actions.
+        CRITICAL: Look for compound actions that require MULTIPLE steps in sequence.
 
-        When a user says "find X and pin them", you need TWO steps:
-        1. searchUnified to find the content
-        2. pinToCanvas to pin the results
+        Key patterns to recognize:
+        - "find X and pin them" = SEARCH FIRST, then PIN
+        - "make X and save it" = GENERATE FIRST, then SAVE
+        - "search X and do Y" = SEARCH FIRST, then do Y
 
-        When a user says "make X and save it as Y", you need THREE steps:
-        1. prepareGenerate to create the content
-        2. nameImage to name it
-        3. saveImage to save it
+        You MUST generate multiple workflow_steps for compound actions. The workflow_steps array should contain ALL steps needed.
 
-        ALWAYS break down compound requests into multiple workflow_steps. Never generate just one step for compound actions.
+        MANDATORY EXAMPLES:
+        
+        Input: "find four fish related things and pin them to canvas"
+        Output: workflow_steps: [
+          { tool_name: "searchUnified", parameters: {query: "fish related things"} },
+          { tool_name: "pinToCanvas", parameters: {count: 4} }
+        ]
+        
+        Input: "make me a picture of a cat and save it as fluffy"  
+        Output: workflow_steps: [
+          { tool_name: "prepareGenerate", parameters: {prompt: "cat", type: "image"} },
+          { tool_name: "nameImage", parameters: {name: "fluffy"} },
+          { tool_name: "saveImage", parameters: {} }
+        ]
 
-        Examples of CORRECT multi-step planning:
-        - "find four fish related things and pin them to canvas" → workflow_steps: [
-            { tool_name: "searchUnified", parameters: {query: "fish related things"} },
-            { tool_name: "pinToCanvas", parameters: {count: 4} }
-          ]
-        - "make me a picture of a cat and save it as fluffy" → workflow_steps: [
-            { tool_name: "prepareGenerate", parameters: {prompt: "cat", type: "image"} },
-            { tool_name: "nameImage", parameters: {name: "fluffy"} },
-            { tool_name: "saveImage", parameters: {} }
-          ]
-        - "search for cats and pin the first one" → workflow_steps: [
-            { tool_name: "searchUnified", parameters: {query: "cats"} },
-            { tool_name: "pinToCanvas", parameters: {count: 1} }
-          ]
-
-        For single actions, use one step:
-        - "search for cats" → workflow_steps: [{ tool_name: "searchUnified", parameters: {query: "cats"} }]
-
-        Analyze the user request carefully and generate ALL steps needed to complete their request.`,
+        DO NOT generate single steps for compound requests. If you see "and", "then", or sequential actions, generate multiple steps.`,
         prompt: userMessage,
         temperature: 0.1
       });
