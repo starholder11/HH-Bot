@@ -1838,9 +1838,13 @@ export default function VisualSearchPage() {
       // When server requests pinned refs, call /api/generate on client using current pins
       requestPinnedThenGenerate: async (payload: any) => {
         try {
-          const refs: string[] = (pinnedRef.current || [])
+          // Collect refs from pinned items; if none, fall back to current output URL
+          const pinnedUrls: string[] = (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
+          const fallbackFromCurrent = genUrl ? [genUrl] : [];
+          const refs: string[] = (pinnedUrls.length > 0 ? pinnedUrls : fallbackFromCurrent) as string[];
+
           const body = {
             mode: payload?.type,
             model: payload?.model,
@@ -1848,7 +1852,13 @@ export default function VisualSearchPage() {
             refs,
             options: payload?.options || {},
           };
-          if (agentRunLockRef.current || genLoading) return; agentRunLockRef.current = true; setGenLoading(true);
+
+          if (agentRunLockRef.current || genLoading) {
+            debug('vs:agent:gen', 'queueing requestPinnedThenGenerate');
+            genQueueRef.current.push({ __action: 'requestPinnedThenGenerate', payload });
+            return;
+          }
+          agentRunLockRef.current = true; setGenLoading(true);
           setRightTab('output');
           const res = await fetch('/api/generate', {
             method: 'POST',
@@ -1873,7 +1883,22 @@ export default function VisualSearchPage() {
         } catch (e) {
           setGenLoading(false);
           console.error(e);
-        } finally { agentRunLockRef.current = false; }
+        } finally {
+          agentRunLockRef.current = false;
+          // Drain queued generation requests sequentially
+          if (genQueueRef.current.length > 0) {
+            const next = genQueueRef.current.shift();
+            setTimeout(() => {
+              try {
+                if (next?.__action === 'requestPinnedThenGenerate') {
+                  (window as any).__agentApi?.requestPinnedThenGenerate?.(next.payload);
+                } else {
+                  (window as any).__agentApi?.prepareGenerate?.(next);
+                }
+              } catch {}
+            }, 0);
+          }
+        }
       },
     };
   }, []);
