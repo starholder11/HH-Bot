@@ -547,24 +547,17 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
-            // Defer insertion of name/save until AFTER prepareGenerate is enqueued
-            let deferredMaterialize: any[] = [];
+            // Store deferred materialize steps to emit AFTER prepareGenerate ack
             try {
               const stepIndex = steps.findIndex(s => s === step);
               const next = steps[stepIndex + 1];
               if (next?.tool_name === 'generateContent' && next?.parameters?.type === 'video') {
-                deferredMaterialize = [
+                payload.__deferredMaterialize = [
                   { action: 'nameImage', payload: { imageId: 'current', name: 'Generated Image', correlationId } },
                   { action: 'saveImage', payload: { imageId: 'current', collection: 'default', correlationId } }
                 ];
               }
             } catch {}
-            // Enqueue prepareGenerate first; materialize steps will follow
-            events.push({ action: uiAction, payload });
-            if (deferredMaterialize.length > 0) {
-              deferredMaterialize.forEach(e => events.push(e));
-            }
-            continue; // prevent double-enqueue below
           } else if (tool === 'generatecontent') {
             // For generateContent (e.g., video), request client to gather refs from current output/pins
             payload = {
@@ -620,6 +613,15 @@ export async function POST(req: NextRequest) {
 
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
               console.log(`[${correlationId}] Emitted step: ${stepName}`);
+
+              // If this was prepareGenerate with deferred materialization, wait for its ack then emit deferred steps
+              if (stepName === 'preparegenerate' && evt.payload?.__deferredMaterialize) {
+                await waitForAck(correlationId, 'preparegenerate');
+                for (const deferredEvt of evt.payload.__deferredMaterialize) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(deferredEvt)}\n\n`));
+                  console.log(`[${correlationId}] Emitted deferred step: ${deferredEvt.action.toLowerCase()}`);
+                }
+              }
             }
           } catch (error) {
             console.error(`[${correlationId}] Stream error:`, error);
