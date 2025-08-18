@@ -1844,26 +1844,36 @@ export default function VisualSearchPage() {
           const pinnedUrls: string[] = (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
-          
+
           // Always prefer current genUrl for video follow-up (most recent generation)
           const fallbackFromCurrent = genUrl ? [genUrl] : [];
           const refs: string[] = fallbackFromCurrent.length > 0 ? fallbackFromCurrent : pinnedUrls;
-          
+
           console.log(`🎬 Video refs:`, { pinnedUrls: pinnedUrls.length, fallbackFromCurrent: fallbackFromCurrent.length, finalRefs: refs.length, genUrl });
 
-          // If we still don't have refs, wait longer and retry with more aggressive fallback
+                    // If we still don't have refs, wait for image generation to complete
           if (refs.length === 0) {
-            debug('vs:agent:gen', 'no refs yet; retrying follow-up after delay');
-            setTimeout(() => {
-              try {
-                // Try to get URL from current generation state
-                const currentUrl = genUrl;
-                if (currentUrl) {
-                  const retryPayload = { ...payload };
-                  (window as any).__agentApi?.requestPinnedThenGenerate?.(retryPayload);
-                }
-              } catch {}
-            }, 1000);
+            console.log(`🎬 No refs available, waiting for image generation...`);
+            
+            // Poll for genUrl to become available (image generation in progress)
+            let retryCount = 0;
+            const pollForGenUrl = () => {
+              retryCount++;
+              const currentUrl = genUrl;
+              console.log(`🎬 Retry ${retryCount}: genUrl = ${currentUrl}`);
+              
+              if (currentUrl) {
+                console.log(`🎬 Found genUrl, retrying video generation with ref: ${currentUrl}`);
+                const retryPayload = { ...payload };
+                (window as any).__agentApi?.requestPinnedThenGenerate?.(retryPayload);
+              } else if (retryCount < 10) {
+                setTimeout(pollForGenUrl, 500);
+              } else {
+                console.error(`🎬 Gave up waiting for genUrl after ${retryCount} retries`);
+              }
+            };
+            
+            setTimeout(pollForGenUrl, 500);
             return;
           }
 
