@@ -136,7 +136,7 @@ export class SimpleWorkflowGenerator {
 
       let lastExecution: any = null;
       let lastGeneratedUrl: string | null = null;
-      
+
       // Initialize executedSteps array to track what was actually executed
       workflow.executedSteps = [];
 
@@ -227,7 +227,7 @@ export class SimpleWorkflowGenerator {
         }
         console.log(`[${workflow.correlationId}] DEBUG: step ${i + 1}/${steps.length} -> ${toolNameToExecute} params=`, JSON.stringify(params));
         lastExecution = await this.toolExecutor.executeTool(toolNameToExecute, params, userContext);
-        
+
         // Track executed step for proxy to emit as UI events
         workflow.executedSteps!.push({
           tool_name: step.tool_name,
@@ -235,7 +235,7 @@ export class SimpleWorkflowGenerator {
           result: lastExecution?.result,
           status: lastExecution?.status === 'completed' ? 'completed' : 'failed'
         });
-        
+
         const resultPreview = (() => {
           try {
             const str = JSON.stringify(lastExecution?.result);
@@ -263,6 +263,8 @@ export class SimpleWorkflowGenerator {
       workflow.toolCost = toolCost;
       workflow.totalCost = workflow.llmCost + workflow.toolCost;
 
+      console.log(`[${workflow.correlationId}] Final lastExecution status: ${lastExecution?.status}, type: ${typeof lastExecution?.status}`);
+      
       if (lastExecution?.status === 'completed') {
         workflow.status = 'completed';
         workflow.result = lastExecution.result;
@@ -282,10 +284,11 @@ export class SimpleWorkflowGenerator {
 
       } else {
         // Should not reach here, but keep defensive fallback
+        console.log(`[${workflow.correlationId}] ERROR: Unexpected execution state. lastExecution:`, JSON.stringify(lastExecution));
         workflow.status = 'failed';
-        workflow.error = 'Unknown execution state';
+        workflow.error = `Unknown execution state: ${lastExecution?.status}`;
         workflow.endTime = Date.now();
-        return { success: false, execution: workflow, message: 'Unknown execution state', cost: workflow.totalCost };
+        return { success: false, execution: workflow, message: `Unknown execution state: ${lastExecution?.status}`, cost: workflow.totalCost };
       }
 
     } catch (error) {
