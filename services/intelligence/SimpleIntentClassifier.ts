@@ -39,16 +39,20 @@ export class SimpleIntentClassifier {
         schema: SimpleIntentSchema,
                 system: `You are an AI workflow planner for a multimedia platform. Available tools: ${this.availableTools?.join(', ') || ''}.
 
-        Your job is to understand user requests and plan the COMPLETE sequence of steps needed to fulfill them.
+        CRITICAL INSTRUCTION: You MUST plan multi-step workflows when users request compound actions.
 
-        CRITICAL: Always populate workflow_steps with the full sequence needed:
-        - For single actions: one step
-        - For compound actions: multiple steps in logical order
-        - Extract all relevant parameters from the user message
-        - Think about what needs to happen step by step
+        When a user says "find X and pin them", you need TWO steps:
+        1. searchUnified to find the content
+        2. pinToCanvas to pin the results
 
-        Examples:
-        - "search for cats" → workflow_steps: [{ tool_name: "searchUnified", parameters: {query: "cats"} }]
+        When a user says "make X and save it as Y", you need THREE steps:
+        1. prepareGenerate to create the content
+        2. nameImage to name it
+        3. saveImage to save it
+
+        ALWAYS break down compound requests into multiple workflow_steps. Never generate just one step for compound actions.
+
+        Examples of CORRECT multi-step planning:
         - "find four fish related things and pin them to canvas" → workflow_steps: [
             { tool_name: "searchUnified", parameters: {query: "fish related things"} },
             { tool_name: "pinToCanvas", parameters: {count: 4} }
@@ -58,12 +62,15 @@ export class SimpleIntentClassifier {
             { tool_name: "nameImage", parameters: {name: "fluffy"} },
             { tool_name: "saveImage", parameters: {} }
           ]
-        - "create a video of a sunset and then pin it" → workflow_steps: [
-            { tool_name: "prepareGenerate", parameters: {prompt: "sunset", type: "video"} },
-            { tool_name: "pinToCanvas", parameters: {} }
+        - "search for cats and pin the first one" → workflow_steps: [
+            { tool_name: "searchUnified", parameters: {query: "cats"} },
+            { tool_name: "pinToCanvas", parameters: {count: 1} }
           ]
 
-        Think step by step about what the user wants to accomplish and plan the complete workflow.`,
+        For single actions, use one step:
+        - "search for cats" → workflow_steps: [{ tool_name: "searchUnified", parameters: {query: "cats"} }]
+
+        Analyze the user request carefully and generate ALL steps needed to complete their request.`,
         prompt: userMessage,
         temperature: 0.1
       });
