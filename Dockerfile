@@ -35,21 +35,19 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy only what's needed for runtime
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Copy built app and source files
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.js ./next.config.js
 
 # Copy source files needed at runtime
-COPY --from=builder --chown=nextjs:nodejs /app/services ./services
-COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
-COPY --from=builder --chown=nextjs:nodejs /app/app ./app
-
-USER nextjs
+COPY --from=builder /app/services ./services
+COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/app ./app
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/debug-production || exit 1
+  CMD node -e "fetch('http://localhost:3000/api/debug-production').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
-CMD ["node", "server.js"]
+CMD ["npm", "run", "start:web"]
