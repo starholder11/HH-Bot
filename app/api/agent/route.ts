@@ -611,6 +611,18 @@ export async function POST(req: NextRequest) {
 
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
               console.log(`[${correlationId}] Emitted step: ${stepName}`);
+
+              // Immediately ack prepareGenerate to avoid deadlock if client needs time to render UI before sending its own ack
+              if (stepName === 'preparegenerate') {
+                try {
+                  const backendUrl = process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
+                  await fetch(`${backendUrl}/api/agent-comprehensive/ack`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correlationId, step: 'preparegenerate', artifacts: { emittedAt: Date.now() } })
+                  });
+                } catch {}
+              }
             }
           } catch (error) {
             console.error(`[${correlationId}] Stream error:`, error);

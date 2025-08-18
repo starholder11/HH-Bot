@@ -1743,7 +1743,6 @@ export default function VisualSearchPage() {
           // Update status API
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: true, startedAt: new Date().toISOString(), params: { mode, model, prompt, refs } } }) });
-            await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'preparegenerate', artifacts: { mode, prompt } }) });
           } catch {}
           setGenLoading(true);
           setGenUrl(null);
@@ -1922,14 +1921,14 @@ export default function VisualSearchPage() {
           if (genUrl) {
             console.log(`Naming current image: ${name}`);
             // In a full implementation, this would update metadata
-            await fetch('/api/agent/ack', { 
-              method: 'POST', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ 
-                correlationId: payload?.correlationId || 'workshop', 
-                step: 'nameimage', 
-                artifacts: { name, url: genUrl } 
-              }) 
+            await fetch('/api/agent/ack', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                correlationId: payload?.correlationId || 'workshop',
+                step: 'nameimage',
+                artifacts: { name, url: genUrl }
+              })
             });
           }
         } catch (e) {
@@ -1942,14 +1941,14 @@ export default function VisualSearchPage() {
             // Create a mock asset ID - in real implementation, this would save to backend
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             console.log(`Saving image as asset: ${assetId}`);
-            await fetch('/api/agent/ack', { 
-              method: 'POST', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ 
-                correlationId: payload?.correlationId || 'workshop', 
-                step: 'saveimage', 
-                artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default' } 
-              }) 
+            await fetch('/api/agent/ack', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                correlationId: payload?.correlationId || 'workshop',
+                step: 'saveimage',
+                artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default' }
+              })
             });
           }
         } catch (e) {
@@ -1961,14 +1960,14 @@ export default function VisualSearchPage() {
           if (genUrl) {
             // Mock pinning - in real implementation, this would update canvas
             console.log(`Pinning to canvas: ${payload?.canvasId || 'default'}`);
-            await fetch('/api/agent/ack', { 
-              method: 'POST', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ 
-                correlationId: payload?.correlationId || 'workshop', 
-                step: 'pintocanvas', 
-                artifacts: { pinned: true, url: genUrl, canvasId: payload?.canvasId } 
-              }) 
+            await fetch('/api/agent/ack', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                correlationId: payload?.correlationId || 'workshop',
+                step: 'pintocanvas',
+                artifacts: { pinned: true, url: genUrl, canvasId: payload?.canvasId }
+              })
             });
           }
         } catch (e) {
