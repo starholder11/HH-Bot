@@ -218,6 +218,7 @@ export class SimpleWorkflowGenerator {
         }
         console.log(`[${workflow.correlationId}] DEBUG: step ${i + 1}/${steps.length} -> ${toolNameToExecute} params=`, JSON.stringify(params));
         lastExecution = await this.toolExecutor.executeTool(toolNameToExecute, params, userContext);
+        console.log(`[${workflow.correlationId}] STEP ${i + 1} RESULT: status=${lastExecution.status}, result=`, JSON.stringify(lastExecution.result).substring(0, 200));
         if (lastExecution.status === 'failed') {
           workflow.status = 'failed';
           workflow.error = lastExecution.error;
