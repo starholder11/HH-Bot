@@ -1460,24 +1460,24 @@ export default function VisualSearchPage() {
         if (payload.query) {
           debug('vs:agent:search', 'executing search:', payload.query);
           console.log(`[${payload.correlationId}] UI: searchUnified handler called with query:`, payload.query);
-          
+
           // Wait for search to actually complete before sending ack
           try {
             console.log(`[${payload.correlationId}] UI: Starting search execution...`);
             await executeSearch(payload.query, 1, undefined, true);
             setRightTab('results');
             console.log(`[${payload.correlationId}] UI: Search execution completed`);
-            
+
             // Send ack after search completes
             console.log(`[${payload.correlationId}] UI: Sending searchUnified ack`);
-            await fetch('/api/agent/ack', { 
-              method: 'POST', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ 
-                correlationId: payload?.correlationId || 'workshop', 
-                step: 'searchunified', 
-                artifacts: { query: payload.query } 
-              }) 
+            await fetch('/api/agent/ack', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                correlationId: payload?.correlationId || 'workshop',
+                step: 'searchunified',
+                artifacts: { query: payload.query }
+              })
             });
             console.log(`[${payload.correlationId}] UI: ✅ searchUnified ack sent after search completion`);
           } catch (e) {
@@ -1866,7 +1866,7 @@ export default function VisualSearchPage() {
         } catch {}
       },
       // When server requests pinned refs, call /api/generate on client using current pins
-            requestPinnedThenGenerate: async (payload: any) => {
+      requestPinnedThenGenerate: async (payload: any) => {
         try {
           console.log(`🎬 requestPinnedThenGenerate called with payload:`, payload);
           // Collect refs from pinned items; if none, fall back to current output URL

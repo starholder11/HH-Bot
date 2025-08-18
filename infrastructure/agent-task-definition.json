@@ -36,6 +36,22 @@
         {
           "name": "REDIS_AGENTIC_URL",
           "value": "redis://hh-bot-phase2-redis.5eblzz.ng.0001.use1.cache.amazonaws.com:6379"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "AWS_S3_BUCKET",
+          "value": "hh-bot-images-2025-prod"
+        },
+        {
+          "name": "AWS_CLOUDFRONT_DOMAIN",
+          "value": "drbs5yklwtho3.cloudfront.net"
+        },
+        {
+          "name": "PUBLIC_API_BASE_URL",
+          "value": "https://hh-bot-lyart.vercel.app"
         }
       ],
       "secrets": [

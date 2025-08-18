@@ -28,6 +28,7 @@ const nextConfig = {
     CLOUDFLARE_DOMAIN: process.env.CLOUDFLARE_DOMAIN,
     NEXT_PUBLIC_CDN: process.env.AWS_CLOUDFRONT_DOMAIN,
   },
+  output: 'standalone',
   experimental: {
     serverComponentsExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/lib-storage'],
   },

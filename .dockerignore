@@ -1,26 +1,80 @@
+# Dependencies
 node_modules
-npm-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production build
+.next
+out
+build
+dist
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
 .git
 .gitignore
-.next
-.vercel
-.env
-.env.*
+
+# Docker
 Dockerfile*
-**/*.md
-**/*.MD
-**/*.markdown
-**/*.log
-**/*.tsbuildinfo
-**/.DS_Store
-**/dist
-**/build
-**/coverage
-**/.cache
-**/.next
+docker-compose*
+.dockerignore
+
+# Logs
+logs
+*.log
+backend.log
+logs/
+
+# Database
+db_ok/
+*.lance/
+
+# Temp files
+tmp/
+temp/
+.tmp
+
+# Documentation
+*.md
+!README.md
+
+# Scripts that aren't needed in container
 scripts/
 infrastructure/
-logs/
-ffmpeg-minimal-layer/
-ffmpeg-ultra-minimal/
+
+# Large media files
+public/videos/
+public/images/
+audio-sources/
+
+# Lambda functions
+lambda-*/
+ffmpeg-*/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 whisper_backend/
+
+# Build artifacts
+.turbo
+.swc

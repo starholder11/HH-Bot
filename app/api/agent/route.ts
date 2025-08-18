@@ -817,28 +817,28 @@ export async function POST(req: NextRequest) {
 
     // Fallback to original system if Phase 2 is unavailable
     const lastText = userMessage;
-    const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|videos|audio|songs?|music|look.*up|gimme|give me|some|any|all|the)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?|documents?|articles?|posts?|writings?|stories?|text)\b|\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?)\s+(of|about|with|for|from|like|that|related|containing)\b/i;
-    const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
-    const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft|draw|paint|render|synthesize)\b/i;
+  const searchIntentRegex = /\b(search|find|show|pull\s*up|dig\s*up|pics?|pictures?|images?|photos?|media|video|videos|audio|songs?|music|look.*up|gimme|give me|some|any|all|the)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?|documents?|articles?|posts?|writings?|stories?|text)\b|\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?|artworks?|visuals?|footage|clips?|movies?|films?|animations?|recordings?|sounds?|vocals?)\s+(of|about|with|for|from|like|that|related|containing)\b/i;
+  const greetingIntentRegex = /\b(hi|hello|hey|yo|sup|what's up|wassup)\b/i;
+  const generateIntentRegex = /\b(make|create|generate|produce|build|design|craft|draw|paint|render|synthesize)\b/i;
 
-    const forcedToolChoice: any =
+  const forcedToolChoice: any =
       searchIntentRegex.test(lastText) ? { type: 'tool', toolName: 'searchUnified' }
       : generateIntentRegex.test(lastText) ? { type: 'tool', toolName: 'prepareGenerate' }
       : greetingIntentRegex.test(lastText) ? { type: 'tool', toolName: 'chat' }
-      : 'auto';
+                    : 'auto';
 
-    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+  const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
-    const result = await streamText({
-      model: openai('gpt-4o-mini') as any,
+  const result = await streamText({
+    model: openai('gpt-4o-mini') as any,
       system: 'You are a helpful assistant. The advanced agent system is temporarily unavailable, so provide a simple response using the available tools.',
-      messages,
-      tools,
-      toolChoice: forcedToolChoice,
-      maxSteps: 1,
-    });
+    messages,
+    tools,
+    toolChoice: forcedToolChoice,
+    maxSteps: 1,
+  });
 
-    return result.toDataStreamResponse();
+  return result.toDataStreamResponse();
   }
 }
 
