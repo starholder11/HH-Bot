@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     const finalTenantId = tenantId || 'default';
 
     console.log(`[${correlationId}] POST /api/agent-comprehensive - message: "${message}", userId: ${userId}`);
+    console.log(`[${correlationId}] SIMPLE DEBUG TEST - This should definitely appear in logs!`);
 
     if (!message) {
       return NextResponse.json(
