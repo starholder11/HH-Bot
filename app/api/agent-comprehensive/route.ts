@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[${correlationId}] POST /api/agent-comprehensive - message: "${message}", userId: ${userId}`);
     console.log(`[${correlationId}] SIMPLE DEBUG TEST - This should definitely appear in logs!`);
+    console.log(`[${correlationId}] REQUEST META: userId=${userId}, tenantId=${finalTenantId}, messageLen=${typeof message === 'string' ? message.length : 0}`);
 
     if (!message) {
       return NextResponse.json(
@@ -53,15 +54,22 @@ export async function POST(request: NextRequest) {
 
     // End-to-end processing (classification + execution)
     console.log(`[${correlationId}] DEBUG: About to call processNaturalLanguageRequest with correlationId: ${correlationId}`);
-    const result = await workflowGenerator!.processNaturalLanguageRequest(
-      message,
+    // Use V2 API to enforce object-based args and required correlationId
+    const result = await (workflowGenerator as any)!.processNaturalLanguageRequestV2({
+      userMessage: message,
       userId,
-      finalTenantId,
+      tenantId: finalTenantId,
       correlationId
-    );
-    console.log(`[${correlationId}] DEBUG: processNaturalLanguageRequest returned, result.execution.id: ${result.execution?.id}`);
+    });
+    const workflowId = result.execution?.id;
+    console.log(`[${correlationId}] DEBUG: processNaturalLanguageRequest returned, workflowId: ${workflowId}, status: ${result.execution?.status}, cost: ${result.cost}`);
+    if (!workflowId) {
+      console.error(`[${correlationId}] ERROR: Missing workflowId on result.execution`);
+    } else if (workflowId !== correlationId) {
+      console.warn(`[${correlationId}] CORRELATION_MISMATCH: agentId=${correlationId} workflowId=${workflowId}`);
+    }
 
-    console.log(`[${correlationId}] Workflow execution: ${result.execution.status}`);
+    console.log(`[${correlationId}] Workflow execution: ${result.execution?.status}`);
     console.log(`[${correlationId}] Backend response structure:`, JSON.stringify({
       success: result.success,
       execution: !!result.execution,
@@ -74,6 +82,7 @@ export async function POST(request: NextRequest) {
       success: result.success,
       message: result.message,
       execution: result.execution,
+      workflowId,
       cost: result.cost,
       correlationId
     });

@@ -47,6 +47,22 @@ export class SimpleWorkflowGenerator {
     this.llmRouter = new SimpleLLMRouter();
   }
 
+  // Safer, object-based API to prevent positional-argument drift and enforce correlationId
+  async processNaturalLanguageRequestV2(options: {
+    userMessage: string;
+    userId: string;
+    tenantId?: string;
+    correlationId: string;
+  }): Promise<WorkflowResult> {
+    const { userMessage, userId, tenantId = 'default', correlationId } = options;
+    if (!correlationId || typeof correlationId !== 'string') {
+      throw new Error('processNaturalLanguageRequestV2 requires a non-empty correlationId');
+    }
+
+    // Delegate to the legacy signature to minimize changes internally
+    return this.processNaturalLanguageRequest(userMessage, userId, tenantId, correlationId);
+  }
+
   async processNaturalLanguageRequest(
     userMessage: string,
     userId: string,
@@ -55,6 +71,9 @@ export class SimpleWorkflowGenerator {
   ): Promise<WorkflowResult> {
     console.log(`[DEBUG] SimpleWorkflowGenerator received providedCorrelationId: ${providedCorrelationId}`);
     const correlationId = providedCorrelationId || `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    if (!providedCorrelationId) {
+      console.warn(`[${correlationId}] WARN: No providedCorrelationId; generated internal workflow ID. This may cause UI mismatch.`);
+    }
     const startTime = Date.now();
 
     console.log(`[${correlationId}] Processing: "${userMessage}"`);
