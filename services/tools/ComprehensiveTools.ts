@@ -480,13 +480,32 @@ export class ComprehensiveTools {
     }
 
     // Handle both single item and multiple items
-    let itemsToPin = params.items || [];
-    if (resolvedContentId && !itemsToPin.length) {
-      itemsToPin = [{ contentId: resolvedContentId, position: { x: 100, y: 100 } }];
+    let itemsToPinRaw = params.items || [];
+    if (resolvedContentId && !itemsToPinRaw.length) {
+      itemsToPinRaw = [{ contentId: resolvedContentId, position: { x: 100, y: 100 } }];
     }
 
-    if (!itemsToPin.length) {
+    if (!itemsToPinRaw.length) {
       throw new Error('No content to pin - provide contentId or items array');
+    }
+
+    // Normalize items to canvas schema: { id, type, position, order?, metadata? }
+    const itemsToPin = itemsToPinRaw
+      .map((it: any, index: number) => {
+        const id = it?.id || it?.contentId || it?.slug || '';
+        if (!id) return null;
+        const type = (it?.type || it?.content_type || 'image') as string;
+        const position = it?.position || { x: 100 + index * 20, y: 100 };
+        const metadata = it?.metadata || {
+          url: it?.url || it?.media_url,
+          title: it?.title || it?.name || id
+        };
+        return { id, type, position, order: index, metadata };
+      })
+      .filter(Boolean) as Array<{ id: string; type: string; position: any; order?: number; metadata?: any }>;
+
+    if (!itemsToPin.length) {
+      throw new Error('No valid items to pin after normalization');
     }
 
     console.log(`[${correlationId}] Pinning ${itemsToPin.length} items to canvas: ${resolvedCanvasId}`);
