@@ -49,14 +49,14 @@ export class SimpleIntentClassifier {
         You MUST generate multiple workflow_steps for compound actions. The workflow_steps array should contain ALL steps needed.
 
                 MANDATORY EXAMPLES WITH EXACT PARAMETERS:
-        
+
         Input: "find four fish related things and pin them to canvas"
         Output: workflow_steps: [
           { tool_name: "searchUnified", parameters: {query: "fish related things"} },
           { tool_name: "pinToCanvas", parameters: {count: 4} }
         ]
-        
-        Input: "make me a picture of a cat and save it as fluffy"  
+
+        Input: "make me a picture of a cat and save it as fluffy"
         Output: workflow_steps: [
           { tool_name: "prepareGenerate", parameters: {prompt: "cat", type: "image"} },
           { tool_name: "nameImage", parameters: {name: "fluffy"} },
@@ -68,7 +68,7 @@ export class SimpleIntentClassifier {
         - pinToCanvas needs "count" parameter if number specified
         - prepareGenerate needs "prompt" and "type" parameters
         - nameImage needs "name" parameter
-        
+
         DO NOT generate empty parameters. Extract what the user requested.`,
         prompt: userMessage,
         temperature: 0.1
@@ -87,7 +87,9 @@ export class SimpleIntentClassifier {
         workflow_steps: (result.object.workflow_steps || []).map(step => ({
           ...step,
           parameters: {
-            ...step.parameters,
+            // Start with AI-generated parameters
+            ...(step.parameters || {}),
+            // Add userId context without overriding existing parameters
             ...(context?.userId ? { userId: context.userId } : {}),
             // Ensure chat tools get the full message
             ...(step.tool_name === 'chat' ? { message: userMessage } : {})
