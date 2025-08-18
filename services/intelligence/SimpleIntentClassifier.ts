@@ -48,7 +48,7 @@ export class SimpleIntentClassifier {
 
         You MUST generate multiple workflow_steps for compound actions. The workflow_steps array should contain ALL steps needed.
 
-        MANDATORY EXAMPLES:
+                MANDATORY EXAMPLES WITH EXACT PARAMETERS:
         
         Input: "find four fish related things and pin them to canvas"
         Output: workflow_steps: [
@@ -63,7 +63,13 @@ export class SimpleIntentClassifier {
           { tool_name: "saveImage", parameters: {} }
         ]
 
-        DO NOT generate single steps for compound requests. If you see "and", "then", or sequential actions, generate multiple steps.`,
+        CRITICAL: Extract ALL relevant parameters from the user message:
+        - searchUnified needs "query" parameter with search terms
+        - pinToCanvas needs "count" parameter if number specified
+        - prepareGenerate needs "prompt" and "type" parameters
+        - nameImage needs "name" parameter
+        
+        DO NOT generate empty parameters. Extract what the user requested.`,
         prompt: userMessage,
         temperature: 0.1
       });
