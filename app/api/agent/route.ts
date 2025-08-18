@@ -549,9 +549,11 @@ export async function POST(req: NextRequest) {
             };
             // Store deferred materialize steps to emit AFTER prepareGenerate ack
             try {
-              const stepIndex = steps.findIndex(s => s === step);
+              // Find current step index by tool_name since object references differ
+              const stepIndex = steps.findIndex(s => s?.tool_name === step?.tool_name);
               const next = steps[stepIndex + 1];
               if (next?.tool_name === 'generateContent') {
+                console.log(`[${correlationId}] Adding deferred materialize steps for video workflow`);
                 payload.__deferredMaterialize = [
                   { action: 'nameImage', payload: { imageId: 'current', name: 'Generated Image', correlationId } },
                   { action: 'saveImage', payload: { imageId: 'current', collection: 'default', correlationId } }
