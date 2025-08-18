@@ -459,6 +459,7 @@ export async function POST(req: NextRequest) {
       };
 
       const events: any[] = [];
+      let searchResults: any[] = [];
 
       // 1) Always send a chat acknowledgement with summary + correlation
       events.push({
@@ -550,6 +551,12 @@ export async function POST(req: NextRequest) {
           // Tool-specific payload shaping
           if (tool === 'searchunified') {
             payload.query = params.query || extractQuery(userMessage);
+            // Extract search results from backend execution result to pass to subsequent steps
+            const backendResult = agentResult?.execution?.result;
+            if (backendResult?.results && Array.isArray(backendResult.results)) {
+              searchResults = backendResult.results;
+              console.log(`[${correlationId}] PROXY: Captured ${searchResults.length} search results for subsequent steps`);
+            }
           } else if (tool === 'preparegenerate') {
             payload = {
               type: params.type || 'image',
@@ -586,13 +593,26 @@ export async function POST(req: NextRequest) {
               isFollowUp: true
             };
           } else if (tool === 'pin' || tool === 'pintocanvas') {
-            payload = {
-              id: params.contentId || null,
-              contentId: params.contentId || null,
-              needsLookup: !params.contentId,
-              originalRequest: userMessage,
-              correlationId
-            };
+            // Pass search results if available, respecting count parameter
+            if (searchResults.length > 0) {
+              const count = params.count || searchResults.length;
+              const itemsToPin = searchResults.slice(0, count);
+              payload = {
+                items: itemsToPin,
+                count: itemsToPin.length,
+                originalRequest: userMessage,
+                correlationId
+              };
+              console.log(`[${correlationId}] PROXY: Passing ${itemsToPin.length} search results to pinToCanvas`);
+            } else {
+              payload = {
+                id: params.contentId || null,
+                contentId: params.contentId || null,
+                needsLookup: !params.contentId,
+                originalRequest: userMessage,
+                correlationId
+              };
+            }
           } else if (tool === 'nameimage' || tool === 'renameasset') {
             payload = {
               imageId: params.imageId || params.assetId || 'current',
