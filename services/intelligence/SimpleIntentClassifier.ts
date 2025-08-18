@@ -2,20 +2,20 @@ import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
-// Simplified intent schema for testing
+// AI-driven workflow planning schema
 export const SimpleIntentSchema = z.object({
   intent: z.enum(['search', 'create', 'update', 'chat']).describe('Primary user intent'),
   confidence: z.number().min(0).max(1).describe('Confidence score'),
-  tool_name: z.string().describe('Recommended tool to use'),
-  parameters: z.record(z.any()).optional().default({}).describe('Parameters for the tool'),
-  reasoning: z.string().describe('Why this classification was chosen'),
+  tool_name: z.string().describe('Primary tool (for compatibility)'),
+  parameters: z.record(z.any()).optional().default({}).describe('Primary tool parameters (for compatibility)'),
+  reasoning: z.string().describe('Why this classification and workflow was chosen'),
   primary_intent: z.string().optional().describe('Primary intent string'),
   classification: z.string().optional().describe('Classification string'),
   workflow_steps: z.array(z.object({
     tool_name: z.string(),
     parameters: z.record(z.any()).optional().default({}),
     description: z.string().optional()
-  })).optional().describe('Workflow steps to execute')
+  })).describe('Complete workflow steps to execute - ALWAYS populate this with the full sequence needed')
 });
 
 export type SimpleIntent = z.infer<typeof SimpleIntentSchema>;
@@ -37,23 +37,33 @@ export class SimpleIntentClassifier {
       const result = await generateObject({
         model: this.model as any,
         schema: SimpleIntentSchema,
-                system: `You are an intent classifier for a multimedia platform. Available tools: ${this.availableTools?.join(', ') || ''}.
+                system: `You are an AI workflow planner for a multimedia platform. Available tools: ${this.availableTools?.join(', ') || ''}.
 
-        CRITICAL: Always extract relevant parameters from the user message:
-        - For search requests: ALWAYS include "query" parameter with the search terms
-        - For pin requests: include "contentId" if specific ID mentioned, otherwise leave empty for "first/top" resolution
-        - For generation requests: extract "prompt", "type", and any model/style references
-        - For chat requests: ALWAYS include "message" parameter with the full user message
+        Your job is to understand user requests and plan the COMPLETE sequence of steps needed to fulfill them.
+
+        CRITICAL: Always populate workflow_steps with the full sequence needed:
+        - For single actions: one step
+        - For compound actions: multiple steps in logical order
+        - Extract all relevant parameters from the user message
+        - Think about what needs to happen step by step
 
         Examples:
-        - "search for cats" → intent: search, tool: searchUnified, parameters: {query: "cats"}
-        - "find me some desert pictures" → intent: search, tool: searchUnified, parameters: {query: "desert pictures"}
-        - "pin the first one to canvas" → intent: create, tool: pinToCanvas, parameters: {}
-        - "pin item-123 to canvas" → intent: create, tool: pinToCanvas, parameters: {contentId: "item-123"}
-        - "make me a picture of a cat" → intent: create, tool: prepareGenerate, parameters: {prompt: "cat", type: "image"}
-        - "hello" → intent: chat, tool: chat, parameters: {message: "hello"}
+        - "search for cats" → workflow_steps: [{ tool_name: "searchUnified", parameters: {query: "cats"} }]
+        - "find four fish related things and pin them to canvas" → workflow_steps: [
+            { tool_name: "searchUnified", parameters: {query: "fish related things"} },
+            { tool_name: "pinToCanvas", parameters: {count: 4} }
+          ]
+        - "make me a picture of a cat and save it as fluffy" → workflow_steps: [
+            { tool_name: "prepareGenerate", parameters: {prompt: "cat", type: "image"} },
+            { tool_name: "nameImage", parameters: {name: "fluffy"} },
+            { tool_name: "saveImage", parameters: {} }
+          ]
+        - "create a video of a sunset and then pin it" → workflow_steps: [
+            { tool_name: "prepareGenerate", parameters: {prompt: "sunset", type: "video"} },
+            { tool_name: "pinToCanvas", parameters: {} }
+          ]
 
-        NEVER return empty parameters object for search. For pin/generate, extract what you can but don't invent IDs.`,
+        Think step by step about what the user wants to accomplish and plan the complete workflow.`,
         prompt: userMessage,
         temperature: 0.1
       });
@@ -62,47 +72,22 @@ export class SimpleIntentClassifier {
 
       console.log(`[${correlationId}] Classified as: ${result.object.intent} (${result.object.confidence})`);
 
-      // Add missing fields for compatibility
+      // Use AI-generated workflow steps directly - no more hardcoded patterns!
       const intent: SimpleIntent = {
         ...result.object,
         primary_intent: result.object.intent,
         classification: result.object.intent,
-        workflow_steps: [{
-          tool_name: result.object.tool_name,
+        // Use the AI-generated workflow_steps as-is, with userId context added
+        workflow_steps: (result.object.workflow_steps || []).map(step => ({
+          ...step,
           parameters: {
-            ...result.object.parameters,
+            ...step.parameters,
             ...(context?.userId ? { userId: context.userId } : {}),
-            ...(result.object.tool_name === 'chat' ? { message: userMessage } : {}),
-            // Ensure search tools always have a query parameter
-            ...(result.object.tool_name === 'searchUnified' && !result.object.parameters?.query ? { query: userMessage } : {})
-          },
-          description: `Execute ${result.object.tool_name} with classified intent`
-        }]
+            // Ensure chat tools get the full message
+            ...(step.tool_name === 'chat' ? { message: userMessage } : {})
+          }
+        }))
       };
-
-      // Generalized chaining: augment with additional steps when requested in natural language
-      // 1) generate → rename
-      const renameMatch = userMessage.match(/\b(?:rename|name|call)\b.*\b(?:to|as)\s+([\w\-.]+)/i);
-      if (renameMatch) {
-        const targetName = renameMatch[1];
-        intent.workflow_steps!.push({
-          tool_name: 'renameAsset',
-          parameters: { name: targetName },
-          description: 'Plan to rename the generated asset (handled by UI if assetId unknown)'
-        });
-      }
-
-      // 2) generate image → then make a video (insert intermediate steps for asset materialization)
-      const wantsVideo = /\b(make|create|generate)\b.*\b(video|animation|movie|clip)\b/i.test(userMessage)
-        || /\bthen\b.*\b(video|animation|movie|clip)\b/i.test(userMessage)
-        || /\buse that image to (?:then )?make a video\b/i.test(userMessage);
-      if (wantsVideo) {
-        intent.workflow_steps!.push({
-          tool_name: 'generateContent',
-          parameters: { type: 'video', prompt: userMessage },
-          description: 'Generate a video based on the described prompt'
-        });
-      }
 
       const cost = 0.00001; // Estimated cost for gpt-4o-mini
 
