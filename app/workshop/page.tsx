@@ -1856,7 +1856,7 @@ export default function VisualSearchPage() {
           }
 
           const body = {
-            mode: payload?.type,
+            mode: payload?.type || 'video',
             model: payload?.model,
             prompt: payload?.prompt,
             refs,

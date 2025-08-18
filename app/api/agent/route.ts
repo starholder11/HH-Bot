@@ -559,9 +559,9 @@ export async function POST(req: NextRequest) {
               }
             } catch {}
           } else if (tool === 'generatecontent') {
-            // For generateContent (e.g., video), request client to gather refs from current output/pins
+            // For generateContent (follow-up), default to video unless explicitly specified
             payload = {
-              type: params.type || 'image',
+              type: params.type || 'video',
               prompt: params.prompt || params.message || userMessage,
               model: params.model || 'default',
               options: params.options || {},
@@ -614,12 +614,20 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
               console.log(`[${correlationId}] Emitted step: ${stepName}`);
 
-              // If this was prepareGenerate with deferred materialization, wait for its ack then emit deferred steps
+              // If this was prepareGenerate with deferred materialization, inject deferred steps
               if (stepName === 'preparegenerate' && evt.payload?.__deferredMaterialize) {
-                await waitForAck(correlationId, 'preparegenerate');
-                for (const deferredEvt of evt.payload.__deferredMaterialize) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(deferredEvt)}\n\n`));
-                  console.log(`[${correlationId}] Emitted deferred step: ${deferredEvt.action.toLowerCase()}`);
+                try {
+                  // Insert deferred steps right after current index so normal gating applies
+                  const insertAt = i + 1;
+                  const deferred = Array.isArray(evt.payload.__deferredMaterialize)
+                    ? evt.payload.__deferredMaterialize
+                    : [];
+                  if (deferred.length > 0) {
+                    events.splice(insertAt, 0, ...deferred);
+                    console.log(`[${correlationId}] Injected ${deferred.length} deferred steps after preparegenerate`);
+                  }
+                } catch (e) {
+                  console.warn(`[${correlationId}] Failed to inject deferred steps:`, e);
                 }
               }
             }
