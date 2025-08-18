@@ -569,11 +569,11 @@ export async function POST(req: NextRequest) {
               }
             } catch {}
           } else if (tool === 'generatecontent') {
-            // For generateContent (follow-up), default to video unless explicitly specified
+            // For generateContent (follow-up), force video and set a sane default i2v model
             payload = {
               type: params.type || 'video',
               prompt: params.prompt || params.message || userMessage,
-              model: params.model || 'default',
+              model: params.model || 'fal-ai/wan-i2v',
               options: params.options || {},
               originalRequest: userMessage,
               correlationId,

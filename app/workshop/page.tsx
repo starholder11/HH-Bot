@@ -1857,7 +1857,7 @@ export default function VisualSearchPage() {
 
           const body = {
             mode: payload?.type || 'video',
-            model: payload?.model,
+            model: payload?.model || 'fal-ai/wan-i2v',
             prompt: payload?.prompt,
             refs,
             options: payload?.options || {},
