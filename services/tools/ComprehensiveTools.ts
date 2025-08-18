@@ -511,10 +511,24 @@ export class ComprehensiveTools {
     console.log(`[${correlationId}] Pinning ${itemsToPin.length} items to canvas: ${resolvedCanvasId}`);
 
     try {
+      // First get the current canvas to preserve existing items
+      let currentCanvas: any = {};
+      try {
+        const canvasResponse = await this.apiClient.get(`/api/canvas?id=${resolvedCanvasId}`);
+        currentCanvas = canvasResponse.canvas || {};
+      } catch (e) {
+        console.log(`[${correlationId}] Canvas not found, will create new one`);
+      }
+
+      // Merge new items with existing items
+      const existingItems = Array.isArray(currentCanvas.items) ? currentCanvas.items : [];
+      const allItems = [...existingItems, ...itemsToPin];
+
       const response = await this.apiClient.put('/api/canvas', {
         id: resolvedCanvasId,
-        action: 'pin',
-        items: itemsToPin
+        name: currentCanvas.name || 'Active Canvas',
+        description: currentCanvas.description || 'Default canvas for pinned items',
+        items: allItems
       });
 
       return {
