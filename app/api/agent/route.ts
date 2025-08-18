@@ -472,15 +472,14 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 2) Generalized: emit UI event for each workflow step, gated by client acks in Redis
-      const steps = agentResult?.execution?.intent?.workflow_steps || [];
+      // 2) Generalized: emit UI event for each executed workflow step, gated by client acks in Redis
+      const steps = agentResult?.execution?.executedSteps || [];
       console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({
         success: agentResult.success,
         execution: !!agentResult.execution,
-        intent: !!agentResult.execution?.intent,
-        workflow_steps: agentResult.execution?.intent?.workflow_steps?.length || 0,
+        executedSteps: agentResult.execution?.executedSteps?.length || 0,
         steps: steps.map(s => s?.tool_name),
-        raw_steps: agentResult.execution?.intent?.workflow_steps
+        raw_executed_steps: agentResult.execution?.executedSteps
       }));
       console.log(`[${correlationId}] PROXY: Processing ${steps.length} workflow steps:`, steps.map(s => `${s?.tool_name}(${JSON.stringify(s?.parameters)})`));
       const waitForAck = async (corr: string, stepName: string, timeoutMs = 60000) => {

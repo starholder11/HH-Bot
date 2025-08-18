@@ -17,6 +17,12 @@ export interface WorkflowExecution {
   endTime?: number;
   result?: any;
   error?: string;
+  executedSteps?: Array<{
+    tool_name: string;
+    parameters: any;
+    result: any;
+    status: 'completed' | 'failed';
+  }>;
 }
 
 export interface WorkflowResult {
@@ -130,6 +136,9 @@ export class SimpleWorkflowGenerator {
 
       let lastExecution: any = null;
       let lastGeneratedUrl: string | null = null;
+      
+      // Initialize executedSteps array to track what was actually executed
+      workflow.executedSteps = [];
 
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -218,6 +227,15 @@ export class SimpleWorkflowGenerator {
         }
         console.log(`[${workflow.correlationId}] DEBUG: step ${i + 1}/${steps.length} -> ${toolNameToExecute} params=`, JSON.stringify(params));
         lastExecution = await this.toolExecutor.executeTool(toolNameToExecute, params, userContext);
+        
+        // Track executed step for proxy to emit as UI events
+        workflow.executedSteps!.push({
+          tool_name: step.tool_name,
+          parameters: params,
+          result: lastExecution?.result,
+          status: lastExecution?.status === 'completed' ? 'completed' : 'failed'
+        });
+        
         const resultPreview = (() => {
           try {
             const str = JSON.stringify(lastExecution?.result);
