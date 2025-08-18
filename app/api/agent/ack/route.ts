@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'correlationId and step are required' }, { status: 400 });
     }
 
-    const redis = new RedisContextService(process.env.REDIS_URL);
+    const redis = new RedisContextService(process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL);
     const key = `ack:${correlationId}:${step}`;
     // Store ack payload with short TTL; agent proxy will poll for it
     // @ts-ignore accessing internal redis

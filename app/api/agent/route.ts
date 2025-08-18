@@ -479,7 +479,7 @@ export async function POST(req: NextRequest) {
           try {
             // Check Redis for ack key
             const RedisContextService = (await import('@/services/context/RedisContextService')).RedisContextService;
-            const redis = new RedisContextService(process.env.REDIS_URL);
+            const redis = new RedisContextService(process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL);
             const key = `ack:${corr}:${stepName}`;
             // @ts-ignore accessing internal redis
             const ackData = await (redis as any).redis.get(key);
@@ -600,18 +600,18 @@ export async function POST(req: NextRequest) {
             if (events.length > 0) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(events[0])}\n\n`));
             }
-            
+
             // For remaining events, emit one at a time with Redis gating
             for (let i = 1; i < events.length; i++) {
               const evt = events[i];
               const stepName = evt.action.toLowerCase();
-              
+
               // Wait for previous step to be acked before emitting next
               if (i > 1) {
                 const prevStepName = events[i-1].action.toLowerCase();
                 await waitForAck(correlationId, prevStepName);
               }
-              
+
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
               console.log(`[${correlationId}] Emitted step: ${stepName}`);
             }

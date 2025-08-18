@@ -66,7 +66,7 @@ export class RedisContextService {
   private hasValidConfig: boolean = false;
 
   constructor(redisUrl?: string) {
-    const redisConnectionUrl = redisUrl || process.env.REDIS_URL;
+    const redisConnectionUrl = redisUrl || process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL;
 
     if (!redisConnectionUrl) {
       // Do NOT throw at import/build time; defer to runtime usage
