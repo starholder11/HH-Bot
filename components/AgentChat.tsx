@@ -99,6 +99,10 @@ export default function AgentChat() {
                 (window as any).__agentApi?.prepareGenerate?.(payload);
                 return;
               }
+              if (action === 'requestPinnedThenGenerate') {
+                (window as any).__agentApi?.requestPinnedThenGenerate?.(payload);
+                return;
+              }
               if (action === 'showOutput') {
                 (window as any).__agentApi?.showOutput?.(payload);
                 return;
