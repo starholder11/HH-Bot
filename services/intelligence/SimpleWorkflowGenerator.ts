@@ -218,7 +218,15 @@ export class SimpleWorkflowGenerator {
         }
         console.log(`[${workflow.correlationId}] DEBUG: step ${i + 1}/${steps.length} -> ${toolNameToExecute} params=`, JSON.stringify(params));
         lastExecution = await this.toolExecutor.executeTool(toolNameToExecute, params, userContext);
-        console.log(`[${workflow.correlationId}] STEP ${i + 1} RESULT: status=${lastExecution.status}, result=`, JSON.stringify(lastExecution.result).substring(0, 200));
+        const resultPreview = (() => {
+          try {
+            const str = JSON.stringify(lastExecution?.result);
+            return typeof str === 'string' ? str.substring(0, 200) : '';
+          } catch {
+            return '';
+          }
+        })();
+        console.log(`[${workflow.correlationId}] STEP ${i + 1} RESULT: status=${lastExecution?.status}, result=`, resultPreview);
         if (lastExecution.status === 'failed') {
           workflow.status = 'failed';
           workflow.error = lastExecution.error;
@@ -279,8 +287,13 @@ export class SimpleWorkflowGenerator {
   }
 
   private generateSuccessMessage(workflow: WorkflowExecution): string {
-    const intent = workflow.intent;
+    // Use the result message from the final step if available
+    if (workflow.result?.message) {
+      return workflow.result.message;
+    }
 
+    // Fallback to intent-based messages
+    const intent = workflow.intent;
     switch (intent.intent) {
       case 'search':
         const query = intent.parameters.query;
