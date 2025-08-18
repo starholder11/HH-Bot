@@ -41,7 +41,10 @@ export async function POST(request: NextRequest) {
     const { message, userId = 'test-user', tenantId } = body;
     const finalTenantId = tenantId || 'default';
 
+    const buildSha = process.env.APP_BUILD_SHA || 'unknown';
+    const routeFile = __filename;
     console.log(`[${correlationId}] POST /api/agent-comprehensive - message: "${message}", userId: ${userId}`);
+    console.log(`[${correlationId}] BUILD_SHA: ${buildSha} | ROUTE_FILE: ${routeFile}`);
     console.log(`[${correlationId}] SIMPLE DEBUG TEST - This should definitely appear in logs!`);
     console.log(`[${correlationId}] REQUEST META: userId=${userId}, tenantId=${finalTenantId}, messageLen=${typeof message === 'string' ? message.length : 0}`);
 
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
       intent_keys: result.execution?.intent ? Object.keys(result.execution.intent) : []
     }));
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: result.success,
       message: result.message,
       execution: result.execution,
@@ -86,6 +89,9 @@ export async function POST(request: NextRequest) {
       cost: result.cost,
       correlationId
     });
+    response.headers.set('x-build-sha', buildSha);
+    response.headers.set('x-route-file', routeFile);
+    return response;
 
   } catch (error) {
     console.error(`[${correlationId}] Comprehensive agent processing failed:`, error);

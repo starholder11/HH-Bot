@@ -1,9 +1,11 @@
 FROM node:20-alpine AS builder
 
 ARG REDIS_URL
+ARG GIT_SHA
 ENV NODE_ENV=development \
     NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000
+    PORT=3000 \
+    APP_BUILD_SHA=$GIT_SHA
 
 WORKDIR /app
 
@@ -24,10 +26,12 @@ RUN REDIS_URL=${REDIS_URL} npm run build:web
 FROM node:20-alpine AS runner
 
 ARG REDIS_URL
+ARG GIT_SHA
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    REDIS_URL=${REDIS_URL}
+    REDIS_URL=${REDIS_URL} \
+    APP_BUILD_SHA=$GIT_SHA
 
 WORKDIR /app
 
