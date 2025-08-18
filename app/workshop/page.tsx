@@ -1455,17 +1455,20 @@ export default function VisualSearchPage() {
   // Bridge for agent → UI actions
   useEffect(() => {
     (window as any).__agentApi = {
-      // Called by agent for searchUnified actions
+            // Called by agent for searchUnified actions
       searchUnified: async (payload: { query?: string; correlationId?: string }) => {
         if (payload.query) {
           debug('vs:agent:search', 'executing search:', payload.query);
           console.log(`[${payload.correlationId}] UI: searchUnified handler called with query:`, payload.query);
-          // Do not overwrite the user's search input; execute in-place
-          executeSearch(payload.query, 1, undefined, true);
-          setRightTab('results');
           
-          // Send ack to allow next step to proceed
+          // Wait for search to actually complete before sending ack
           try {
+            console.log(`[${payload.correlationId}] UI: Starting search execution...`);
+            await executeSearch(payload.query, 1, undefined, true);
+            setRightTab('results');
+            console.log(`[${payload.correlationId}] UI: Search execution completed`);
+            
+            // Send ack after search completes
             console.log(`[${payload.correlationId}] UI: Sending searchUnified ack`);
             await fetch('/api/agent/ack', { 
               method: 'POST', 
@@ -1476,9 +1479,9 @@ export default function VisualSearchPage() {
                 artifacts: { query: payload.query } 
               }) 
             });
-            console.log(`[${payload.correlationId}] UI: ✅ searchUnified ack sent`);
+            console.log(`[${payload.correlationId}] UI: ✅ searchUnified ack sent after search completion`);
           } catch (e) {
-            console.error(`[${payload.correlationId}] UI: ❌ Failed to send searchUnified ack:`, e);
+            console.error(`[${payload.correlationId}] UI: ❌ Failed to execute search or send ack:`, e);
           }
         }
       },
@@ -1874,7 +1877,7 @@ export default function VisualSearchPage() {
                     // Always prefer current genUrl for video follow-up (most recent generation)
           const fallbackFromCurrent = (genUrlRef.current || genUrl) ? [genUrlRef.current || genUrl] : [];
           const refs: string[] = fallbackFromCurrent.length > 0 ? fallbackFromCurrent : pinnedUrls;
-          
+
           console.log(`🎬 Video refs:`, { pinnedUrls: pinnedUrls.length, fallbackFromCurrent: fallbackFromCurrent.length, finalRefs: refs.length, genUrl, genUrlRef: genUrlRef.current });
 
                     // If we still don't have refs, wait for image generation to complete
@@ -1965,7 +1968,7 @@ export default function VisualSearchPage() {
       nameImage: async (payload: any) => {
         try {
                     console.log(`🏷️ nameImage called with payload:`, payload, `genUrl:`, genUrl, `genUrlRef:`, genUrlRef.current);
-          
+
           // Wait for image generation to complete if it hasn't yet
           const currentUrl = genUrlRef.current || genUrl;
           if (!currentUrl && !(window as any).__imageGenerationComplete) {
@@ -1977,7 +1980,7 @@ export default function VisualSearchPage() {
             }
             console.log(`🏷️ After waiting: genUrl = ${genUrl}, genUrlRef = ${genUrlRef.current}, imageComplete = ${(window as any).__imageGenerationComplete}`);
           }
-          
+
           const name = payload?.name || 'Untitled';
           const finalUrl = genUrlRef.current || genUrl;
           // For now, just rename the current output in memory
@@ -2013,7 +2016,7 @@ export default function VisualSearchPage() {
       saveImage: async (payload: any) => {
         try {
                     console.log(`💾 saveImage called with payload:`, payload, `genUrl:`, genUrl, `genUrlRef:`, genUrlRef.current);
-          
+
           // Wait for image generation to complete if it hasn't yet
           const currentUrl = genUrlRef.current || genUrl;
           if (!currentUrl && !(window as any).__imageGenerationComplete) {
@@ -2025,7 +2028,7 @@ export default function VisualSearchPage() {
             }
             console.log(`💾 After waiting: genUrl = ${genUrl}, genUrlRef = ${genUrlRef.current}, imageComplete = ${(window as any).__imageGenerationComplete}`);
           }
-          
+
           const finalUrl = genUrlRef.current || genUrl;
           if (finalUrl) {
             // Create a mock asset ID and ADD TO PINNED ITEMS so requestPinnedThenGenerate can find it
@@ -2094,7 +2097,7 @@ export default function VisualSearchPage() {
       pinToCanvas: async (payload: any) => {
         try {
           console.log(`[${payload?.correlationId}] UI: pinToCanvas handler called with payload:`, JSON.stringify(payload));
-          
+
           // Pin generated content if available
           if (genUrl) {
             console.log(`[${payload?.correlationId}] UI: Pinning generated content: ${genUrl}`);
@@ -2110,7 +2113,7 @@ export default function VisualSearchPage() {
           } else {
             console.log(`[${payload?.correlationId}] UI: No content to pin - no genUrl and no items array`);
           }
-          
+
           // Always send ack
           console.log(`[${payload?.correlationId}] UI: Sending pinToCanvas ack`);
           await fetch('/api/agent/ack', {
@@ -2119,9 +2122,9 @@ export default function VisualSearchPage() {
             body: JSON.stringify({
               correlationId: payload?.correlationId || 'workshop',
               step: 'pintocanvas',
-              artifacts: { 
-                pinned: true, 
-                url: genUrl, 
+              artifacts: {
+                pinned: true,
+                url: genUrl,
                 canvasId: payload?.canvasId,
                 itemCount: payload?.items?.length || 0
               }
