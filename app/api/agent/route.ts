@@ -473,6 +473,13 @@ export async function POST(req: NextRequest) {
 
       // 2) Generalized: emit UI event for each workflow step, gated by client acks in Redis
       const steps = agentResult?.execution?.intent?.workflow_steps || [];
+      console.log(`[${correlationId}] Backend response structure:`, JSON.stringify({
+        success: agentResult.success,
+        execution: !!agentResult.execution,
+        intent: !!agentResult.execution?.intent,
+        workflow_steps: agentResult.execution?.intent?.workflow_steps?.length || 0,
+        steps: steps.map(s => s?.tool_name)
+      }));
       const waitForAck = async (corr: string, stepName: string, timeoutMs = 60000) => {
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
