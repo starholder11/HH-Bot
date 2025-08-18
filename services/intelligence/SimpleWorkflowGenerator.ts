@@ -53,6 +53,7 @@ export class SimpleWorkflowGenerator {
     tenantId: string = 'default',
     providedCorrelationId?: string
   ): Promise<WorkflowResult> {
+    console.log(`[DEBUG] SimpleWorkflowGenerator received providedCorrelationId: ${providedCorrelationId}`);
     const correlationId = providedCorrelationId || `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     const startTime = Date.now();
 

@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { message, userId = 'test-user', tenantId = 'default' } = body;
+    const { message, userId = 'test-user', tenantId } = body;
+    const finalTenantId = tenantId || 'default';
 
     console.log(`[${correlationId}] POST /api/agent-comprehensive - message: "${message}", userId: ${userId}`);
 
@@ -50,12 +51,14 @@ export async function POST(request: NextRequest) {
     }
 
     // End-to-end processing (classification + execution)
+    console.log(`[${correlationId}] DEBUG: About to call processNaturalLanguageRequest with correlationId: ${correlationId}`);
     const result = await workflowGenerator!.processNaturalLanguageRequest(
       message,
       userId,
-      tenantId,
+      finalTenantId,
       correlationId
     );
+    console.log(`[${correlationId}] DEBUG: processNaturalLanguageRequest returned, result.execution.id: ${result.execution?.id}`);
 
     console.log(`[${correlationId}] Workflow execution: ${result.execution.status}`);
     console.log(`[${correlationId}] Backend response structure:`, JSON.stringify({
