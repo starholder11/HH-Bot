@@ -476,12 +476,13 @@ export async function POST(req: NextRequest) {
       for (const step of steps) {
         const tool = (step?.tool_name || '').toLowerCase();
         const params = step?.parameters || {};
-        
+
         // Map backend tool names to UI actions
         const toolToActionMap: Record<string, string> = {
           'searchunified': 'searchUnified',
           'preparegenerate': 'prepareGenerate',
-          'generatecontent': 'prepareGenerate',
+          // If planner emits generateContent (e.g., video), we prefer client-side ref gathering
+          'generatecontent': 'requestPinnedThenGenerate',
           'pintocanvas': 'pinToCanvas',
           'pin': 'pinToCanvas',
           'renameasset': 'nameImage',
@@ -490,15 +491,15 @@ export async function POST(req: NextRequest) {
           'createproject': 'projectCreated',
           'chat': 'chat'
         };
-        
+
         const uiAction = toolToActionMap[tool];
         if (uiAction) {
           let payload: any = { ...params, correlationId, originalRequest: userMessage };
-          
+
           // Tool-specific payload shaping
           if (tool === 'searchunified') {
             payload.query = params.query || extractQuery(userMessage);
-          } else if (tool === 'preparegenerate' || tool === 'generatecontent') {
+          } else if (tool === 'preparegenerate') {
             payload = {
               type: params.type || 'image',
               prompt: params.prompt || params.message || userMessage,
@@ -507,7 +508,18 @@ export async function POST(req: NextRequest) {
               refs: params.refs || [],
               originalRequest: userMessage,
               correlationId,
-              isFollowUp: tool === 'generatecontent'
+              isFollowUp: false
+            };
+          } else if (tool === 'generatecontent') {
+            // For generateContent (e.g., video), request client to gather refs from current output/pins
+            payload = {
+              type: params.type || 'image',
+              prompt: params.prompt || params.message || userMessage,
+              model: params.model || 'default',
+              options: params.options || {},
+              originalRequest: userMessage,
+              correlationId,
+              isFollowUp: true
             };
           } else if (tool === 'pin' || tool === 'pintocanvas') {
             payload = {
@@ -524,7 +536,7 @@ export async function POST(req: NextRequest) {
               correlationId
             };
           }
-          
+
           events.push({ action: uiAction, payload });
         }
       }
