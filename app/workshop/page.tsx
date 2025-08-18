@@ -1785,6 +1785,12 @@ export default function VisualSearchPage() {
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs }, success: !!out } }) });
             await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: mode === 'video' ? 'generatecontent' : 'preparegenerate', artifacts: { url: out, mode } }) });
+            
+            // Set a flag so other handlers know image generation is complete
+            if (mode === 'image') {
+              (window as any).__imageGenerationComplete = true;
+              console.log(`🎯 Image generation complete, genUrl should be: ${out}`);
+            }
           } catch {}
         } catch (e) {
           setGenLoading(false);
@@ -1939,6 +1945,18 @@ export default function VisualSearchPage() {
       nameImage: async (payload: any) => {
         try {
           console.log(`🏷️ nameImage called with payload:`, payload, `genUrl:`, genUrl);
+          
+          // Wait for image generation to complete if it hasn't yet
+          if (!genUrl && !(window as any).__imageGenerationComplete) {
+            console.log(`🏷️ Waiting for image generation to complete...`);
+            let retries = 0;
+            while (retries < 20 && !genUrl && !(window as any).__imageGenerationComplete) {
+              await new Promise(r => setTimeout(r, 250));
+              retries++;
+            }
+            console.log(`🏷️ After waiting: genUrl = ${genUrl}, imageComplete = ${(window as any).__imageGenerationComplete}`);
+          }
+          
           const name = payload?.name || 'Untitled';
           // For now, just rename the current output in memory
           if (genUrl) {
@@ -1973,6 +1991,18 @@ export default function VisualSearchPage() {
       saveImage: async (payload: any) => {
         try {
           console.log(`💾 saveImage called with payload:`, payload, `genUrl:`, genUrl);
+          
+          // Wait for image generation to complete if it hasn't yet
+          if (!genUrl && !(window as any).__imageGenerationComplete) {
+            console.log(`💾 Waiting for image generation to complete...`);
+            let retries = 0;
+            while (retries < 20 && !genUrl && !(window as any).__imageGenerationComplete) {
+              await new Promise(r => setTimeout(r, 250));
+              retries++;
+            }
+            console.log(`💾 After waiting: genUrl = ${genUrl}, imageComplete = ${(window as any).__imageGenerationComplete}`);
+          }
+          
           if (genUrl) {
             // Create a mock asset ID and ADD TO PINNED ITEMS so requestPinnedThenGenerate can find it
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
