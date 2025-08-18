@@ -546,6 +546,15 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
+            // If next step is generateContent (video), insert client-side materialization steps
+            try {
+              const stepIndex = steps.findIndex(s => s === step);
+              const next = steps[stepIndex + 1];
+              if (next?.tool_name === 'generateContent' && next?.parameters?.type === 'video') {
+                events.push({ action: 'nameImage', payload: { imageId: 'current', name: 'Generated Image', correlationId } });
+                events.push({ action: 'saveImage', payload: { imageId: 'current', collection: 'default', correlationId } });
+              }
+            } catch {}
           } else if (tool === 'generatecontent') {
             // For generateContent (e.g., video), request client to gather refs from current output/pins
             payload = {
