@@ -551,7 +551,7 @@ export async function POST(req: NextRequest) {
             try {
               const stepIndex = steps.findIndex(s => s === step);
               const next = steps[stepIndex + 1];
-              if (next?.tool_name === 'generateContent' && next?.parameters?.type === 'video') {
+              if (next?.tool_name === 'generateContent') {
                 payload.__deferredMaterialize = [
                   { action: 'nameImage', payload: { imageId: 'current', name: 'Generated Image', correlationId } },
                   { action: 'saveImage', payload: { imageId: 'current', collection: 'default', correlationId } }
