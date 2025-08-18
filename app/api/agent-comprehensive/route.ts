@@ -57,6 +57,13 @@ export async function POST(request: NextRequest) {
     );
 
     console.log(`[${correlationId}] Workflow execution: ${result.status}`);
+    console.log(`[${correlationId}] Backend response structure:`, JSON.stringify({
+      success: result.success,
+      execution: !!result.execution,
+      intent: !!result.execution?.intent,
+      workflow_steps: result.execution?.intent?.workflow_steps?.length || 0,
+      intent_keys: result.execution?.intent ? Object.keys(result.execution.intent) : []
+    }));
 
     return NextResponse.json({
       success: result.success,
