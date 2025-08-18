@@ -135,6 +135,15 @@ export class SimpleWorkflowGenerator {
         const step = steps[i];
         const params = { ...step.parameters };
 
+        // Pass search results to pinToCanvas step
+        if (step.tool_name === 'pinToCanvas' && lastExecution?.result?.results) {
+          // Take the requested count or default to all results
+          const count = params.count || lastExecution.result.results.length;
+          const itemsToPin = lastExecution.result.results.slice(0, count);
+          params.items = itemsToPin;
+          console.log(`[${workflow.correlationId}] INFO: Passing ${itemsToPin.length} search results to pinToCanvas`);
+        }
+
         // Resolve tool name to a registered backend tool, or skip if UI-only
         const availableTools = this.toolRegistry.getToolNames();
         let toolNameToExecute = step.tool_name;
