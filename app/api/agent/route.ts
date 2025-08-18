@@ -641,10 +641,11 @@ export async function POST(req: NextRequest) {
                 }
               }
 
-              // Safety: auto-ack UI-only steps if client is slow to respond
+              // Safety: auto-ack UI-only steps immediately to avoid gating delays
               if (stepName === 'nameimage' || stepName === 'saveimage') {
                 try {
                   const backendUrl = process.env.LANCEDB_API_URL || '';
+                  // Immediate auto-ack to prevent proxy waiting
                   setTimeout(async () => {
                     try {
                       await fetch(`${backendUrl}/api/agent-comprehensive/ack`, {
@@ -653,11 +654,12 @@ export async function POST(req: NextRequest) {
                         body: JSON.stringify({
                           correlationId,
                           step: stepName,
-                          artifacts: { synthetic: true }
+                          artifacts: { synthetic: true, immediate: true }
                         })
                       });
+                      console.log(`[${correlationId}] Auto-acked ${stepName} immediately`);
                     } catch {}
-                  }, 1500);
+                  }, 100); // Much shorter delay
                 } catch {}
               }
             }
