@@ -129,12 +129,50 @@ export class SimpleWorkflowGenerator {
         : [{ tool_name: workflow.intent.tool_name, parameters: workflow.intent.parameters }];
 
       let lastExecution: any = null;
+      let lastGeneratedUrl: string | null = null;
+
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
         const params = { ...step.parameters };
+
+        // Resolve tool name to a registered backend tool, or skip if UI-only
+        const availableTools = this.toolRegistry.getToolNames();
+        let toolNameToExecute = step.tool_name;
+        if (!availableTools.includes(toolNameToExecute)) {
+          // Map common synonyms from planner/LLM to actual backend tools
+          if (toolNameToExecute === 'nameImage') {
+            // Prefer server-side rename only if we have an assetId
+            toolNameToExecute = 'renameAsset';
+            if (typeof (params as any).newFilename !== 'string' && typeof (params as any).name === 'string') {
+              (params as any).newFilename = (params as any).name;
+              delete (params as any).name;
+            }
+            const hasAssetId = typeof (params as any).assetId === 'string' && (params as any).assetId.length > 0;
+            if (!hasAssetId) {
+              console.log(`[${workflow.correlationId}] INFO: Skipping nameImage (no assetId) — handled client-side`);
+              continue;
+            }
+          } else if (toolNameToExecute === 'saveImage') {
+            // UI-only step for now; persistence handled client-side
+            console.log(`[${workflow.correlationId}] INFO: Skipping saveImage — handled client-side`);
+            continue;
+          } else {
+            console.warn(`[${workflow.correlationId}] WARN: Tool not registered: ${toolNameToExecute}. Skipping step.`);
+            continue;
+          }
+        }
+
         // Propagate generated IDs where possible
         if (!params.imageId && lastExecution?.result?.generatedId) {
           params.imageId = lastExecution.result.generatedId;
+        }
+
+        // For video generation, pass the previous image URL as refs
+        if (step.tool_name === 'generateContent' && params.type === 'video' && lastGeneratedUrl) {
+          if (!params.settings) params.settings = {};
+          if (!params.settings.refs) params.settings.refs = [];
+          params.settings.refs.push(lastGeneratedUrl);
+          console.log(`[${workflow.correlationId}] INFO: Added image ref for video generation: ${lastGeneratedUrl}`);
         }
 
         // Skip UI-only rename if we don't have an asset identifier to rename server-side
@@ -151,8 +189,8 @@ export class SimpleWorkflowGenerator {
             delete (params as any).name;
           }
         }
-        console.log(`[${workflow.correlationId}] DEBUG: step ${i + 1}/${steps.length} -> ${step.tool_name} params=`, JSON.stringify(params));
-        lastExecution = await this.toolExecutor.executeTool(step.tool_name, params, userContext);
+        console.log(`[${workflow.correlationId}] DEBUG: step ${i + 1}/${steps.length} -> ${toolNameToExecute} params=`, JSON.stringify(params));
+        lastExecution = await this.toolExecutor.executeTool(toolNameToExecute, params, userContext);
         if (lastExecution.status === 'failed') {
           workflow.status = 'failed';
           workflow.error = lastExecution.error;
