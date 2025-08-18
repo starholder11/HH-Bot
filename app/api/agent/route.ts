@@ -551,11 +551,27 @@ export async function POST(req: NextRequest) {
           // Tool-specific payload shaping
           if (tool === 'searchunified') {
             payload.query = params.query || extractQuery(userMessage);
-            // Extract search results from backend execution result to pass to subsequent steps
-            const backendResult = agentResult?.execution?.result;
-            if (backendResult?.results && Array.isArray(backendResult.results)) {
-              searchResults = backendResult.results;
-              console.log(`[${correlationId}] PROXY: Captured ${searchResults.length} search results for subsequent steps`);
+            // The backend doesn't store intermediate results, so we need to extract from the backend execution
+            // For now, we'll get search results from the live search API call
+            console.log(`[${correlationId}] PROXY: Will fetch search results for pin step`);
+            try {
+              const searchUrl = `${process.env.LANCEDB_API_URL}/api/unified-search`;
+              const searchRes = await fetch(searchUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  query: params.query,
+                  limit: 20
+                })
+              });
+              if (searchRes.ok) {
+                const searchData = await searchRes.json();
+                const rawResults = searchData.results;
+                searchResults = Array.isArray(rawResults) ? rawResults : (Array.isArray(rawResults?.all) ? rawResults.all : []);
+                console.log(`[${correlationId}] PROXY: Captured ${searchResults.length} search results for pin step`);
+              }
+            } catch (e) {
+              console.warn(`[${correlationId}] PROXY: Failed to fetch search results:`, e);
             }
           } else if (tool === 'preparegenerate') {
             payload = {
