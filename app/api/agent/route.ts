@@ -583,10 +583,8 @@ export async function POST(req: NextRequest) {
             };
           }
 
-          // Emit this step, then wait briefly for client to ack before proceeding to avoid flooding
+          // Queue the step; ack gating will occur during streaming emission
           events.push({ action: uiAction, payload });
-          // Insert a small pacing gap to let the client start the step
-          await waitForAck(correlationId, tool);
         }
       }
 
