@@ -473,7 +473,7 @@ export async function POST(req: NextRequest) {
 
       // 2) Generalized: emit UI event for each workflow step, gated by client acks in Redis
       const steps = agentResult?.execution?.intent?.workflow_steps || [];
-      console.log(`[${correlationId}] Backend response structure:`, JSON.stringify({
+      console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({
         success: agentResult.success,
         execution: !!agentResult.execution,
         intent: !!agentResult.execution?.intent,
@@ -481,6 +481,7 @@ export async function POST(req: NextRequest) {
         steps: steps.map(s => s?.tool_name),
         raw_steps: agentResult.execution?.intent?.workflow_steps
       }));
+      console.log(`[${correlationId}] PROXY: Processing ${steps.length} workflow steps:`, steps.map(s => `${s?.tool_name}(${JSON.stringify(s?.parameters)})`));
       const waitForAck = async (corr: string, stepName: string, timeoutMs = 60000) => {
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
@@ -512,6 +513,8 @@ export async function POST(req: NextRequest) {
         const tool = (step?.tool_name || '').toLowerCase();
         const params = step?.parameters || {};
 
+        console.log(`[${correlationId}] PROXY: Processing step: ${step?.tool_name} -> ${tool}, params:`, JSON.stringify(params));
+
         // Map backend tool names to UI actions
         const toolToActionMap: Record<string, string> = {
           'searchunified': 'searchUnified',
@@ -528,6 +531,7 @@ export async function POST(req: NextRequest) {
         };
 
         let uiAction = toolToActionMap[tool];
+        console.log(`[${correlationId}] PROXY: Mapped ${tool} -> ${uiAction}`);
         // Insert materialization steps for dependent actions
         if (!uiAction && (tool === 'pin' || tool === 'pintocanvas')) {
           // Ensure we name/save before pin if no contentId
@@ -540,6 +544,8 @@ export async function POST(req: NextRequest) {
         }
         if (uiAction) {
           let payload: any = { ...params, correlationId, originalRequest: userMessage };
+
+          console.log(`[${correlationId}] PROXY: Creating event for ${uiAction} with payload:`, JSON.stringify(payload));
 
           // Tool-specific payload shaping
           if (tool === 'searchunified') {
@@ -597,8 +603,13 @@ export async function POST(req: NextRequest) {
 
           // Queue the step; ack gating will occur during streaming emission
           events.push({ action: uiAction, payload });
+          console.log(`[${correlationId}] PROXY: Queued event ${events.length}: ${uiAction}`);
+        } else {
+          console.warn(`[${correlationId}] PROXY: No UI action mapped for tool: ${tool} (${step?.tool_name})`);
         }
       }
+
+      console.log(`[${correlationId}] PROXY: Total events queued: ${events.length}`, events.map(e => e.action));
 
       // 3) Remove heuristic fallbacks since backend now plans all steps
 
@@ -615,14 +626,18 @@ export async function POST(req: NextRequest) {
               const evt = events[i];
               const stepName = evt.action.toLowerCase();
 
+              console.log(`[${correlationId}] PROXY: About to emit event ${i}/${events.length-1}: ${stepName}`);
+
               // Wait for previous step to be acked before emitting next
               if (i > 1) {
                 const prevStepName = events[i-1].action.toLowerCase();
+                console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevStepName}`);
                 await waitForAck(correlationId, prevStepName);
+                console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
               }
 
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
-              console.log(`[${correlationId}] Emitted step: ${stepName}`);
+              console.log(`[${correlationId}] PROXY: ✅ Emitted step: ${stepName}`);
 
               // If this was prepareGenerate with deferred materialization, wait for its ack then emit deferred steps
               if (stepName === 'preparegenerate' && evt.payload?.__deferredMaterialize) {

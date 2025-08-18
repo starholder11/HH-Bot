@@ -1456,12 +1456,30 @@ export default function VisualSearchPage() {
   useEffect(() => {
     (window as any).__agentApi = {
       // Called by agent for searchUnified actions
-      searchUnified: (payload: { query?: string; correlationId?: string }) => {
+      searchUnified: async (payload: { query?: string; correlationId?: string }) => {
         if (payload.query) {
           debug('vs:agent:search', 'executing search:', payload.query);
+          console.log(`[${payload.correlationId}] UI: searchUnified handler called with query:`, payload.query);
           // Do not overwrite the user's search input; execute in-place
           executeSearch(payload.query, 1, undefined, true);
           setRightTab('results');
+          
+          // Send ack to allow next step to proceed
+          try {
+            console.log(`[${payload.correlationId}] UI: Sending searchUnified ack`);
+            await fetch('/api/agent/ack', { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ 
+                correlationId: payload?.correlationId || 'workshop', 
+                step: 'searchunified', 
+                artifacts: { query: payload.query } 
+              }) 
+            });
+            console.log(`[${payload.correlationId}] UI: ✅ searchUnified ack sent`);
+          } catch (e) {
+            console.error(`[${payload.correlationId}] UI: ❌ Failed to send searchUnified ack:`, e);
+          }
         }
       },
       // Universal UI Action Tools
@@ -2075,21 +2093,43 @@ export default function VisualSearchPage() {
       },
       pinToCanvas: async (payload: any) => {
         try {
+          console.log(`[${payload?.correlationId}] UI: pinToCanvas handler called with payload:`, JSON.stringify(payload));
+          
+          // Pin generated content if available
           if (genUrl) {
+            console.log(`[${payload?.correlationId}] UI: Pinning generated content: ${genUrl}`);
             // Mock pinning - in real implementation, this would update canvas
-            console.log(`Pinning to canvas: ${payload?.canvasId || 'default'}`);
-            await fetch('/api/agent/ack', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                correlationId: payload?.correlationId || 'workshop',
-                step: 'pintocanvas',
-                artifacts: { pinned: true, url: genUrl, canvasId: payload?.canvasId }
-              })
-            });
+            console.log(`Pinning generated content to canvas: ${payload?.canvasId || 'default'}`);
+          } else if (payload?.items && Array.isArray(payload.items)) {
+            // Pin search results
+            console.log(`[${payload?.correlationId}] UI: Pinning ${payload.items.length} search results to canvas`);
+            for (const item of payload.items) {
+              console.log(`[${payload?.correlationId}] UI: Pinning item:`, item.contentId || item.id);
+              // TODO: Actually pin to canvas UI
+            }
+          } else {
+            console.log(`[${payload?.correlationId}] UI: No content to pin - no genUrl and no items array`);
           }
+          
+          // Always send ack
+          console.log(`[${payload?.correlationId}] UI: Sending pinToCanvas ack`);
+          await fetch('/api/agent/ack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              correlationId: payload?.correlationId || 'workshop',
+              step: 'pintocanvas',
+              artifacts: { 
+                pinned: true, 
+                url: genUrl, 
+                canvasId: payload?.canvasId,
+                itemCount: payload?.items?.length || 0
+              }
+            })
+          });
+          console.log(`[${payload?.correlationId}] UI: ✅ pinToCanvas ack sent`);
         } catch (e) {
-          console.error('pinToCanvas failed:', e);
+          console.error(`[${payload?.correlationId}] UI: ❌ pinToCanvas failed:`, e);
         }
       },
     };
