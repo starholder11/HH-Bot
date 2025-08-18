@@ -48,7 +48,7 @@ export class ComprehensiveTools {
           url: r.url || r.media_url,
           content_type: r.content_type || 'image'
         }));
-        
+
         const redisKey = `working_set:${params.userId}`;
         await this.contextService.redis.setex(redisKey, 3600, JSON.stringify(workingSet));
         console.log(`[${correlationId}] Stored ${workingSet.length} results in working set`);
@@ -429,7 +429,7 @@ export class ComprehensiveTools {
 
   async pinToCanvas(params: { canvasId?: string; contentId?: string; items?: any[]; userId: string }) {
     const correlationId = `pin_to_canvas_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-    
+
     // Resolve contentId from working set if not provided or if "first/top" references
     let resolvedContentId = params.contentId;
     if (!resolvedContentId || /\b(first|top|1st)\b/i.test(resolvedContentId)) {
@@ -454,7 +454,7 @@ export class ComprehensiveTools {
       try {
         const activeCanvasKey = `active_canvas:${params.userId}`;
         let activeCanvasId = await this.contextService.redis.get(activeCanvasKey);
-        
+
         if (!activeCanvasId) {
           // Create a new "Active Canvas"
           const canvasResponse = await this.apiClient.post('/api/canvas', {
@@ -466,7 +466,7 @@ export class ComprehensiveTools {
           await this.contextService.redis.setex(activeCanvasKey, 86400, activeCanvasId);
           console.log(`[${correlationId}] Created new Active Canvas: ${activeCanvasId}`);
         }
-        
+
         resolvedCanvasId = activeCanvasId;
       } catch (e) {
         console.warn(`[${correlationId}] Failed to resolve canvas:`, e);

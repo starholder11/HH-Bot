@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
 
     const redis = new RedisContextService(process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL);
     const key = `ack:${correlationId}:${step}`;
-    
+
     // Store ack payload with short TTL; agent proxy will poll for it
     // @ts-ignore accessing internal redis
-    await (redis as any).redis.setex(key, 60, JSON.stringify({ 
-      at: new Date().toISOString(), 
+    await (redis as any).redis.setex(key, 60, JSON.stringify({
+      at: new Date().toISOString(),
       artifacts: artifacts || {},
       correlationId,
       step
@@ -38,18 +38,18 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const correlationId = searchParams.get('correlationId');
     const step = searchParams.get('step');
-    
+
     if (!correlationId || !step) {
       return NextResponse.json({ acked: false, error: 'correlationId and step are required' }, { status: 400 });
     }
 
     const redis = new RedisContextService(process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL);
     const key = `ack:${correlationId}:${step}`;
-    
+
     // Check if ack exists in Redis
     // @ts-ignore accessing internal redis
     const ackData = await (redis as any).redis.get(key);
-    
+
     if (ackData) {
       const parsed = JSON.parse(ackData);
       return NextResponse.json({ acked: true, data: parsed });

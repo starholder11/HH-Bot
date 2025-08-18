@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     const { mode, model, prompt, refs = [], options = {} } = await req.json()
     console.log(`[api/generate] 🔍 Request received:`, JSON.stringify({ mode, model, prompt, refs: refs?.length || 0, options }, null, 2));
-    
+
     const normalizedModel = (() => {
       const m = (model || '').toString().trim().toLowerCase()
       if (!m || m === 'default' || m === 'auto' || m === 'none') return undefined
@@ -64,9 +64,9 @@ export async function POST(req: NextRequest) {
     // Only append trigger words if they're meaningful (not generic CANVAS_STYLE)
     try {
       const lorasIn = Array.isArray((options as any)?.loras) ? (options as any).loras : []
-      const triggers = lorasIn.map((l: any) => l?.triggerWord).filter((t: any) => 
-        typeof t === 'string' && 
-        t.trim().length > 0 && 
+      const triggers = lorasIn.map((l: any) => l?.triggerWord).filter((t: any) =>
+        typeof t === 'string' &&
+        t.trim().length > 0 &&
         t.trim().toLowerCase() !== 'canvas_style'
       )
       if (triggers.length > 0) {

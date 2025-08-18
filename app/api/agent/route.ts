@@ -634,11 +634,11 @@ export async function POST(req: NextRequest) {
                     console.log(`[${correlationId}] Waiting for preparegenerate ack before emitting ${deferred.length} deferred steps`);
                     await waitForAck(correlationId, 'preparegenerate');
                     console.log(`[${correlationId}] preparegenerate acked, now emitting deferred steps`);
-                    
+
                     for (const deferredEvt of deferred) {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify(deferredEvt)}\n\n`));
                       console.log(`[${correlationId}] Emitted deferred step: ${deferredEvt.action.toLowerCase()}`);
-                      
+
                       // Auto-ack the deferred step immediately since it's UI-only
                       const deferredStepName = deferredEvt.action.toLowerCase();
                       try {
