@@ -547,15 +547,24 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
-            // If next step is generateContent (video), insert client-side materialization steps
+            // Defer insertion of name/save until AFTER prepareGenerate is enqueued
+            let deferredMaterialize: any[] = [];
             try {
               const stepIndex = steps.findIndex(s => s === step);
               const next = steps[stepIndex + 1];
               if (next?.tool_name === 'generateContent' && next?.parameters?.type === 'video') {
-                events.push({ action: 'nameImage', payload: { imageId: 'current', name: 'Generated Image', correlationId } });
-                events.push({ action: 'saveImage', payload: { imageId: 'current', collection: 'default', correlationId } });
+                deferredMaterialize = [
+                  { action: 'nameImage', payload: { imageId: 'current', name: 'Generated Image', correlationId } },
+                  { action: 'saveImage', payload: { imageId: 'current', collection: 'default', correlationId } }
+                ];
               }
             } catch {}
+            // Enqueue prepareGenerate first; materialize steps will follow
+            events.push({ action: uiAction, payload });
+            if (deferredMaterialize.length > 0) {
+              deferredMaterialize.forEach(e => events.push(e));
+            }
+            continue; // prevent double-enqueue below
           } else if (tool === 'generatecontent') {
             // For generateContent (e.g., video), request client to gather refs from current output/pins
             payload = {
