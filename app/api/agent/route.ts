@@ -478,7 +478,8 @@ export async function POST(req: NextRequest) {
         execution: !!agentResult.execution,
         intent: !!agentResult.execution?.intent,
         workflow_steps: agentResult.execution?.intent?.workflow_steps?.length || 0,
-        steps: steps.map(s => s?.tool_name)
+        steps: steps.map(s => s?.tool_name),
+        raw_steps: agentResult.execution?.intent?.workflow_steps
       }));
       const waitForAck = async (corr: string, stepName: string, timeoutMs = 60000) => {
         const start = Date.now();
