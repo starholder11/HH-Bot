@@ -483,7 +483,7 @@ export async function POST(req: NextRequest) {
               method: 'GET',
               headers: { 'Content-Type': 'application/json' }
             });
-            
+
             if (response.ok) {
               const data = await response.json();
               if (data.acked) {
@@ -536,8 +536,7 @@ export async function POST(req: NextRequest) {
           if (tool === 'searchunified') {
             payload.query = params.query || extractQuery(userMessage);
           } else if (tool === 'preparegenerate') {
-            // Emit prepareGenerate first to ensure the client starts the image step
-            const pgPayload = {
+            payload = {
               type: params.type || 'image',
               prompt: params.prompt || params.message || userMessage,
               model: params.model || 'default',
@@ -547,20 +546,6 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
-            events.push({ action: 'prepareGenerate', payload: pgPayload });
-            // Then, if the next step depends on a materialized asset, insert name+save after prepareGenerate
-            try {
-              const stepIndex = steps.findIndex(s => s === step);
-              const next = steps[stepIndex + 1];
-              const nextTool = (next?.tool_name || '').toLowerCase();
-              const needsAsset = nextTool === 'pintocanvas' || nextTool === 'pin' || nextTool === 'generatecontent' || nextTool === 'renameasset' || nextTool === 'nameimage';
-              if (needsAsset) {
-                events.push({ action: 'nameImage', payload: { imageId: 'current', name: extractName(userMessage) || 'Untitled', correlationId } });
-                events.push({ action: 'saveImage', payload: { imageId: 'current', collection: 'default', metadata: {}, correlationId } });
-              }
-            } catch {}
-            // Skip the generic push for this branch, we've already emitted
-            continue;
           } else if (tool === 'generatecontent') {
             // For generateContent (e.g., video), request client to gather refs from current output/pins
             payload = {

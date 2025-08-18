@@ -92,15 +92,26 @@ export class SimpleIntentClassifier {
         });
       }
 
-      // 2) generate image → then make a video
+      // 2) generate image → then make a video (insert intermediate steps for asset materialization)
       const wantsVideo = /\b(make|create|generate)\b.*\b(video|animation|movie|clip)\b/i.test(userMessage)
         || /\bthen\b.*\b(video|animation|movie|clip)\b/i.test(userMessage)
         || /\buse that image to (?:then )?make a video\b/i.test(userMessage);
-      if (wantsVideo) {
+      if (wantsVideo && result.object.tool_name === 'prepareGenerate') {
+        // Insert intermediate steps: name → save → then video
+        intent.workflow_steps!.push({
+          tool_name: 'nameImage',
+          parameters: { name: 'Generated Image' },
+          description: 'Name the generated image before video creation'
+        });
+        intent.workflow_steps!.push({
+          tool_name: 'saveImage',
+          parameters: { collection: 'default' },
+          description: 'Save the named image to create a stable reference'
+        });
         intent.workflow_steps!.push({
           tool_name: 'generateContent',
           parameters: { type: 'video', prompt: userMessage },
-          description: 'Generate a video based on the described prompt'
+          description: 'Generate a video using the saved image as reference'
         });
       }
 
