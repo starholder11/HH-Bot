@@ -436,7 +436,8 @@ export async function POST(req: NextRequest) {
     const agentResult = await agentResponse.json();
 
     // Convert the Phase 2 response into a sequence of actionable UI events
-    if (agentResult.success) {
+    // Process steps even if workflow failed, as long as there are executed steps to emit
+    if (agentResult.success || (agentResult.execution?.executedSteps?.length > 0)) {
       const encoder = new TextEncoder();
       const correlationId = agentResult.correlationId || `corr_${Date.now()}`;
 
@@ -465,10 +466,11 @@ export async function POST(req: NextRequest) {
       events.push({
         action: 'chat',
         payload: {
-          text: agentResult.message || 'Working on it…',
+          text: agentResult.message || (agentResult.success ? 'Working on it…' : 'Encountered an issue, but processing what I can…'),
           execution: agentResult.execution,
           cost: agentResult.cost,
-          correlationId
+          correlationId,
+          hasError: !agentResult.success
         }
       });
 
@@ -477,7 +479,7 @@ export async function POST(req: NextRequest) {
       const executedSteps = agentResult?.execution?.executedSteps || [];
       const plannedSteps = agentResult?.execution?.intent?.workflow_steps || [];
       const steps = executedSteps.length > 0 ? executedSteps : plannedSteps;
-      
+
       console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({
         success: agentResult.success,
         execution: !!agentResult.execution,
