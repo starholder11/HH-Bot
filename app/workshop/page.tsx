@@ -1938,10 +1938,11 @@ export default function VisualSearchPage() {
       // Name/save/pin handlers required for gated workflow
       nameImage: async (payload: any) => {
         try {
+          console.log(`🏷️ nameImage called with payload:`, payload, `genUrl:`, genUrl);
           const name = payload?.name || 'Untitled';
           // For now, just rename the current output in memory
           if (genUrl) {
-            console.log(`Naming current image: ${name}`);
+            console.log(`🏷️ Naming current image: ${name}`);
             // In a full implementation, this would update metadata
             await fetch('/api/agent/ack', {
               method: 'POST',
@@ -1971,10 +1972,11 @@ export default function VisualSearchPage() {
       },
       saveImage: async (payload: any) => {
         try {
+          console.log(`💾 saveImage called with payload:`, payload, `genUrl:`, genUrl);
           if (genUrl) {
             // Create a mock asset ID and ADD TO PINNED ITEMS so requestPinnedThenGenerate can find it
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-            console.log(`Saving image as asset: ${assetId}`);
+            console.log(`💾 Saving image as asset: ${assetId}`);
 
                         // Add to pinned items so video generation can use it as ref
             const mockResult = {
@@ -1984,16 +1986,16 @@ export default function VisualSearchPage() {
               type: 'image',
               metadata: { collection: payload?.collection || 'default' }
             };
-            
+
             // Update pinned state SYNCHRONOUSLY
             if (pinnedRef.current) {
               pinnedRef.current.push({ result: mockResult });
             } else {
               pinnedRef.current = [{ result: mockResult }];
             }
-            
+
             console.log(`💾 saveImage: Added to pinned items, total pinned: ${pinnedRef.current.length}`);
-            
+
             await fetch('/api/agent/ack', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
