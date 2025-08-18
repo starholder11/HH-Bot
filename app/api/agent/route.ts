@@ -492,7 +492,17 @@ export async function POST(req: NextRequest) {
           'chat': 'chat'
         };
 
-        const uiAction = toolToActionMap[tool];
+        let uiAction = toolToActionMap[tool];
+        // Insert materialization steps for dependent actions
+        if (!uiAction && (tool === 'pin' || tool === 'pintocanvas')) {
+          // Ensure we name/save before pin if no contentId
+          const needsMaterialize = !params.contentId;
+          if (needsMaterialize) {
+            events.push({ action: 'nameImage', payload: { imageId: 'current', name: params.name || extractName(userMessage) || 'Untitled', correlationId } });
+            events.push({ action: 'saveImage', payload: { imageId: 'current', collection: 'default', metadata: {}, correlationId } });
+          }
+          uiAction = 'pinToCanvas';
+        }
         if (uiAction) {
           let payload: any = { ...params, correlationId, originalRequest: userMessage };
 
