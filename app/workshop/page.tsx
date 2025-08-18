@@ -1854,14 +1854,14 @@ export default function VisualSearchPage() {
                     // If we still don't have refs, wait for image generation to complete
           if (refs.length === 0) {
             console.log(`🎬 No refs available, waiting for image generation...`);
-            
+
             // Poll for genUrl to become available (image generation in progress)
             let retryCount = 0;
             const pollForGenUrl = () => {
               retryCount++;
               const currentUrl = genUrl;
               console.log(`🎬 Retry ${retryCount}: genUrl = ${currentUrl}`);
-              
+
               if (currentUrl) {
                 console.log(`🎬 Found genUrl, retrying video generation with ref: ${currentUrl}`);
                 const retryPayload = { ...payload };
@@ -1872,7 +1872,7 @@ export default function VisualSearchPage() {
                 console.error(`🎬 Gave up waiting for genUrl after ${retryCount} retries`);
               }
             };
-            
+
             setTimeout(pollForGenUrl, 500);
             return;
           }
@@ -1976,7 +1976,7 @@ export default function VisualSearchPage() {
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             console.log(`Saving image as asset: ${assetId}`);
 
-            // Add to pinned items so video generation can use it as ref
+                        // Add to pinned items so video generation can use it as ref
             const mockResult = {
               id: assetId,
               title: payload?.name || 'Generated Image',
@@ -1984,14 +1984,16 @@ export default function VisualSearchPage() {
               type: 'image',
               metadata: { collection: payload?.collection || 'default' }
             };
-
-            // Update pinned state
+            
+            // Update pinned state SYNCHRONOUSLY
             if (pinnedRef.current) {
               pinnedRef.current.push({ result: mockResult });
             } else {
               pinnedRef.current = [{ result: mockResult }];
             }
-
+            
+            console.log(`💾 saveImage: Added to pinned items, total pinned: ${pinnedRef.current.length}`);
+            
             await fetch('/api/agent/ack', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
