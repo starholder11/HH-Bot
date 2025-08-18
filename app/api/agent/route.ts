@@ -520,6 +520,17 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
+            // Lookahead: if the next step depends on a materialized asset (pin, video, rename), insert name+save now
+            try {
+              const stepIndex = steps.findIndex(s => s === step);
+              const next = steps[stepIndex + 1];
+              const nextTool = (next?.tool_name || '').toLowerCase();
+              const needsAsset = nextTool === 'pintocanvas' || nextTool === 'pin' || nextTool === 'generatecontent' || nextTool === 'renameasset' || nextTool === 'nameimage';
+              if (needsAsset) {
+                events.push({ action: 'nameImage', payload: { imageId: 'current', name: extractName(userMessage) || 'Untitled', correlationId } });
+                events.push({ action: 'saveImage', payload: { imageId: 'current', collection: 'default', metadata: {}, correlationId } });
+              }
+            } catch {}
           } else if (tool === 'generatecontent') {
             // For generateContent (e.g., video), request client to gather refs from current output/pins
             payload = {
