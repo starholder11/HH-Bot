@@ -477,18 +477,22 @@ export async function POST(req: NextRequest) {
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
           try {
-            // Check Redis for ack key
-            const RedisContextService = (await import('@/services/context/RedisContextService')).RedisContextService;
-            const redis = new RedisContextService(process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL);
-            const key = `ack:${corr}:${stepName}`;
-            // @ts-ignore accessing internal redis
-            const ackData = await (redis as any).redis.get(key);
-            if (ackData) {
-              console.log(`[${corr}] Step ${stepName} acked, proceeding`);
-              return; // Ack received, proceed to next step
+            // Check backend for ack status (backend has VPC Redis access)
+            const backendUrl = process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
+            const response = await fetch(`${backendUrl}/api/agent/ack?correlationId=${encodeURIComponent(corr)}&step=${encodeURIComponent(stepName)}`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.acked) {
+                console.log(`[${corr}] Step ${stepName} acked, proceeding`);
+                return; // Ack received, proceed to next step
+              }
             }
           } catch (e) {
-            console.warn(`[${corr}] Redis ack check failed:`, e);
+            console.warn(`[${corr}] Backend ack check failed:`, e);
           }
           await new Promise(r => setTimeout(r, 500));
         }

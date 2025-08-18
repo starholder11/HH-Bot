@@ -32,3 +32,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: e?.message || 'Redis error' }, { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const correlationId = searchParams.get('correlationId');
+    const step = searchParams.get('step');
+    
+    if (!correlationId || !step) {
+      return NextResponse.json({ acked: false, error: 'correlationId and step are required' }, { status: 400 });
+    }
+
+    const redis = new RedisContextService(process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL);
+    const key = `ack:${correlationId}:${step}`;
+    
+    // Check if ack exists in Redis
+    // @ts-ignore accessing internal redis
+    const ackData = await (redis as any).redis.get(key);
+    
+    if (ackData) {
+      const parsed = JSON.parse(ackData);
+      return NextResponse.json({ acked: true, data: parsed });
+    } else {
+      return NextResponse.json({ acked: false });
+    }
+  } catch (e: any) {
+    console.error('Backend ack check failed:', e);
+    return NextResponse.json({ acked: false, error: e?.message || 'Redis error' }, { status: 500 });
+  }
+}
