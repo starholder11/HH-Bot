@@ -560,7 +560,7 @@ export async function POST(req: NextRequest) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  query: params.query,
+                  query: payload.query,
                   limit: 20
                 })
               });
@@ -646,6 +646,28 @@ export async function POST(req: NextRequest) {
       }
 
       console.log(`[${correlationId}] PROXY: Total events queued: ${events.length}`, events.map(e => e.action));
+
+      // Fallback injection: if user asked to pin and planner omitted a pin step,
+      // but we captured search results, inject a pinToCanvas step.
+      try {
+        const hasSearch = events.some(e => (e.action || '').toLowerCase() === 'searchunified');
+        const hasPin = events.some(e => (e.action || '').toLowerCase() === 'pintocanvas');
+        const userAskedToPin = /\b(pin|canvas)\b/i.test(userMessage);
+        if (hasSearch && !hasPin && userAskedToPin && Array.isArray(searchResults) && searchResults.length > 0) {
+          let requestedCount = searchResults.length;
+          if (/\bfour\b/i.test(userMessage) || /\b4\b/.test(userMessage)) {
+            requestedCount = Math.min(4, searchResults.length);
+          }
+          const itemsToPin = searchResults.slice(0, requestedCount);
+          events.push({
+            action: 'pinToCanvas',
+            payload: { items: itemsToPin, count: itemsToPin.length, originalRequest: userMessage, correlationId }
+          });
+          console.log(`[${correlationId}] PROXY: Injected fallback pinToCanvas with ${itemsToPin.length} items`);
+        }
+      } catch (e) {
+        console.warn(`[${correlationId}] PROXY: Failed to inject fallback pinToCanvas:`, e);
+      }
 
       // 3) Remove heuristic fallbacks since backend now plans all steps
 
