@@ -50,9 +50,10 @@ export class SimpleWorkflowGenerator {
   async processNaturalLanguageRequest(
     userMessage: string,
     userId: string,
-    tenantId: string = 'default'
+    tenantId: string = 'default',
+    providedCorrelationId?: string
   ): Promise<WorkflowResult> {
-    const correlationId = `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    const correlationId = providedCorrelationId || `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     const startTime = Date.now();
 
     console.log(`[${correlationId}] Processing: "${userMessage}"`);
@@ -264,7 +265,7 @@ export class SimpleWorkflowGenerator {
       workflow.totalCost = workflow.llmCost + workflow.toolCost;
 
       console.log(`[${workflow.correlationId}] Final lastExecution status: ${lastExecution?.status}, type: ${typeof lastExecution?.status}`);
-      
+
       if (lastExecution?.status === 'completed') {
         workflow.status = 'completed';
         workflow.result = lastExecution.result;

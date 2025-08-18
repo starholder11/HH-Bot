@@ -53,10 +53,11 @@ export async function POST(request: NextRequest) {
     const result = await workflowGenerator!.processNaturalLanguageRequest(
       message,
       userId,
-      tenantId
+      tenantId,
+      correlationId
     );
 
-    console.log(`[${correlationId}] Workflow execution: ${result.status}`);
+    console.log(`[${correlationId}] Workflow execution: ${result.execution.status}`);
     console.log(`[${correlationId}] Backend response structure:`, JSON.stringify({
       success: result.success,
       execution: !!result.execution,
