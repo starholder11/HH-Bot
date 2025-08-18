@@ -32,6 +32,10 @@
         {
           "name": "REDIS_URL",
           "value": "redis://hh-bot-phase2-redis.5eblzz.ng.0001.use1.cache.amazonaws.com:6379"
+        },
+        {
+          "name": "REDIS_AGENTIC_URL",
+          "value": "redis://hh-bot-phase2-redis.5eblzz.ng.0001.use1.cache.amazonaws.com:6379"
         }
       ],
       "secrets": [
