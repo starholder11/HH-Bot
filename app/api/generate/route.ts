@@ -12,6 +12,8 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   try {
     const { mode, model, prompt, refs = [], options = {} } = await req.json()
+    console.log(`[api/generate] 🔍 Request received:`, JSON.stringify({ mode, model, prompt, refs: refs?.length || 0, options }, null, 2));
+    
     const normalizedModel = (() => {
       const m = (model || '').toString().trim().toLowerCase()
       if (!m || m === 'default' || m === 'auto' || m === 'none') return undefined

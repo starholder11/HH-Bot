@@ -1843,7 +1843,7 @@ export default function VisualSearchPage() {
           const pinnedUrls: string[] = (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
-          
+
           // Always prefer current genUrl for video follow-up (most recent generation)
           const fallbackFromCurrent = genUrl ? [genUrl] : [];
           const refs: string[] = fallbackFromCurrent.length > 0 ? fallbackFromCurrent : pinnedUrls;
@@ -1852,7 +1852,7 @@ export default function VisualSearchPage() {
           if (refs.length === 0) {
             debug('vs:agent:gen', 'no refs yet; retrying follow-up after delay');
             setTimeout(() => {
-              try { 
+              try {
                 // Try to get URL from current generation state
                 const currentUrl = genUrl;
                 if (currentUrl) {
@@ -1959,16 +1959,33 @@ export default function VisualSearchPage() {
       saveImage: async (payload: any) => {
         try {
           if (genUrl) {
-            // Create a mock asset ID - in real implementation, this would save to backend
+            // Create a mock asset ID and ADD TO PINNED ITEMS so requestPinnedThenGenerate can find it
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             console.log(`Saving image as asset: ${assetId}`);
+
+            // Add to pinned items so video generation can use it as ref
+            const mockResult = {
+              id: assetId,
+              title: payload?.name || 'Generated Image',
+              url: genUrl,
+              type: 'image',
+              metadata: { collection: payload?.collection || 'default' }
+            };
+
+            // Update pinned state
+            if (pinnedRef.current) {
+              pinnedRef.current.push({ result: mockResult });
+            } else {
+              pinnedRef.current = [{ result: mockResult }];
+            }
+
             await fetch('/api/agent/ack', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 correlationId: payload?.correlationId || 'workshop',
                 step: 'saveimage',
-                artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default' }
+                artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default', pinned: true }
               })
             });
           } else {
@@ -1977,10 +1994,24 @@ export default function VisualSearchPage() {
               if (!genUrl) return;
               try {
                 const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const mockResult = {
+                  id: assetId,
+                  title: payload?.name || 'Generated Image',
+                  url: genUrl,
+                  type: 'image',
+                  metadata: { collection: payload?.collection || 'default' }
+                };
+
+                if (pinnedRef.current) {
+                  pinnedRef.current.push({ result: mockResult });
+                } else {
+                  pinnedRef.current = [{ result: mockResult }];
+                }
+
                 await fetch('/api/agent/ack', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'saveimage', artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default' } })
+                  body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'saveimage', artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default', pinned: true } })
                 });
               } catch {}
             }, 900);
