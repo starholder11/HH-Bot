@@ -477,14 +477,22 @@ export async function POST(req: NextRequest) {
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
           try {
-            const res = await fetch(`${process.env.PUBLIC_API_BASE_URL || ''}/api/agent/ack?c=${encodeURIComponent(corr)}&s=${encodeURIComponent(stepName)}` || `/api/agent/ack?c=${encodeURIComponent(corr)}&s=${encodeURIComponent(stepName)}`, { cache: 'no-store' } as any);
-            // We don't implement GET; just sleep/poll via POST presence; use a lightweight backoff
-          } catch {}
-          // Poll Redis directly via a minimal ack-check helper endpoint would be ideal; for now, sleep
-          await new Promise(r => setTimeout(r, 300));
-          // Exit loop once next step is about to enqueue; in this simplified slice, we just delay to avoid flooding
-          break;
+            // Check Redis for ack key
+            const RedisContextService = (await import('@/services/context/RedisContextService')).RedisContextService;
+            const redis = new RedisContextService(process.env.REDIS_URL);
+            const key = `ack:${corr}:${stepName}`;
+            // @ts-ignore accessing internal redis
+            const ackData = await (redis as any).redis.get(key);
+            if (ackData) {
+              console.log(`[${corr}] Step ${stepName} acked, proceeding`);
+              return; // Ack received, proceed to next step
+            }
+          } catch (e) {
+            console.warn(`[${corr}] Redis ack check failed:`, e);
+          }
+          await new Promise(r => setTimeout(r, 500));
         }
+        console.warn(`[${corr}] Timeout waiting for ack on step ${stepName}`);
       };
 
       for (const step of steps) {
@@ -588,11 +596,31 @@ export async function POST(req: NextRequest) {
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            for (const evt of events) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
-              // Space out events slightly; full gating uses ack endpoint
-              await new Promise(r => setTimeout(r, 150));
+            // Emit first event (chat acknowledgment)
+            if (events.length > 0) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(events[0])}\n\n`));
             }
+            
+            // For remaining events, emit one at a time with Redis gating
+            for (let i = 1; i < events.length; i++) {
+              const evt = events[i];
+              const stepName = evt.action.toLowerCase();
+              
+              // Wait for previous step to be acked before emitting next
+              if (i > 1) {
+                const prevStepName = events[i-1].action.toLowerCase();
+                await waitForAck(correlationId, prevStepName);
+              }
+              
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
+              console.log(`[${correlationId}] Emitted step: ${stepName}`);
+            }
+          } catch (error) {
+            console.error(`[${correlationId}] Stream error:`, error);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              action: 'error',
+              payload: { message: 'Workflow failed', error: error.message, correlationId }
+            })}\n\n`));
           } finally {
             controller.close();
           }

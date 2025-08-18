@@ -1914,6 +1914,67 @@ export default function VisualSearchPage() {
           }
         }
       },
+      // Name/save/pin handlers required for gated workflow
+      nameImage: async (payload: any) => {
+        try {
+          const name = payload?.name || 'Untitled';
+          // For now, just rename the current output in memory
+          if (genUrl) {
+            console.log(`Naming current image: ${name}`);
+            // In a full implementation, this would update metadata
+            await fetch('/api/agent/ack', { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ 
+                correlationId: payload?.correlationId || 'workshop', 
+                step: 'nameimage', 
+                artifacts: { name, url: genUrl } 
+              }) 
+            });
+          }
+        } catch (e) {
+          console.error('nameImage failed:', e);
+        }
+      },
+      saveImage: async (payload: any) => {
+        try {
+          if (genUrl) {
+            // Create a mock asset ID - in real implementation, this would save to backend
+            const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            console.log(`Saving image as asset: ${assetId}`);
+            await fetch('/api/agent/ack', { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ 
+                correlationId: payload?.correlationId || 'workshop', 
+                step: 'saveimage', 
+                artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default' } 
+              }) 
+            });
+          }
+        } catch (e) {
+          console.error('saveImage failed:', e);
+        }
+      },
+      pinToCanvas: async (payload: any) => {
+        try {
+          if (genUrl) {
+            // Mock pinning - in real implementation, this would update canvas
+            console.log(`Pinning to canvas: ${payload?.canvasId || 'default'}`);
+            await fetch('/api/agent/ack', { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ 
+                correlationId: payload?.correlationId || 'workshop', 
+                step: 'pintocanvas', 
+                artifacts: { pinned: true, url: genUrl, canvasId: payload?.canvasId } 
+              }) 
+            });
+          }
+        } catch (e) {
+          console.error('pinToCanvas failed:', e);
+        }
+      },
     };
   }, []);
 
