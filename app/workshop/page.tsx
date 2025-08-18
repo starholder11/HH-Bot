@@ -1843,15 +1843,24 @@ export default function VisualSearchPage() {
           const pinnedUrls: string[] = (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
+          
+          // Always prefer current genUrl for video follow-up (most recent generation)
           const fallbackFromCurrent = genUrl ? [genUrl] : [];
-          const refs: string[] = (pinnedUrls.length > 0 ? pinnedUrls : fallbackFromCurrent) as string[];
+          const refs: string[] = fallbackFromCurrent.length > 0 ? fallbackFromCurrent : pinnedUrls;
 
-          // If we still don't have refs, delay this follow-up briefly and retry to allow name/save to complete
+          // If we still don't have refs, wait longer and retry with more aggressive fallback
           if (refs.length === 0) {
             debug('vs:agent:gen', 'no refs yet; retrying follow-up after delay');
             setTimeout(() => {
-              try { (window as any).__agentApi?.requestPinnedThenGenerate?.(payload); } catch {}
-            }, 500);
+              try { 
+                // Try to get URL from current generation state
+                const currentUrl = genUrl;
+                if (currentUrl) {
+                  const retryPayload = { ...payload };
+                  (window as any).__agentApi?.requestPinnedThenGenerate?.(retryPayload);
+                }
+              } catch {}
+            }, 1000);
             return;
           }
 
