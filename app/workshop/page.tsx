@@ -1930,6 +1930,18 @@ export default function VisualSearchPage() {
                 artifacts: { name, url: genUrl }
               })
             });
+          } else {
+            // If URL not yet set, wait briefly and retry once
+            setTimeout(async () => {
+              if (!genUrl) return;
+              try {
+                await fetch('/api/agent/ack', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'nameimage', artifacts: { name, url: genUrl } })
+                });
+              } catch {}
+            }, 700);
           }
         } catch (e) {
           console.error('nameImage failed:', e);
@@ -1950,6 +1962,19 @@ export default function VisualSearchPage() {
                 artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default' }
               })
             });
+          } else {
+            // Retry after a short delay if URL has not populated yet
+            setTimeout(async () => {
+              if (!genUrl) return;
+              try {
+                const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                await fetch('/api/agent/ack', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'saveimage', artifacts: { assetId, url: genUrl, collection: payload?.collection || 'default' } })
+                });
+              } catch {}
+            }, 900);
           }
         } catch (e) {
           console.error('saveImage failed:', e);
