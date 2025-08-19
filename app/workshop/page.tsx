@@ -1484,6 +1484,45 @@ export default function VisualSearchPage() {
               })
             });
             console.log(`[${payload.correlationId}] UI: ✅ searchUnified ack sent after search completion`);
+
+            // Heuristic: if the original request asks to "pin", proactively trigger pinToCanvas
+            try {
+              const original = (payload as any)?.originalRequest || '';
+              if (/\bpin\b/i.test(original)) {
+                const lower = original.toLowerCase();
+                const wordToNum: Record<string, number> = {
+                  'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+                  'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+                  'couple': 2, 'a couple': 2, 'few': 3, 'a few': 3
+                };
+                let requested = 2;
+                for (const [w, n] of Object.entries(wordToNum)) {
+                  if (lower.includes(w)) { requested = n; break; }
+                }
+                const digit = lower.match(/\b(\d{1,2})\b/);
+                if (digit) {
+                  const n = parseInt(digit[1], 10);
+                  if (!Number.isNaN(n) && n > 0) requested = n;
+                }
+
+                // Pull latest results directly from the store
+                const all = useResultsStore.getState().allResults || [];
+                const items = all.slice(0, Math.min(requested, all.length));
+                if (items.length > 0) {
+                  console.log(`[${payload.correlationId}] UI: Auto-triggering pinToCanvas with ${items.length} items (from store)`);
+                  try {
+                    await (window as any).__agentApi?.pinToCanvas?.({
+                      items,
+                      count: items.length,
+                      originalRequest: original,
+                      correlationId: payload.correlationId
+                    });
+                  } catch {}
+                } else {
+                  console.log(`[${payload.correlationId}] UI: No results available to auto-pin after search`);
+                }
+              }
+            } catch {}
           } catch (e) {
             console.error(`[${payload.correlationId}] UI: ❌ Failed to execute search or send ack:`, e);
           }
