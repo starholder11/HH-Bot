@@ -603,8 +603,8 @@ export async function POST(req: NextRequest) {
           
           if (tool === 'resolveassetrefs') {
             try {
-              // Execute resolveAssetRefs on backend
-              const backendResponse = await fetch(`${process.env.LANCEDB_API_URL}/api/tools/resolveAssetRefs`, {
+              // Execute resolveAssetRefs on local backend
+              const backendResponse = await fetch(`${process.env.PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/tools/resolveAssetRefs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
