@@ -2009,9 +2009,9 @@ export default function VisualSearchPage() {
         }
       },
       // Name/save/pin handlers required for gated workflow
-      nameImage: async (payload: any) => {
+            nameImage: async (payload: any) => {
         try {
-                    console.log(`🏷️ nameImage called with payload:`, payload, `genUrl:`, genUrl, `genUrlRef:`, genUrlRef.current);
+          console.log(`🏷️ nameImage called with payload:`, payload, `genUrl:`, genUrl, `genUrlRef:`, genUrlRef.current);
 
           // Wait for image generation to complete if it hasn't yet
           const currentUrl = genUrlRef.current || genUrl;
@@ -2028,7 +2028,7 @@ export default function VisualSearchPage() {
           const name = payload?.name || 'Untitled';
           lastNameRef.current = name;
           
-          // Update the UI title input field
+          // Update the UI title input field immediately
           const titleInput = document.getElementById('gen-title-input') as HTMLInputElement;
           if (titleInput) {
             titleInput.value = name;
@@ -2036,10 +2036,14 @@ export default function VisualSearchPage() {
           }
           
           const finalUrl = genUrlRef.current || genUrl;
-          // For now, just rename the current output in memory
           if (finalUrl) {
             console.log(`🏷️ Naming current image: ${name}`);
-            // In a full implementation, this would update metadata
+            
+            // EXECUTE: Store the name for the subsequent saveImage step
+            // (nameImage doesn't persist by itself - it prepares for saveImage)
+            console.log(`🏷️ Name stored for saveImage step: ${name}`);
+            
+            // ACK: Notify backend that naming is complete
             await fetch('/api/agent/ack', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -2050,7 +2054,7 @@ export default function VisualSearchPage() {
               })
             });
           } else {
-            // If URL not yet set, wait briefly and retry once
+            // Retry if URL not ready
             setTimeout(async () => {
               if (!genUrl) return;
               try {
@@ -2086,12 +2090,46 @@ export default function VisualSearchPage() {
           if (finalUrl) {
             // Create a mock asset ID and ADD TO PINNED ITEMS so requestPinnedThenGenerate can find it
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-            console.log(`💾 Saving image as asset: ${assetId}`);
+            const title = payload?.name || lastNameRef.current || 'Generated Image';
+            console.log(`💾 EXECUTE: Saving image to database as: ${title}`);
 
-                        // Add to pinned items so video generation can use it as ref
+            // EXECUTE: Actually save to database via backend API
+            const asset = {
+              id: assetId,
+              title: title,
+              filename: `${title.replace(/[^a-zA-Z0-9]/g, '_')}.png`,
+              media_type: 'image',
+              content_type: 'image',
+              s3_url: finalUrl,
+              cloudflare_url: finalUrl, // Assuming same URL for now
+              collection: payload?.collection || 'default',
+              description: `Generated image: ${title}`,
+              ai_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+              manual_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] }
+            };
+
+            try {
+              const saveResponse = await fetch('/api/media-assets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(asset)
+              });
+
+              if (!saveResponse.ok) {
+                throw new Error(`Failed to save asset: ${saveResponse.status}`);
+              }
+
+              const savedAsset = await saveResponse.json();
+              console.log(`💾 EXECUTE: Asset saved to database:`, savedAsset.asset?.id);
+            } catch (saveError) {
+              console.error('💾 EXECUTE: Failed to save to database:', saveError);
+              // Continue with UI update even if DB save fails
+            }
+
+            // Add to pinned items so video generation can use it as ref
             const mockResult = {
               id: assetId,
-              title: payload?.name || lastNameRef.current || 'Generated Image',
+              title: title,
               url: finalUrl,
               type: 'image',
               metadata: { collection: payload?.collection || 'default' }
