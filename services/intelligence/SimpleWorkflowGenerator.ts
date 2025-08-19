@@ -200,33 +200,30 @@ export class SimpleWorkflowGenerator {
         const availableTools = this.toolRegistry.getToolNames();
         let toolNameToExecute = step.tool_name;
         if (!availableTools.includes(toolNameToExecute)) {
-          // Map common synonyms from planner/LLM to actual backend tools
-          if (toolNameToExecute === 'nameImage') {
-            // Prefer server-side rename only if we have an assetId
-            toolNameToExecute = 'renameAsset';
-            if (typeof (params as any).newFilename !== 'string' && typeof (params as any).name === 'string') {
-              (params as any).newFilename = (params as any).name;
-              delete (params as any).name;
-            }
-            const hasAssetId = typeof (params as any).assetId === 'string' && (params as any).assetId.length > 0;
-            if (!hasAssetId) {
-              // Check config for deferral rules
-              const deferralResult = await this.checkDeferToFrontend('nameImage', params, workflow.correlationId);
+          // Check config for tool synonyms and transformations
+          const synonymResult = await this.checkBackendToolSynonym(toolNameToExecute, params, workflow.correlationId);
+          if (synonymResult) {
+            toolNameToExecute = synonymResult.backendTool;
+            Object.assign(params, synonymResult.transformedParams);
+            
+            // Check if we should defer to frontend instead
+            if (synonymResult.shouldDefer) {
+              const deferralResult = await this.checkDeferToFrontend(step.tool_name, params, workflow.correlationId);
               if (deferralResult) {
                 workflow.executedSteps!.push(deferralResult);
                 continue;
               }
             }
-          } else if (toolNameToExecute === 'saveImage') {
-            // Check config for deferral rules
-            const deferralResult = await this.checkDeferToFrontend('saveImage', params, workflow.correlationId);
+          } else {
+            // Check if this should be deferred to frontend
+            const deferralResult = await this.checkDeferToFrontend(toolNameToExecute, params, workflow.correlationId);
             if (deferralResult) {
               workflow.executedSteps!.push(deferralResult);
               continue;
+            } else {
+              console.warn(`[${workflow.correlationId}] WARN: Tool not registered: ${toolNameToExecute}. Skipping step.`);
+              continue;
             }
-          } else {
-            console.warn(`[${workflow.correlationId}] WARN: Tool not registered: ${toolNameToExecute}. Skipping step.`);
-            continue;
           }
         }
 
@@ -464,6 +461,43 @@ export class SimpleWorkflowGenerator {
     this.intentClassifier.resetCostTracking();
     this.llmRouter.resetCostTracking();
     this.activeWorkflows.clear();
+  }
+
+  private async checkBackendToolSynonym(toolName: string, params: any, correlationId: string): Promise<{ backendTool: string; transformedParams: any; shouldDefer: boolean } | null> {
+    try {
+      const { config } = await loadUiMapConfig();
+      const synonymRule = config.backendToolSynonyms?.[toolName];
+      
+      if (!synonymRule) return null;
+
+      console.log(`[${correlationId}] INFO: Mapping ${toolName} -> ${synonymRule.backendTool}`);
+
+      // Transform parameters according to config
+      const transformedParams = { ...params };
+      if (synonymRule.parameterTransforms) {
+        for (const [fromParam, toParam] of Object.entries(synonymRule.parameterTransforms)) {
+          if (typeof transformedParams[fromParam] === 'string' && !transformedParams[toParam]) {
+            transformedParams[toParam] = transformedParams[fromParam];
+            delete transformedParams[fromParam];
+          }
+        }
+      }
+
+      // Check if we should defer based on conditions (e.g., no assetId for nameImage)
+      let shouldDefer = false;
+      if (toolName === 'nameImage') {
+        shouldDefer = !params.assetId || typeof params.assetId !== 'string' || params.assetId.length === 0;
+      }
+
+      return {
+        backendTool: synonymRule.backendTool,
+        transformedParams,
+        shouldDefer
+      };
+    } catch (error) {
+      console.warn(`[${correlationId}] Failed to load UI map config for synonym ${toolName}:`, error);
+      return null;
+    }
   }
 
   private async checkDeferToFrontend(toolName: string, params: any, correlationId: string): Promise<any | null> {

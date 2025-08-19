@@ -1,17 +1,26 @@
 {
-  "version": "v1.1",
+  "version": "v1.2",
   "toolsToActions": {
-    "searchUnified": "searchUnified",
-    "prepareGenerate": "prepareGenerate",
-    "generateContent": "requestPinnedThenGenerate",
-    "pinToCanvas": "pinToCanvas",
+    "searchunified": "searchUnified",
+    "preparegenerate": "prepareGenerate", 
+    "generatecontent": "requestPinnedThenGenerate",
+    "pintocanvas": "pinToCanvas",
     "pin": "pinToCanvas",
-    "renameAsset": "nameImage",
-    "nameImage": "nameImage",
-    "saveImage": "saveImage",
-    "createCanvas": "canvasCreated",
-    "createProject": "projectCreated",
+    "renameasset": "nameImage",
+    "nameimage": "nameImage",
+    "saveimage": "saveImage",
+    "createcanvas": "canvasCreated",
+    "createproject": "projectCreated",
     "chat": "chat"
+  },
+  "backendToolSynonyms": {
+    "nameImage": {
+      "backendTool": "renameAsset",
+      "parameterTransforms": {
+        "name": "newFilename"
+      },
+      "description": "Map nameImage to renameAsset with parameter transformation"
+    }
   },
   "deferToFrontend": {
     "nameImage": {
@@ -31,6 +40,31 @@
         "imageId": "current",
         "collection": "default"
       }
+    }
+  },
+  "materializationRules": {
+    "pinToCanvas": {
+      "condition": "no_content_id",
+      "description": "Auto-materialize content before pinning if no contentId",
+      "prependSteps": [
+        {
+          "action": "nameImage",
+          "payload": {
+            "imageId": "current",
+            "name": "{{params.name || extractName(userMessage) || 'Untitled'}}",
+            "correlationId": "{{correlationId}}"
+          }
+        },
+        {
+          "action": "saveImage", 
+          "payload": {
+            "imageId": "current",
+            "collection": "default",
+            "metadata": {},
+            "correlationId": "{{correlationId}}"
+          }
+        }
+      ]
     }
   }
 }

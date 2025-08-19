@@ -543,32 +543,57 @@ export async function POST(req: NextRequest) {
 
         console.log(`[${correlationId}] PROXY: Processing step: ${step?.tool_name} -> ${tool}, params:`, JSON.stringify(params));
 
-        // Static tool → UI action mapping (frontend stays a pure proxy)
-        const toolToActionMap: Record<string, string> = {
-          'searchunified': 'searchUnified',
-          'preparegenerate': 'prepareGenerate',
-          'generatecontent': 'requestPinnedThenGenerate',
-          'pintocanvas': 'pinToCanvas',
-          'pin': 'pinToCanvas',
-          'renameasset': 'nameImage',
-          'nameimage': 'nameImage',
-          'createcanvas': 'canvasCreated',
-          'createproject': 'projectCreated',
-          'chat': 'chat'
-        };
-
-        let uiAction = toolToActionMap[tool];
-        console.log(`[${correlationId}] PROXY: Mapped ${tool} -> ${uiAction}`);
-        // Insert materialization steps for dependent actions
-        if (!uiAction && (tool === 'pin' || tool === 'pintocanvas')) {
-          // Ensure we name/save before pin if no contentId
-          const needsMaterialize = !params.contentId;
-          if (needsMaterialize) {
-            events.push({ action: 'nameImage', payload: { imageId: 'current', name: params.name || extractName(userMessage) || 'Untitled', correlationId } });
-            events.push({ action: 'saveImage', payload: { imageId: 'current', collection: 'default', metadata: {}, correlationId } });
+        // Load UI action mapping from config (with fallback to static map)
+        let uiAction: string | undefined;
+        try {
+          // Try to load from S3 config
+          const configResponse = await fetch('https://hh-bot-images-2025-prod.s3.amazonaws.com/config/ui-map.json');
+          if (configResponse.ok) {
+            const config = await configResponse.json();
+            uiAction = config.toolsToActions?.[tool];
+            
+            // Check materialization rules
+            if (uiAction && config.materializationRules?.[uiAction]) {
+              const rule = config.materializationRules[uiAction];
+              const needsMaterialize = rule.condition === 'no_content_id' && !params.contentId;
+              if (needsMaterialize && rule.prependSteps) {
+                for (const prependStep of rule.prependSteps) {
+                  const payload = { ...prependStep.payload };
+                  // Simple template substitution
+                  if (payload.name?.includes('{{')) {
+                    payload.name = params.name || extractName(userMessage) || 'Untitled';
+                  }
+                  if (payload.correlationId === '{{correlationId}}') {
+                    payload.correlationId = correlationId;
+                  }
+                  events.push({ action: prependStep.action, payload });
+                }
+              }
+            }
           }
-          uiAction = 'pinToCanvas';
+        } catch (error) {
+          console.warn(`[${correlationId}] Failed to load UI map config, using fallback`);
         }
+
+        // Fallback to static mapping if config failed
+        if (!uiAction) {
+          const toolToActionMap: Record<string, string> = {
+            'searchunified': 'searchUnified',
+            'preparegenerate': 'prepareGenerate',
+            'generatecontent': 'requestPinnedThenGenerate',
+            'pintocanvas': 'pinToCanvas',
+            'pin': 'pinToCanvas',
+            'renameasset': 'nameImage',
+            'nameimage': 'nameImage',
+            'saveimage': 'saveImage',
+            'createcanvas': 'canvasCreated',
+            'createproject': 'projectCreated',
+            'chat': 'chat'
+          };
+          uiAction = toolToActionMap[tool];
+        }
+
+        console.log(`[${correlationId}] PROXY: Mapped ${tool} -> ${uiAction}`);
         if (uiAction) {
           let payload: any = { ...params, correlationId, originalRequest: userMessage };
 

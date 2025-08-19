@@ -15,6 +15,24 @@ export type PlannerConfig = z.infer<typeof PlannerConfigSchema>;
 export const UiMapConfigSchema = z.object({
   version: z.string().optional().default('local'),
   toolsToActions: z.record(z.string()).default({}),
+  backendToolSynonyms: z.record(z.object({
+    backendTool: z.string(),
+    parameterTransforms: z.record(z.string()).optional(),
+    description: z.string().optional()
+  })).optional(),
+  deferToFrontend: z.record(z.object({
+    condition: z.string(),
+    description: z.string().optional(),
+    payload: z.record(z.any())
+  })).optional(),
+  materializationRules: z.record(z.object({
+    condition: z.string(),
+    description: z.string().optional(),
+    prependSteps: z.array(z.object({
+      action: z.string(),
+      payload: z.record(z.any())
+    })).optional()
+  })).optional()
 });
 export type UiMapConfig = z.infer<typeof UiMapConfigSchema>;
 
