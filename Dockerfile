@@ -2,21 +2,20 @@ FROM node:20-alpine AS builder
 
 ARG REDIS_URL
 ARG GIT_SHA
-ENV NODE_ENV=development \
+ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     APP_BUILD_SHA=$GIT_SHA
 
 WORKDIR /app
 
-# Install only essential build dependencies
-RUN apk add --no-cache python3 make g++
+# Install build dependencies (for native modules like sharp)
+RUN apk add --no-cache python3 make g++ libc6-compat
 
 # Copy package files first for better caching
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps --only=production && \
-    npm ci --legacy-peer-deps && \
-    npm cache clean --force
+# Single install (includes dev deps needed for next build)
+RUN npm ci --legacy-peer-deps
 
 # Copy source and build
 COPY . .
@@ -39,21 +38,15 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy built app and source files
-COPY --from=builder /app/.next ./.next
+# Use Next.js standalone output for a smaller runtime image
+# Public assets and static files
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.js ./next.config.js
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-
-# Copy source files needed at runtime
-COPY --from=builder /app/services ./services
-COPY --from=builder /app/lib ./lib
-COPY --from=builder /app/app ./app
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "fetch('http://localhost:3000/api/debug-production').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
-CMD ["npm", "run", "start:web"]
+CMD ["node", "server.js"]
