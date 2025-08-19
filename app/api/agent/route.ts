@@ -551,7 +551,7 @@ export async function POST(req: NextRequest) {
           if (configResponse.ok) {
             const config = await configResponse.json();
             uiAction = config.toolsToActions?.[tool];
-            
+
             // Check materialization rules
             if (uiAction && config.materializationRules?.[uiAction]) {
               const rule = config.materializationRules[uiAction];

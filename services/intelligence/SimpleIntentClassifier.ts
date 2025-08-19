@@ -36,7 +36,9 @@ export class SimpleIntentClassifier {
 
     try {
       // Backend-only: load planner prompt from remote config (cached)
-      const { config: plannerCfg } = await loadPlannerConfig();
+      const { config: plannerCfg, version } = await loadPlannerConfig();
+      console.log(`[${correlationId}] DEBUG: Using planner config version: ${version}`);
+      console.log(`[${correlationId}] DEBUG: Planner prompt includes 'name it toby': ${plannerCfg.systemPrompt.includes('name it toby')}`);
       const result = await generateObject({
         model: this.model as any,
         schema: SimpleIntentSchema,

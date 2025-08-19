@@ -2,7 +2,7 @@
   "version": "v1.2",
   "toolsToActions": {
     "searchunified": "searchUnified",
-    "preparegenerate": "prepareGenerate", 
+    "preparegenerate": "prepareGenerate",
     "generatecontent": "requestPinnedThenGenerate",
     "pintocanvas": "pinToCanvas",
     "pin": "pinToCanvas",
@@ -56,7 +56,7 @@
           }
         },
         {
-          "action": "saveImage", 
+          "action": "saveImage",
           "payload": {
             "imageId": "current",
             "collection": "default",

@@ -2027,6 +2027,14 @@ export default function VisualSearchPage() {
 
           const name = payload?.name || 'Untitled';
           lastNameRef.current = name;
+          
+          // Update the UI title input field
+          const titleInput = document.getElementById('gen-title-input') as HTMLInputElement;
+          if (titleInput) {
+            titleInput.value = name;
+            console.log(`🏷️ Updated UI title field to: ${name}`);
+          }
+          
           const finalUrl = genUrlRef.current || genUrl;
           // For now, just rename the current output in memory
           if (finalUrl) {

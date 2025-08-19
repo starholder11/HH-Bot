@@ -205,7 +205,7 @@ export class SimpleWorkflowGenerator {
           if (synonymResult) {
             toolNameToExecute = synonymResult.backendTool;
             Object.assign(params, synonymResult.transformedParams);
-            
+
             // Check if we should defer to frontend instead
             if (synonymResult.shouldDefer) {
               const deferralResult = await this.checkDeferToFrontend(step.tool_name, params, workflow.correlationId);
@@ -467,7 +467,7 @@ export class SimpleWorkflowGenerator {
     try {
       const { config } = await loadUiMapConfig();
       const synonymRule = config.backendToolSynonyms?.[toolName];
-      
+
       if (!synonymRule) return null;
 
       console.log(`[${correlationId}] INFO: Mapping ${toolName} -> ${synonymRule.backendTool}`);
@@ -504,7 +504,7 @@ export class SimpleWorkflowGenerator {
     try {
       const { config } = await loadUiMapConfig();
       const deferRule = config.deferToFrontend?.[toolName];
-      
+
       if (!deferRule) return null;
 
       // Check condition
