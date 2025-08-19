@@ -75,6 +75,16 @@ export class SimpleIntentClassifier {
         - prepareGenerate needs "prompt" and "type" parameters
         - nameImage needs "name" parameter
 
+        ADDITIONAL MANDATORY PATTERN (for robustness):
+        If the user says "make/create/generate ... and name it X" or "name ... X" then you MUST include nameImage with that exact name BEFORE saveImage.
+        Example inputs and outputs:
+        - Input: "make a picture of a cat and name it toby once it generates"
+          Output: workflow_steps: [
+            { tool_name: "prepareGenerate", parameters: { prompt: "picture of a cat", type: "image" } },
+            { tool_name: "nameImage", parameters: { name: "toby" } },
+            { tool_name: "saveImage", parameters: {} }
+          ]
+
         DO NOT generate empty parameters. Extract what the user requested. For searchUnified, ALWAYS extract the search terms from the user message.`,
         prompt: userMessage,
         temperature: 0.1
@@ -104,6 +114,24 @@ export class SimpleIntentClassifier {
           }
         }))
       };
+
+      // Post-process: if user requested a name during generation, enforce nameImage before saveImage
+      try {
+        const lower = userMessage.toLowerCase();
+        const nameMatch = lower.match(/name (?:it|this|the)?\s*([\w\-_.]+)/i);
+        const mentionsGenerate = /\b(make|create|generate|render|produce|draw|paint)\b/.test(lower);
+        if (mentionsGenerate && nameMatch && nameMatch[1]) {
+          const requestedName = nameMatch[1];
+          const steps = Array.isArray(intent.workflow_steps) ? [...intent.workflow_steps] as any[] : [];
+          const hasNameStep = steps.some(s => (s.tool_name || '').toLowerCase() === 'nameimage');
+          const saveIndex = steps.findIndex(s => (s.tool_name || '').toLowerCase() === 'saveimage');
+          if (!hasNameStep && saveIndex >= 0) {
+            const nameStep = { tool_name: 'nameImage', parameters: { name: requestedName, ...(context?.userId ? { userId: context.userId } : {}) } };
+            steps.splice(saveIndex, 0, nameStep);
+            (intent as any).workflow_steps = steps;
+          }
+        }
+      } catch {}
 
       const cost = 0.00001; // Estimated cost for gpt-4o-mini
 
