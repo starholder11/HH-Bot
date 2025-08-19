@@ -501,11 +501,11 @@ __agentApi = {
           title: payload.name || lastNameRef.current
         })
       });
-      
+
       // 2. UPDATE: Update UI immediately
       const savedAsset = await response.json();
       updateUIWithSavedAsset(savedAsset);
-      
+
       // 3. ACKNOWLEDGE: Tell backend we're done
       await fetch('/api/agent/ack', {
         method: 'POST',
@@ -515,7 +515,7 @@ __agentApi = {
           artifacts: { assetId: savedAsset.id }
         })
       });
-      
+
     } catch (error) {
       console.error('saveImage failed:', error);
       // Send error acknowledgment
@@ -546,7 +546,7 @@ The UI determines when to use the agent vs regular search:
 
 ```typescript
 const agentTriggers = [
-  'find', 'search', 'show', 'pin', 'make', 'create', 
+  'find', 'search', 'show', 'pin', 'make', 'create',
   'generate', 'build', 'name', 'save', 'call it'
 ];
 
@@ -648,7 +648,7 @@ class ServiceCircuitBreaker {
   private failureCount = 0;
   private lastFailureTime = 0;
   private state: 'closed' | 'open' | 'half-open' = 'closed';
-  
+
   async call(operation: () => Promise<any>) {
     if (this.state === 'open') {
       if (Date.now() - this.lastFailureTime > this.timeout) {
@@ -657,7 +657,7 @@ class ServiceCircuitBreaker {
         throw new Error('Circuit breaker is open');
       }
     }
-    
+
     try {
       const result = await operation();
       this.onSuccess();
@@ -682,7 +682,7 @@ async function withRetry<T>(
       return await operation();
     } catch (error) {
       if (attempt === maxAttempts) throw error;
-      
+
       const delay = backoffMs * Math.pow(2, attempt - 1);
       await new Promise(resolve => setTimeout(resolve, delay));
     }

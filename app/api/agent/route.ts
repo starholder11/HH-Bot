@@ -480,6 +480,7 @@ export async function POST(req: NextRequest) {
 
       const events: any[] = [];
       let searchResults: any[] = [];
+      let resolvedRefs: string[] = []; // Store refs from resolveAssetRefs for next step
 
       // 1) Always send a chat acknowledgement with summary + correlation
       events.push({
@@ -581,6 +582,7 @@ export async function POST(req: NextRequest) {
             'searchunified': 'searchUnified',
             'preparegenerate': 'prepareGenerate',
             'generatecontent': 'requestPinnedThenGenerate',
+            'resolveassetrefs': 'BACKEND_ONLY',
             'pintocanvas': 'pinToCanvas',
             'pin': 'pinToCanvas',
             'renameasset': 'nameImage',
@@ -594,6 +596,42 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(`[${correlationId}] PROXY: Mapped ${tool} -> ${uiAction}`);
+        
+        // Handle BACKEND_ONLY tools
+        if (uiAction === 'BACKEND_ONLY') {
+          console.log(`[${correlationId}] BACKEND_ONLY: Executing ${tool} on backend`);
+          
+          if (tool === 'resolveassetrefs') {
+            try {
+              // Execute resolveAssetRefs on backend
+              const backendResponse = await fetch(`${process.env.LANCEDB_API_URL}/api/tools/resolveAssetRefs`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  identifiers: params.identifiers || [],
+                  preferred: params.preferred || 'any',
+                  userId: 'workshop-user'
+                })
+              });
+              
+              if (backendResponse.ok) {
+                const result = await backendResponse.json();
+                console.log(`[${correlationId}] BACKEND_ONLY: resolveAssetRefs resolved ${result.refs?.length || 0} refs`);
+                
+                // Store resolved refs for next step (generateContent)
+                resolvedRefs = result.refs || [];
+              } else {
+                console.warn(`[${correlationId}] BACKEND_ONLY: resolveAssetRefs failed:`, backendResponse.status);
+              }
+            } catch (error) {
+              console.error(`[${correlationId}] BACKEND_ONLY: resolveAssetRefs error:`, error);
+            }
+          }
+          
+          // Skip to next step - backend-only tools don't generate UI events
+          continue;
+        }
+        
         if (uiAction) {
           let payload: any = { ...params, correlationId, originalRequest: userMessage };
 
@@ -654,6 +692,8 @@ export async function POST(req: NextRequest) {
               type: params.type || 'video',
               prompt: params.prompt || params.message || userMessage,
               model: params.model || 'fal-ai/wan-i2v',
+              // Pass resolved refs from previous resolveAssetRefs step
+              assetRefs: resolvedRefs.length > 0 ? resolvedRefs : undefined,
               options: params.options || {},
               originalRequest: userMessage,
               correlationId,

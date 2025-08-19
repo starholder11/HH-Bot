@@ -1,9 +1,10 @@
 {
-  "version": "v1.2",
+  "version": "v1.3-asset-resolution",
   "toolsToActions": {
     "searchunified": "searchUnified",
     "preparegenerate": "prepareGenerate",
     "generatecontent": "requestPinnedThenGenerate",
+    "resolveassetrefs": "BACKEND_ONLY",
     "pintocanvas": "pinToCanvas",
     "pin": "pinToCanvas",
     "renameasset": "nameImage",
