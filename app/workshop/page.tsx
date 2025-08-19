@@ -2151,7 +2151,7 @@ export default function VisualSearchPage() {
     },
     (toolAction: any) => {
       debug('agent:tool', toolAction);
-      
+
       // Process agent tool actions
       if (toolAction?.action && (window as any).__agentApi) {
         const handler = (window as any).__agentApi[toolAction.action];
@@ -2179,13 +2179,20 @@ export default function VisualSearchPage() {
 
         // Check if this looks like a natural language agent request
         const agentTriggers = ['find', 'pin', 'show', 'get', 'search for', 'give me', 'display', 'create', 'generate'];
-        const isAgentQuery = agentTriggers.some(trigger => 
+        const isAgentQuery = agentTriggers.some(trigger =>
           query.toLowerCase().includes(trigger.toLowerCase())
         );
 
-        if (isAgentQuery) {
+        // Also trigger agent for queries that look like requests for multiple items
+        const multiItemPatterns = [/\d+.*\w+/, /\w+.*pictures?/, /\w+.*images?/, /\w+.*videos?/, /\w+.*files?/];
+        const isMultiItemQuery = multiItemPatterns.some(pattern => pattern.test(query.toLowerCase()));
+
+        const shouldUseAgent = isAgentQuery || isMultiItemQuery;
+
+        if (shouldUseAgent) {
           // Trigger agent stream processing
           console.log(`[workshop] Triggering agent for query: ${query}`);
+          console.log(`[workshop] Agent triggers detected:`, agentTriggers.filter(t => query.toLowerCase().includes(t.toLowerCase())));
           setAgentMessages([{ role: 'user', content: query }]);
         } else {
           // Regular search
