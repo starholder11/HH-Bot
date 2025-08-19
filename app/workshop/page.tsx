@@ -2230,14 +2230,18 @@ export default function VisualSearchPage() {
             };
             lastNameRef.current = null;
 
-            // Update pinned state SYNCHRONOUSLY
-            if (pinnedRef.current) {
-              pinnedRef.current.push({ result: mockResult });
+            // Only pin if explicitly requested (don't auto-pin every saved item)
+            const shouldPin = payload?.pin === true || payload?.pinToCanvas === true;
+            if (shouldPin) {
+              if (pinnedRef.current) {
+                pinnedRef.current.push({ result: mockResult });
+              } else {
+                pinnedRef.current = [{ result: mockResult }];
+              }
+              console.log(`💾 saveImage: Added to pinned items, total pinned: ${pinnedRef.current.length}`);
             } else {
-              pinnedRef.current = [{ result: mockResult }];
+              console.log(`💾 saveImage: Saved but not pinned (user didn't request pinning)`);
             }
-
-            console.log(`💾 saveImage: Added to pinned items, total pinned: ${pinnedRef.current.length}`);
 
             await fetch('/api/agent/ack', {
               method: 'POST',

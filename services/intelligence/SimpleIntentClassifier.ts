@@ -120,23 +120,8 @@ export class SimpleIntentClassifier {
         }))
       };
 
-      // Post-process: if user requested a name during generation, enforce nameImage before saveImage
-      try {
-        const lower = userMessage.toLowerCase();
-        const nameMatch = lower.match(/name (?:it|this|the)?\s*([\w\-_.]+)/i);
-        const mentionsGenerate = /\b(make|create|generate|render|produce|draw|paint)\b/.test(lower);
-        if (mentionsGenerate && nameMatch && nameMatch[1]) {
-          const requestedName = nameMatch[1];
-          const steps = Array.isArray(intent.workflow_steps) ? [...intent.workflow_steps] as any[] : [];
-          const hasNameStep = steps.some(s => (s.tool_name || '').toLowerCase() === 'nameimage');
-          const saveIndex = steps.findIndex(s => (s.tool_name || '').toLowerCase() === 'saveimage');
-          if (!hasNameStep && saveIndex >= 0) {
-            const nameStep = { tool_name: 'nameImage', parameters: { name: requestedName, ...(context?.userId ? { userId: context.userId } : {}) } };
-            steps.splice(saveIndex, 0, nameStep);
-            (intent as any).workflow_steps = steps;
-          }
-        }
-      } catch {}
+      // Post-processing removed - let the AI planner handle workflow steps completely
+      // The planner config now has comprehensive examples and should generate correct workflows
 
       const cost = 0.00001; // Estimated cost for gpt-4o-mini
 
