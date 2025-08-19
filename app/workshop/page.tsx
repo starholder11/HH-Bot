@@ -2242,7 +2242,7 @@ export default function VisualSearchPage() {
         setError(null);
 
         // Check if this looks like a natural language agent request
-        const agentTriggers = ['find', 'pin', 'show', 'get', 'search for', 'give me', 'display', 'create', 'generate'];
+        const agentTriggers = ['find', 'pin', 'show', 'get', 'search for', 'give me', 'display', 'create', 'generate', 'make', 'build', 'draw', 'paint', 'render', 'produce', 'name', 'save', 'call it'];
         const isAgentQuery = agentTriggers.some(trigger =>
           query.toLowerCase().includes(trigger.toLowerCase())
         );
