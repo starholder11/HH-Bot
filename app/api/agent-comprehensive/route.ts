@@ -87,7 +87,9 @@ export async function POST(request: NextRequest) {
       execution: result.execution,
       workflowId,
       cost: result.cost,
-      correlationId
+      correlationId,
+      deploymentTest: 'CORRELATION_FIX_DEPLOYED_v2',
+      buildFingerprint: buildSha
     });
     response.headers.set('x-build-sha', buildSha);
     response.headers.set('x-route-file', routeFile);

@@ -12,6 +12,8 @@ export async function GET() {
       ok: true,
       status: 'healthy',
       service: 'hh-agent-app',
+      deploymentTest: 'CORRELATION_FIX_DEPLOYED_v2',
+      buildFingerprint: process.env.APP_BUILD_SHA || 'unknown',
       checks: {
         openaiConfigured: hasOpenAI,
         lancedbApiUrlConfigured: hasApiUrl,
