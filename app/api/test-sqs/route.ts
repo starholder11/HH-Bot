@@ -22,12 +22,18 @@ export async function GET(request: NextRequest) {
     // Test enqueue
     const { enqueueAnalysisJob } = await import('@/lib/queue');
     
+    const assetId = (request.nextUrl.searchParams.get('assetId')) || 'test-image-123';
+    const mediaType = (request.nextUrl.searchParams.get('mediaType')) || 'image';
+    const title = (request.nextUrl.searchParams.get('title')) || 'Test Image';
+    const s3Url = (request.nextUrl.searchParams.get('s3Url')) || 'https://example.com/test.jpg';
+    const cloudflareUrl = (request.nextUrl.searchParams.get('cloudflareUrl')) || s3Url;
+
     const testPayload = {
-      assetId: 'test-image-123',
-      mediaType: 'image',
-      title: 'Test Image',
-      s3Url: 'https://example.com/test.jpg',
-      cloudflareUrl: 'https://example.com/test.jpg',
+      assetId,
+      mediaType,
+      title,
+      s3Url,
+      cloudflareUrl,
       requestedAt: Date.now(),
       stage: 'post_labeling_ingestion'
     };
@@ -40,7 +46,8 @@ export async function GET(request: NextRequest) {
       env_vars: {
         SQS_QUEUE_URL: sqsUrl ? '✅ Set' : '❌ Missing',
         AWS_REGION: awsRegion || 'us-east-1 (default)'
-      }
+      },
+      payload: testPayload
     });
     
   } catch (error) {

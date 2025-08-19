@@ -116,8 +116,10 @@ async function handleAsset(job) {
   }
 
   // Always upsert (delete-first) for any ingestion job to ensure single row per id
+  // Always upsert to ensure single-row per id in LanceDB
   await ingestAsset(asset, true);
-  console.log(`[generic-worker] ${isRefresh ? 'Upserted' : 'Ingested'} asset ${job.assetId}`);
+  const upsertLabel = job.stage === 'refresh' ? 'Upserted' : 'Ingested';
+  console.log(`[generic-worker] ${upsertLabel} asset ${job.assetId}`);
 }
 
 async function handleText(job) {

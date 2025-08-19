@@ -72,6 +72,9 @@ export async function PATCH(
         await enqueueAnalysisJob({
           assetId: updatedAsset.id,
           mediaType: updatedAsset.media_type,
+          title: updatedAsset.title,
+          s3Url: (updatedAsset as any).s3_url,
+          cloudflareUrl: (updatedAsset as any).cloudflare_url,
           requestedAt: Date.now(),
           stage: 'refresh'
         });
