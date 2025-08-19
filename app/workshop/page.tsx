@@ -2193,13 +2193,17 @@ export default function VisualSearchPage() {
 
             // EXECUTE: Use the same save logic as the UI "Save to library" button
             try {
+              // Detect media type from URL
+              const mediaType = finalUrl.includes('.mp4') || finalUrl.includes('video') || finalUrl.includes('kangaroo') ? 'video' : 'image';
               const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
+              console.log(`💾 EXECUTE: Detected mediaType: ${mediaType} from URL: ${finalUrl}`);
+              
               const saveResponse = await fetch('/api/import/url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                   url: finalUrl, 
-                  mediaType: 'image', 
+                  mediaType: mediaType, 
                   originalFilename: filename,
                   title: title // Pass the name so it gets saved with correct title
                 }),
