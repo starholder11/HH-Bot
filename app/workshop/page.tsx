@@ -2207,7 +2207,9 @@ export default function VisualSearchPage() {
             };
 
             try {
-              const saveResponse = await fetch('/api/media-assets', {
+              // EXECUTE: Call backend ECS service for database persistence
+              const backendUrl = 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
+              const saveResponse = await fetch(`${backendUrl}/api/media-assets`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(asset)
