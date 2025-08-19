@@ -1535,7 +1535,7 @@ export default function VisualSearchPage() {
           if (payload.page) {
             console.log(`[${payload.correlationId}] EXECUTE: Navigating to ${payload.page}`);
             window.location.href = `/${payload.page}${payload.params ? '?' + new URLSearchParams(payload.params).toString() : ''}`;
-            
+
             // ACK: Navigation initiated
             await fetch('/api/agent/ack', {
               method: 'POST',
@@ -1559,7 +1559,7 @@ export default function VisualSearchPage() {
             setShowCanvasModal(true);
           }
           // Add other modal types as needed
-          
+
           // ACK: Modal opened
           await fetch('/api/agent/ack', {
             method: 'POST',
@@ -1583,7 +1583,7 @@ export default function VisualSearchPage() {
           if (payload.viewType === 'generate') setRightTab('generate');
           if (payload.viewType === 'output') setRightTab('output');
           if (payload.viewType === 'layouts') setRightTab('layouts');
-          
+
           // ACK: View changed
           await fetch('/api/agent/ack', {
             method: 'POST',
@@ -1603,7 +1603,7 @@ export default function VisualSearchPage() {
         try {
           console.log(`[${payload.correlationId}] EXECUTE: Content selection:`, payload);
           // TODO: Implement actual content selection logic
-          
+
           // ACK: Selection completed
           await fetch('/api/agent/ack', {
             method: 'POST',
@@ -1623,7 +1623,7 @@ export default function VisualSearchPage() {
         try {
           console.log(`[${payload.correlationId}] EXECUTE: Spatial control:`, payload);
           // TODO: Implement actual spatial controls
-          
+
           // ACK: Spatial control completed
           await fetch('/api/agent/ack', {
             method: 'POST',
@@ -1643,7 +1643,7 @@ export default function VisualSearchPage() {
         try {
           console.log(`[${payload.correlationId}] EXECUTE: Workflow control:`, payload);
           // TODO: Implement actual workflow management
-          
+
           // ACK: Workflow control completed
           await fetch('/api/agent/ack', {
             method: 'POST',
@@ -2011,14 +2011,40 @@ export default function VisualSearchPage() {
       requestPinnedThenGenerate: async (payload: any) => {
         try {
           console.log(`🎬 requestPinnedThenGenerate called with payload:`, payload);
+
+          // NEW: Handle direct asset references from planner
+          let resolvedAssetRefs: string[] = [];
+          if (payload?.assetRefs && Array.isArray(payload.assetRefs)) {
+            console.log(`🎬 Resolving ${payload.assetRefs.length} asset references:`, payload.assetRefs);
+            for (const assetRef of payload.assetRefs) {
+              try {
+                const assetResponse = await fetch(`/api/media-assets/${assetRef}`);
+                if (assetResponse.ok) {
+                  const assetData = await assetResponse.json();
+                  const assetUrl = assetData.asset?.cloudflare_url || assetData.asset?.s3_url;
+                  if (assetUrl) {
+                    resolvedAssetRefs.push(assetUrl);
+                    console.log(`🎬 Resolved asset ${assetRef} to URL: ${assetUrl}`);
+                  }
+                }
+              } catch (e) {
+                console.warn(`🎬 Failed to resolve asset ${assetRef}:`, e);
+              }
+            }
+          }
+
           // Collect refs from pinned items; if none, fall back to current output URL
           const pinnedUrls: string[] = (pinnedRef.current || [])
             .map((p) => getResultMediaUrl(p.result))
             .filter(Boolean) as string[];
 
-                    // Always prefer current genUrl for video follow-up (most recent generation)
+          // Always prefer current genUrl for video follow-up (most recent generation)
           const fallbackFromCurrent = (genUrlRef.current || genUrl) ? [genUrlRef.current || genUrl] : [];
-          const refs: string[] = fallbackFromCurrent.length > 0 ? fallbackFromCurrent : pinnedUrls;
+
+          // Priority: direct asset refs > current generation > pinned items
+          const refs: string[] = resolvedAssetRefs.length > 0
+            ? resolvedAssetRefs
+            : (fallbackFromCurrent.length > 0 ? fallbackFromCurrent : pinnedUrls);
 
           console.log(`🎬 Video refs:`, { pinnedUrls: pinnedUrls.length, fallbackFromCurrent: fallbackFromCurrent.length, finalRefs: refs.length, genUrl, genUrlRef: genUrlRef.current });
 
@@ -2125,22 +2151,22 @@ export default function VisualSearchPage() {
 
           const name = payload?.name || 'Untitled';
           lastNameRef.current = name;
-          
+
           // Update the UI title input field immediately
           const titleInput = document.getElementById('gen-title-input') as HTMLInputElement;
           if (titleInput) {
             titleInput.value = name;
             console.log(`🏷️ Updated UI title field to: ${name}`);
           }
-          
+
           const finalUrl = genUrlRef.current || genUrl;
           if (finalUrl) {
             console.log(`🏷️ Naming current image: ${name}`);
-            
+
             // EXECUTE: Store the name for the subsequent saveImage step
             // (nameImage doesn't persist by itself - it prepares for saveImage)
             console.log(`🏷️ Name stored for saveImage step: ${name}`);
-            
+
             // ACK: Notify backend that naming is complete
             await fetch('/api/agent/ack', {
               method: 'POST',
@@ -2197,13 +2223,13 @@ export default function VisualSearchPage() {
               const mediaType = finalUrl.includes('.mp4') || finalUrl.includes('video') || finalUrl.includes('kangaroo') ? 'video' : 'image';
               const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
               console.log(`💾 EXECUTE: Detected mediaType: ${mediaType} from URL: ${finalUrl}`);
-              
+
               const saveResponse = await fetch('/api/import/url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  url: finalUrl, 
-                  mediaType: mediaType, 
+                body: JSON.stringify({
+                  url: finalUrl,
+                  mediaType: mediaType,
                   originalFilename: filename,
                   title: title // Pass the name so it gets saved with correct title
                 }),
