@@ -63,13 +63,19 @@ export class SimpleIntentClassifier {
           { tool_name: "saveImage", parameters: {} }
         ]
 
+        Input: "find a couple pictures of mountains and pin them"
+        Output: workflow_steps: [
+          { tool_name: "searchUnified", parameters: {query: "pictures of mountains"} },
+          { tool_name: "pinToCanvas", parameters: {count: 2} }
+        ]
+
         CRITICAL: Extract ALL relevant parameters from the user message:
-        - searchUnified needs "query" parameter with search terms
+        - searchUnified needs "query" parameter with search terms - NEVER leave this empty
         - pinToCanvas needs "count" parameter if number specified
         - prepareGenerate needs "prompt" and "type" parameters
         - nameImage needs "name" parameter
 
-        DO NOT generate empty parameters. Extract what the user requested.`,
+        DO NOT generate empty parameters. Extract what the user requested. For searchUnified, ALWAYS extract the search terms from the user message.`,
         prompt: userMessage,
         temperature: 0.1
       });
@@ -92,7 +98,9 @@ export class SimpleIntentClassifier {
             // Then add AI-generated parameters (these take precedence)
             ...(step.parameters || {}),
             // Ensure chat tools get the full message
-            ...(step.tool_name === 'chat' ? { message: userMessage } : {})
+            ...(step.tool_name === 'chat' ? { message: userMessage } : {}),
+            // CRITICAL FIX: Ensure searchUnified always has a query parameter
+            ...(step.tool_name === 'searchUnified' && !step.parameters?.query ? { query: userMessage } : {})
           }
         }))
       };

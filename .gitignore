@@ -60,3 +60,4 @@ lambda-layer/
 lambda-video-processor/node_modules/
 lambda-video-processor/*.zip
 lancedb-service/node_modules/
+.env.vercel*
