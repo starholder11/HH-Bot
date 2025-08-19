@@ -87,10 +87,10 @@ export class SimpleIntentClassifier {
         workflow_steps: (result.object.workflow_steps || []).map(step => ({
           ...step,
           parameters: {
-            // Start with AI-generated parameters
-            ...(step.parameters || {}),
-            // Add userId context without overriding existing parameters
+            // Add userId context first
             ...(context?.userId ? { userId: context.userId } : {}),
+            // Then add AI-generated parameters (these take precedence)
+            ...(step.parameters || {}),
             // Ensure chat tools get the full message
             ...(step.tool_name === 'chat' ? { message: userMessage } : {})
           }

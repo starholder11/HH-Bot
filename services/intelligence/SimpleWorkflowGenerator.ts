@@ -260,9 +260,9 @@ export class SimpleWorkflowGenerator {
         const resultPreview = (() => {
           try {
             const str = JSON.stringify(lastExecution?.result);
-            return typeof str === 'string' ? str.substring(0, 200) : '';
+            return typeof str === 'string' && str.length > 0 ? str.substring(0, 200) : 'No result';
           } catch {
-            return '';
+            return 'Error serializing result';
           }
         })();
         console.log(`[${workflow.correlationId}] STEP ${i + 1} RESULT: status=${lastExecution?.status}, result=`, resultPreview);
