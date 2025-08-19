@@ -664,6 +664,15 @@ export async function POST(req: NextRequest) {
               name: params.name || params.newFilename || extractName(userMessage) || 'Untitled',
               correlationId
             };
+            // If immediate save step follows, carry the chosen name forward so UI can use it
+            try {
+              const stepIndex = steps.findIndex(s => s?.tool_name?.toLowerCase() === tool);
+              const next = steps[stepIndex + 1];
+              if (next?.tool_name && next.tool_name.toLowerCase() === 'saveimage') {
+                events.push({ action: 'saveImage', payload: { name: payload.name, correlationId } });
+                console.log(`[${correlationId}] PROXY: Injected saveImage with name '${payload.name}' right after nameImage`);
+              }
+            } catch {}
           }
 
           // Queue the step; ack gating will occur during streaming emission

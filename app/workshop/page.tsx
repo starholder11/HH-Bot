@@ -1439,6 +1439,7 @@ export default function VisualSearchPage() {
   const [selected, setSelected] = useState<UnifiedSearchResult | null>(null);
   const { pinned, addPin, movePin, removePin, resizePin, reorderPinned, setPinned: setPinnedInStore } = useCanvasStore();
   const pinnedRef = useRef<PinnedItem[]>([]);
+  const lastNameRef = useRef<string | null>(null);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -2025,6 +2026,7 @@ export default function VisualSearchPage() {
           }
 
           const name = payload?.name || 'Untitled';
+          lastNameRef.current = name;
           const finalUrl = genUrlRef.current || genUrl;
           // For now, just rename the current output in memory
           if (finalUrl) {
@@ -2081,11 +2083,12 @@ export default function VisualSearchPage() {
                         // Add to pinned items so video generation can use it as ref
             const mockResult = {
               id: assetId,
-              title: payload?.name || 'Generated Image',
+              title: payload?.name || lastNameRef.current || 'Generated Image',
               url: finalUrl,
               type: 'image',
               metadata: { collection: payload?.collection || 'default' }
             };
+            lastNameRef.current = null;
 
             // Update pinned state SYNCHRONOUSLY
             if (pinnedRef.current) {
@@ -2113,11 +2116,12 @@ export default function VisualSearchPage() {
                 const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
                 const mockResult = {
                   id: assetId,
-                  title: payload?.name || 'Generated Image',
+                  title: payload?.name || lastNameRef.current || 'Generated Image',
                   url: genUrl,
                   type: 'image',
                   metadata: { collection: payload?.collection || 'default' }
                 };
+                lastNameRef.current = null;
 
                 if (pinnedRef.current) {
                   pinnedRef.current.push({ result: mockResult });
