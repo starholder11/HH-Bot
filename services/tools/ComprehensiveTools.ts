@@ -177,6 +177,69 @@ export class ComprehensiveTools {
     userId: z.string().describe('User ID for context tracking')
   });
 
+  /** Resolve identifiers (IDs, filenames, names) to direct media URLs */
+  async resolveAssetRefs(params: { identifiers: string[]; preferred?: 'cloudflare'|'s3'|'any'; userId: string }) {
+    const correlationId = `resolve_refs_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    console.log(`[${correlationId}] Resolving refs:`, params.identifiers);
+
+    const prefer = (asset: any): string | undefined => {
+      const cf = asset?.cloudflare_url as string | undefined;
+      const s3 = asset?.s3_url as string | undefined;
+      if ((params.preferred || 'any') === 'cloudflare') return cf || s3;
+      if ((params.preferred || 'any') === 's3') return s3 || cf;
+      return cf || s3;
+    };
+
+    const refs: string[] = [];
+    const resolved: Array<{ identifier: string; url?: string; source?: string; error?: string }> = [];
+
+    for (const identifier of params.identifiers) {
+      let foundUrl: string | undefined;
+      // 1) Try direct media-labeling assets API
+      try {
+        const resp1 = await this.apiClient.get(`/api/media-labeling/assets/${encodeURIComponent(identifier)}`);
+        const asset1 = resp1?.asset || resp1;
+        foundUrl = prefer(asset1);
+        if (foundUrl) {
+          refs.push(foundUrl); resolved.push({ identifier, url: foundUrl, source: 'media-labeling/assets' });
+          continue;
+        }
+      } catch {}
+
+      // 2) Try generic media-assets API (S3 JSON metadata)
+      try {
+        const resp2 = await this.apiClient.get(`/api/media-assets/${encodeURIComponent(identifier)}`);
+        const asset2 = resp2?.asset || resp2;
+        foundUrl = prefer(asset2);
+        if (foundUrl) {
+          refs.push(foundUrl); resolved.push({ identifier, url: foundUrl, source: 'media-assets' });
+          continue;
+        }
+      } catch {}
+
+      // 3) Fallback unified search by name/filename
+      try {
+        const search = await this.apiClient.post('/api/unified-search', { query: identifier, limit: 5 });
+        const arr = Array.isArray(search?.results?.all) ? search.results.all : (Array.isArray(search?.results) ? search.results : []);
+        const first = Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
+        const candidate = first?.url || first?.media_url || first?.cloudflare_url || first?.s3_url;
+        if (candidate) {
+          refs.push(candidate); resolved.push({ identifier, url: candidate, source: 'unified-search' });
+          continue;
+        }
+      } catch {}
+
+      resolved.push({ identifier, error: 'Not found' });
+    }
+
+    return { success: true, refs, resolved, correlationId };
+  }
+  static resolveAssetRefsSchema = z.object({
+    identifiers: z.array(z.string()).min(1),
+    preferred: z.enum(['cloudflare','s3','any']).optional().default('any'),
+    userId: z.string()
+  });
+
   async renameAsset(params: { assetId: string; newFilename: string; userId: string }) {
     const correlationId = `rename_asset_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     console.log(`[${correlationId}] Renaming asset ${params.assetId} to: ${params.newFilename}`);
@@ -685,6 +748,7 @@ export class ComprehensiveTools {
         mode: params.type,
         model: (params.settings as any)?.model,
         prompt: params.prompt,
+        refs: (params as any)?.refs || (params.settings as any)?.refs || [],
         options: (params.settings as any)?.options || params.settings || {}
       };
       const response = await this.apiClient.post('/api/generate', body);
@@ -1584,6 +1648,7 @@ export class ComprehensiveTools {
       // Asset Management
       { name: 'listMediaAssets', schema: ComprehensiveTools.listMediaAssetsSchema, category: 'assets' },
       { name: 'getMediaAsset', schema: ComprehensiveTools.getMediaAssetSchema, category: 'assets' },
+      { name: 'resolveAssetRefs', schema: ComprehensiveTools.resolveAssetRefsSchema, category: 'assets' },
       { name: 'renameAsset', schema: ComprehensiveTools.renameAssetSchema, category: 'assets' },
       { name: 'updateAsset', schema: ComprehensiveTools.updateAssetSchema, category: 'assets' },
 
