@@ -70,9 +70,12 @@ export class SimpleWorkflowGenerator {
     providedCorrelationId?: string
   ): Promise<WorkflowResult> {
     console.log(`[DEBUG] SimpleWorkflowGenerator received providedCorrelationId: ${providedCorrelationId}`);
+    // CRITICAL FIX: Use the provided correlationId directly, don't generate a new one
     const correlationId = providedCorrelationId || `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     if (!providedCorrelationId) {
       console.warn(`[${correlationId}] WARN: No providedCorrelationId; generated internal workflow ID. This may cause UI mismatch.`);
+    } else {
+      console.log(`[${correlationId}] Using provided correlationId from agent route`);
     }
     const startTime = Date.now();
 

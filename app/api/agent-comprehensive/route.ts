@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const buildSha = process.env.APP_BUILD_SHA || 'unknown';
     const routeFile = __filename;
-    console.log(`[${correlationId}] POST /api/agent-comprehensive - message: "${message}", userId: ${userId}`);
+    console.log(`[${correlationId}] POST /api/agent-comprehensive - user: ${userId}, tenant: ${finalTenantId}, msg_len: ${message.length}`);
     console.log(`[${correlationId}] BUILD_SHA: ${buildSha} | ROUTE_FILE: ${routeFile}`);
     console.log(`[${correlationId}] SIMPLE DEBUG TEST - This should definitely appear in logs!`);
     console.log(`[${correlationId}] REQUEST META: userId=${userId}, tenantId=${finalTenantId}, messageLen=${typeof message === 'string' ? message.length : 0}`);
