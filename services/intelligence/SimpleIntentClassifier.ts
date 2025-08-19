@@ -1,4 +1,5 @@
 import { openai } from '@ai-sdk/openai';
+import { loadPlannerConfig } from '@/services/config/RemoteConfig';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -34,10 +35,12 @@ export class SimpleIntentClassifier {
     console.log(`[${correlationId}] Classifying: "${userMessage}"`);
 
     try {
+      // Load planner system prompt from remote config
+      const { config: plannerCfg, version: plannerVersion } = await loadPlannerConfig();
       const result = await generateObject({
         model: this.model as any,
         schema: SimpleIntentSchema,
-                system: `You are an AI workflow planner. Available tools: ${this.availableTools?.join(', ') || ''}.
+                system: `${plannerCfg.systemPrompt}\n\nAvailable tools: ${this.availableTools?.join(', ') || ''}.
 
         CRITICAL: Look for compound actions that require MULTIPLE steps in sequence.
 
