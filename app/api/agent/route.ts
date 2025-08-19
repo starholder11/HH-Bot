@@ -459,6 +459,25 @@ export async function POST(req: NextRequest) {
         return m && m[2] ? m[2] : undefined;
       };
 
+      // Robust numeric extraction for requested counts (e.g., "3", "three", "couple", "a few")
+      const extractRequestedCount = (msg: string, defaultCount: number, maxCount: number): number => {
+        const lower = msg.toLowerCase();
+        const wordToNum: Record<string, number> = {
+          'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+          'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+          'couple': 2, 'a couple': 2, 'few': 3, 'a few': 3
+        };
+        for (const [word, num] of Object.entries(wordToNum)) {
+          if (lower.includes(word)) return Math.min(num, maxCount);
+        }
+        const digitMatch = lower.match(/\b(\d{1,2})\b/);
+        if (digitMatch) {
+          const n = parseInt(digitMatch[1], 10);
+          if (!Number.isNaN(n) && n > 0) return Math.min(n, maxCount);
+        }
+        return Math.min(defaultCount, maxCount);
+      };
+
       const events: any[] = [];
       let searchResults: any[] = [];
 
@@ -619,7 +638,7 @@ export async function POST(req: NextRequest) {
           } else if (tool === 'pin' || tool === 'pintocanvas') {
             // Pass search results if available, respecting count parameter
             if (searchResults.length > 0) {
-              const count = params.count || searchResults.length;
+              const count = params.count || extractRequestedCount(userMessage, searchResults.length, searchResults.length);
               const itemsToPin = searchResults.slice(0, count);
               payload = {
                 items: itemsToPin,
@@ -632,7 +651,9 @@ export async function POST(req: NextRequest) {
               payload = {
                 id: params.contentId || null,
                 contentId: params.contentId || null,
+                // Try to carry intent forward even if we failed to prefetch results
                 needsLookup: !params.contentId,
+                count: typeof params.count === 'number' ? params.count : extractRequestedCount(userMessage, 2, 10),
                 originalRequest: userMessage,
                 correlationId
               };
