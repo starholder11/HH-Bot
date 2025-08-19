@@ -3,6 +3,7 @@ import { SimpleLLMRouter } from './SimpleLLMRouter';
 import { UniversalToolRegistry } from '../tools/UniversalToolRegistry';
 import { ToolExecutor } from '../tools/ToolExecutor';
 import { RedisContextService } from '../context/RedisContextService';
+import { loadUiMapConfig } from '../config/RemoteConfig';
 
 export interface WorkflowExecution {
   id: string;
@@ -209,27 +210,20 @@ export class SimpleWorkflowGenerator {
             }
             const hasAssetId = typeof (params as any).assetId === 'string' && (params as any).assetId.length > 0;
             if (!hasAssetId) {
-              console.log(`[${workflow.correlationId}] INFO: Deferring nameImage to client-side (no assetId)`);
-              // Add as executed step so frontend receives it
-              workflow.executedSteps!.push({
-                tool_name: step.tool_name,
-                parameters: params,
-                result: { action: 'nameImage', payload: { name: (params as any).name || 'Untitled', imageId: 'current' }, deferred: true },
-                status: 'completed'
-              });
-              continue;
+              // Check config for deferral rules
+              const deferralResult = await this.checkDeferToFrontend('nameImage', params, workflow.correlationId);
+              if (deferralResult) {
+                workflow.executedSteps!.push(deferralResult);
+                continue;
+              }
             }
           } else if (toolNameToExecute === 'saveImage') {
-            // UI-only step for now; persistence handled client-side
-            console.log(`[${workflow.correlationId}] INFO: Deferring saveImage to client-side`);
-            // Add as executed step so frontend receives it
-            workflow.executedSteps!.push({
-              tool_name: step.tool_name,
-              parameters: params,
-              result: { action: 'saveImage', payload: { imageId: 'current', collection: 'default' }, deferred: true },
-              status: 'completed'
-            });
-            continue;
+            // Check config for deferral rules
+            const deferralResult = await this.checkDeferToFrontend('saveImage', params, workflow.correlationId);
+            if (deferralResult) {
+              workflow.executedSteps!.push(deferralResult);
+              continue;
+            }
           } else {
             console.warn(`[${workflow.correlationId}] WARN: Tool not registered: ${toolNameToExecute}. Skipping step.`);
             continue;
@@ -470,5 +464,42 @@ export class SimpleWorkflowGenerator {
     this.intentClassifier.resetCostTracking();
     this.llmRouter.resetCostTracking();
     this.activeWorkflows.clear();
+  }
+
+  private async checkDeferToFrontend(toolName: string, params: any, correlationId: string): Promise<any | null> {
+    try {
+      const { config } = await loadUiMapConfig();
+      const deferRule = config.deferToFrontend?.[toolName];
+      
+      if (!deferRule) return null;
+
+      // Check condition
+      let shouldDefer = false;
+      if (deferRule.condition === 'always') {
+        shouldDefer = true;
+      } else if (deferRule.condition === 'no_asset_id') {
+        shouldDefer = !params.assetId || typeof params.assetId !== 'string' || params.assetId.length === 0;
+      }
+
+      if (!shouldDefer) return null;
+
+      console.log(`[${correlationId}] INFO: Deferring ${toolName} to client-side (${deferRule.condition})`);
+
+      // Build payload with parameter substitution
+      const payload = { ...deferRule.payload };
+      if (payload.name === '{{params.name}}') {
+        payload.name = params.name || 'Untitled';
+      }
+
+      return {
+        tool_name: toolName,
+        parameters: params,
+        result: { ...payload, deferred: true },
+        status: 'completed' as const
+      };
+    } catch (error) {
+      console.warn(`[${correlationId}] Failed to load UI map config for ${toolName}:`, error);
+      return null;
+    }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "version": "v1.0",
+  "version": "v1.1",
   "toolsToActions": {
     "searchUnified": "searchUnified",
     "prepareGenerate": "prepareGenerate",
@@ -12,5 +12,25 @@
     "createCanvas": "canvasCreated",
     "createProject": "projectCreated",
     "chat": "chat"
+  },
+  "deferToFrontend": {
+    "nameImage": {
+      "condition": "no_asset_id",
+      "description": "Defer nameImage to frontend when no assetId is available",
+      "payload": {
+        "action": "nameImage",
+        "imageId": "current",
+        "name": "{{params.name}}"
+      }
+    },
+    "saveImage": {
+      "condition": "always",
+      "description": "Always defer saveImage to frontend for UI handling",
+      "payload": {
+        "action": "saveImage",
+        "imageId": "current",
+        "collection": "default"
+      }
+    }
   }
 }
