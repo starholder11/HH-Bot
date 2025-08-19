@@ -8,6 +8,7 @@ import { getResultMediaUrl } from './utils/mediaUrl';
 import { stripCircularDescription } from './utils/textCleanup';
 import * as searchService from './services/searchService';
 import { useResults } from './hooks/useResults';
+import { useAgentStream } from './hooks/useAgentStream';
 import { cacheStore } from './services/cacheStore';
 import ResultsGrid from './components/ResultsGrid';
 import VirtualResultsGrid from './components/VirtualResultsGrid';
@@ -1364,6 +1365,9 @@ export default function VisualSearchPage() {
   const { rightTab, setRightTab, multiSelect, selectedIds, toggleMultiSelect, setSelectedIds, toggleSelectedId } = useUiStore();
   const [types, setTypes] = useState<Array<ContentType | "media" | "all">>(["all"]);
 
+  // Agent stream processing state
+  const [agentMessages, setAgentMessages] = useState<Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>>([]);
+
       // Check localStorage for active tab preference (e.g., from layout editor)
     useEffect(() => {
       try {
@@ -2138,6 +2142,32 @@ export default function VisualSearchPage() {
     };
   }, []);
 
+  // Agent stream processing - handle tool actions from agent
+  useAgentStream(
+    agentMessages,
+    (delta: string) => {
+      // Handle text deltas if needed
+      debug('agent:text', delta);
+    },
+    (toolAction: any) => {
+      debug('agent:tool', toolAction);
+      
+      // Process agent tool actions
+      if (toolAction?.action && (window as any).__agentApi) {
+        const handler = (window as any).__agentApi[toolAction.action];
+        if (handler && typeof handler === 'function') {
+          console.log(`[agent] Calling UI handler: ${toolAction.action}`, toolAction.payload);
+          handler(toolAction.payload);
+        } else {
+          console.warn(`[agent] No handler found for action: ${toolAction.action}`);
+        }
+      }
+    },
+    () => {
+      debug('agent:done', 'Stream completed');
+    }
+  );
+
   // Results are now managed by useResults hook and resultsStore
 
   const handleSubmit = useCallback(
@@ -2147,21 +2177,34 @@ export default function VisualSearchPage() {
         setLoading(true);
         setError(null);
 
-        // Convert types array to search type parameter
-        let searchType: string | undefined;
-        if (types.includes("all")) {
-          searchType = undefined; // No filter
-        } else if (types.length === 1) {
-          searchType = types[0]; // Single type
-        } else if (types.includes("media")) {
-          // "media" means all media types (image, video, audio) but not text
-          searchType = "media";
-        } else {
-          // Multiple specific types - join them
-          searchType = types.filter(t => t !== "all" && t !== "media").join(",");
-        }
+        // Check if this looks like a natural language agent request
+        const agentTriggers = ['find', 'pin', 'show', 'get', 'search for', 'give me', 'display', 'create', 'generate'];
+        const isAgentQuery = agentTriggers.some(trigger => 
+          query.toLowerCase().includes(trigger.toLowerCase())
+        );
 
-        await executeSearch(query, undefined, searchType, true);
+        if (isAgentQuery) {
+          // Trigger agent stream processing
+          console.log(`[workshop] Triggering agent for query: ${query}`);
+          setAgentMessages([{ role: 'user', content: query }]);
+        } else {
+          // Regular search
+          // Convert types array to search type parameter
+          let searchType: string | undefined;
+          if (types.includes("all")) {
+            searchType = undefined; // No filter
+          } else if (types.length === 1) {
+            searchType = types[0]; // Single type
+          } else if (types.includes("media")) {
+            // "media" means all media types (image, video, audio) but not text
+            searchType = "media";
+          } else {
+            // Multiple specific types - join them
+            searchType = types.filter(t => t !== "all" && t !== "media").join(",");
+          }
+
+          await executeSearch(query, undefined, searchType, true);
+        }
       } catch (err: any) {
         setError(err.message || 'Search failed');
       } finally {
