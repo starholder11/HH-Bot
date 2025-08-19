@@ -1,0 +1,60 @@
+# ULTRA-FAST DOCKERFILE - Uses Docker cache mounts
+# Requires Docker BuildKit (enabled by default in recent versions)
+
+FROM node:20-alpine AS builder
+
+ARG REDIS_URL
+ARG GIT_SHA
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    APP_BUILD_SHA=$GIT_SHA
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache python3 make g++ libc6-compat
+
+# Copy package files
+COPY package*.json ./
+
+# Install with cache mount (persists node_modules across builds)
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/app/node_modules \
+    npm ci --legacy-peer-deps
+
+# Copy source
+COPY . .
+
+# Build with cache mounts (persists .next cache)
+RUN --mount=type=cache,target=/app/.next/cache \
+    --mount=type=cache,target=/app/node_modules \
+    REDIS_URL=${REDIS_URL} npm run build:web
+
+# --- Runtime ---
+FROM node:20-alpine AS runner
+
+ARG REDIS_URL  
+ARG GIT_SHA
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    REDIS_URL=${REDIS_URL} \
+    APP_BUILD_SHA=$GIT_SHA
+
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy built application
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+
+CMD ["node", "server.js"]

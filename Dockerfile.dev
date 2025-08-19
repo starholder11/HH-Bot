@@ -1,0 +1,41 @@
+# DEVELOPMENT DOCKERFILE - Optimized for fast iteration
+# Uses pre-built base image with dependencies cached
+
+FROM node:20-alpine AS base
+
+# Install system dependencies once
+RUN apk add --no-cache python3 make g++ libc6-compat curl
+
+WORKDIR /app
+
+# Copy and install dependencies (this layer rarely changes)
+COPY package*.json ./
+RUN npm ci --legacy-peer-deps && npm cache clean --force
+
+# --- Development Runtime ---
+FROM base AS dev-runner
+
+ARG REDIS_URL
+ARG GIT_SHA
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    REDIS_URL=${REDIS_URL} \
+    APP_BUILD_SHA=${GIT_SHA:-dev-build}
+
+# Copy source code (this changes frequently)
+COPY . .
+
+# Build only (no separate build stage to save time)
+RUN REDIS_URL=${REDIS_URL} npm run build:web
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+CMD ["node", "server.js"]
