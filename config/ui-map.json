@@ -1,0 +1,16 @@
+{
+  "version": "v1.0",
+  "toolsToActions": {
+    "searchUnified": "searchUnified",
+    "prepareGenerate": "prepareGenerate",
+    "generateContent": "requestPinnedThenGenerate",
+    "pinToCanvas": "pinToCanvas",
+    "pin": "pinToCanvas",
+    "renameAsset": "nameImage",
+    "nameImage": "nameImage",
+    "saveImage": "saveImage",
+    "createCanvas": "canvasCreated",
+    "createProject": "projectCreated",
+    "chat": "chat"
+  }
+}

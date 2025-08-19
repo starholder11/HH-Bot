@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { loadUiMapConfig } from '@/services/config/RemoteConfig';
 import { streamText, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -544,11 +543,19 @@ export async function POST(req: NextRequest) {
 
         console.log(`[${correlationId}] PROXY: Processing step: ${step?.tool_name} -> ${tool}, params:`, JSON.stringify(params));
 
-        // Load UI mapping from remote config (cached)
-        const { config: uiCfg, version: uiVersion } = await loadUiMapConfig();
-        const toolToActionMap: Record<string, string> = Object.fromEntries(
-          Object.entries(uiCfg.toolsToActions).map(([k, v]) => [k.toLowerCase(), v])
-        );
+        // Static tool → UI action mapping (frontend stays a pure proxy)
+        const toolToActionMap: Record<string, string> = {
+          'searchunified': 'searchUnified',
+          'preparegenerate': 'prepareGenerate',
+          'generatecontent': 'requestPinnedThenGenerate',
+          'pintocanvas': 'pinToCanvas',
+          'pin': 'pinToCanvas',
+          'renameasset': 'nameImage',
+          'nameimage': 'nameImage',
+          'createcanvas': 'canvasCreated',
+          'createproject': 'projectCreated',
+          'chat': 'chat'
+        };
 
         let uiAction = toolToActionMap[tool];
         console.log(`[${correlationId}] PROXY: Mapped ${tool} -> ${uiAction}`);
@@ -801,13 +808,11 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      const { version: uiVersion } = await loadUiMapConfig();
       return new Response(stream, {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'x-ui-map-version': uiVersion as any
+          'Connection': 'keep-alive'
         },
       });
     } else {
