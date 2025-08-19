@@ -209,12 +209,26 @@ export class SimpleWorkflowGenerator {
             }
             const hasAssetId = typeof (params as any).assetId === 'string' && (params as any).assetId.length > 0;
             if (!hasAssetId) {
-              console.log(`[${workflow.correlationId}] INFO: Skipping nameImage (no assetId) — handled client-side`);
+              console.log(`[${workflow.correlationId}] INFO: Deferring nameImage to client-side (no assetId)`);
+              // Add as executed step so frontend receives it
+              workflow.executedSteps!.push({
+                tool_name: step.tool_name,
+                parameters: params,
+                result: { action: 'nameImage', payload: { name: (params as any).name || 'Untitled', imageId: 'current' }, deferred: true },
+                status: 'completed'
+              });
               continue;
             }
           } else if (toolNameToExecute === 'saveImage') {
             // UI-only step for now; persistence handled client-side
-            console.log(`[${workflow.correlationId}] INFO: Skipping saveImage — handled client-side`);
+            console.log(`[${workflow.correlationId}] INFO: Deferring saveImage to client-side`);
+            // Add as executed step so frontend receives it
+            workflow.executedSteps!.push({
+              tool_name: step.tool_name,
+              parameters: params,
+              result: { action: 'saveImage', payload: { imageId: 'current', collection: 'default' }, deferred: true },
+              status: 'completed'
+            });
             continue;
           } else {
             console.warn(`[${workflow.correlationId}] WARN: Tool not registered: ${toolNameToExecute}. Skipping step.`);
