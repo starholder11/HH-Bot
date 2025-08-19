@@ -4,7 +4,7 @@
 set -e
 
 GIT_SHA=${1:-$(git rev-parse --short HEAD)}
-ECR_REPO="781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-bot"
+ECR_REPO="781939061434.dkr.ecr.us-east-1.amazonaws.com/hh-agent-app"
 
 echo "🚢 Pushing hh-bot:$GIT_SHA to ECR..."
 
@@ -26,9 +26,10 @@ echo "🔄 Updating ECS task definition..."
 # Get current task definition and update image
 aws ecs describe-task-definition --task-definition hh-agent-app-task-v2 --query 'taskDefinition' --output json > /tmp/current-task-def.json
 
-# Update image URI in task definition
+# Update image URI and build SHA in task definition
 cat /tmp/current-task-def.json | \
   jq --arg image "$ECR_REPO:$GIT_SHA" '.containerDefinitions[0].image = $image' | \
+  jq --arg sha "$GIT_SHA" '(.containerDefinitions[0].environment[] | select(.name == "APP_BUILD_SHA") | .value) = $sha' | \
   jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy)' > /tmp/updated-task-def.json
 
 # Register new task definition
