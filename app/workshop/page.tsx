@@ -2149,10 +2149,31 @@ export default function VisualSearchPage() {
           } else if (payload?.items && Array.isArray(payload.items)) {
             // Pin search results
             console.log(`[${payload?.correlationId}] UI: Pinning ${payload.items.length} search results to canvas`);
+            const globalResultsCache = getGlobalCache();
             for (const item of payload.items) {
-              console.log(`[${payload?.correlationId}] UI: Pinning item:`, item.contentId || item.id);
-              // TODO: Actually pin to canvas UI
+              const key = item.id || item.contentId || item.title;
+              console.log(`[${payload?.correlationId}] UI: Pinning item:`, key);
+
+              // Prefer full result objects; otherwise try cache lookup; otherwise construct minimal
+              const candidate = item.id && item.content_type ? item
+                : (key ? (globalResultsCache.get(key) || null) : null);
+
+              const resultToPin: UnifiedSearchResult = candidate || {
+                id: key || `agent-${Date.now()}`,
+                content_type: 'image',
+                title: item.title || 'Pinned by Agent',
+                description: item.description || '',
+                score: 0,
+                metadata: {
+                  cloudflare_url: item.url || item.cloudflare_url || item.s3_url || '',
+                  media_type: item.content_type || 'image'
+                } as any,
+                preview: item.preview || item.title || ''
+              } as any;
+
+              try { pinResult(resultToPin); } catch {}
             }
+            try { setRightTab('canvas'); } catch {}
           } else {
             console.log(`[${payload?.correlationId}] UI: No content to pin - no genUrl and no items array`);
           }
