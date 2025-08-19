@@ -2191,28 +2191,18 @@ export default function VisualSearchPage() {
             const title = payload?.name || lastNameRef.current || 'Generated Image';
             console.log(`💾 EXECUTE: Saving image to database as: ${title}`);
 
-            // EXECUTE: Actually save to database via backend API
-            const asset = {
-              id: assetId,
-              title: title,
-              filename: `${title.replace(/[^a-zA-Z0-9]/g, '_')}.png`,
-              media_type: 'image',
-              content_type: 'image',
-              s3_url: finalUrl,
-              cloudflare_url: finalUrl, // Assuming same URL for now
-              collection: payload?.collection || 'default',
-              description: `Generated image: ${title}`,
-              ai_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
-              manual_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] }
-            };
-
+            // EXECUTE: Use the same save logic as the UI "Save to library" button
             try {
-              // EXECUTE: Call backend ECS service for database persistence
-              const backendUrl = 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
-              const saveResponse = await fetch(`${backendUrl}/api/media-assets`, {
+              const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
+              const saveResponse = await fetch('/api/import/url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(asset)
+                body: JSON.stringify({ 
+                  url: finalUrl, 
+                  mediaType: 'image', 
+                  originalFilename: filename,
+                  title: title // Pass the name so it gets saved with correct title
+                }),
               });
 
               if (!saveResponse.ok) {
@@ -2220,10 +2210,10 @@ export default function VisualSearchPage() {
               }
 
               const savedAsset = await saveResponse.json();
-              console.log(`💾 EXECUTE: Asset saved to database:`, savedAsset.asset?.id);
+              console.log(`💾 EXECUTE: Asset saved via import/url:`, savedAsset);
             } catch (saveError) {
-              console.error('💾 EXECUTE: Failed to save to database:', saveError);
-              // Continue with UI update even if DB save fails
+              console.error('💾 EXECUTE: Failed to save via import/url:', saveError);
+              // Continue with UI update even if save fails
             }
 
             // Add to pinned items so video generation can use it as ref
