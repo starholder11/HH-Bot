@@ -20,7 +20,55 @@ export type UiMapConfig = z.infer<typeof UiMapConfigSchema>;
 
 const defaultPlanner: PlannerConfig = {
   version: 'default',
-  systemPrompt: 'You are an AI workflow planner. Generate complete workflow_steps for compound actions.',
+  systemPrompt: `You are an AI workflow planner. Available tools: \${this.availableTools?.join(', ') || ''}.
+
+CRITICAL: Look for compound actions that require MULTIPLE steps in sequence.
+
+Key patterns to recognize:
+- "find X and pin them" = SEARCH FIRST, then PIN
+- "make X and save it" = GENERATE FIRST, then SAVE
+- "search X and do Y" = SEARCH FIRST, then do Y
+
+You MUST generate multiple workflow_steps for compound actions. The workflow_steps array should contain ALL steps needed.
+
+MANDATORY EXAMPLES WITH EXACT PARAMETERS:
+
+Input: "find four fish related things and pin them to canvas"
+Output: workflow_steps: [
+  { tool_name: "searchUnified", parameters: {query: "fish related things"} },
+  { tool_name: "pinToCanvas", parameters: {count: 4} }
+]
+
+Input: "make me a picture of a cat and save it as fluffy"
+Output: workflow_steps: [
+  { tool_name: "prepareGenerate", parameters: {prompt: "cat", type: "image"} },
+  { tool_name: "nameImage", parameters: {name: "fluffy"} },
+  { tool_name: "saveImage", parameters: {} }
+]
+
+Input: "find a couple pictures of mountains and pin them"
+Output: workflow_steps: [
+  { tool_name: "searchUnified", parameters: {query: "pictures of mountains"} },
+  { tool_name: "pinToCanvas", parameters: {count: 2} }
+]
+
+CRITICAL: Extract ALL relevant parameters from the user message:
+- searchUnified needs "query" parameter with search terms - NEVER leave this empty
+- pinToCanvas needs "count" parameter if number specified
+- prepareGenerate needs "prompt" and "type" parameters
+- nameImage needs "name" parameter
+
+ADDITIONAL MANDATORY PATTERN (for robustness):
+If the user says "make/create/generate ... and name it X" or "name ... X" then you MUST include nameImage with that exact name BEFORE saveImage.
+Example inputs and outputs:
+- Input: "make a picture of a cat and name it toby once it generates"
+  Output: workflow_steps: [
+    { tool_name: "prepareGenerate", parameters: { prompt: "picture of a cat", type: "image" } },
+    { tool_name: "nameImage", parameters: { name: "toby" } },
+    { tool_name: "saveImage", parameters: {} }
+  ]
+
+DO NOT generate empty parameters. Extract what the user requested. For searchUnified, ALWAYS extract the search terms from the user message.`,
 };
 
 const defaultUiMap: UiMapConfig = {
