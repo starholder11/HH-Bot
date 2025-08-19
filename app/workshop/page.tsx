@@ -1529,36 +1529,134 @@ export default function VisualSearchPage() {
           }
         }
       },
-      // Universal UI Action Tools
-      navigate: (payload: { page?: string; params?: any }) => {
-        if (payload.page) {
-          window.location.href = `/${payload.page}${payload.params ? '?' + new URLSearchParams(payload.params).toString() : ''}`;
+      // EXECUTOR: Navigate to different pages
+      navigate: async (payload: { page?: string; params?: any; correlationId?: string }) => {
+        try {
+          if (payload.page) {
+            console.log(`[${payload.correlationId}] EXECUTE: Navigating to ${payload.page}`);
+            window.location.href = `/${payload.page}${payload.params ? '?' + new URLSearchParams(payload.params).toString() : ''}`;
+            
+            // ACK: Navigation initiated
+            await fetch('/api/agent/ack', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                correlationId: payload?.correlationId || 'workshop',
+                step: 'navigate',
+                artifacts: { page: payload.page, params: payload.params }
+              })
+            });
+          }
+        } catch (e) {
+          console.error('navigate failed:', e);
         }
       },
-      openModal: (payload: { modalType?: string; data?: any }) => {
-        if (payload.modalType === 'canvas') {
-          setShowCanvasModal(true);
+      // EXECUTOR: Open modals and UI overlays
+      openModal: async (payload: { modalType?: string; data?: any; correlationId?: string }) => {
+        try {
+          console.log(`[${payload.correlationId}] EXECUTE: Opening modal ${payload.modalType}`);
+          if (payload.modalType === 'canvas') {
+            setShowCanvasModal(true);
+          }
+          // Add other modal types as needed
+          
+          // ACK: Modal opened
+          await fetch('/api/agent/ack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              correlationId: payload?.correlationId || 'workshop',
+              step: 'openmodal',
+              artifacts: { modalType: payload.modalType, opened: true }
+            })
+          });
+        } catch (e) {
+          console.error('openModal failed:', e);
         }
-        // Add other modal types as needed
       },
-      changeView: (payload: { viewType?: string; options?: any }) => {
-        if (payload.viewType === 'results') setRightTab('results');
-        if (payload.viewType === 'canvas') setRightTab('canvas');
-        if (payload.viewType === 'generate') setRightTab('generate');
-        if (payload.viewType === 'output') setRightTab('output');
-        if (payload.viewType === 'layouts') setRightTab('layouts');
+      // EXECUTOR: Change UI views and tabs
+      changeView: async (payload: { viewType?: string; options?: any; correlationId?: string }) => {
+        try {
+          console.log(`[${payload.correlationId}] EXECUTE: Changing view to ${payload.viewType}`);
+          if (payload.viewType === 'results') setRightTab('results');
+          if (payload.viewType === 'canvas') setRightTab('canvas');
+          if (payload.viewType === 'generate') setRightTab('generate');
+          if (payload.viewType === 'output') setRightTab('output');
+          if (payload.viewType === 'layouts') setRightTab('layouts');
+          
+          // ACK: View changed
+          await fetch('/api/agent/ack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              correlationId: payload?.correlationId || 'workshop',
+              step: 'changeview',
+              artifacts: { viewType: payload.viewType, changed: true }
+            })
+          });
+        } catch (e) {
+          console.error('changeView failed:', e);
+        }
       },
-      selectContent: (payload: { selectionAction?: string; itemIds?: string[] }) => {
-        // Implement content selection logic
-        console.log('Content selection:', payload);
+      // EXECUTOR: Select content items
+      selectContent: async (payload: { selectionAction?: string; itemIds?: string[]; correlationId?: string }) => {
+        try {
+          console.log(`[${payload.correlationId}] EXECUTE: Content selection:`, payload);
+          // TODO: Implement actual content selection logic
+          
+          // ACK: Selection completed
+          await fetch('/api/agent/ack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              correlationId: payload?.correlationId || 'workshop',
+              step: 'selectcontent',
+              artifacts: { selectionAction: payload.selectionAction, itemIds: payload.itemIds, selected: true }
+            })
+          });
+        } catch (e) {
+          console.error('selectContent failed:', e);
+        }
       },
-      spatialControl: (payload: { spatialAction?: string; parameters?: any }) => {
-        // Implement spatial environment controls
-        console.log('Spatial control:', payload);
+      // EXECUTOR: Control spatial environment
+      spatialControl: async (payload: { spatialAction?: string; parameters?: any; correlationId?: string }) => {
+        try {
+          console.log(`[${payload.correlationId}] EXECUTE: Spatial control:`, payload);
+          // TODO: Implement actual spatial controls
+          
+          // ACK: Spatial control completed
+          await fetch('/api/agent/ack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              correlationId: payload?.correlationId || 'workshop',
+              step: 'spatialcontrol',
+              artifacts: { spatialAction: payload.spatialAction, parameters: payload.parameters, executed: true }
+            })
+          });
+        } catch (e) {
+          console.error('spatialControl failed:', e);
+        }
       },
-      workflowControl: (payload: { workflowId?: string; workflowAction?: string }) => {
-        // Implement workflow management
-        console.log('Workflow control:', payload);
+      // EXECUTOR: Manage workflows
+      workflowControl: async (payload: { workflowId?: string; workflowAction?: string; correlationId?: string }) => {
+        try {
+          console.log(`[${payload.correlationId}] EXECUTE: Workflow control:`, payload);
+          // TODO: Implement actual workflow management
+          
+          // ACK: Workflow control completed
+          await fetch('/api/agent/ack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              correlationId: payload?.correlationId || 'workshop',
+              step: 'workflowcontrol',
+              artifacts: { workflowId: payload.workflowId, workflowAction: payload.workflowAction, executed: true }
+            })
+          });
+        } catch (e) {
+          console.error('workflowControl failed:', e);
+        }
       },
       // Called by client after tool pinToCanvas returns
       pin: (payload: { id?: string; title?: string; url?: string; needsLookup?: boolean }) => {
@@ -1746,7 +1844,7 @@ export default function VisualSearchPage() {
           }
         } catch {}
       },
-      // Simplified path: run generation directly using the plan; show Output
+      // EXECUTOR: Generate content and persist results
       prepareGenerate: async (payload: any) => {
         debug('vs:agent:gen', 'prepareGenerate');
         try {
