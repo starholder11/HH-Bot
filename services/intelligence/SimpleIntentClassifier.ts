@@ -53,7 +53,7 @@ export class SimpleIntentClassifier {
 
         You MUST generate multiple workflow_steps for compound actions. The workflow_steps array should contain ALL steps needed.
 
-                MANDATORY EXAMPLES WITH EXACT PARAMETERS:
+        MANDATORY EXAMPLES WITH EXACT PARAMETERS:
 
         Input: "find four fish related things and pin them to canvas"
         Output: workflow_steps: [
@@ -74,11 +74,21 @@ export class SimpleIntentClassifier {
           { tool_name: "pinToCanvas", parameters: {count: 2} }
         ]
 
-        CRITICAL: Extract ALL relevant parameters from the user message:
-        - searchUnified needs "query" parameter with search terms - NEVER leave this empty
-        - pinToCanvas needs "count" parameter if number specified
-        - prepareGenerate needs "prompt" and "type" parameters
-        - nameImage needs "name" parameter
+        CRITICAL PARAMETER EXTRACTION RULES - MANDATORY:
+        You MUST extract specific parameters from the user message and include them in the parameters object:
+        - searchUnified: MUST have "query" parameter with the search terms from user message
+        - pinToCanvas: MUST have "count" parameter if user specifies a number
+        - prepareGenerate: MUST have "prompt" and "type" parameters extracted from user message
+        - nameImage: MUST have "name" parameter with the exact name the user specified
+        - saveImage: Can have empty parameters {}
+
+        PARAMETER EXTRACTION EXAMPLES:
+        - "name it mr_turkey" → nameImage parameters: {name: "mr_turkey"}
+        - "make a picture of a cat" → prepareGenerate parameters: {prompt: "picture of a cat", type: "image"}
+        - "find fish things" → searchUnified parameters: {query: "fish things"}
+        - "pin 4 items" → pinToCanvas parameters: {count: 4}
+
+        NEVER generate empty parameters when the user provides specific values. ALWAYS extract the exact values from the user message.
 
         ADDITIONAL MANDATORY PATTERN (for robustness):
         If the user says "make/create/generate ... and name it X" or "name ... X" then you MUST include nameImage with that exact name BEFORE saveImage.
@@ -90,7 +100,7 @@ export class SimpleIntentClassifier {
             { tool_name: "saveImage", parameters: {} }
           ]
 
-        DO NOT generate empty parameters. Extract what the user requested. For searchUnified, ALWAYS extract the search terms from the user message.`,
+        DO NOT generate empty parameters when specific values are provided. Extract what the user requested.`,
         prompt: userMessage,
         temperature: 0.1
       });
