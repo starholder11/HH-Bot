@@ -2384,6 +2384,13 @@ export default function VisualSearchPage() {
             } catch {}
           }
 
+          // Guard: avoid duplicate pinning for the same correlation
+          const lastPinnedCorr = (window as any).__lastPinnedCorrelationId;
+          if (lastPinnedCorr && lastPinnedCorr === payload?.correlationId) {
+            console.log(`[${payload?.correlationId}] UI: Skipping duplicate pin (already pinned for this correlationId)`);
+            return;
+          }
+
           if (finalUrl) {
             console.log(`[${payload?.correlationId}] UI: Pinning generated content: ${finalUrl}`);
             // Materialize a canvas item for the generated asset and actually pin it to canvas
@@ -2406,6 +2413,7 @@ export default function VisualSearchPage() {
             try { pinResult(resultToPin); } catch {}
             try { setRightTab('canvas'); } catch {}
             console.log(`Pinning generated content to canvas: ${payload?.canvasId || 'default'}`);
+            try { (window as any).__lastPinnedCorrelationId = payload?.correlationId; } catch {}
           } else if (payload?.items && Array.isArray(payload.items)) {
             // Pin search results
             console.log(`[${payload?.correlationId}] UI: Pinning ${payload.items.length} search results to canvas`);
