@@ -722,6 +722,22 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: true
             };
+          } else if (tool === 'nameimage') {
+            // Extract name from user message if planner didn't provide it
+            let name = params.name;
+            if (!name) {
+              const nameMatch = userMessage.match(/(?:name it|call it|rename (?:this|it) to)\s+([a-zA-Z0-9_-]+)/i);
+              if (nameMatch) {
+                name = nameMatch[1];
+                console.log(`[${correlationId}] PROXY: Extracted name from message: "${name}"`);
+              }
+            }
+            payload = {
+              ...params,
+              name: name || 'Untitled',
+              correlationId,
+              originalRequest: userMessage
+            };
           } else if (tool === 'pin' || tool === 'pintocanvas') {
             // Pass search results if available, respecting count parameter
             if (searchResults.length > 0) {
