@@ -752,6 +752,11 @@ export async function POST(req: NextRequest) {
               isFollowUp: true
             };
             // If no resolved refs yet, UI will fall back to current generated image or pinned items
+            if (!payload.prompt || payload.prompt === userMessage) {
+              // Minimal prompt extraction for follow-up video requests
+              const cleaned = userMessage.replace(/^(now\s+)?(use|take|with)\s+the\s+pinned\s+image\s+to\s+(make|create|generate)\s+\w*\s*video\s*(of|about)?\s*/i, '').trim();
+              payload.prompt = cleaned || 'video';
+            }
           } else if (tool === 'nameimage') {
             // Extract name from user message if planner didn't provide it
             let name = params.name;

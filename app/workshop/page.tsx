@@ -2385,7 +2385,7 @@ export default function VisualSearchPage() {
           console.log(`[${payload?.correlationId}] UI: pinToCanvas handler called with payload:`, JSON.stringify(payload));
 
           // Pin generated content if available
-          let finalUrl = genUrlRef.current || genUrl;
+          let finalUrl = payload?.url || genUrlRef.current || genUrl;
           if (!finalUrl && genRaw) {
             try {
               const candidates = [
@@ -2413,14 +2413,14 @@ export default function VisualSearchPage() {
             const title = lastNameRef.current || 'Generated Image';
             const resultToPin: UnifiedSearchResult = {
               id: `gen-${Date.now()}`,
-              content_type: 'image',
+              content_type: (payload?.type as any) || 'image',
               title,
               description: '',
               score: 1,
               metadata: {
                 cloudflare_url: finalUrl,
                 s3_url: finalUrl,
-                media_type: 'image',
+                media_type: ((payload?.type as any) || 'image'),
                 title
               } as any,
               preview: title
