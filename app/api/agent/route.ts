@@ -498,7 +498,15 @@ export async function POST(req: NextRequest) {
       // Use executedSteps if available (new backend), fallback to planned steps (old backend)
       const executedSteps = agentResult?.execution?.executedSteps || [];
       const plannedSteps = agentResult?.execution?.intent?.workflow_steps || [];
-      const steps = executedSteps.length > 0 ? executedSteps : plannedSteps;
+      
+      // CRITICAL FIX: If planned steps include resolveAssetRefs but executed steps don't,
+      // use planned steps to ensure resolveAssetRefs gets executed by the proxy
+      const hasResolveAssetRefs = plannedSteps.some((s: any) => s?.tool_name === 'resolveAssetRefs');
+      const executedHasResolveAssetRefs = executedSteps.some((s: any) => s?.tool_name === 'resolveAssetRefs');
+      
+      const steps = (hasResolveAssetRefs && !executedHasResolveAssetRefs) 
+        ? plannedSteps  // Use planned steps when backend skipped resolveAssetRefs
+        : (executedSteps.length > 0 ? executedSteps : plannedSteps);
 
       console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({
         success: agentResult.success,
