@@ -1923,10 +1923,29 @@ export default function VisualSearchPage() {
               if (resp.ok) {
                 const all = await resp.json();
                 const namesLc = loraNames.map((n) => String(n).toLowerCase().trim());
+                // eslint-disable-next-line no-console
+                console.log(`[${payload?.correlationId || 'workshop'}] prepareGenerate: Searching for LoRAs:`, loraNames, '(normalized:', namesLc, ')');
                 const resolved = Array.isArray(all) ? all.filter((l: any) => {
                   const tw = String(l?.triggerWord || '').toLowerCase();
                   const cn = String(l?.canvasName || '').toLowerCase();
-                  return namesLc.some((n) => (tw && tw !== 'canvas_style' && tw.includes(n)) || (cn && cn.includes(n)) || (n.includes(cn)));
+                  return namesLc.some((n) => {
+                    // Clean the search name (remove "lora", extra spaces, etc.)
+                    const cleanN = n.replace(/\s*lora\s*/g, '').trim();
+                    const cleanCn = cn.replace(/\s*lora\s*/g, '').trim();
+                    
+                    // Multiple matching strategies for robustness
+                    return (
+                      // Exact match
+                      (tw && tw !== 'canvas_style' && tw === cleanN) ||
+                      (cn && cn === cleanN) ||
+                      // Partial match (either direction)
+                      (tw && tw !== 'canvas_style' && (tw.includes(cleanN) || cleanN.includes(tw))) ||
+                      (cn && (cn.includes(cleanN) || cleanN.includes(cleanCn))) ||
+                      // Word-based match (split by spaces and check individual words)
+                      (cn && cleanN.split(' ').every(word => word.length > 2 && cn.includes(word))) ||
+                      (cn && cn.split(' ').every(word => word.length > 2 && cleanN.includes(word)))
+                    );
+                  });
                 }).map((l: any) => ({ path: l.artifactUrl || l.path, scale: 1.0, triggerWord: l.triggerWord, canvasName: l.canvasName })) : [];
                 if (resolved.length > 0) {
                   finalOptions.loras = resolved;
@@ -1956,7 +1975,17 @@ export default function VisualSearchPage() {
                 const detected = Array.isArray(all) ? all.filter((l: any) => {
                   const tw = String(l?.triggerWord || '').toLowerCase();
                   const cn = String(l?.canvasName || '').toLowerCase();
-                  return (tw && tw !== 'canvas_style' && p.includes(tw)) || (cn && p.includes(cn));
+                  const cleanCn = cn.replace(/\s*lora\s*/g, '').trim();
+                  
+                  return (
+                    // Trigger word match (if not generic)
+                    (tw && tw !== 'canvas_style' && p.includes(tw)) ||
+                    // Canvas name match (exact or partial)
+                    (cn && p.includes(cn)) ||
+                    (cleanCn && p.includes(cleanCn)) ||
+                    // Word-based match for canvas name
+                    (cn && cn.split(' ').every(word => word.length > 2 && p.includes(word)))
+                  );
                 }).map((l: any) => ({ path: l.artifactUrl || l.path, scale: 1.0, triggerWord: l.triggerWord, canvasName: l.canvasName })) : [];
                 if (detected.length > 0) {
                   finalOptions.loras = detected;
