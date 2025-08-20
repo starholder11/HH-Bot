@@ -604,11 +604,26 @@ export async function POST(req: NextRequest) {
           if (tool === 'resolveassetrefs') {
             try {
               // Execute resolveAssetRefs on local backend
+              // Extract asset identifiers from user message if not provided in params
+              let identifiers = params.identifiers || [];
+              if (identifiers.length === 0) {
+                // Extract asset IDs, filenames, or names from user message
+                const assetIdMatch = userMessage.match(/(?:asset ID|asset id|ID):\s*([a-f0-9-]+)/i);
+                const filenameMatch = userMessage.match(/(?:using|with|from)\s+([a-zA-Z0-9_.-]+\.[a-zA-Z0-9]+)/i);
+                const nameMatch = userMessage.match(/(?:using|with|from)\s+([a-zA-Z0-9_-]+)/i);
+                
+                if (assetIdMatch) identifiers.push(assetIdMatch[1]);
+                else if (filenameMatch) identifiers.push(filenameMatch[1]);
+                else if (nameMatch) identifiers.push(nameMatch[1]);
+                
+                console.log(`[${correlationId}] BACKEND_ONLY: Extracted identifiers from message:`, identifiers);
+              }
+              
               const backendResponse = await fetch(`${process.env.PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/tools/resolveAssetRefs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  identifiers: params.identifiers || [],
+                  identifiers,
                   preferred: params.preferred || 'any',
                   userId: 'workshop-user'
                 })
