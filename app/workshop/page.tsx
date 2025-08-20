@@ -2015,20 +2015,28 @@ export default function VisualSearchPage() {
           // NEW: Handle direct asset references from planner
           let resolvedAssetRefs: string[] = [];
           if (payload?.assetRefs && Array.isArray(payload.assetRefs)) {
-            console.log(`🎬 Resolving ${payload.assetRefs.length} asset references:`, payload.assetRefs);
+            console.log(`🎬 Processing ${payload.assetRefs.length} asset references:`, payload.assetRefs);
             for (const assetRef of payload.assetRefs) {
               try {
-                const assetResponse = await fetch(`/api/media-assets/${assetRef}`);
-                if (assetResponse.ok) {
-                  const assetData = await assetResponse.json();
-                  const assetUrl = assetData.asset?.cloudflare_url || assetData.asset?.s3_url;
-                  if (assetUrl) {
-                    resolvedAssetRefs.push(assetUrl);
-                    console.log(`🎬 Resolved asset ${assetRef} to URL: ${assetUrl}`);
+                // Check if assetRef is already a URL (starts with http/https)
+                if (assetRef.startsWith('http://') || assetRef.startsWith('https://')) {
+                  // Already resolved URL, use directly
+                  resolvedAssetRefs.push(assetRef);
+                  console.log(`🎬 Using pre-resolved URL: ${assetRef}`);
+                } else {
+                  // Asset ID, resolve to URL
+                  const assetResponse = await fetch(`/api/media-assets/${assetRef}`);
+                  if (assetResponse.ok) {
+                    const assetData = await assetResponse.json();
+                    const assetUrl = assetData.asset?.cloudflare_url || assetData.asset?.s3_url;
+                    if (assetUrl) {
+                      resolvedAssetRefs.push(assetUrl);
+                      console.log(`🎬 Resolved asset ${assetRef} to URL: ${assetUrl}`);
+                    }
                   }
                 }
               } catch (e) {
-                console.warn(`🎬 Failed to resolve asset ${assetRef}:`, e);
+                console.warn(`🎬 Failed to process asset ${assetRef}:`, e);
               }
             }
           }
