@@ -14,7 +14,7 @@ export const SimpleIntentSchema = z.object({
   classification: z.string().optional().describe('Classification string'),
   workflow_steps: z.array(z.object({
     tool_name: z.string(),
-    parameters: z.record(z.any()).optional().default({}),
+    parameters: z.record(z.any()).describe('Parameters extracted from user message - NEVER leave empty when user provides specific values'),
     description: z.string().optional()
   })).describe('Complete workflow steps to execute - ALWAYS populate this with the full sequence needed')
 });
@@ -100,7 +100,11 @@ export class SimpleIntentClassifier {
             { tool_name: "saveImage", parameters: {} }
           ]
 
-        DO NOT generate empty parameters when specific values are provided. Extract what the user requested.`,
+        DO NOT generate empty parameters when specific values are provided. Extract what the user requested.
+        
+        CRITICAL: The parameters field in workflow_steps is REQUIRED and must contain the extracted values.
+        Example: If user says "name it mr_turkey", the nameImage step MUST have parameters: {"name": "mr_turkey"}
+        Example: If user says "make a picture of a cat", prepareGenerate MUST have parameters: {"prompt": "picture of a cat", "type": "image"}`,
         prompt: userMessage,
         temperature: 0.1
       });
