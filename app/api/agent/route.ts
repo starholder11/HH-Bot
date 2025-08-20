@@ -498,13 +498,13 @@ export async function POST(req: NextRequest) {
       // Use executedSteps if available (new backend), fallback to planned steps (old backend)
       const executedSteps = agentResult?.execution?.executedSteps || [];
       const plannedSteps = agentResult?.execution?.intent?.workflow_steps || [];
-      
+
       // CRITICAL FIX: If planned steps include resolveAssetRefs but executed steps don't,
       // use planned steps to ensure resolveAssetRefs gets executed by the proxy
       const hasResolveAssetRefs = plannedSteps.some((s: any) => s?.tool_name === 'resolveAssetRefs');
       const executedHasResolveAssetRefs = executedSteps.some((s: any) => s?.tool_name === 'resolveAssetRefs');
-      
-      const steps = (hasResolveAssetRefs && !executedHasResolveAssetRefs) 
+
+      const steps = (hasResolveAssetRefs && !executedHasResolveAssetRefs)
         ? plannedSteps  // Use planned steps when backend skipped resolveAssetRefs
         : (executedSteps.length > 0 ? executedSteps : plannedSteps);
 
@@ -604,11 +604,11 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(`[${correlationId}] PROXY: Mapped ${tool} -> ${uiAction}`);
-        
+
         // Handle BACKEND_ONLY tools
         if (uiAction === 'BACKEND_ONLY') {
           console.log(`[${correlationId}] BACKEND_ONLY: Executing ${tool} on backend`);
-          
+
           if (tool === 'resolveassetrefs') {
             try {
               // Execute resolveAssetRefs on local backend
@@ -619,14 +619,14 @@ export async function POST(req: NextRequest) {
                 const assetIdMatch = userMessage.match(/(?:asset ID|asset id|ID):\s*([a-f0-9-]+)/i);
                 const filenameMatch = userMessage.match(/(?:using|with|from)\s+([a-zA-Z0-9_.-]+\.[a-zA-Z0-9]+)/i);
                 const nameMatch = userMessage.match(/(?:using|with|from)\s+([a-zA-Z0-9_-]+)/i);
-                
+
                 if (assetIdMatch) identifiers.push(assetIdMatch[1]);
                 else if (filenameMatch) identifiers.push(filenameMatch[1]);
                 else if (nameMatch) identifiers.push(nameMatch[1]);
-                
+
                 console.log(`[${correlationId}] BACKEND_ONLY: Extracted identifiers from message:`, identifiers);
               }
-              
+
               const backendResponse = await fetch(`${process.env.PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/tools/resolveAssetRefs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -636,11 +636,11 @@ export async function POST(req: NextRequest) {
                   userId: 'workshop-user'
                 })
               });
-              
+
               if (backendResponse.ok) {
                 const result = await backendResponse.json();
                 console.log(`[${correlationId}] BACKEND_ONLY: resolveAssetRefs resolved ${result.refs?.length || 0} refs`);
-                
+
                 // Store resolved refs for next step (generateContent)
                 resolvedRefs = result.refs || [];
               } else {
@@ -650,11 +650,11 @@ export async function POST(req: NextRequest) {
               console.error(`[${correlationId}] BACKEND_ONLY: resolveAssetRefs error:`, error);
             }
           }
-          
+
           // Skip to next step - backend-only tools don't generate UI events
           continue;
         }
-        
+
         if (uiAction) {
           let payload: any = { ...params, correlationId, originalRequest: userMessage };
 
@@ -767,15 +767,8 @@ export async function POST(req: NextRequest) {
               name: params.name || params.newFilename || extractName(userMessage) || 'Untitled',
               correlationId
             };
-            // If immediate save step follows, carry the chosen name forward so UI can use it
-            try {
-              const stepIndex = steps.findIndex(s => s?.tool_name?.toLowerCase() === tool);
-              const next = steps[stepIndex + 1];
-              if (next?.tool_name && next.tool_name.toLowerCase() === 'saveimage') {
-                events.push({ action: 'saveImage', payload: { name: payload.name, correlationId } });
-                console.log(`[${correlationId}] PROXY: Injected saveImage with name '${payload.name}' right after nameImage`);
-              }
-            } catch {}
+            // REMOVED: Do not inject additional saveImage steps - trust the planner workflow
+            // The backend planner already includes complete workflows from S3 config
           }
 
           // Queue the step; ack gating will occur during streaming emission
@@ -878,27 +871,9 @@ export async function POST(req: NextRequest) {
                 }
               }
 
-              // Safety: auto-ack UI-only steps immediately to avoid gating delays
-              if (stepName === 'nameimage' || stepName === 'saveimage') {
-                try {
-                  const backendUrl = process.env.LANCEDB_API_URL || '';
-                  // Immediate auto-ack to prevent proxy waiting
-                  setTimeout(async () => {
-                    try {
-                      await fetch(`${backendUrl}/api/agent-comprehensive/ack`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          correlationId,
-                          step: stepName,
-                          artifacts: { synthetic: true, immediate: true }
-                        })
-                      });
-                      console.log(`[${correlationId}] Auto-acked ${stepName} immediately`);
-                    } catch {}
-                  }, 100); // Much shorter delay
-                } catch {}
-              }
+              // REMOVED: Auto-ack logic that was interfering with proper workflow sequencing
+              // Let the frontend handlers send their own acknowledgments after completing their work
+              // This ensures proper sequencing and prevents duplicate calls
             }
           } catch (error) {
             console.error(`[${correlationId}] Stream error:`, error);

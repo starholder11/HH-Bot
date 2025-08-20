@@ -2158,13 +2158,21 @@ export default function VisualSearchPage() {
           }
 
           const name = payload?.name || 'Untitled';
-          lastNameRef.current = name;
+
+          // CRITICAL: Only update lastNameRef if this is not a duplicate/overwrite call
+          // Check if we already have a better name stored
+          if (!lastNameRef.current || lastNameRef.current === 'Untitled' || name !== 'Untitled') {
+            lastNameRef.current = name;
+            console.log(`🏷️ Updated stored name to: ${name}`);
+          } else {
+            console.log(`🏷️ Keeping existing name: ${lastNameRef.current}, ignoring: ${name}`);
+          }
 
           // Update the UI title input field immediately
           const titleInput = document.getElementById('gen-title-input') as HTMLInputElement;
-          if (titleInput) {
-            titleInput.value = name;
-            console.log(`🏷️ Updated UI title field to: ${name}`);
+          if (titleInput && (titleInput.value === '' || titleInput.value === 'Untitled' || name !== 'Untitled')) {
+            titleInput.value = lastNameRef.current;
+            console.log(`🏷️ Updated UI title field to: ${lastNameRef.current}`);
           }
 
           let finalUrl = genUrlRef.current || genUrl;
@@ -2248,8 +2256,9 @@ export default function VisualSearchPage() {
           if (finalUrl) {
             // Create a mock asset ID and ADD TO PINNED ITEMS so requestPinnedThenGenerate can find it
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-            const title = payload?.name || lastNameRef.current || 'Generated Image';
-            console.log(`💾 EXECUTE: Saving image to database as: ${title}`);
+            // Use the stored name from nameImage step, fallback to payload name
+            const title = lastNameRef.current || payload?.name || 'Generated Image';
+            console.log(`💾 EXECUTE: Saving image to database as: ${title} (from lastNameRef: ${lastNameRef.current}, payload: ${payload?.name})`);
 
             // EXECUTE: Use the same save logic as the UI "Save to library" button
             try {
@@ -2288,7 +2297,8 @@ export default function VisualSearchPage() {
               type: 'image',
               metadata: { collection: payload?.collection || 'default' }
             };
-            lastNameRef.current = null;
+            // FIXED: Don't clear lastNameRef here as it may be needed for subsequent steps
+            // lastNameRef.current = null;
 
             // Only pin if explicitly requested (don't auto-pin every saved item)
             const shouldPin = payload?.pin === true || payload?.pinToCanvas === true;

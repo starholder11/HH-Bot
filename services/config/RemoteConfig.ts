@@ -86,6 +86,23 @@ Example inputs and outputs:
     { tool_name: "saveImage", parameters: {} }
   ]
 
+CRITICAL NAMING AND PINNING WORKFLOWS (MANDATORY):
+When user asks to name/rename existing content and pin it, use nameImage, saveImage, pinToCanvas in sequence:
+
+Input: "name it mr_penguin and pin it to the canvas"
+Output: workflow_steps: [
+  { tool_name: "nameImage", parameters: { name: "mr_penguin" } },
+  { tool_name: "saveImage", parameters: {} },
+  { tool_name: "pinToCanvas", parameters: {} }
+]
+
+Input: "call it cool_drummer_guy and pin it to the canvas"
+Output: workflow_steps: [
+  { tool_name: "nameImage", parameters: { name: "cool_drummer_guy" } },
+  { tool_name: "saveImage", parameters: {} },
+  { tool_name: "pinToCanvas", parameters: {} }
+]
+
 DO NOT generate empty parameters. Extract what the user requested. For searchUnified, ALWAYS extract the search terms from the user message.`,
 };
 
