@@ -645,10 +645,12 @@ export async function POST(req: NextRequest) {
               model: params.model || 'default',
               options: params.options || {},
               refs: params.refs || [],
+              loraNames: params.loraNames || [], // CRITICAL: Pass through LoRA names from backend planner
               originalRequest: userMessage,
               correlationId,
               isFollowUp: false
             };
+            console.log(`[${correlationId}] PROXY: prepareGenerate with LoRAs:`, params.loraNames);
             // Store deferred materialize steps to emit AFTER prepareGenerate ack
             try {
               // Find current step index by tool_name since object references differ

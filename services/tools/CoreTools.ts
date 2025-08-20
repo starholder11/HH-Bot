@@ -512,27 +512,41 @@ export class CoreTools {
         let finalPrompt = params.prompt || 'Creative content';
         let resolvedLoras: any[] = [];
 
-        // Look up LoRA data if names provided
+        // Look up LoRA data if names provided - defer to frontend if backend LoRA access fails
         if (params.loraNames && params.loraNames.length > 0) {
           try {
             const lorasResult = await this.apiClient.get('/api/loras');
-            const allLoras = lorasResult.data;
-
-            resolvedLoras = params.loraNames.map((name: string) => {
-              const cleanName = name.toLowerCase().trim();
-              return allLoras.find((l: any) =>
-                (l.canvasName && l.canvasName.toLowerCase().includes(cleanName)) ||
-                (l.triggerWord && l.triggerWord.toLowerCase().includes(cleanName)) ||
-                (cleanName.includes(l.canvasName?.toLowerCase() || ''))
-              );
-            }).filter(Boolean).map((l: any) => ({
-              path: l.artifactUrl || l.path,
-              scale: 1.0,
-              triggerWord: l.triggerWord,
-              canvasName: l.canvasName
-            }));
+            if (lorasResult.status === 200 && Array.isArray(lorasResult.data)) {
+              const allLoras = lorasResult.data;
+              resolvedLoras = params.loraNames.map((name: string) => {
+                const cleanName = name.toLowerCase().trim();
+                return allLoras.find((l: any) =>
+                  (l.canvasName && l.canvasName.toLowerCase().includes(cleanName)) ||
+                  (l.triggerWord && l.triggerWord.toLowerCase().includes(cleanName)) ||
+                  (cleanName.includes(l.canvasName?.toLowerCase() || ''))
+                );
+              }).filter(Boolean).map((l: any) => ({
+                path: l.artifactUrl || l.path,
+                scale: 1.0,
+                triggerWord: l.triggerWord,
+                canvasName: l.canvasName
+              }));
+              console.log(`[${correlationId}] Backend resolved ${resolvedLoras.length} LoRAs for:`, params.loraNames);
+            } else {
+              console.warn(`[${correlationId}] Backend LoRA access failed, deferring to frontend`);
+              // Return LoRA names for frontend to resolve during UI execution
+              resolvedLoras = params.loraNames.map((name: string) => ({
+                name,
+                deferToFrontend: true
+              }));
+            }
           } catch (e) {
-            console.warn(`[${correlationId}] Failed to resolve LoRA names:`, e);
+            console.warn(`[${correlationId}] Backend LoRA resolution failed, deferring to frontend:`, e);
+            // Return LoRA names for frontend to resolve during UI execution
+            resolvedLoras = params.loraNames.map((name: string) => ({
+              name,
+              deferToFrontend: true
+            }));
           }
         }
 
