@@ -138,6 +138,8 @@ const tools = {
           /(?:use|apply)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)\s+(?:to\s+)?(?:make|create|generate|build|produce)\s+(.+)/i,
           // "make Y using the X lora" - match from the END to avoid greedy matching
           /(?:make|create|generate|build|produce)\s+(.+)\s+(?:using|with)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)$/i,
+          // "make ... using the X lora of ..." - extract lora name and content after "of"
+          /(?:make|create|generate|build|produce)\s+.*?(?:using|with)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)\s+(?:of|for)\s+(.+)/i,
           // "X lora Y" - simple pattern (keep as fallback)
           /(.*?)\s+(?:lora|style)\s+(.+)/i
         ];
@@ -158,6 +160,13 @@ const tools = {
               if (match[1] && match[2]) {
                 finalPrompt = match[1].trim();
                 finalLoraNames = [match[2].trim()];
+                break;
+              }
+            } else if (i === 2) {
+              // Pattern: "make ... using X lora of Y"
+              if (match[1] && match[2]) {
+                finalLoraNames = [match[1].trim()];
+                finalPrompt = match[2].trim();
                 break;
               }
             } else {
