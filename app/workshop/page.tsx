@@ -2350,8 +2350,23 @@ export default function VisualSearchPage() {
           console.log(`[${payload?.correlationId}] UI: pinToCanvas handler called with payload:`, JSON.stringify(payload));
 
           // Pin generated content if available
-          if (genUrl) {
-            console.log(`[${payload?.correlationId}] UI: Pinning generated content: ${genUrl}`);
+          let finalUrl = genUrlRef.current || genUrl;
+          if (!finalUrl && genRaw) {
+            try {
+              const candidates = [
+                genRaw?.url,
+                genRaw?.result?.url,
+                genRaw?.result?.image?.url,
+                genRaw?.result?.video?.url,
+                genRaw?.result?.data?.image?.url,
+                genRaw?.result?.data?.video?.url
+              ].filter(Boolean) as string[];
+              if (candidates.length > 0) finalUrl = candidates[0];
+            } catch {}
+          }
+
+          if (finalUrl) {
+            console.log(`[${payload?.correlationId}] UI: Pinning generated content: ${finalUrl}`);
             // Mock pinning - in real implementation, this would update canvas
             console.log(`Pinning generated content to canvas: ${payload?.canvasId || 'default'}`);
           } else if (payload?.items && Array.isArray(payload.items)) {
