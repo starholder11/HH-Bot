@@ -1946,6 +1946,26 @@ export default function VisualSearchPage() {
               // eslint-disable-next-line no-console
               console.warn(`[${payload?.correlationId || 'workshop'}] prepareGenerate: LoRA resolution failed`, e);
             }
+          } else if (mode === 'image' && (!loraNames || loraNames.length === 0) && typeof prompt === 'string' && prompt.trim().length > 0) {
+            // Fallback: auto-detect LoRAs from prompt text
+            try {
+              const resp = await fetch('/api/loras', { cache: 'no-store' });
+              if (resp.ok) {
+                const all = await resp.json();
+                const p = prompt.toLowerCase();
+                const detected = Array.isArray(all) ? all.filter((l: any) => {
+                  const tw = String(l?.triggerWord || '').toLowerCase();
+                  const cn = String(l?.canvasName || '').toLowerCase();
+                  return (tw && tw !== 'canvas_style' && p.includes(tw)) || (cn && p.includes(cn));
+                }).map((l: any) => ({ path: l.artifactUrl || l.path, scale: 1.0, triggerWord: l.triggerWord, canvasName: l.canvasName })) : [];
+                if (detected.length > 0) {
+                  finalOptions.loras = detected;
+                  finalModel = 'fal-ai/flux-lora';
+                  // eslint-disable-next-line no-console
+                  console.log(`[${payload?.correlationId || 'workshop'}] prepareGenerate: Auto-detected LoRAs from prompt:`, detected);
+                }
+              }
+            } catch {}
           }
 
           const body = { mode, model: finalModel, prompt, refs, options: finalOptions } as any;
@@ -2154,7 +2174,7 @@ export default function VisualSearchPage() {
           setGenUrl(candidates[0] || null);
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
-          
+
           // CRITICAL: Update genUrlRef so subsequent steps reference the new video, not the old image
           if (candidates[0]) {
             genUrlRef.current = candidates[0];
@@ -2183,13 +2203,13 @@ export default function VisualSearchPage() {
           if (!videoName || videoName === 'Generated_Video') {
             videoName = lastNameRef.current ? `${lastNameRef.current}_video` : 'Generated_Video';
           }
-          
+
           // CRITICAL: Update lastNameRef so subsequent nameImage/saveImage steps use the video name
           if (videoName && videoName !== 'Generated_Video') {
             lastNameRef.current = videoName;
             console.log(`🎬 Updated lastNameRef to video name: ${videoName}`);
           }
-          
+
           if (videoUrl) {
             console.log(`🎬 Processing video: ${videoName} at ${videoUrl}`);
             try {
@@ -2208,14 +2228,14 @@ export default function VisualSearchPage() {
             // Pin video to canvas if user asked to pin
             const shouldPinVideo = /\bpin\b/i.test((payload?.originalRequest || payload?.prompt || '').toString());
             if (shouldPinVideo) {
-              try { 
+              try {
                 console.log(`🎬 Auto-pinning video: ${videoName}`);
-                await (window as any).__agentApi?.pinToCanvas?.({ 
-                  correlationId: payload?.correlationId, 
+                await (window as any).__agentApi?.pinToCanvas?.({
+                  correlationId: payload?.correlationId,
                   originalRequest: payload?.originalRequest || payload?.prompt,
                   url: videoUrl,
                   type: 'video'
-                }); 
+                });
               } catch (e) {
                 console.error('🎬 Video pin failed:', e);
               }
