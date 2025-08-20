@@ -2263,7 +2263,10 @@ export default function VisualSearchPage() {
             // EXECUTE: Use the same save logic as the UI "Save to library" button
             try {
               // Detect media type from URL
-              const mediaType = finalUrl.includes('.mp4') || finalUrl.includes('video') || finalUrl.includes('kangaroo') ? 'video' : 'image';
+              const urlLower = (finalUrl || '').toLowerCase();
+              const isImageExt = /\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(urlLower);
+              const isVideoExt = /\.(mp4|webm|mov|avi|m4v)(\?|$)/i.test(urlLower);
+              const mediaType = isImageExt ? 'image' : (isVideoExt ? 'video' : (/image/i.test(urlLower) ? 'image' : (/video/i.test(urlLower) ? 'video' : 'image')));
               const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
               console.log(`💾 EXECUTE: Detected mediaType: ${mediaType} from URL: ${finalUrl}`);
 
@@ -2301,7 +2304,8 @@ export default function VisualSearchPage() {
             // lastNameRef.current = null;
 
             // Only pin if explicitly requested (don't auto-pin every saved item)
-            const shouldPin = payload?.pin === true || payload?.pinToCanvas === true;
+            const originalReq = (payload?.originalRequest || '').toString();
+            const shouldPin = payload?.pin === true || payload?.pinToCanvas === true || /\bpin\b/i.test(originalReq);
             if (shouldPin) {
               if (pinnedRef.current) {
                 pinnedRef.current.push({ result: mockResult });
@@ -2309,6 +2313,11 @@ export default function VisualSearchPage() {
                 pinnedRef.current = [{ result: mockResult }];
               }
               console.log(`💾 saveImage: Added to pinned items, total pinned: ${pinnedRef.current.length}`);
+              // Also immediately trigger pinToCanvas so the canvas updates even if backend pin step failed
+              try {
+                console.log(`[${payload?.correlationId}] UI: Auto-triggering pinToCanvas after save (user requested pin)`);
+                await (window as any).__agentApi?.pinToCanvas?.({ correlationId: payload?.correlationId, originalRequest: originalReq });
+              } catch {}
             } else {
               console.log(`💾 saveImage: Saved but not pinned (user didn't request pinning)`);
             }

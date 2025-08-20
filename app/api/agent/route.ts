@@ -794,7 +794,8 @@ export async function POST(req: NextRequest) {
             payload = {
               imageId: params.imageId || params.assetId || 'current',
               name: params.name || params.newFilename || extractName(userMessage) || 'Untitled',
-              correlationId
+              correlationId,
+              originalRequest: userMessage
             };
             // REMOVED: Do not inject additional saveImage steps - trust the planner workflow
             // The backend planner already includes complete workflows from S3 config
