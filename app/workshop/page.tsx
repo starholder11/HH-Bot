@@ -2307,13 +2307,8 @@ export default function VisualSearchPage() {
             const originalReq = (payload?.originalRequest || '').toString();
             const shouldPin = payload?.pin === true || payload?.pinToCanvas === true || /\bpin\b/i.test(originalReq);
             if (shouldPin) {
-              if (pinnedRef.current) {
-                pinnedRef.current.push({ result: mockResult });
-              } else {
-                pinnedRef.current = [{ result: mockResult }];
-              }
-              console.log(`💾 saveImage: Added to pinned items, total pinned: ${pinnedRef.current.length}`);
-              // Also immediately trigger pinToCanvas so the canvas updates even if backend pin step failed
+              // Do NOT directly push into pinned list here; delegate pinning to pinToCanvas handler
+              // to avoid double-pin (one from saveImage and one from pinToCanvas step)
               try {
                 console.log(`[${payload?.correlationId}] UI: Auto-triggering pinToCanvas after save (user requested pin)`);
                 await (window as any).__agentApi?.pinToCanvas?.({ correlationId: payload?.correlationId, originalRequest: originalReq });
