@@ -1913,7 +1913,42 @@ export default function VisualSearchPage() {
           setGenRaw(null);
           setRightTab('output');
 
-          const body = { mode, model, prompt, refs, options: payload?.options || {} } as any;
+          // Resolve LoRAs if planner provided loraNames
+          let finalModel = model;
+          let finalOptions = { ...(payload?.options || {}) } as any;
+          const loraNames: string[] = Array.isArray((payload as any)?.loraNames) ? (payload as any).loraNames : [];
+          if (mode === 'image' && loraNames.length > 0) {
+            try {
+              const resp = await fetch('/api/loras', { cache: 'no-store' });
+              if (resp.ok) {
+                const all = await resp.json();
+                const namesLc = loraNames.map((n) => String(n).toLowerCase().trim());
+                const resolved = Array.isArray(all) ? all.filter((l: any) => {
+                  const tw = String(l?.triggerWord || '').toLowerCase();
+                  const cn = String(l?.canvasName || '').toLowerCase();
+                  return namesLc.some((n) => (tw && tw !== 'canvas_style' && tw.includes(n)) || (cn && cn.includes(n)) || (n.includes(cn)));
+                }).map((l: any) => ({ path: l.artifactUrl || l.path, scale: 1.0, triggerWord: l.triggerWord, canvasName: l.canvasName })) : [];
+                if (resolved.length > 0) {
+                  finalOptions.loras = resolved;
+                  // Ensure LoRA-capable model is used
+                  finalModel = 'fal-ai/flux-lora';
+                  // eslint-disable-next-line no-console
+                  console.log(`[${payload?.correlationId || 'workshop'}] prepareGenerate: Resolved LoRAs:`, resolved);
+                } else {
+                  // eslint-disable-next-line no-console
+                  console.warn(`[${payload?.correlationId || 'workshop'}] prepareGenerate: No LoRA matches for`, loraNames);
+                }
+              } else {
+                // eslint-disable-next-line no-console
+                console.warn(`[${payload?.correlationId || 'workshop'}] prepareGenerate: /api/loras returned ${resp.status}`);
+              }
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.warn(`[${payload?.correlationId || 'workshop'}] prepareGenerate: LoRA resolution failed`, e);
+            }
+          }
+
+          const body = { mode, model: finalModel, prompt, refs, options: finalOptions } as any;
           debug('vs:agent:gen', 'sending');
           const json = await (await import('./services/generateService')).runGenerate(body);
 

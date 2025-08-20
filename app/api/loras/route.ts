@@ -8,20 +8,40 @@ export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
+    // Helper to read JSON from CloudFront as a fallback when S3 SDK fails (e.g., missing IAM perms in ECS)
+    const CF_DOMAIN = process.env.AWS_CLOUDFRONT_DOMAIN;
+    const readJsonFromCloudFront = async (key: string): Promise<any> => {
+      if (!CF_DOMAIN) throw new Error('CloudFront domain not configured');
+      const url = `https://${CF_DOMAIN}/${key}`;
+      const res = await fetch(url, { next: { revalidate: 0 } });
+      if (!res.ok) throw new Error(`CF fetch failed for ${key}: ${res.status}`);
+      return await res.json();
+    };
+
     // Load canvas index (preferred)
     let indexData: any = null;
     try {
       indexData = await readJsonFromS3('canvases/index.json');
-    } catch {}
+    } catch {
+      // Fallback to CloudFront if S3 access fails
+      try {
+        indexData = await readJsonFromCloudFront('canvases/index.json');
+      } catch {}
+    }
 
     // Build entries from index or fallback to listing keys
     let entries: Array<{ id: string; name?: string; key?: string; updatedAt?: string }> = [];
     if (indexData && Array.isArray(indexData.items)) {
       entries = indexData.items as any[];
     } else {
-      const keys = await listKeys('canvases/', 5000);
-      const canvasKeys = keys.filter((k) => k.endsWith('.json') && !k.endsWith('/index.json'));
-      entries = canvasKeys.map((k) => ({ id: k.split('/').pop()!.replace('.json', ''), key: k }));
+      try {
+        const keys = await listKeys('canvases/', 5000);
+        const canvasKeys = keys.filter((k) => k.endsWith('.json') && !k.endsWith('/index.json'));
+        entries = canvasKeys.map((k) => ({ id: k.split('/').pop()!.replace('.json', ''), key: k }));
+      } catch {
+        // If we cannot list via S3 and no index is available, we cannot continue; return empty
+        entries = [];
+      }
     }
 
     // Sort newest-first by updatedAt when available
@@ -36,9 +56,15 @@ export async function GET(request: NextRequest) {
         try {
           const data = await readJsonFromS3(key);
           return data as any;
-        } catch (err) {
-          // Skip unreadable canvases but keep going
-          return null;
+        } catch {
+          // Fallback to CloudFront per-canvas
+          try {
+            const data = await readJsonFromCloudFront(key);
+            return data as any;
+          } catch {
+            // Skip unreadable canvases but keep going
+            return null;
+          }
         }
       })
     );
