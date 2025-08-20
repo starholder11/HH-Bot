@@ -565,20 +565,7 @@ export async function POST(req: NextRequest) {
             if (uiAction && config.materializationRules?.[uiAction]) {
               const rule = config.materializationRules[uiAction];
               const needsMaterialize = rule.condition === 'no_content_id' && !params.contentId;
-              // Skip auto-materialization if planner already included naming/saving steps
-              let skipMaterialize = false;
-              try {
-                const alreadyHasNameOrSave = steps.some((s: any) => {
-                  const t = (s?.tool_name || '').toLowerCase();
-                  return t === 'nameimage' || t === 'saveimage';
-                });
-                skipMaterialize = alreadyHasNameOrSave;
-                if (skipMaterialize) {
-                  console.log(`[${correlationId}] PROXY: Skipping materialization for ${uiAction} (name/save already planned)`);
-                }
-              } catch {}
-
-              if (needsMaterialize && !skipMaterialize && rule.prependSteps) {
+              if (needsMaterialize && rule.prependSteps) {
                 for (const prependStep of rule.prependSteps) {
                   const payload = { ...prependStep.payload };
                   // Simple template substitution
