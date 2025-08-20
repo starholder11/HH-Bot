@@ -2386,7 +2386,25 @@ export default function VisualSearchPage() {
 
           if (finalUrl) {
             console.log(`[${payload?.correlationId}] UI: Pinning generated content: ${finalUrl}`);
-            // Mock pinning - in real implementation, this would update canvas
+            // Materialize a canvas item for the generated asset and actually pin it to canvas
+            const title = lastNameRef.current || 'Generated Image';
+            const resultToPin: UnifiedSearchResult = {
+              id: `gen-${Date.now()}`,
+              content_type: 'image',
+              title,
+              description: '',
+              score: 1,
+              metadata: {
+                cloudflare_url: finalUrl,
+                s3_url: finalUrl,
+                media_type: 'image',
+                title
+              } as any,
+              preview: title
+            } as any;
+
+            try { pinResult(resultToPin); } catch {}
+            try { setRightTab('canvas'); } catch {}
             console.log(`Pinning generated content to canvas: ${payload?.canvasId || 'default'}`);
           } else if (payload?.items && Array.isArray(payload.items)) {
             // Pin search results

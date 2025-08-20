@@ -269,6 +269,15 @@ export class LangGraphOrchestrator {
 
         results.push(toolResult);
 
+        // Side-effect: if this was a save step and the user asked to pin, enqueue a synthetic pinToCanvas plan item
+        try {
+          const original = (workflow as any)?.intent?.parameters?.message || '';
+          if ((step.tool_name || '').toLowerCase() === 'saveimage' && /\bpin\b/i.test(original)) {
+            workflowPlan.push({ tool_name: 'pinToCanvas', parameters: { count: 1 } });
+            console.log(`[${correlationId}] LangGraph: Added synthetic pinToCanvas after save due to pin intent`);
+          }
+        } catch {}
+
       } catch (error) {
         console.error(`[${correlationId}] Tool execution failed for ${step.tool_name}:`, error);
         results.push({
