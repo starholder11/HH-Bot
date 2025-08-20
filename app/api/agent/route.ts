@@ -552,6 +552,24 @@ export async function POST(req: NextRequest) {
 
         console.log(`[${correlationId}] PROXY: Processing step: ${step?.tool_name} -> ${tool}, params:`, JSON.stringify(params));
 
+        // FALLBACK: Extract missing parameters from AI descriptions when parameters are empty
+        if (step?.description && Object.keys(params).length <= 1) { // Only userId present
+          if (tool === 'nameimage' && step.description.includes("'")) {
+            const nameMatch = step.description.match(/'([^']+)'/);
+            if (nameMatch && nameMatch[1]) {
+              params.name = nameMatch[1];
+              console.log(`[${correlationId}] PROXY: Extracted name from description: ${params.name}`);
+            }
+          } else if (tool === 'preparegenerate' && step.description.includes('prompt')) {
+            const promptMatch = step.description.match(/prompt '([^']+)'/);
+            if (promptMatch && promptMatch[1]) {
+              params.prompt = promptMatch[1];
+              params.type = 'image'; // Default for image generation
+              console.log(`[${correlationId}] PROXY: Extracted prompt from description: ${params.prompt}`);
+            }
+          }
+        }
+
         // Load UI action mapping from config (with fallback to static map)
         let uiAction: string | undefined;
         try {
