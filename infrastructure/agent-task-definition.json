@@ -52,6 +52,14 @@
         {
           "name": "PUBLIC_API_BASE_URL",
           "value": "https://hh-bot-lyart.vercel.app"
+        },
+        {
+          "name": "PLANNER_RULES_URL",
+          "value": "https://hh-bot-images-2025-prod.s3.amazonaws.com/config/planner-rules.json"
+        },
+        {
+          "name": "UI_MAP_URL",
+          "value": "https://hh-bot-images-2025-prod.s3.amazonaws.com/config/ui-map.json"
         }
       ],
       "secrets": [
@@ -67,13 +75,6 @@
           "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         }
-      },
-      "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"],
-        "interval": 30,
-        "timeout": 5,
-        "retries": 3,
-        "startPeriod": 60
       }
     }
   ]

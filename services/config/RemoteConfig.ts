@@ -38,7 +38,8 @@ export type UiMapConfig = z.infer<typeof UiMapConfigSchema>;
 
 const defaultPlanner: PlannerConfig = {
   version: 'default',
-  systemPrompt: `You are an AI workflow planner. Available tools: \${this.availableTools?.join(', ') || ''}.
+  // Note: Avoid referencing 'this' in module scope; keep prompt static here. Available tools are provided at runtime by callers.
+  systemPrompt: `You are an AI workflow planner.
 
 CRITICAL: Look for compound actions that require MULTIPLE steps in sequence.
 
