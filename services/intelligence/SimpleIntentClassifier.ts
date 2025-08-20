@@ -14,7 +14,7 @@ export const SimpleIntentSchema = z.object({
   classification: z.string().optional().describe('Classification string'),
   workflow_steps: z.array(z.object({
     tool_name: z.string(),
-    parameters: z.record(z.any()).describe('Parameters extracted from user message - NEVER leave empty when user provides specific values'),
+    parameters: z.record(z.any()).optional().default({}).describe('Parameters extracted from user message - NEVER leave empty when user provides specific values'),
     description: z.string().optional()
   })).describe('Complete workflow steps to execute - ALWAYS populate this with the full sequence needed')
 });
@@ -102,9 +102,22 @@ export class SimpleIntentClassifier {
 
         DO NOT generate empty parameters when specific values are provided. Extract what the user requested.
         
-        CRITICAL: The parameters field in workflow_steps is REQUIRED and must contain the extracted values.
-        Example: If user says "name it mr_turkey", the nameImage step MUST have parameters: {"name": "mr_turkey"}
-        Example: If user says "make a picture of a cat", prepareGenerate MUST have parameters: {"prompt": "picture of a cat", "type": "image"}`,
+        CRITICAL JSON FORMAT EXAMPLES - Follow these EXACT formats:
+        
+        For "create an image of a turkey, name it mr_turkey and pin it to the canvas":
+        workflow_steps: [
+          { "tool_name": "prepareGenerate", "parameters": { "prompt": "image of a turkey", "type": "image" } },
+          { "tool_name": "nameImage", "parameters": { "name": "mr_turkey" } },
+          { "tool_name": "saveImage", "parameters": {} },
+          { "tool_name": "pinToCanvas", "parameters": {} }
+        ]
+        
+        For "name it cool_cat and pin it to the canvas":
+        workflow_steps: [
+          { "tool_name": "nameImage", "parameters": { "name": "cool_cat" } },
+          { "tool_name": "saveImage", "parameters": {} },
+          { "tool_name": "pinToCanvas", "parameters": {} }
+        ]`,
         prompt: userMessage,
         temperature: 0.1
       });
