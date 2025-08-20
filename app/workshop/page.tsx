@@ -2167,7 +2167,20 @@ export default function VisualSearchPage() {
             console.log(`🏷️ Updated UI title field to: ${name}`);
           }
 
-          const finalUrl = genUrlRef.current || genUrl;
+          let finalUrl = genUrlRef.current || genUrl;
+          if (!finalUrl && genRaw) {
+            try {
+              const candidates = [
+                genRaw?.url,
+                genRaw?.result?.url,
+                genRaw?.result?.image?.url,
+                genRaw?.result?.video?.url,
+                genRaw?.result?.data?.image?.url,
+                genRaw?.result?.data?.video?.url
+              ].filter(Boolean) as string[];
+              if (candidates.length > 0) finalUrl = candidates[0];
+            } catch {}
+          }
           if (finalUrl) {
             console.log(`🏷️ Naming current image: ${name}`);
 
@@ -2218,7 +2231,20 @@ export default function VisualSearchPage() {
             console.log(`💾 After waiting: genUrl = ${genUrl}, genUrlRef = ${genUrlRef.current}, imageComplete = ${(window as any).__imageGenerationComplete}`);
           }
 
-          const finalUrl = genUrlRef.current || genUrl;
+          let finalUrl = genUrlRef.current || genUrl;
+          if (!finalUrl && genRaw) {
+            try {
+              const candidates = [
+                genRaw?.url,
+                genRaw?.result?.url,
+                genRaw?.result?.image?.url,
+                genRaw?.result?.video?.url,
+                genRaw?.result?.data?.image?.url,
+                genRaw?.result?.data?.video?.url
+              ].filter(Boolean) as string[];
+              if (candidates.length > 0) finalUrl = candidates[0];
+            } catch {}
+          }
           if (finalUrl) {
             // Create a mock asset ID and ADD TO PINNED ITEMS so requestPinnedThenGenerate can find it
             const assetId = `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -2939,6 +2965,7 @@ export default function VisualSearchPage() {
   function handleGenResult(mode: 'image' | 'video' | 'audio' | 'text', url: string | undefined, raw: any) {
     setGenMode(mode);
     setGenUrl(url || null);
+    genUrlRef.current = url || null;
     setGenRaw(raw);
     setGenLoading(false);
     setRightTab('output');
