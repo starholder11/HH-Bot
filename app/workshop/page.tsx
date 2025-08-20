@@ -2148,6 +2148,13 @@ export default function VisualSearchPage() {
           if (!videoName || videoName === 'Generated_Video') {
             videoName = lastNameRef.current ? `${lastNameRef.current}_video` : 'Generated_Video';
           }
+          
+          // CRITICAL: Update lastNameRef so subsequent nameImage/saveImage steps use the video name
+          if (videoName && videoName !== 'Generated_Video') {
+            lastNameRef.current = videoName;
+            console.log(`🎬 Updated lastNameRef to video name: ${videoName}`);
+          }
+          
           if (videoUrl) {
             console.log(`🎬 Processing video: ${videoName} at ${videoUrl}`);
             try {
