@@ -217,7 +217,49 @@ export class LangGraphOrchestrator {
         console.log(`[${correlationId}] Executing step ${i + 1}/${workflowPlan.length}: ${step.tool_name}`);
 
         // Resolve parameters with previous results
-        const resolvedParams = this.resolveParameters(step.parameters, results);
+        const resolvedParams: any = this.resolveParameters(step.parameters, results) || {};
+
+        // FALLBACK: Extract missing parameters from AI-generated descriptions when parameters are empty or incomplete
+        try {
+          const desc: string = typeof step.description === 'string' ? step.description : '';
+          const toolName = (step.tool_name || '').toLowerCase();
+          const hasEssentials = Object.keys(resolvedParams).length > 0;
+
+          if (desc && !hasEssentials) {
+            if (toolName === 'preparegenerate') {
+              // prompt '...'
+              const promptMatch = desc.match(/prompt '\s*([^']+?)\s*'/i);
+              if (promptMatch && promptMatch[1]) {
+                resolvedParams.prompt = promptMatch[1];
+              }
+              // type 'image' | 'video' | 'audio'
+              const typeMatch = desc.match(/type '\s*(image|video|audio)\s*'/i);
+              if (typeMatch && typeMatch[1]) {
+                resolvedParams.type = typeMatch[1].toLowerCase();
+              }
+              if (!resolvedParams.type) {
+                // Heuristic default
+                resolvedParams.type = /video/i.test(desc) ? 'video' : (/audio/i.test(desc) ? 'audio' : 'image');
+              }
+              console.log(`[${correlationId}] Orchestrator: Extracted from description ->`, JSON.stringify(resolvedParams));
+            } else if (toolName === 'nameimage' || toolName === 'renameasset') {
+              const nameMatch = desc.match(/'([^']+)'/);
+              if (nameMatch && nameMatch[1]) {
+                resolvedParams.name = nameMatch[1];
+                console.log(`[${correlationId}] Orchestrator: Extracted name from description -> ${resolvedParams.name}`);
+              }
+            } else if (toolName === 'pintocanvas' || toolName === 'pin') {
+              // Extract count if present
+              const countMatch = desc.match(/\b(\d{1,2})\b/);
+              if (countMatch) {
+                const n = parseInt(countMatch[1], 10);
+                if (!Number.isNaN(n) && n > 0) resolvedParams.count = n;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(`[${correlationId}] Orchestrator: Parameter extraction fallback failed:`, e);
+        }
 
         const toolResult = await this.toolExecutor.executeTool(
           step.tool_name,

@@ -504,9 +504,20 @@ export async function POST(req: NextRequest) {
       const hasResolveAssetRefs = plannedSteps.some((s: any) => s?.tool_name === 'resolveAssetRefs');
       const executedHasResolveAssetRefs = executedSteps.some((s: any) => s?.tool_name === 'resolveAssetRefs');
 
-      const steps = (hasResolveAssetRefs && !executedHasResolveAssetRefs)
+      let steps = (hasResolveAssetRefs && !executedHasResolveAssetRefs)
         ? plannedSteps  // Use planned steps when backend skipped resolveAssetRefs
         : (executedSteps.length > 0 ? executedSteps : plannedSteps);
+
+      // If backend returned planned pin step but did not execute it (common when parameters were missing),
+      // ensure the proxy still emits a pinToCanvas UI action at the end so UI can pin generated content.
+      try {
+        const planHasPin = plannedSteps.some((s: any) => (s?.tool_name || '').toLowerCase() === 'pintocanvas');
+        const executedHasPin = executedSteps.some((s: any) => (s?.tool_name || '').toLowerCase() === 'pintocanvas');
+        if (planHasPin && !executedHasPin) {
+          steps = [...steps, { tool_name: 'pinToCanvas', parameters: {} }];
+          console.log(`[${correlationId}] PROXY: Appended pinToCanvas step since planner included it but backend did not execute it`);
+        }
+      } catch {}
 
       console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({
         success: agentResult.success,
