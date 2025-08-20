@@ -2145,13 +2145,13 @@ export default function VisualSearchPage() {
         try {
           console.log(`🏷️ nameImage called with payload:`, payload, `genUrl:`, genUrl, `genUrlRef:`, genUrlRef.current);
 
-          // Wait for image generation to complete if it hasn't yet
+          // Wait for generation (image or video) to complete if it hasn't yet
           const currentUrl = genUrlRef.current || genUrl;
-          if (!currentUrl && !(window as any).__imageGenerationComplete) {
-            console.log(`🏷️ Waiting for image generation to complete...`);
+          if (!currentUrl && !(window as any).__imageGenerationComplete && genLoading) {
+            console.log(`🏷️ Waiting for generation to complete...`);
             let retries = 0;
-            while (retries < 20 && !genUrlRef.current && !(window as any).__imageGenerationComplete) {
-              await new Promise(r => setTimeout(r, 250));
+            while (retries < 30 && !genUrlRef.current && !genUrl && genLoading) {
+              await new Promise(r => setTimeout(r, 500));
               retries++;
             }
             console.log(`🏷️ After waiting: genUrl = ${genUrl}, genUrlRef = ${genUrlRef.current}, imageComplete = ${(window as any).__imageGenerationComplete}`);
@@ -2206,13 +2206,13 @@ export default function VisualSearchPage() {
         try {
                     console.log(`💾 saveImage called with payload:`, payload, `genUrl:`, genUrl, `genUrlRef:`, genUrlRef.current);
 
-          // Wait for image generation to complete if it hasn't yet
+          // Wait for generation (image or video) to complete if it hasn't yet
           const currentUrl = genUrlRef.current || genUrl;
-          if (!currentUrl && !(window as any).__imageGenerationComplete) {
-            console.log(`💾 Waiting for image generation to complete...`);
+          if (!currentUrl && !(window as any).__imageGenerationComplete && genLoading) {
+            console.log(`💾 Waiting for generation to complete...`);
             let retries = 0;
-            while (retries < 20 && !genUrlRef.current && !(window as any).__imageGenerationComplete) {
-              await new Promise(r => setTimeout(r, 250));
+            while (retries < 30 && !genUrlRef.current && !genUrl && genLoading) {
+              await new Promise(r => setTimeout(r, 500));
               retries++;
             }
             console.log(`💾 After waiting: genUrl = ${genUrl}, genUrlRef = ${genUrlRef.current}, imageComplete = ${(window as any).__imageGenerationComplete}`);
