@@ -751,6 +751,7 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: true
             };
+            // If no resolved refs yet, UI will fall back to current generated image or pinned items
           } else if (tool === 'nameimage') {
             // Extract name from user message if planner didn't provide it
             let name = params.name;

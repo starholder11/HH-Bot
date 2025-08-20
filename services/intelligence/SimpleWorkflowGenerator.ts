@@ -240,6 +240,16 @@ export class SimpleWorkflowGenerator {
           console.log(`[${workflow.correlationId}] INFO: Added image ref for video generation: ${lastGeneratedUrl}`);
         }
 
+        // Skip resolveAssetRefs when identifiers are missing; let frontend derive refs from current/pinned
+        if (step.tool_name === 'resolveAssetRefs') {
+          const ids = Array.isArray((params as any).identifiers) ? (params as any).identifiers : [];
+          if (ids.length === 0) {
+            console.log(`[${workflow.correlationId}] INFO: Skipping resolveAssetRefs (no identifiers provided)`);
+            workflow.executedSteps!.push({ tool_name: step.tool_name, parameters: params, result: { skipped: true }, status: 'completed' as const });
+            continue;
+          }
+        }
+
         // Skip UI-only rename if we don't have an asset identifier to rename server-side
         if (step.tool_name === 'renameAsset') {
           const hasAssetId = typeof params.assetId === 'string' && params.assetId.length > 0;
