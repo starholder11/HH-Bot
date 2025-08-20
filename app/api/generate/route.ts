@@ -89,7 +89,13 @@ export async function POST(req: NextRequest) {
         if (res.ok) {
           const list = await res.json()
           const p = (input.prompt || '').toString().toLowerCase()
-          const matches = Array.isArray(list) ? list.filter((l: any) => (l.triggerWord || '').toLowerCase() && p.includes((l.triggerWord || '').toLowerCase())) : []
+          const matches = Array.isArray(list) ? list.filter((l: any) => {
+            const trigger = (l.triggerWord || '').toLowerCase();
+            const canvasName = (l.canvasName || '').toLowerCase();
+            // Match by trigger word OR canvas name (e.g., "petaflop sheen" matches canvas "Petaflop Sheen")
+            return (trigger && trigger !== 'canvas_style' && p.includes(trigger)) || 
+                   (canvasName && p.includes(canvasName));
+          }) : []
           if (matches.length > 0) {
             lorasFromPrompt = matches.map((m: any) => ({ path: m.artifactUrl || m.path, scale: 1.0 }))
             selectedModel = 'fal-ai/flux-lora'
