@@ -112,6 +112,7 @@ const tools = {
       loraNames: z.array(z.string()).optional().describe('Names of LoRA models to use (e.g. ["petaflop sheen", "commissarsha"])'),
     }),
     execute: async ({ userRequest, type, prompt, model, refs, loraNames }) => {
+      console.log(`[prepareGenerate] Received parameters:`, { userRequest, type, prompt, model, refs, loraNames });
       // Smart extraction from user request
       const request = userRequest.toLowerCase();
 
@@ -133,25 +134,31 @@ const tools = {
 
       // Look up actual LoRA data if names provided
       let resolvedLoras: any[] = [];
+      console.log(`[prepareGenerate] LoRA names to resolve:`, finalLoraNames);
       if (finalLoraNames.length > 0) {
         try {
           const baseUrl = process.env.PUBLIC_API_BASE_URL || `http://localhost:3000`;
           const res = await fetch(`${baseUrl}/api/loras`, { method: 'GET' });
+          console.log(`[prepareGenerate] LoRA fetch response ok:`, res.ok);
           if (res.ok) {
             const allLoras = await res.json();
+            console.log(`[prepareGenerate] Available LoRAs:`, allLoras.length, allLoras.map(l => l.canvasName));
             resolvedLoras = finalLoraNames.map(name => {
               const cleanName = name.toLowerCase().trim();
-              return allLoras.find((l: any) =>
+              const found = allLoras.find((l: any) =>
                 (l.canvasName && l.canvasName.toLowerCase().includes(cleanName)) ||
                 (l.triggerWord && l.triggerWord.toLowerCase().includes(cleanName)) ||
                 (cleanName.includes(l.canvasName?.toLowerCase() || ''))
               );
+              console.log(`[prepareGenerate] Searching for "${cleanName}", found:`, found?.canvasName);
+              return found;
             }).filter(Boolean).map((l: any) => ({
               path: l.artifactUrl || l.path,
               scale: 1.0,
               triggerWord: l.triggerWord,
               canvasName: l.canvasName
             }));
+            console.log(`[prepareGenerate] Resolved LoRAs:`, resolvedLoras);
           }
         } catch (e) {
           console.warn('Failed to resolve LoRA names:', e);
