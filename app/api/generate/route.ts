@@ -235,17 +235,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, result: anyResult })
     }
 
-    // For video/text, try to surface a convenient url if present
+    // For video/text, try to surface a convenient url if present (robust extraction across providers)
     if (effectiveMode === 'video') {
-      // WAN-2.1 returns { "video": { "url": "..." } }, Kling returns different structure
-      const videoUrl: string | undefined = anyResult?.video?.url || anyResult?.data?.video?.url || anyResult?.output?.url || anyResult?.outputs?.[0]?.url
-      console.log(`[api/generate] 🔍 Video URL extraction - found:`, videoUrl)
-      console.log(`[api/generate] 🔍 Video result structure:`, {
-        'anyResult?.video?.url': anyResult?.video?.url,
-        'anyResult?.data?.video?.url': anyResult?.data?.video?.url,
-        'anyResult?.output?.url': anyResult?.output?.url,
-        'anyResult?.outputs?.[0]?.url': anyResult?.outputs?.[0]?.url
-      })
+      const candidates: Array<string | undefined> = [
+        anyResult?.video?.url,
+        anyResult?.video?.signed_url,
+        anyResult?.data?.video?.url,
+        anyResult?.data?.video?.signed_url,
+        anyResult?.output?.url,
+        anyResult?.output?.video_url,
+        anyResult?.outputs?.[0]?.url,
+        anyResult?.outputs?.[0]?.video_url,
+        anyResult?.result?.video?.url,
+        anyResult?.result?.output?.url,
+      ]
+      const videoUrl = candidates.find((u) => typeof u === 'string' && /^https?:\/\//i.test(u as string)) as string | undefined
+      console.log(`[api/generate] 🔍 Video URL extraction candidates:`, candidates.filter(Boolean))
       if (videoUrl) {
         console.log(`[api/generate] 🟢 Returning video URL:`, videoUrl)
         return NextResponse.json({ success: true, url: videoUrl, result: anyResult })

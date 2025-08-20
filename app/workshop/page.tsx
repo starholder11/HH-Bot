@@ -2106,12 +2106,14 @@ export default function VisualSearchPage() {
           const candidates = [
             json?.url,
             json?.result?.url,
-            json?.result?.images?.[0]?.url,
-            json?.result?.image?.url,
-            json?.result?.audio?.url,
             json?.result?.video?.url,
-            json?.result?.data?.images?.[0]?.url,
+            json?.result?.video?.signed_url,
             json?.result?.data?.video?.url,
+            json?.result?.data?.video?.signed_url,
+            json?.result?.output?.url,
+            json?.result?.output?.video_url,
+            json?.result?.outputs?.[0]?.url,
+            json?.result?.outputs?.[0]?.video_url,
           ].filter(Boolean) as string[];
           setGenMode(payload?.type);
           setGenUrl(candidates[0] || null);
@@ -2120,6 +2122,25 @@ export default function VisualSearchPage() {
           try {
             await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'requestpinnedthengenerate', artifacts: { url: candidates[0] || null, mode: payload?.type, refs } }) });
           } catch {}
+
+          // Auto name/save/pin for video, mirroring image flow
+          const videoUrl = candidates[0];
+          const videoName = (payload?.prompt || '').match(/save it as\s+([a-zA-Z0-9_\-]+)/i)?.[1] || (lastNameRef.current ? `${lastNameRef.current}_video` : 'Generated_Video');
+          if (videoUrl) {
+            try {
+              // Save video to library
+              const filename = `${videoName.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
+              await fetch('/api/import/url', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: videoUrl, mediaType: 'video', originalFilename: filename, title: videoName })
+              });
+            } catch {}
+            // Pin video to canvas if user asked to pin
+            const shouldPinVideo = /\bpin\b/i.test((payload?.originalRequest || payload?.prompt || '').toString());
+            if (shouldPinVideo) {
+              try { (window as any).__agentApi?.pinToCanvas?.({ correlationId: payload?.correlationId, originalRequest: payload?.originalRequest || payload?.prompt }); } catch {}
+            }
+          }
         } catch (e) {
           setGenLoading(false);
           console.error(e);
