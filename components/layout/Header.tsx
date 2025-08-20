@@ -17,7 +17,7 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
             <Link href="/" className="inline-block">
               <img
                 src="/logo.png"
-                alt="TEMPLATE Logo"
+                alt="Starholder Logo"
                 className="w-12 h-12 rounded-full shadow-md object-cover hover:shadow-lg transition-shadow duration-200"
                 style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
               />
@@ -27,7 +27,7 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
                 className="font-serif text-3xl font-bold tracking-tight text-black no-underline hover:text-black hover:no-underline active:text-black active:no-underline visited:text-black visited:no-underline focus:text-black focus:no-underline"
                 style={{ fontFamily: 'Cardo, serif', textDecoration: 'none' }}
               >
-                TEMPLATE
+                Starholder
               </Link>
           </div>
 
@@ -68,7 +68,7 @@ export function Header({ useOriginalStyling = false }: HeaderProps) {
             className="font-serif text-3xl font-bold tracking-tight text-white no-underline hover:text-white hover:no-underline active:text-white active:no-underline visited:text-white visited:no-underline focus:text-white focus:no-underline"
             style={{ fontFamily: 'Cardo, serif', textDecoration: 'none' }}
           >
-            TEMPLATE
+            Starholder
           </Link>
         </div>
 
