@@ -2119,26 +2119,64 @@ export default function VisualSearchPage() {
           setGenUrl(candidates[0] || null);
           setGenRaw(json?.result ?? json);
           setGenLoading(false);
+          
+          // CRITICAL: Update genUrlRef so subsequent steps reference the new video, not the old image
+          if (candidates[0]) {
+            genUrlRef.current = candidates[0];
+            console.log(`🎬 Updated genUrlRef to video URL: ${candidates[0]}`);
+          }
           try {
             await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: 'requestpinnedthengenerate', artifacts: { url: candidates[0] || null, mode: payload?.type, refs } }) });
           } catch {}
 
           // Auto name/save/pin for video, mirroring image flow
           const videoUrl = candidates[0];
-          const videoName = (payload?.prompt || '').match(/save it as\s+([a-zA-Z0-9_\-]+)/i)?.[1] || (lastNameRef.current ? `${lastNameRef.current}_video` : 'Generated_Video');
+          // Extract name from various patterns: "call it X", "save it as X", "name it X"
+          const namePatterns = [
+            /\b(?:call|name|save)\s+it\s+(?:as\s+)?([a-zA-Z0-9_\-]+)/i,
+            /\bcall\s+(?:this|that|it)\s+([a-zA-Z0-9_\-]+)/i,
+            /\bname\s+(?:this|that|it)\s+([a-zA-Z0-9_\-]+)/i
+          ];
+          let videoName = 'Generated_Video';
+          for (const pattern of namePatterns) {
+            const match = (payload?.originalRequest || payload?.prompt || '').match(pattern);
+            if (match && match[1]) {
+              videoName = match[1];
+              break;
+            }
+          }
+          if (!videoName || videoName === 'Generated_Video') {
+            videoName = lastNameRef.current ? `${lastNameRef.current}_video` : 'Generated_Video';
+          }
           if (videoUrl) {
+            console.log(`🎬 Processing video: ${videoName} at ${videoUrl}`);
             try {
               // Save video to library
               const filename = `${videoName.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
-              await fetch('/api/import/url', {
+              const saveResponse = await fetch('/api/import/url', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: videoUrl, mediaType: 'video', originalFilename: filename, title: videoName })
               });
-            } catch {}
+              if (saveResponse.ok) {
+                console.log(`🎬 Video saved successfully as: ${videoName}`);
+              }
+            } catch (e) {
+              console.error('🎬 Video save failed:', e);
+            }
             // Pin video to canvas if user asked to pin
             const shouldPinVideo = /\bpin\b/i.test((payload?.originalRequest || payload?.prompt || '').toString());
             if (shouldPinVideo) {
-              try { (window as any).__agentApi?.pinToCanvas?.({ correlationId: payload?.correlationId, originalRequest: payload?.originalRequest || payload?.prompt }); } catch {}
+              try { 
+                console.log(`🎬 Auto-pinning video: ${videoName}`);
+                await (window as any).__agentApi?.pinToCanvas?.({ 
+                  correlationId: payload?.correlationId, 
+                  originalRequest: payload?.originalRequest || payload?.prompt,
+                  url: videoUrl,
+                  type: 'video'
+                }); 
+              } catch (e) {
+                console.error('🎬 Video pin failed:', e);
+              }
             }
           }
         } catch (e) {
