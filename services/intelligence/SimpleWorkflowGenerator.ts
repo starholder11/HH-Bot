@@ -264,26 +264,7 @@ export class SimpleWorkflowGenerator {
             delete (params as any).name;
           }
         }
-        // FALLBACK: Extract missing parameters from AI descriptions when parameters are empty
-        if (step.description && Object.keys(params).filter(k => k !== 'userId' && k !== 'tenantId').length === 0) {
-          if (toolNameToExecute === 'prepareGenerate' && step.description.includes('prompt')) {
-            const promptMatch = step.description.match(/prompt '([^']+)'/);
-            if (promptMatch && promptMatch[1]) {
-              params.prompt = promptMatch[1];
-              console.log(`[${workflow.correlationId}] BACKEND: Extracted prompt from description: ${params.prompt}`);
-            }
-            if (step.description.includes("type 'image'")) {
-              params.type = 'image';
-              console.log(`[${workflow.correlationId}] BACKEND: Extracted type from description: ${params.type}`);
-            }
-          } else if (toolNameToExecute === 'renameAsset' && step.description.includes("'")) {
-            const nameMatch = step.description.match(/'([^']+)'/);
-            if (nameMatch && nameMatch[1]) {
-              params.name = nameMatch[1];
-              console.log(`[${workflow.correlationId}] BACKEND: Extracted name from description: ${params.name}`);
-            }
-          }
-        }
+        // REMOVED: Fallback parameter extraction - S3 planner rules now handle parameter extraction properly
 
         console.log(`[${workflow.correlationId}] DEBUG: step ${i + 1}/${steps.length} -> ${toolNameToExecute} params=`, JSON.stringify(params));
         lastExecution = await this.toolExecutor.executeTool(toolNameToExecute, params, userContext);

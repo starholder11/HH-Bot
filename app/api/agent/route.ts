@@ -127,85 +127,9 @@ const tools = {
         }
       }
 
-      // Extract LoRA names and prompt from request
+      // Use LoRA names and prompt from planner (S3 rules now handle extraction)
       let finalLoraNames = loraNames || [];
-      let finalPrompt = prompt;
-
-      if (!finalLoraNames.length || !finalPrompt) {
-        // Enhanced patterns for LoRA + generation requests
-        const loraGeneratePatterns = [
-          // "use X lora to make Y" or "use the X lora to make Y"
-          /(?:use|apply)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)\s+(?:to\s+)?(?:make|create|generate|build|produce)\s+(.+)/i,
-          // "make Y using the X lora" - match from the END to avoid greedy matching
-          /(?:make|create|generate|build|produce)\s+(.+)\s+(?:using|with)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)$/i,
-          // "make ... using the X lora of ..." - extract lora name and content after "of"
-          /(?:make|create|generate|build|produce)\s+.*?(?:using|with)\s+(?:the\s+)?(.*?)\s+(?:lora|model|style)\s+(?:of|for)\s+(.+)/i,
-          // "X lora Y" - simple pattern (keep as fallback)
-          /(.*?)\s+(?:lora|style)\s+(.+)/i
-        ];
-
-        for (let i = 0; i < loraGeneratePatterns.length; i++) {
-          const pattern = loraGeneratePatterns[i];
-          const match = userRequest.match(pattern);
-          if (match) {
-            if (i === 0) {
-              // Pattern: "use X lora to make Y"
-              if (match[1] && match[2]) {
-                finalLoraNames = [match[1].trim()];
-                finalPrompt = match[2].trim();
-                break;
-              }
-            } else if (i === 1) {
-              // Pattern: "make Y using X lora"
-              if (match[1] && match[2]) {
-                finalPrompt = match[1].trim();
-                finalLoraNames = [match[2].trim()];
-                break;
-              }
-            } else if (i === 2) {
-              // Pattern: "make ... using X lora of Y"
-              if (match[1] && match[2]) {
-                finalLoraNames = [match[1].trim()];
-                finalPrompt = match[2].trim();
-                break;
-              }
-            } else {
-              // Pattern: "X lora Y" (fallback)
-              if (match[1] && match[2]) {
-                finalLoraNames = [match[1].trim()];
-                finalPrompt = match[2].trim();
-                break;
-              }
-            }
-          }
-        }
-
-        // Fallback: extract standard generation patterns
-        if (!finalPrompt) {
-          const standardPatterns = [
-            // "make/create X"
-            /(?:make|create|generate|produce|build|design|craft)\s+(?:a|an|some)?\s*(.+)/i,
-            // Any descriptive content
-            /(.+)/i
-          ];
-
-          for (const pattern of standardPatterns) {
-            const match = userRequest.match(pattern);
-            if (match && match[1]) {
-              const extracted = match[1].trim();
-              // Clean up common prefixes
-              finalPrompt = extracted
-                .replace(/^(?:a|an|some)\s+/i, '')
-                .replace(/^(?:picture|image|photo|video|audio|song|track|music|movie|clip)\s+(?:of|about|with|showing|featuring)?\s*/i, '');
-              if (finalPrompt) break;
-            }
-          }
-        }
-
-        if (!finalPrompt) {
-          finalPrompt = 'Creative content';
-        }
-      }
+      let finalPrompt = prompt || userRequest;
 
       // Look up actual LoRA data if names provided
       let resolvedLoras: any[] = [];
@@ -572,23 +496,7 @@ export async function POST(req: NextRequest) {
 
         console.log(`[${correlationId}] PROXY: Processing step: ${step?.tool_name} -> ${tool}, params:`, JSON.stringify(params));
 
-        // FALLBACK: Extract missing parameters from AI descriptions when parameters are empty
-        if (step?.description && Object.keys(params).length <= 1) { // Only userId present
-          if (tool === 'nameimage' && step.description.includes("'")) {
-            const nameMatch = step.description.match(/'([^']+)'/);
-            if (nameMatch && nameMatch[1]) {
-              params.name = nameMatch[1];
-              console.log(`[${correlationId}] PROXY: Extracted name from description: ${params.name}`);
-            }
-          } else if (tool === 'preparegenerate' && step.description.includes('prompt')) {
-            const promptMatch = step.description.match(/prompt '([^']+)'/);
-            if (promptMatch && promptMatch[1]) {
-              params.prompt = promptMatch[1];
-              params.type = 'image'; // Default for image generation
-              console.log(`[${correlationId}] PROXY: Extracted prompt from description: ${params.prompt}`);
-            }
-          }
-        }
+        // REMOVED: Fallback parameter extraction - S3 planner rules now handle parameter extraction properly
 
         // Load UI action mapping from config (with fallback to static map)
         let uiAction: string | undefined;
@@ -767,18 +675,10 @@ export async function POST(req: NextRequest) {
               payload.prompt = cleaned || 'video';
             }
           } else if (tool === 'nameimage') {
-            // Extract name from user message if planner didn't provide it
-            let name = params.name;
-            if (!name) {
-              const nameMatch = userMessage.match(/(?:name it|call it|rename (?:this|it) to)\s+([a-zA-Z0-9_-]+)/i);
-              if (nameMatch) {
-                name = nameMatch[1];
-                console.log(`[${correlationId}] PROXY: Extracted name from message: "${name}"`);
-              }
-            }
+            // Trust planner-extracted name; minimal fallback only
             payload = {
               ...params,
-              name: name || 'Untitled',
+              name: params.name || 'Untitled',
               correlationId,
               originalRequest: userMessage
             };
@@ -808,7 +708,7 @@ export async function POST(req: NextRequest) {
           } else if (tool === 'nameimage' || tool === 'renameasset') {
             payload = {
               imageId: params.imageId || params.assetId || 'current',
-              name: params.name || params.newFilename || extractName(userMessage) || 'Untitled',
+              name: params.name || params.newFilename || 'Untitled',
               correlationId,
               originalRequest: userMessage
             };
