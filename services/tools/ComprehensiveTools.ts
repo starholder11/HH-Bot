@@ -1716,6 +1716,74 @@ export class ComprehensiveTools {
       { name: 'fixPendingKeyframes', schema: ComprehensiveTools.fixPendingKeyframesSchema, category: 'maintenance' }
     ];
 
+    // Spatial (Phase 3 – placeholders only)
+    tools.push(
+      { name: 'createSpatialArrangement', schema: ComprehensiveTools.createSpatialArrangementSchema, category: 'spatial' },
+      { name: 'previewSpatialArrangement', schema: ComprehensiveTools.previewSpatialArrangementSchema, category: 'spatial' },
+      { name: 'applySpatialModifications', schema: ComprehensiveTools.applySpatialModificationsSchema, category: 'spatial' }
+    );
+
     return tools;
   }
+}
+
+// ============================================================================
+// SPATIAL TOOLS (PLACEHOLDER ONLY FOR PHASE 3 TASK 1.7)
+// These are registered so the agent/tool registry can discover them now.
+// They intentionally throw Not Implemented until Phase 4 per spec.
+// ============================================================================
+
+export interface CreateSpatialArrangementParams {
+  layoutIds: string[];
+  style: 'grid' | 'circle' | 'timeline' | 'cluster';
+  constraints?: Record<string, any>;
+  userId: string;
+}
+
+export interface PreviewSpatialArrangementParams { sceneId: string; userId: string }
+export interface ApplySpatialModificationsParams { sceneId: string; modifications: Record<string, any>; userId: string }
+
+// Instance methods must be on the class prototype; add via declaration merging
+declare module './ComprehensiveTools' {
+  interface ComprehensiveTools {
+    createSpatialArrangement(params: CreateSpatialArrangementParams): Promise<never>;
+    previewSpatialArrangement(params: PreviewSpatialArrangementParams): Promise<never>;
+    applySpatialModifications(params: ApplySpatialModificationsParams): Promise<never>;
+  }
+}
+
+ComprehensiveTools.prototype.createSpatialArrangement = async function (_params: CreateSpatialArrangementParams): Promise<never> {
+  // Placeholder per spec: Hook only. Real implementation deferred until after manual editor.
+  throw new Error('Not implemented: createSpatialArrangement (Phase 3 placeholder)');
+};
+
+ComprehensiveTools.prototype.previewSpatialArrangement = async function (_params: PreviewSpatialArrangementParams): Promise<never> {
+  throw new Error('Not implemented: previewSpatialArrangement (Phase 3 placeholder)');
+};
+
+ComprehensiveTools.prototype.applySpatialModifications = async function (_params: ApplySpatialModificationsParams): Promise<never> {
+  throw new Error('Not implemented: applySpatialModifications (Phase 3 placeholder)');
+};
+
+// Zod schemas for tool registration
+// (Schemas are static so ToolRegistry can reference without instantiation)
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace ComprehensiveTools {
+  export const createSpatialArrangementSchema = z.object({
+    layoutIds: z.array(z.string()).min(1).describe('Layout IDs to arrange in 3D'),
+    style: z.enum(['grid', 'circle', 'timeline', 'cluster']).describe('Arrangement style'),
+    constraints: z.record(z.any()).optional().describe('Optional constraints map'),
+    userId: z.string().describe('User ID for context tracking')
+  });
+
+  export const previewSpatialArrangementSchema = z.object({
+    sceneId: z.string().describe('Target scene ID for preview generation'),
+    userId: z.string().describe('User ID for context tracking')
+  });
+
+  export const applySpatialModificationsSchema = z.object({
+    sceneId: z.string().describe('Scene ID to modify'),
+    modifications: z.record(z.any()).describe('Modifications payload'),
+    userId: z.string().describe('User ID for context tracking')
+  });
 }

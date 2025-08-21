@@ -150,6 +150,16 @@ export class ToolRegistry {
       'fixPendingKeyframes': 'Fix and process any pending keyframe extractions'
     };
 
+    // Spatial placeholders
+    if (category === 'spatial') {
+      const spatialDescriptions: Record<string, string> = {
+        createSpatialArrangement: 'Generate 3D spatial arrangement from existing layouts (placeholder)',
+        previewSpatialArrangement: 'Create 3D preview for user approval (placeholder)',
+        applySpatialModifications: 'Apply user-requested spatial changes (placeholder)'
+      };
+      return spatialDescriptions[name] || `spatial tool: ${name}`;
+    }
+
     return descriptions[name] || `${category} tool: ${name}`;
   }
 
