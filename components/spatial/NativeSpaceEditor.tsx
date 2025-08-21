@@ -558,45 +558,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
   const { Canvas, useFrame, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
 
-  // Drag wrapper component for direct click-and-drag movement (Canvas child)
-  const DragWrapper = ({ children, item, onDrag }: { children: React.ReactNode; item: SpaceAssetData; onDrag: (position: [number, number, number]) => void }) => {
-    const meshRef = useRef<any>(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
-    const intersectionRef = useRef(new THREE.Vector3());
-
-    const handlePointerDown = useCallback((e: any) => {
-      e.stopPropagation();
-      setIsDragging(true);
-    }, []);
-
-    const handlePointerMove = useCallback((e: any) => {
-      if (!isDragging) return;
-      e.stopPropagation();
-      const hasHit = e.ray.intersectPlane(planeRef.current, intersectionRef.current);
-      if (hasHit) {
-        const newPosition: [number, number, number] = [intersectionRef.current.x, item.position[1], intersectionRef.current.z];
-        onDrag(newPosition);
-      }
-    }, [isDragging, item.position, onDrag]);
-
-    const handlePointerUp = useCallback((e: any) => {
-      if (!isDragging) return;
-      e.stopPropagation();
-      setIsDragging(false);
-    }, [isDragging]);
-
-    return (
-      <group
-        ref={meshRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-      >
-        {children}
-      </group>
-    );
-  };
+  // Direct drag handler is implemented inside RenderItem to avoid hook context issues
 
   // Handle direct drag movement
   const handleObjectDrag = useCallback((itemId: string, newPosition: [number, number, number]) => {
@@ -612,6 +574,9 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const RenderItem = ({ item }: { item: SpaceAssetData }) => {
     const groupRef = useRef<any>(null);
     const isSelected = selectedObjects.has(item.id);
+    const isDraggingRef = useRef(false);
+    const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+    const dragPoint = useRef(new THREE.Vector3());
 
     const content = (
       <group
@@ -622,6 +587,23 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         onClick={(e) => {
           e.stopPropagation();
           handleObjectSelect(item, e.shiftKey || selectionMode === 'multi');
+        }}
+        onPointerDown={(e: any) => {
+          e.stopPropagation();
+          isDraggingRef.current = true;
+        }}
+        onPointerMove={(e: any) => {
+          if (!isDraggingRef.current) return;
+          e.stopPropagation();
+          const hit = e.ray.intersectPlane(dragPlane.current, dragPoint.current);
+          if (hit) {
+            handleObjectDrag(item.id, [dragPoint.current.x, item.position[1], dragPoint.current.z]);
+          }
+        }}
+        onPointerUp={(e: any) => {
+          if (!isDraggingRef.current) return;
+          e.stopPropagation();
+          isDraggingRef.current = false;
         }}
       >
         {/* Render different asset types */}
