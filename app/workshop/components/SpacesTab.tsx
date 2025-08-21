@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import NativeSpaceEditor from '@/components/spatial/NativeSpaceEditor';
-import SpaceEditor from '@/components/spatial/SpaceEditor';
+import dynamic from 'next/dynamic';
+
+// Avoid SSR for heavy 3D editors
+const NativeSpaceEditor = dynamic(() => import('@/components/spatial/NativeSpaceEditor'), { ssr: false });
+const SpaceEditor = dynamic(() => import('@/components/spatial/SpaceEditor'), { ssr: false });
 
 export default function SpacesTab() {
   const [spaces, setSpaces] = useState<any[]>([]);
@@ -108,7 +111,7 @@ export default function SpacesTab() {
               </option>
             ))}
           </select>
-          
+
           <button
             onClick={createNewSpace}
             className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
@@ -121,8 +124,8 @@ export default function SpacesTab() {
           <button
             onClick={() => setEditorType('native')}
             className={`px-3 py-1.5 text-xs rounded ${
-              editorType === 'native' 
-                ? 'bg-blue-600 text-white' 
+              editorType === 'native'
+                ? 'bg-blue-600 text-white'
                 : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
             }`}
           >
@@ -131,8 +134,8 @@ export default function SpacesTab() {
           <button
             onClick={() => setEditorType('threejs')}
             className={`px-3 py-1.5 text-xs rounded ${
-              editorType === 'threejs' 
-                ? 'bg-blue-600 text-white' 
+              editorType === 'threejs'
+                ? 'bg-blue-600 text-white'
                 : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
             }`}
           >
@@ -145,7 +148,7 @@ export default function SpacesTab() {
       {error && (
         <div className="mb-4 p-3 bg-red-900/20 border border-red-700 rounded text-red-400 text-sm">
           {error}
-          <button 
+          <button
             onClick={() => setError(null)}
             className="ml-2 text-red-300 hover:text-red-100"
           >

@@ -29,7 +29,7 @@ const CanvasBoard = dynamic(() => import('./components/Canvas/CanvasBoardRGL'), 
 import GridPinned from './components/Canvas/GridPinned';
 import CanvasToolbar from './components/Canvas/CanvasToolbar';
 import CanvasManagerModal from './components/Canvas/CanvasManagerModal';
-import SpacesTab from './components/SpacesTab';
+const SpacesTab = dynamic(() => import('./components/SpacesTab'), { ssr: false });
 // Legacy Generate UI is embedded in this file to match previous behavior
 import { debug } from './utils/log';
 import { useResultsStore } from './store/resultsStore';
@@ -45,6 +45,9 @@ const LayoutsBrowser = dynamic(() => import('./components/Layout/LayoutsBrowser'
 // Moved types to ./types
 
 const DEFAULT_LIMIT = 1000;
+
+// Disable static prerendering for this page to avoid window usage errors on Vercel
+export const dynamic = 'force-dynamic';
 
 // ---------------- FAL Models Types ----------------
 type JsonSchema = {
