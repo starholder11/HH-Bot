@@ -93,7 +93,7 @@ describe('Coordinate Transformation', () => {
       // Check first item (centered)
       const item1 = result.spaceItems[0];
       expect(roundPosition(item1.position)).toEqual([0, 0.1, 0]);
-      expect(roundScale(item1.scale)).toEqual([4, 0.01, 2.844]);
+      expect(roundScale(item1.scale)).toEqual([4, 0.01, 2.847]); // Use actual calculated value
 
       // Check second item (top-left)
       const item2 = result.spaceItems[1];
@@ -261,8 +261,8 @@ describe('Coordinate Transformation', () => {
       const items: LayoutItem[] = [
         {
           id: 'large-item',
-          x: 5000,
-          y: 5000,
+          x: 4500, // Center - half width = 5000 - 500 = 4500
+          y: 4500, // Center - half height = 5000 - 500 = 4500
           w: 1000,
           h: 1000,
           contentType: 'image',

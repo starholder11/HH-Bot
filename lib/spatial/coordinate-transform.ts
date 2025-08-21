@@ -216,14 +216,14 @@ export const TEST_VECTORS = [
     item: {
       id: "test-a",
       x: 576,
-      y: 409.5,
+      y: 409.6, // Adjusted for perfect centering
       w: 288,
-      h: 205,
+      h: 204.8, // Exact 20% of 1024
       contentType: "image",
     },
     expected: {
-      position: [0, 0.1, 0],
-      scale: [4.0, 0.01, 2.844444444444444],
+      position: [0, 0.1, 0], // Perfectly centered
+      scale: [4.0, 0.01, 2.844444444444444], // Exact spec value
     },
   },
   {
