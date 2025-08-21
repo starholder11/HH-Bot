@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
-import * as THREE from "three";
 import SpaceViewer from "./SpaceViewer";
 import { generateDemoSpaceItems } from "./SpaceScene";
 import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
@@ -558,39 +557,10 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
   const { Canvas, useFrame, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
 
-  // Handle direct drag movement
-  const handleObjectDrag = useCallback((itemId: string, newPosition: [number, number, number]) => {
-    setSpaceItems(prev => prev.map(item =>
-      item.id === itemId
-        ? { ...item, position: newPosition }
-        : item
-    ));
-    onSceneChange?.({ type: 'object_dragged', objectId: itemId, position: newPosition });
-  }, [onSceneChange]);
-  // Extracted child component to keep hooks stable
-  function SpaceItemNode({
-    item,
-    isSelected,
-    selectionMode,
-    interactionLevel,
-    r3f,
-    onSelect,
-    onDrag,
-    onTransform,
-  }: {
-    item: SpaceAssetData;
-    isSelected: boolean;
-    selectionMode: 'single' | 'multi';
-    interactionLevel: 'object' | 'component' | 'collection';
-    r3f: any;
-    onSelect: (item: SpaceAssetData, add: boolean) => void;
-    onDrag: (itemId: string, pos: [number, number, number]) => void;
-    onTransform: (itemId: string, transform: any) => void;
-  }) {
+  // Helper component to render and transform a single space item
+  const RenderItem = ({ item }: { item: SpaceAssetData }) => {
     const groupRef = useRef<any>(null);
-    const isDraggingRef = useRef(false);
-    const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
-    const dragPoint = useRef(new THREE.Vector3());
+    const isSelected = selectedObjects.has(item.id);
 
     const content = (
       <group
@@ -600,26 +570,10 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         scale={item.scale}
         onClick={(e) => {
           e.stopPropagation();
-          onSelect(item, e.shiftKey || selectionMode === 'multi');
-        }}
-        onPointerDown={(e: any) => {
-          e.stopPropagation();
-          isDraggingRef.current = true;
-        }}
-        onPointerMove={(e: any) => {
-          if (!isDraggingRef.current) return;
-          e.stopPropagation();
-          const hit = e.ray.intersectPlane(dragPlane.current, dragPoint.current);
-          if (hit) {
-            onDrag(item.id, [dragPoint.current.x, item.position[1], dragPoint.current.z]);
-          }
-        }}
-        onPointerUp={(e: any) => {
-          if (!isDraggingRef.current) return;
-          e.stopPropagation();
-          isDraggingRef.current = false;
+          handleObjectSelect(item, e.shiftKey || selectionMode === 'multi');
         }}
       >
+        {/* Render different asset types */}
         {item.assetType === 'object' && (
           <ObjectRenderer
             assetData={{ /* mock object data */ id: item.assetId, object_type: 'atomic', object: { modelUrl: '/models/reference/threejs/DamagedHelmet.glb', boundingBox: { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] }, category: 'props' } }}
@@ -642,7 +596,9 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         )}
 
         {!['object', 'object_collection'].includes(item.assetType) && (
+          // Image/video planes or colored boxes and label
           <>
+            {/* Image plane or colored box */}
             {(['image', 'video'].includes(item.assetType) && item.mediaUrl)
               ? (
                 r3f?.Image
@@ -690,7 +646,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           mode={transformMode}
           onObjectChange={() => {
             if (!groupRef.current) return;
-            onTransform(item.id, {
+            handleTransform(item.id, {
               position: [groupRef.current.position.x, groupRef.current.position.y, groupRef.current.position.z],
               rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
               scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
@@ -703,7 +659,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     }
 
     return content;
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -877,17 +833,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
           {/* Render space items with proper asset type support */}
           {spaceItems.map((item) => (
-            <SpaceItemNode
-              key={item.id}
-              item={item}
-              isSelected={selectedObjects.has(item.id)}
-              selectionMode={selectionMode}
-              interactionLevel={interactionLevel}
-              r3f={r3f}
-              onSelect={handleObjectSelect}
-              onDrag={handleObjectDrag}
-              onTransform={handleTransform}
-            />
+            <RenderItem key={item.id} item={item} />
           ))}
 
           <OrbitControls enablePan enableZoom enableRotate />
@@ -916,7 +862,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
       {/* Instructions */}
       <div className="text-xs text-neutral-400 bg-neutral-800 border border-neutral-700 rounded-lg p-3">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p><strong>Selection:</strong></p>
             <ul className="list-disc list-inside space-y-1 mt-1">
@@ -927,19 +873,10 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             </ul>
           </div>
           <div>
-            <p><strong>Movement:</strong></p>
-            <ul className="list-disc list-inside space-y-1 mt-1">
-              <li><strong>Direct Drag:</strong> Click and drag objects to move</li>
-              <li>Camera orbit auto-disables while dragging</li>
-              <li>Objects snap to ground plane (XZ movement)</li>
-              <li>Works with both selected and unselected items</li>
-            </ul>
-          </div>
-          <div>
-            <p><strong>Transform Gizmos:</strong></p>
+            <p><strong>Transform:</strong></p>
             <ul className="list-disc list-inside space-y-1 mt-1">
               <li>G (grab/move), R (rotate), S (scale)</li>
-              <li>Drag transform gizmos for precise control</li>
+              <li>Drag transform gizmos to modify objects</li>
               <li>Object/Component/Collection interaction levels</li>
               <li>Group/Duplicate operations for multi-selection</li>
             </ul>
