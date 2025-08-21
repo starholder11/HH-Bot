@@ -1,7 +1,7 @@
 import {
 	BoxGeometry,
 	BufferGeometry,
-	Controls,
+	// Controls, // Not available in some builds. Use shim below.
 	CylinderGeometry,
 	DoubleSide,
 	Euler,
@@ -18,8 +18,23 @@ import {
 	Raycaster,
 	SphereGeometry,
 	TorusGeometry,
-	Vector3
+	Vector3,
+	EventDispatcher
 } from 'three';
+
+// Minimal Controls shim for environments where three.module.js
+// does not export Controls. Provides domElement wiring and enable flag.
+class ControlsShim extends EventDispatcher {
+	constructor( object = undefined, domElement = null ) {
+		super();
+		this.object = object;
+		this.domElement = domElement;
+		this.enabled = true;
+	}
+
+	connect( element ) { this.domElement = element; }
+	dispose() {}
+}
 
 const _raycaster = new Raycaster();
 
@@ -74,7 +89,7 @@ const _objectChangeEvent = { type: 'objectChange' };
  * @augments Controls
  * @three_import import { TransformControls } from 'three/addons/controls/TransformControls.js';
  */
-class TransformControls extends Controls {
+class TransformControls extends ControlsShim {
 
 	/**
 	 * Constructs a new controls instance.
