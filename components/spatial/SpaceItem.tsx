@@ -3,15 +3,17 @@ import { useRef, useState, useMemo, useEffect } from "react";
 import { useSpaceAsset, type SpaceAssetData } from "@/hooks/useSpaceAsset";
 import ObjectRenderer from "./ObjectRenderer";
 import CollectionRenderer from "./CollectionRenderer";
+import { type LODManager, calculateLODLevel } from "@/utils/spatial/lod";
 
 type SpaceItemProps = {
   item: SpaceAssetData;
   cameraPosition?: [number, number, number];
+  lodManager?: LODManager;
   onSelect?: (item: SpaceAssetData) => void;
   onHover?: (item: SpaceAssetData | null) => void;
 };
 
-export default function SpaceItem({ item, cameraPosition = [0, 0, 0], onSelect, onHover }: SpaceItemProps) {
+export default function SpaceItem({ item, cameraPosition = [0, 0, 0], lodManager, onSelect, onHover }: SpaceItemProps) {
   const meshRef = useRef<any>(null);
   const [hovered, setHovered] = useState(false);
   const [selected, setSelected] = useState(false);
@@ -54,13 +56,16 @@ export default function SpaceItem({ item, cameraPosition = [0, 0, 0], onSelect, 
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }, [item.position, cameraPosition]);
 
-  // LOD quality based on distance
+  // LOD quality based on distance (enhanced with LOD manager)
   const lodQuality = useMemo(() => {
-    if (distance > 20) return 'low';    // 64x64px
-    if (distance > 10) return 'medium'; // 512x512px
-    if (distance > 5) return 'high';    // 1024x1024px
-    return 'full';                      // Original resolution
-  }, [distance]);
+    if (lodManager) {
+      const lodInfo = lodManager.calculateObjectLOD(item.position, cameraPosition);
+      return lodInfo.lodLevel;
+    }
+    
+    // Fallback to simple distance-based LOD
+    return calculateLODLevel(distance);
+  }, [distance, lodManager, item.position, cameraPosition]);
 
   const handleClick = () => {
     setSelected(!selected);
@@ -185,13 +190,17 @@ export default function SpaceItem({ item, cameraPosition = [0, 0, 0], onSelect, 
 function ImageAsset({ assetData, lodQuality, useTexture }: any) {
   if (!assetData?.cloudflare_url) return null;
   
+  // Don't render if hidden by LOD
+  if (lodQuality === 'hidden') return null;
+  
   // Construct LOD URL
   const getImageUrl = () => {
     const baseUrl = assetData.cloudflare_url;
     switch (lodQuality) {
       case 'low': return `${baseUrl}?w=64&h=64`;
-      case 'medium': return `${baseUrl}?w=512&h=512`;
-      case 'high': return `${baseUrl}?w=1024&h=1024`;
+      case 'medium': return `${baseUrl}?w=256&h=256`;
+      case 'high': return `${baseUrl}?w=512&h=512`;
+      case 'full': return `${baseUrl}?w=1024&h=1024`;
       default: return baseUrl;
     }
   };

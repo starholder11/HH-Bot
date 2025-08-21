@@ -2,6 +2,9 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import SpaceScene, { generateDemoSpaceItems } from "./SpaceScene";
 import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
+import { usePerformanceMonitor, PerformanceMonitor } from "@/hooks/usePerformanceMonitor";
+import { LODManager } from "@/utils/spatial/lod";
+import { globalMemoryManager } from "@/utils/spatial/memory-management";
 
 type CameraMode = "orbit" | "first-person" | "fly";
 
@@ -17,6 +20,11 @@ export default function SpaceViewer(props: SpaceViewerProps) {
   const [r3f, setR3F] = useState<any>(null);
   const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([4, 3, 6]);
   const cameraRef = useRef<any>(null);
+  const rendererRef = useRef<any>(null);
+  const lodManagerRef = useRef<LODManager>(new LODManager());
+  
+  // Performance monitoring
+  const { metrics, isPerformanceAcceptable } = usePerformanceMonitor(rendererRef.current);
 
   useEffect(() => {
     let mounted = true;
@@ -51,6 +59,13 @@ export default function SpaceViewer(props: SpaceViewerProps) {
     return items || generateDemoSpaceItems();
   }, [items]);
 
+  // Memory cleanup on unmount
+  useEffect(() => {
+    return () => {
+      globalMemoryManager.cleanup();
+    };
+  }, []);
+
   const overlayHint = useMemo(() => {
     if (cameraMode === "first-person") {
       return "Click the canvas to lock pointer. ESC to unlock.";
@@ -71,7 +86,7 @@ export default function SpaceViewer(props: SpaceViewerProps) {
 
   const { Canvas, useFrame, OrbitControls, FlyControls, PointerLockControls, Environment, StatsGl } = r3f;
 
-  // Camera tracking component
+  // Camera tracking and performance optimization component
   function CameraTracker() {
     useFrame((state) => {
       if (cameraRef.current) {
@@ -80,6 +95,17 @@ export default function SpaceViewer(props: SpaceViewerProps) {
           state.camera.position.y,
           state.camera.position.z,
         ]);
+
+        // Update LOD manager
+        lodManagerRef.current.updateFrustum(state.camera);
+      }
+
+      // Update memory manager
+      globalMemoryManager.update();
+      
+      // Store renderer reference for performance monitoring
+      if (state.gl && !rendererRef.current) {
+        rendererRef.current = state.gl;
       }
     });
     return null;
@@ -105,6 +131,7 @@ export default function SpaceViewer(props: SpaceViewerProps) {
         <SpaceScene 
           items={spaceItems} 
           cameraPosition={cameraPosition}
+          lodManager={lodManagerRef.current}
           onSelectItem={(item) => console.log('Selected:', item)}
           onHoverItem={(item) => console.log('Hovered:', item)}
         />
@@ -125,6 +152,16 @@ export default function SpaceViewer(props: SpaceViewerProps) {
       <div className="absolute bottom-3 left-3 rounded bg-black/60 px-2 py-1 text-xs text-neutral-200">
         {overlayHint}
       </div>
+
+      {/* Performance Monitor */}
+      <PerformanceMonitor renderer={rendererRef.current} position="top-right" compact={true} />
+      
+      {/* Performance Warning */}
+      {!isPerformanceAcceptable() && (
+        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 bg-red-600/90 text-white px-3 py-1 rounded text-sm">
+          ⚠ Performance Warning: {metrics.fps.toFixed(1)} FPS
+        </div>
+      )}
     </div>
   );
 }

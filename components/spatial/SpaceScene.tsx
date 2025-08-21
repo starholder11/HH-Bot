@@ -2,10 +2,12 @@
 import { useState, useMemo } from "react";
 import SpaceItem from "./SpaceItem";
 import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
+import { type LODManager } from "@/utils/spatial/lod";
 
 export type SpaceSceneProps = {
   items: SpaceAssetData[];
   cameraPosition?: [number, number, number];
+  lodManager?: LODManager;
   onSelectItem?: (item: SpaceAssetData) => void;
   onHoverItem?: (item: SpaceAssetData | null) => void;
 };
@@ -13,6 +15,7 @@ export type SpaceSceneProps = {
 export default function SpaceScene({ 
   items, 
   cameraPosition = [0, 0, 0], 
+  lodManager,
   onSelectItem, 
   onHoverItem 
 }: SpaceSceneProps) {
@@ -22,7 +25,17 @@ export default function SpaceScene({
   // Filter visible items and sort by distance for rendering optimization
   const visibleItems = useMemo(() => {
     return items
-      .filter(item => item.visible !== false)
+      .filter(item => {
+        if (item.visible === false) return false;
+        
+        // Use LOD manager for frustum culling if available
+        if (lodManager) {
+          const lodInfo = lodManager.calculateObjectLOD(item.position, cameraPosition);
+          return lodInfo.shouldRender;
+        }
+        
+        return true;
+      })
       .sort((a, b) => {
         // Calculate distances for sorting (far to near for transparency)
         const distA = Math.sqrt(
@@ -37,7 +50,7 @@ export default function SpaceScene({
         );
         return distB - distA; // Far to near
       });
-  }, [items, cameraPosition]);
+  }, [items, cameraPosition, lodManager]);
 
   const handleSelectItem = (item: SpaceAssetData) => {
     const newSelection = new Set(selectedItems);
@@ -62,6 +75,7 @@ export default function SpaceScene({
           key={item.id}
           item={item}
           cameraPosition={cameraPosition}
+          lodManager={lodManager}
           onSelect={handleSelectItem}
           onHover={handleHoverItem}
         />
