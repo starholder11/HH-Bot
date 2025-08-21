@@ -25,7 +25,7 @@ export interface EditorBridgeOptions {
 
 const DEFAULT_OPTIONS: EditorBridgeOptions = {
   allowedOrigins: [window.location.origin],
-  timeout: 5000,
+  timeout: 12000,
   debug: process.env.NODE_ENV === 'development',
 };
 
@@ -74,12 +74,8 @@ export class EditorBridge {
    * Handle incoming messages from editor
    */
   private handleMessage(event: MessageEvent) {
-    // Security: validate origin
-    if (!this.options.allowedOrigins?.includes(event.origin) && 
-        event.origin !== window.location.origin) {
-      if (this.options.debug) {
-        console.warn('EditorBridge: message from untrusted origin:', event.origin);
-      }
+    // Security: ensure the message comes from our iframe
+    if (event.source !== this.iframe.contentWindow) {
       return;
     }
 
@@ -90,9 +86,7 @@ export class EditorBridge {
 
     const message = event.data as EditorMessage;
     
-    if (this.options.debug) {
-      console.log('EditorBridge: received message:', message);
-    }
+    if (this.options.debug) console.log('EditorBridge: received message:', message);
 
     // Handle special messages
     switch (message.type) {
