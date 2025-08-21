@@ -558,8 +558,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
   const { Canvas, useFrame, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
 
-  // Direct drag handler is implemented inside RenderItem to avoid hook context issues
-
   // Handle direct drag movement
   const handleObjectDrag = useCallback((itemId: string, newPosition: [number, number, number]) => {
     setSpaceItems(prev => prev.map(item =>
@@ -569,11 +567,27 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     ));
     onSceneChange?.({ type: 'object_dragged', objectId: itemId, position: newPosition });
   }, [onSceneChange]);
-
-  // Helper component to render and transform a single space item
-  const RenderItem = ({ item }: { item: SpaceAssetData }) => {
+  // Extracted child component to keep hooks stable
+  function SpaceItemNode({
+    item,
+    isSelected,
+    selectionMode,
+    interactionLevel,
+    r3f,
+    onSelect,
+    onDrag,
+    onTransform,
+  }: {
+    item: SpaceAssetData;
+    isSelected: boolean;
+    selectionMode: 'single' | 'multi';
+    interactionLevel: 'object' | 'component' | 'collection';
+    r3f: any;
+    onSelect: (item: SpaceAssetData, add: boolean) => void;
+    onDrag: (itemId: string, pos: [number, number, number]) => void;
+    onTransform: (itemId: string, transform: any) => void;
+  }) {
     const groupRef = useRef<any>(null);
-    const isSelected = selectedObjects.has(item.id);
     const isDraggingRef = useRef(false);
     const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
     const dragPoint = useRef(new THREE.Vector3());
@@ -586,7 +600,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         scale={item.scale}
         onClick={(e) => {
           e.stopPropagation();
-          handleObjectSelect(item, e.shiftKey || selectionMode === 'multi');
+          onSelect(item, e.shiftKey || selectionMode === 'multi');
         }}
         onPointerDown={(e: any) => {
           e.stopPropagation();
@@ -597,7 +611,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           e.stopPropagation();
           const hit = e.ray.intersectPlane(dragPlane.current, dragPoint.current);
           if (hit) {
-            handleObjectDrag(item.id, [dragPoint.current.x, item.position[1], dragPoint.current.z]);
+            onDrag(item.id, [dragPoint.current.x, item.position[1], dragPoint.current.z]);
           }
         }}
         onPointerUp={(e: any) => {
@@ -606,7 +620,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           isDraggingRef.current = false;
         }}
       >
-        {/* Render different asset types */}
         {item.assetType === 'object' && (
           <ObjectRenderer
             assetData={{ /* mock object data */ id: item.assetId, object_type: 'atomic', object: { modelUrl: '/models/reference/threejs/DamagedHelmet.glb', boundingBox: { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] }, category: 'props' } }}
@@ -629,9 +642,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         )}
 
         {!['object', 'object_collection'].includes(item.assetType) && (
-          // Image/video planes or colored boxes and label
           <>
-            {/* Image plane or colored box */}
             {(['image', 'video'].includes(item.assetType) && item.mediaUrl)
               ? (
                 r3f?.Image
@@ -679,7 +690,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           mode={transformMode}
           onObjectChange={() => {
             if (!groupRef.current) return;
-            handleTransform(item.id, {
+            onTransform(item.id, {
               position: [groupRef.current.position.x, groupRef.current.position.y, groupRef.current.position.z],
               rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
               scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
@@ -692,7 +703,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     }
 
     return content;
-  };
+  }
 
   return (
     <div className="space-y-4">
@@ -866,7 +877,17 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
           {/* Render space items with proper asset type support */}
           {spaceItems.map((item) => (
-            <RenderItem key={item.id} item={item} />
+            <SpaceItemNode
+              key={item.id}
+              item={item}
+              isSelected={selectedObjects.has(item.id)}
+              selectionMode={selectionMode}
+              interactionLevel={interactionLevel}
+              r3f={r3f}
+              onSelect={handleObjectSelect}
+              onDrag={handleObjectDrag}
+              onTransform={handleTransform}
+            />
           ))}
 
           <OrbitControls enablePan enableZoom enableRotate />
