@@ -102,7 +102,7 @@
 
 			//
 
-					// Add timeout and error handling for storage initialization
+		// Add timeout and error handling for storage initialization
 		let initTimeout = setTimeout(() => {
 			console.error('Editor storage initialization timed out, proceeding anyway');
 			initializeEditor();
@@ -151,51 +151,49 @@
 			initializeEditor();
 		}
 
-				//
+		//
 
-				let timeout;
+		let timeout;
 
-				function saveState() {
+		function saveState() {
 
-					if ( editor.config.getKey( 'autosave' ) === false ) {
+			if ( editor.config.getKey( 'autosave' ) === false ) {
 
-						return;
+				return;
 
-					}
+			}
 
-					clearTimeout( timeout );
+			clearTimeout( timeout );
 
-					timeout = setTimeout( function () {
+			timeout = setTimeout( function () {
 
-						editor.signals.savingStarted.dispatch();
+				editor.signals.savingStarted.dispatch();
 
-						timeout = setTimeout( function () {
+				timeout = setTimeout( function () {
 
-							editor.storage.set( editor.toJSON() );
+					editor.storage.set( editor.toJSON() );
 
-							editor.signals.savingFinished.dispatch();
+					editor.signals.savingFinished.dispatch();
 
-						}, 100 );
+				}, 100 );
 
-					}, 1000 );
+			}, 1000 );
 
-				}
+		}
 
-				const signals = editor.signals;
+		const signals = editor.signals;
 
-				signals.geometryChanged.add( saveState );
-				signals.objectAdded.add( saveState );
-				signals.objectChanged.add( saveState );
-				signals.objectRemoved.add( saveState );
-				signals.materialChanged.add( saveState );
-				signals.sceneBackgroundChanged.add( saveState );
-				signals.sceneEnvironmentChanged.add( saveState );
-				signals.sceneFogChanged.add( saveState );
-				signals.sceneGraphChanged.add( saveState );
-				signals.scriptChanged.add( saveState );
-				signals.historyChanged.add( saveState );
-
-			} );
+		signals.geometryChanged.add( saveState );
+		signals.objectAdded.add( saveState );
+		signals.objectChanged.add( saveState );
+		signals.objectRemoved.add( saveState );
+		signals.materialChanged.add( saveState );
+		signals.sceneBackgroundChanged.add( saveState );
+		signals.sceneEnvironmentChanged.add( saveState );
+		signals.sceneFogChanged.add( saveState );
+		signals.sceneGraphChanged.add( saveState );
+		signals.scriptChanged.add( saveState );
+		signals.historyChanged.add( saveState );
 
 			//
 
