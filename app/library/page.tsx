@@ -290,10 +290,25 @@ export default function FileManagerPage() {
         }));
         hasMoreFromServer = false;
       
+      } else if (mediaTypeFilter === 'object') {
+        // Fetch objects from Phase 3 API
+        const response = await fetch('/api/objects');
+        const result = await response.json();
+        newData = (result.assets || []).map((obj: any) => ({
+          ...obj,
+          media_type: 'object' as const,
+          ai_labels: obj.ai_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+          manual_labels: obj.manual_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] },
+          processing_status: obj.processing_status || { upload: 'completed', metadata_extraction: 'completed', ai_labeling: 'not_started', manual_review: 'pending' },
+          timestamps: obj.timestamps || { uploaded: obj.created_at, metadata_extracted: null, labeled_ai: null, labeled_reviewed: null },
+          labeling_complete: false,
+          project_id: projectFilter || null,
+        }));
+        hasMoreFromServer = false;
       } else {
         // For images, videos, and "all media", use existing media-labeling API with pagination
         const params = new URLSearchParams();
-        if (mediaTypeFilter && mediaTypeFilter !== 'audio') params.append('type', mediaTypeFilter);
+        if (mediaTypeFilter && mediaTypeFilter !== 'audio' && mediaTypeFilter !== 'object') params.append('type', mediaTypeFilter);
         if (projectFilter) params.append('project', projectFilter);
         params.append('page', pageToFetch.toString());
         params.append('limit', limitToFetch.toString());
