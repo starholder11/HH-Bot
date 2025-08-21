@@ -29,6 +29,7 @@ const CanvasBoard = dynamic(() => import('./components/Canvas/CanvasBoardRGL'), 
 import GridPinned from './components/Canvas/GridPinned';
 import CanvasToolbar from './components/Canvas/CanvasToolbar';
 import CanvasManagerModal from './components/Canvas/CanvasManagerModal';
+import SpacesTab from './components/SpacesTab';
 // Legacy Generate UI is embedded in this file to match previous behavior
 import { debug } from './utils/log';
 import { useResultsStore } from './store/resultsStore';
@@ -967,8 +968,8 @@ function RightPane({
   resizePinned: (id: string, width: number, height: number) => void;
   setPinned: (updater: (prev: PinnedItem[]) => PinnedItem[]) => void;
   setShowCanvasModal: (show: boolean) => void;
-  tab: 'results' | 'canvas' | 'layouts' | 'output' | 'generate';
-  setTab: (t: 'results' | 'canvas' | 'layouts' | 'output' | 'generate') => void;
+  tab: 'results' | 'canvas' | 'layouts' | 'spaces' | 'output' | 'generate';
+  setTab: (t: 'results' | 'canvas' | 'layouts' | 'spaces' | 'output' | 'generate') => void;
   genLoading: boolean;
   genUrl: string | null;
   genMode: 'image' | 'video' | 'audio' | 'text' | null;
@@ -1041,6 +1042,15 @@ function RightPane({
             )}
           >
             Results
+          </button>
+          <button
+            onClick={() => setTab('spaces')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'spaces' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Spaces
           </button>
           <button
             onClick={() => setTab('generate')}
@@ -1246,6 +1256,10 @@ function RightPane({
         <div className="mt-3 h-full">
           <LayoutsTab />
         </div>
+      ) : tab === 'spaces' ? (
+        <div className="mt-3 h-full">
+          <SpacesTab />
+        </div>
       ) : tab === 'output' ? (
         <div className="mt-3 space-y-3">
           {genLoading ? (
@@ -1372,7 +1386,7 @@ export default function VisualSearchPage() {
     useEffect(() => {
       try {
         const savedTab = localStorage.getItem('workshop-active-tab');
-        if (savedTab === 'layouts' || savedTab === 'canvas' || savedTab === 'output' || savedTab === 'generate' || savedTab === 'results') {
+        if (savedTab === 'layouts' || savedTab === 'canvas' || savedTab === 'spaces' || savedTab === 'output' || savedTab === 'generate' || savedTab === 'results') {
           setRightTab(savedTab as any);
           // Clear the preference after using it
           localStorage.removeItem('workshop-active-tab');
