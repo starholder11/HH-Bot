@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDragAndDropWithPreview } from '@/hooks/useDragAndDrop';
 
 export default function TestDirectInsertionPage() {
@@ -19,7 +19,7 @@ export default function TestDirectInsertionPage() {
   });
 
   // Load real object IDs from API so server insertion works
-  React.useEffect(() => {
+  useEffect(() => {
     (async () => {
       try {
         const res = await fetch('/api/objects');
