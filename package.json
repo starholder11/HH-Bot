@@ -65,7 +65,7 @@
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
     "ai": "^3.3.35",
-    "apache-arrow": "15.0.2",
+    
     "autoprefixer": "^10.4.21",
     "axios": "^1.11.0",
     "bufferutil": "^4.0.9",
@@ -111,6 +111,9 @@
     "ws": "^8.18.3",
     "zod": "3.23.8",
     "zustand": "^4.5.7"
+  },
+  "optionalDependencies": {
+    "apache-arrow": "15.0.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",
