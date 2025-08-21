@@ -643,43 +643,49 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     );
 
     // Wrap content in DragControls so dragging works whether selected or not
-    const wrapped = isSelected && showTransformControls ? (
-      <TransformControls
-        mode={transformMode}
-        onObjectChange={() => {
-          if (!groupRef.current) return;
-          handleTransform(item.id, {
-            position: [groupRef.current.position.x, groupRef.current.position.y, groupRef.current.position.z],
-            rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
-            scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
-          });
-        }}
-      >
-        {content}
-      </TransformControls>
-    ) : content;
+    if (isSelected && showTransformControls) {
+      return (
+        <TransformControls
+          ref={transformControlsRef}
+          mode={transformMode}
+          onObjectChange={() => {
+            if (!groupRef.current) return;
+            handleTransform(item.id, {
+              position: [groupRef.current.position.x, groupRef.current.position.y, groupRef.current.position.z],
+              rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
+              scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
+            });
+          }}
+          onMouseDown={() => { if (orbitRef.current) orbitRef.current.enabled = false; }}
+          onMouseUp={() => { if (orbitRef.current) orbitRef.current.enabled = true; }}
+        >
+          {content}
+        </TransformControls>
+      );
+    }
 
-    return (
-      <>
-        {wrapped}
-        {DragControls && (
-          <DragControls
-            transformGroup
-            objects={[groupRef] as any}
-            onDragStart={() => { if (orbitRef.current) orbitRef.current.enabled = false; }}
-            onDrag={() => {
-              if (!groupRef.current) return;
-              handleTransform(item.id, {
-                position: [groupRef.current.position.x, item.position[1], groupRef.current.position.z],
-                rotation: item.rotation,
-                scale: item.scale,
-              });
-            }}
-            onDragEnd={() => { if (orbitRef.current) orbitRef.current.enabled = true; }}
-          />
-        )}
-      </>
-    );
+    // Non-selected: direct drag
+    if (DragControls) {
+      return (
+        <DragControls
+          transformGroup
+          onDragStart={() => { if (orbitRef.current) orbitRef.current.enabled = false; }}
+          onDrag={() => {
+            if (!groupRef.current) return;
+            handleTransform(item.id, {
+              position: [groupRef.current.position.x, item.position[1], groupRef.current.position.z],
+              rotation: item.rotation,
+              scale: item.scale,
+            });
+          }}
+          onDragEnd={() => { if (orbitRef.current) orbitRef.current.enabled = true; }}
+        >
+          {content}
+        </DragControls>
+      );
+    }
+
+    return content;
   };
 
   return (
