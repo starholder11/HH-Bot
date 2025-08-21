@@ -1932,7 +1932,7 @@ export default function VisualSearchPage() {
                     // Clean the search name (remove "lora", extra spaces, etc.)
                     const cleanN = n.replace(/\s*lora\s*/g, '').trim();
                     const cleanCn = cn.replace(/\s*lora\s*/g, '').trim();
-                    
+
                     // Multiple matching strategies for robustness
                     return (
                       // Exact match
@@ -1976,7 +1976,7 @@ export default function VisualSearchPage() {
                   const tw = String(l?.triggerWord || '').toLowerCase();
                   const cn = String(l?.canvasName || '').toLowerCase();
                   const cleanCn = cn.replace(/\s*lora\s*/g, '').trim();
-                  
+
                   return (
                     // Trigger word match (if not generic)
                     (tw && tw !== 'canvas_style' && p.includes(tw)) ||

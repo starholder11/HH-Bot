@@ -1006,7 +1006,7 @@ export async function saveMediaAsset(assetId: string, assetData: MediaAsset): Pr
           CacheControl: 'max-age=31536000',
         })
       );
-      
+
       // Clear cache after successful save to ensure immediate visibility
       clearS3KeysCache();
       return;
@@ -1025,7 +1025,7 @@ export async function saveMediaAsset(assetId: string, assetData: MediaAsset): Pr
     await fs.mkdir(dataDir, { recursive: true });
   } catch {}
   await fs.writeFile(path.join(dataDir, `${assetId}.json`), JSON.stringify(assetData, null, 2));
-  
+
   // Clear cache after successful local save too
   clearS3KeysCache();
 }
@@ -1065,7 +1065,7 @@ export async function deleteMediaAsset(assetId: string): Promise<boolean> {
       const bucket = getBucketName();
       const key = `${PREFIX}${assetId}.json`;
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-      
+
       // Clear cache after successful delete to ensure immediate removal from lists
       clearS3KeysCache();
       return true;
@@ -1082,7 +1082,7 @@ export async function deleteMediaAsset(assetId: string): Promise<boolean> {
   const filePath = path.join(process.cwd(), 'media-sources', 'assets', `${assetId}.json`);
   try {
     await fs.unlink(filePath);
-    
+
     // Clear cache after successful local delete too
     clearS3KeysCache();
     return true;
@@ -1131,7 +1131,7 @@ export async function searchMediaAssets(
       const layoutAsset = asset as LayoutAsset;
       const layoutMatch =
         layoutAsset.layout_type.toLowerCase().includes(lowerQuery) ||
-        (layoutAsset.layout_data.items || []).some(item => 
+        (layoutAsset.layout_data.items || []).some(item =>
           item.refId?.toLowerCase().includes(lowerQuery) ||
           item.contentType?.toLowerCase().includes(lowerQuery) ||
           item.inlineContent?.text?.toLowerCase().includes(lowerQuery) ||

@@ -347,7 +347,7 @@ export default function FileManagerPage() {
         if (projectFilter) params.append('project', projectFilter);
         params.append('page', pageToFetch.toString());
         params.append('limit', limitToFetch.toString());
-        
+
         const response = await fetch(`/api/media-labeling/assets?${params.toString()}`);
         const result = await response.json();
         newData = result.assets || [];
