@@ -1047,15 +1047,6 @@ function RightPane({
             Results
           </button>
           <button
-            onClick={() => setTab('spaces')}
-            className={classNames(
-              'px-3 py-1.5 text-sm rounded-md border',
-              tab === 'spaces' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
-            )}
-          >
-            Spaces
-          </button>
-          <button
             onClick={() => setTab('generate')}
             className={classNames(
               'px-3 py-1.5 text-sm rounded-md border',
@@ -1090,6 +1081,15 @@ function RightPane({
             )}
           >
             Layouts
+          </button>
+          <button
+            onClick={() => setTab('spaces')}
+            className={classNames(
+              'px-3 py-1.5 text-sm rounded-md border',
+              tab === 'spaces' ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900'
+            )}
+          >
+            Spaces
           </button>
         </div>
       </div>
