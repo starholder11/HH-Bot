@@ -1097,7 +1097,7 @@ export async function deleteMediaAsset(assetId: string): Promise<boolean> {
  */
 export async function searchMediaAssets(
   query: string,
-  mediaType?: 'image' | 'video' | 'audio' | 'layout'
+  mediaType?: 'image' | 'video' | 'audio' | 'layout' | 'object' | 'object_collection' | 'space'
 ): Promise<MediaAsset[]> {
   const result = await listMediaAssets(mediaType, { loadAll: true }); // Load all for search
   const lowerQuery = query.toLowerCase();

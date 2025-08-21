@@ -7,7 +7,7 @@ const EMBED_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 interface SearchResult {
   id: string;
-  content_type: 'video' | 'image' | 'audio' | 'text' | 'layout';
+  content_type: 'video' | 'image' | 'audio' | 'text' | 'layout' | 'object' | 'object_collection' | 'space';
   title: string;
   description: string;
   score: number;
@@ -21,7 +21,7 @@ interface SearchResult {
 
 interface SearchFilters {
   content_type?: 'media' | 'text' | 'layout' | 'all';
-  media_type?: 'image' | 'video' | 'audio' | 'layout';
+  media_type?: 'image' | 'video' | 'audio' | 'layout' | 'object' | 'object_collection' | 'space';
   date_range?: {
     start: string;
     end: string;
@@ -199,6 +199,67 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         console.warn('Layout search failed:', error);
       }
 
+      // New: Search objects, collections, and spaces (Phase 3 types)
+      let objectResults: SearchResult[] = [];
+      let collectionResults: SearchResult[] = [];
+      let spaceResults: SearchResult[] = [];
+      try {
+        const { searchMediaAssets } = await import('../../../lib/media-storage');
+        const wantsAll = content_types.length === 0 || content_types.includes('all');
+        if (wantsAll || content_types.includes('object')) {
+          const objects = await searchMediaAssets(query, 'object');
+          objectResults = objects.map(obj => ({
+            id: obj.id,
+            content_type: 'object',
+            title: obj.title,
+            description: obj.description || obj.filename,
+            score: 0.6,
+            metadata: obj,
+            s3_url: (obj as any).s3_url,
+            cloudflare_url: (obj as any).cloudflare_url,
+            preview: obj.filename,
+            searchable_text: [
+              obj.title,
+              obj.description || '',
+              ((obj as any).object?.category) || '',
+              ...(((obj as any).object?.tags) || [])
+            ].join(' ')
+          }));
+        }
+        if (wantsAll || content_types.includes('object_collection')) {
+          const collections = await searchMediaAssets(query, 'object_collection');
+          collectionResults = collections.map(col => ({
+            id: col.id,
+            content_type: 'object_collection',
+            title: col.title,
+            description: col.description || col.filename,
+            score: 0.55,
+            metadata: col,
+            s3_url: (col as any).s3_url,
+            cloudflare_url: (col as any).cloudflare_url,
+            preview: col.filename,
+            searchable_text: [col.title, col.description || ''].join(' ')
+          }));
+        }
+        if (wantsAll || content_types.includes('space')) {
+          const spaces = await searchMediaAssets(query, 'space');
+          spaceResults = spaces.map(sp => ({
+            id: sp.id,
+            content_type: 'space',
+            title: sp.title,
+            description: sp.description || sp.filename,
+            score: 0.5,
+            metadata: sp,
+            s3_url: (sp as any).s3_url,
+            cloudflare_url: (sp as any).cloudflare_url,
+            preview: sp.filename,
+            searchable_text: [sp.title, sp.description || ''].join(' ')
+          }));
+        }
+      } catch (error) {
+        console.warn('Phase 3 asset search failed:', error);
+      }
+
       // Process and filter results
       const processedResults: SearchResult[] = results
         .map((result: any) => ({
@@ -249,7 +310,7 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         .sort((a: any, b: any) => b.score - a.score);
 
       // Add layout results to the processed results
-      const allResults = [...processedResults, ...layoutResults]
+      const allResults = [...processedResults, ...layoutResults, ...objectResults, ...collectionResults, ...spaceResults]
         .sort((a: any, b: any) => b.score - a.score);
 
       console.log(`✅ Returning ${allResults.length} filtered results (${processedResults.length} from LanceDB, ${layoutResults.length} layouts)`);
@@ -382,6 +443,11 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
         for (const e of extras) blendedAll.push(e);
       }
 
+      // Append Phase 3 assets (objects/collections/spaces) to blended feed before paginate
+      if (objectResults.length || collectionResults.length || spaceResults.length) {
+        for (const r of [...objectResults, ...collectionResults, ...spaceResults]) blendedAll.push(r);
+      }
+
       // Now paginate
       const pagedAll = blendedAll.slice(offset, offset + safeLimit);
       const pagedMedia = filteredMedia.slice(offset, offset + safeLimit);
@@ -398,7 +464,7 @@ const lancedbUrl = process.env.LANCEDB_URL || process.env.LANCEDB_API_URL || 'ht
       const responseData = {
         success: true,
         query,
-        total_results: allResults.length, // Include layout results in total
+        total_results: allResults.length, // includes Phase 3 assets in allResults
         page: safePage,
         page_size: safeLimit,
         results: groupedResults,
