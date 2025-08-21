@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Image, Video, Music, FileText } from 'lucide-react';
 import { Project as ProjectType } from '@/lib/project-storage';
 import MediaThumbnail from '@/components/MediaThumbnail';
+import { useDragAndDrop } from '@/hooks/useDragAndDrop';
 
 interface MediaAsset {
   id: string;
@@ -228,6 +229,18 @@ export default function FileManagerPage() {
 
   // Mounted state to prevent state updates on unmounted component
   const isMounted = useRef(true);
+  
+  // Drag and drop for objects
+  const { makeDraggable } = useDragAndDrop({
+    onDragStart: (data) => console.log('Started dragging object:', data.objectId),
+    onDragEnd: (result) => {
+      if (result.success) {
+        console.log('Object inserted successfully');
+      } else {
+        console.warn('Object insertion failed:', result.error);
+      }
+    },
+  });
 
   const [assetListFocused, setAssetListFocused] = useState(false);
 
@@ -1083,6 +1096,7 @@ export default function FileManagerPage() {
                     <div
                       key={asset.id}
                       className={`border rounded-lg p-2 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-shadow ${selectedAsset?.id === asset.id ? 'ring-2 ring-blue-600' : ''}`}
+                      {...(asset.media_type === 'object' ? makeDraggable(asset.id, 'object', asset) : {})}
                       onClick={() => {
                         setSelectedAsset(asset);
                         // Use timeout to prevent race condition with search results rendering
