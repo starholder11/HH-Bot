@@ -16,20 +16,33 @@ import type { LayoutAsset } from "@/app/visual-search/types";
 function ImagePlane({ url }: { url: string }) {
   const [texture, setTexture] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
+    console.log('[ImagePlane] Loading texture from URL:', url);
+    
     if (typeof window !== 'undefined' && (window as any).THREE) {
       const loader = new (window as any).THREE.TextureLoader();
       setLoading(true);
+      setError(null);
+      
+      // Add CORS handling
+      loader.crossOrigin = 'anonymous';
+      
       loader.load(
         url,
         (loadedTexture: any) => {
+          console.log('[ImagePlane] Texture loaded successfully:', loadedTexture);
+          loadedTexture.flipY = false; // Fix texture orientation
           setTexture(loadedTexture);
           setLoading(false);
         },
-        undefined,
+        (progress: any) => {
+          console.log('[ImagePlane] Loading progress:', progress);
+        },
         (error: any) => {
-          console.error('Failed to load texture:', error);
+          console.error('[ImagePlane] Failed to load texture from:', url, error);
+          setError(error.message || 'Failed to load image');
           setLoading(false);
         }
       );
@@ -41,15 +54,25 @@ function ImagePlane({ url }: { url: string }) {
       <mesh>
         <planeGeometry args={[3, 2]} />
         <meshStandardMaterial color="#444" />
+        {/* Loading text */}
+        <mesh position={[0, 0, 0.01]}>
+          <planeGeometry args={[2, 0.5]} />
+          <meshBasicMaterial color="#fff" transparent opacity={0.8} />
+        </mesh>
       </mesh>
     );
   }
 
-  if (!texture) {
+  if (error || !texture) {
     return (
       <mesh>
         <planeGeometry args={[3, 2]} />
-        <meshStandardMaterial color="#666" />
+        <meshStandardMaterial color="#ff4444" />
+        {/* Error indicator */}
+        <mesh position={[0, 0, 0.01]}>
+          <planeGeometry args={[2.5, 0.5]} />
+          <meshBasicMaterial color="#fff" transparent opacity={0.9} />
+        </mesh>
       </mesh>
     );
   }
@@ -57,7 +80,11 @@ function ImagePlane({ url }: { url: string }) {
   return (
     <mesh>
       <planeGeometry args={[3, 2]} />
-      <meshStandardMaterial map={texture} transparent />
+      <meshStandardMaterial 
+        map={texture} 
+        transparent={false}
+        side={(window as any).THREE?.DoubleSide || 2}
+      />
     </mesh>
   );
 }
@@ -367,16 +394,28 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     console.log('[NATIVE EDITOR] Selected asset for import:', asset);
 
     // Create a new space item from the selected asset
+    const mediaUrl = asset.cloudflare_url || asset.url || asset.s3_url;
+    const assetType = asset.content_type || asset.type || 'unknown';
+    
+    console.log('[NATIVE EDITOR] Asset details:', {
+      title: asset.title,
+      assetType,
+      mediaUrl,
+      hasCloudflareUrl: !!asset.cloudflare_url,
+      hasUrl: !!asset.url,
+      hasS3Url: !!asset.s3_url
+    });
+
     const newItem: SpaceAssetData = {
       id: `asset-${Date.now()}`,
       type: 'asset_reference',
       title: asset.title || asset.filename || 'Imported Asset',
-      position: [0, 0, 0],
+      position: [Math.random() * 4 - 2, 1, Math.random() * 4 - 2], // Random position
       rotation: [0, 0, 0],
       scale: [1, 1, 1],
       assetId: asset.id,
-      assetType: asset.content_type || asset.type || 'unknown',
-      mediaUrl: asset.cloudflare_url || asset.url || asset.s3_url,
+      assetType,
+      mediaUrl,
       metadata: {
         originalAsset: asset,
         importedAt: new Date().toISOString(),
@@ -724,7 +763,11 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
                 >
                   {/* Image/Video as textured plane */}
                   {(['image', 'video'].includes(item.assetType) && item.mediaUrl) ? (
-                    <ImagePlane url={item.mediaUrl} />
+                    <>
+                      <ImagePlane url={item.mediaUrl} />
+                      {/* Debug info */}
+                      {console.log('[NativeEditor] Rendering ImagePlane for:', item.title, 'URL:', item.mediaUrl, 'Type:', item.assetType)}
+                    </>
                   ) : (
                     /* Fallback colored box with label */
                     <mesh>
