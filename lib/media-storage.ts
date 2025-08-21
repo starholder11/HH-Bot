@@ -701,6 +701,39 @@ export async function listMediaAssets(
         allKeys = allKeys.filter(k => !k.includes('/keyframes/'));
       }
 
+      // For object types, do a targeted S3 search since they're alphabetically later
+      if (mediaType === 'object' || mediaType === 'object_collection') {
+        const targetPrefix = mediaType === 'object' ? 'obj_' : 'objcol_';
+        console.log(`[media-storage] Performing targeted search for ${targetPrefix} files`);
+        
+        try {
+          const targetListResult = await s3.send(new ListObjectsV2Command({
+            Bucket: bucket,
+            Prefix: `${PREFIX}${targetPrefix}`,
+            MaxKeys: 1000
+          }));
+          
+          const targetKeys = (targetListResult.Contents || [])
+            .filter(obj => obj.Key?.endsWith('.json'))
+            .map(obj => obj.Key!)
+            .sort((a, b) => b.localeCompare(a)); // Most recent first
+          
+          console.log(`[media-storage] Found ${targetKeys.length} ${targetPrefix} files`);
+          allKeys = targetKeys;
+          
+          // Update cache with targeted results
+          s3KeysCache = {
+            keys: allKeys,
+            fetchedAt: now,
+            hasMoreKeys: false,
+            lastContinuationToken: undefined
+          };
+        } catch (error) {
+          console.error(`[media-storage] Targeted search failed for ${targetPrefix}:`, error);
+          allKeys = []; // Fallback to empty
+        }
+      }
+
       // If a mediaType filter is requested we have to apply the filter *before* pagination
       // otherwise the first N keys might not contain any assets of that type (e.g. videos)
 
@@ -728,7 +761,7 @@ export async function listMediaAssets(
         let collectedMatches = 0;
         let startIdx = 0;
 
-        while (collectedMatches < desiredMatches && startIdx < allKeys.length && keys.length < DEFAULT_S3_LIMIT) {
+        while (collectedMatches < desiredMatches && startIdx < allKeys.length && keys.length < (DEFAULT_S3_LIMIT * 2)) {
           const slice = allKeys.slice(startIdx, startIdx + concurrency);
           startIdx += concurrency;
 
