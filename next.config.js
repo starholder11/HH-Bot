@@ -32,6 +32,7 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/lib-storage'],
   },
+  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
   async headers() {
     // these are also defined in the root layout since github pages doesn't support headers
     const headers = [
