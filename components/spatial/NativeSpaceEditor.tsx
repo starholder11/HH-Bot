@@ -8,6 +8,9 @@ import ObjectRenderer from "./ObjectRenderer";
 import CollectionRenderer from "./CollectionRenderer";
 import PropertiesPanel from "./PropertiesPanel";
 import { getDefaultEnvironment, getDefaultCamera } from "@/utils/spatial/leva-store";
+import AssetImportModal from "./AssetImportModal";
+import LayoutImportModal from "./LayoutImportModal";
+import type { LayoutAsset } from "@/app/visual-search/types";
 
 export interface NativeSpaceEditorProps {
   spaceId: string;
@@ -30,6 +33,8 @@ export default function NativeSpaceEditor({
   const [environment, setEnvironment] = useState(getDefaultEnvironment());
   const [cameraSettings, setCameraSettings] = useState(getDefaultCamera());
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
+  const [showAssetImportModal, setShowAssetImportModal] = useState(false);
+  const [showLayoutImportModal, setShowLayoutImportModal] = useState(false);
   const canvasRef = useRef<any>(null);
   const transformControlsRef = useRef<any>(null);
 
@@ -113,7 +118,7 @@ export default function NativeSpaceEditor({
 
   const handleObjectSelect = useCallback((item: SpaceAssetData, addToSelection: boolean = false) => {
     const newSelection = new Set(selectedObjects);
-    
+
     if (selectionMode === 'single' && !addToSelection) {
       // Single selection mode - replace selection
       newSelection.clear();
@@ -126,19 +131,19 @@ export default function NativeSpaceEditor({
         newSelection.add(item.id);
       }
     }
-    
+
     setSelectedObjects(newSelection);
     onSelectionChange?.(Array.from(newSelection));
   }, [selectedObjects, selectionMode, onSelectionChange]);
 
   const handleTransform = (objectId: string, transform: any) => {
     // Update item transform
-    setSpaceItems(prev => prev.map(item => 
-      item.id === objectId 
+    setSpaceItems(prev => prev.map(item =>
+      item.id === objectId
         ? { ...item, position: transform.position, rotation: transform.rotation, scale: transform.scale }
         : item
     ));
-    
+
     onSceneChange?.({ type: 'object_transformed', objectId, transform });
   };
 
@@ -155,7 +160,7 @@ export default function NativeSpaceEditor({
 
   const deleteSelected = useCallback(() => {
     if (selectedObjects.size === 0) return;
-    
+
     setSpaceItems(prev => prev.filter(item => !selectedObjects.has(item.id)));
     setSelectedObjects(new Set());
     onSelectionChange?.([]);
@@ -164,16 +169,16 @@ export default function NativeSpaceEditor({
 
   const duplicateSelected = useCallback(() => {
     if (selectedObjects.size === 0) return;
-    
+
     const selectedItems = spaceItems.filter(item => selectedObjects.has(item.id));
     const duplicatedItems = selectedItems.map(item => ({
       ...item,
       id: `${item.id}_copy_${Date.now()}`,
       position: [item.position[0] + 1, item.position[1], item.position[2]] as [number, number, number]
     }));
-    
+
     setSpaceItems(prev => [...prev, ...duplicatedItems]);
-    
+
     // Select the duplicated items
     const newSelection = new Set(duplicatedItems.map(item => item.id));
     setSelectedObjects(newSelection);
@@ -183,10 +188,10 @@ export default function NativeSpaceEditor({
 
   const groupSelected = useCallback(() => {
     if (selectedObjects.size < 2) return;
-    
+
     const selectedItems = spaceItems.filter(item => selectedObjects.has(item.id));
     const groupId = `group_${Date.now()}`;
-    
+
     // Calculate group center
     const center = selectedItems.reduce(
       (acc, item) => {
@@ -200,14 +205,14 @@ export default function NativeSpaceEditor({
     center.x /= selectedItems.length;
     center.y /= selectedItems.length;
     center.z /= selectedItems.length;
-    
+
     // Update items with group reference
-    setSpaceItems(prev => prev.map(item => 
-      selectedObjects.has(item.id) 
+    setSpaceItems(prev => prev.map(item =>
+      selectedObjects.has(item.id)
         ? { ...item, groupId }
         : item
     ));
-    
+
     onSceneChange?.({ type: 'objects_grouped', groupId, objectIds: Array.from(selectedObjects) });
   }, [selectedObjects, spaceItems, onSceneChange]);
 
@@ -240,7 +245,7 @@ export default function NativeSpaceEditor({
   const handleObjectPropertyChange = useCallback((objectId: string, key: string, value: any) => {
     setSpaceItems(prev => prev.map(item => {
       if (item.id !== objectId) return item;
-      
+
       const newItem = { ...item };
       if (key.includes('.')) {
         const [parentKey, childKey] = key.split('.');
@@ -256,45 +261,77 @@ export default function NativeSpaceEditor({
     onSceneChange?.({ type: 'object_property_changed', objectId, key, value });
   }, [onSceneChange]);
 
-  const handleImportAsset = useCallback(async () => {
-    try {
-      // Fetch available assets (images, videos, audio, objects, etc.)
-      const response = await fetch('/api/media-assets?loadAll=true');
-      if (!response.ok) throw new Error('Failed to fetch assets');
-      
-      const data = await response.json();
-      const assets = data.assets || [];
-      
-      // For now, just log available assets - in the future this could open a modal
-      console.log('Available assets for import:', assets.length);
-      
-      // TODO: Open asset picker modal
-      alert(`Found ${assets.length} assets available for import. Asset picker modal coming soon!`);
-    } catch (error) {
-      console.error('Failed to load assets:', error);
-      alert('Failed to load assets for import');
-    }
+    const handleImportAsset = useCallback(() => {
+    setShowAssetImportModal(true);
   }, []);
 
-  const handleImportLayout = useCallback(async () => {
-    try {
-      // Fetch available layouts
-      const response = await fetch('/api/layouts');
-      if (!response.ok) throw new Error('Failed to fetch layouts');
-      
-      const data = await response.json();
-      const layouts = data.assets || [];
-      
-      // For now, just log available layouts - in the future this could open a modal
-      console.log('Available layouts for import:', layouts.length);
-      
-      // TODO: Open layout picker modal and convert layout to space items
-      alert(`Found ${layouts.length} layouts available for import. Layout picker modal coming soon!`);
-    } catch (error) {
-      console.error('Failed to load layouts:', error);
-      alert('Failed to load layouts for import');
-    }
+  const handleImportLayout = useCallback(() => {
+    setShowLayoutImportModal(true);
   }, []);
+
+  const handleAssetSelect = useCallback((asset: any) => {
+    console.log('[NATIVE EDITOR] Selected asset for import:', asset);
+    
+    // Create a new space item from the selected asset
+    const newItem: SpaceAssetData = {
+      id: `asset-${Date.now()}`,
+      type: 'asset_reference',
+      title: asset.title || asset.filename || 'Imported Asset',
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+      assetId: asset.id,
+      assetType: asset.content_type || asset.type || 'unknown',
+      mediaUrl: asset.cloudflare_url || asset.url || asset.s3_url,
+      metadata: {
+        originalAsset: asset,
+        importedAt: new Date().toISOString(),
+      }
+    };
+
+    setSpaceItems(prev => [...prev, newItem]);
+    setShowAssetImportModal(false);
+    onSceneChange?.({ type: 'asset_imported', asset: newItem });
+  }, [onSceneChange]);
+
+  const handleLayoutSelect = useCallback((layout: LayoutAsset) => {
+    console.log('[NATIVE EDITOR] Selected layout for import:', layout);
+    
+    // Convert layout items to space items
+    const layoutItems = layout.layout_data?.items || [];
+    const newSpaceItems: SpaceAssetData[] = layoutItems.map((item, index) => ({
+      id: `layout-item-${Date.now()}-${index}`,
+      type: 'layout_reference',
+      title: item.snippet || `Layout Item ${index + 1}`,
+      position: [
+        (item.x || 0) * 0.01, // Scale down layout coordinates
+        0,
+        (item.y || 0) * 0.01
+      ],
+      rotation: [0, 0, 0],
+      scale: [
+        (item.w || 100) * 0.01,
+        1,
+        (item.h || 100) * 0.01
+      ],
+      layoutItemId: item.id,
+      layoutId: layout.id,
+      assetType: item.type || 'unknown',
+      mediaUrl: item.mediaUrl,
+      metadata: {
+        originalLayoutItem: item,
+        originalLayout: {
+          id: layout.id,
+          title: layout.title
+        },
+        importedAt: new Date().toISOString(),
+      }
+    }));
+
+    setSpaceItems(prev => [...prev, ...newSpaceItems]);
+    setShowLayoutImportModal(false);
+    onSceneChange?.({ type: 'layout_imported', layout, items: newSpaceItems });
+  }, [onSceneChange]);
 
   const handleAction = useCallback((action: string, data?: any) => {
     switch (action) {
@@ -375,8 +412,8 @@ export default function NativeSpaceEditor({
                 <button
                   key={mode}
                   className={`px-3 py-1.5 text-xs rounded ${
-                    transformMode === mode 
-                      ? 'bg-blue-600 text-white' 
+                    transformMode === mode
+                      ? 'bg-blue-600 text-white'
                       : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                   }`}
                   onClick={() => setTransformMode(mode)}
@@ -410,8 +447,8 @@ export default function NativeSpaceEditor({
             <div className="flex gap-1">
               <button
                 className={`px-2 py-1 text-xs rounded ${
-                  selectionMode === 'single' 
-                    ? 'bg-purple-600 text-white' 
+                  selectionMode === 'single'
+                    ? 'bg-purple-600 text-white'
                     : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                 }`}
                 onClick={() => setSelectionMode('single')}
@@ -420,8 +457,8 @@ export default function NativeSpaceEditor({
               </button>
               <button
                 className={`px-2 py-1 text-xs rounded ${
-                  selectionMode === 'multi' 
-                    ? 'bg-purple-600 text-white' 
+                  selectionMode === 'multi'
+                    ? 'bg-purple-600 text-white'
                     : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                 }`}
                 onClick={() => setSelectionMode('multi')}
@@ -467,8 +504,8 @@ export default function NativeSpaceEditor({
             <div className="flex gap-1 mb-1">
               <button
                 className={`px-3 py-1.5 text-xs rounded ${
-                  showTransformControls 
-                    ? 'bg-green-600 text-white' 
+                  showTransformControls
+                    ? 'bg-green-600 text-white'
                     : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                 }`}
                 onClick={() => setShowTransformControls(!showTransformControls)}
@@ -477,8 +514,8 @@ export default function NativeSpaceEditor({
               </button>
               <button
                 className={`px-3 py-1.5 text-xs rounded ${
-                  showPropertiesPanel 
-                    ? 'bg-blue-600 text-white' 
+                  showPropertiesPanel
+                    ? 'bg-blue-600 text-white'
                     : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                 }`}
                 onClick={() => setShowPropertiesPanel(!showPropertiesPanel)}
@@ -491,8 +528,8 @@ export default function NativeSpaceEditor({
                 <button
                   key={level}
                   className={`px-2 py-1 text-xs rounded ${
-                    interactionLevel === level 
-                      ? 'bg-orange-600 text-white' 
+                    interactionLevel === level
+                      ? 'bg-orange-600 text-white'
                       : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                   }`}
                   onClick={() => setInteractionLevel(level)}
@@ -509,9 +546,9 @@ export default function NativeSpaceEditor({
       <div className={`grid gap-4 ${showPropertiesPanel ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>
         {/* 3D Editor Viewport */}
         <div className={`${showPropertiesPanel ? 'lg:col-span-2' : 'col-span-1'} bg-neutral-800 border border-neutral-700 rounded-lg p-4`}>
-          <Canvas 
+          <Canvas
           ref={canvasRef}
-          style={{ height: 500, width: "100%", background: "#111217" }} 
+          style={{ height: 500, width: "100%", background: "#111217" }}
           camera={{ position: [4, 3, 6], fov: 50 }}
         >
           <ambientLight intensity={0.6} />
@@ -528,7 +565,7 @@ export default function NativeSpaceEditor({
             <group key={item.id}>
               {/* Render different asset types */}
               {item.assetType === 'object' && (
-                <ObjectRenderer 
+                <ObjectRenderer
                   assetData={{ /* mock object data */ id: item.assetId, object_type: 'atomic', object: { modelUrl: '/models/reference/threejs/DamagedHelmet.glb', boundingBox: { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] }, category: 'props' } }}
                   showComponents={interactionLevel === 'component'}
                   interactionLevel={interactionLevel}
@@ -536,9 +573,9 @@ export default function NativeSpaceEditor({
                   onComponentHover={(component) => console.log('Component hovered:', component)}
                 />
               )}
-              
+
               {item.assetType === 'object_collection' && (
-                <CollectionRenderer 
+                <CollectionRenderer
                   assetData={{ /* mock collection data */ id: item.assetId, collection: { objects: [{ objectId: 'cube-01', transform: { position: [-1, 0, -1], rotation: [0, 0, 0], scale: [0.8, 0.8, 0.8] } }], boundingBox: { min: [-2, 0, -2], max: [2, 1, 2] } } }}
                   showComponents={interactionLevel !== 'collection'}
                   interactionLevel={interactionLevel}
@@ -547,7 +584,7 @@ export default function NativeSpaceEditor({
                   onObjectHover={(objectId) => console.log('Object hovered:', objectId)}
                 />
               )}
-              
+
               {/* Fallback for other asset types */}
               {!['object', 'object_collection'].includes(item.assetType) && (
                 <mesh
@@ -560,7 +597,7 @@ export default function NativeSpaceEditor({
                   }}
                 >
                   <boxGeometry args={[1, 1, 1]} />
-                  <meshStandardMaterial 
+                  <meshStandardMaterial
                     color={selectedObjects.has(item.id) ? "#4ade80" : "#6b7280"}
                     wireframe={!selectedObjects.has(item.id)}
                   />
@@ -642,6 +679,21 @@ export default function NativeSpaceEditor({
           </div>
         </div>
       </div>
+
+      {/* Import Modals */}
+      {showAssetImportModal && (
+        <AssetImportModal
+          onClose={() => setShowAssetImportModal(false)}
+          onSelect={handleAssetSelect}
+        />
+      )}
+
+      {showLayoutImportModal && (
+        <LayoutImportModal
+          onClose={() => setShowLayoutImportModal(false)}
+          onSelect={handleLayoutSelect}
+        />
+      )}
     </div>
   );
 }
