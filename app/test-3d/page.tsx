@@ -1,5 +1,11 @@
 "use client";
-import TestScene from '@/components/spatial/test-r3f';
+import dynamic from 'next/dynamic';
+
+// Force dynamic import to prevent SSR issues
+const TestScene = dynamic(() => import('@/components/spatial/test-r3f'), { 
+  ssr: false,
+  loading: () => <div className="h-96 flex items-center justify-center text-neutral-400">Loading 3D scene...</div>
+});
 
 export default function Test3DPage() {
   return (
