@@ -161,14 +161,7 @@ export default function SpaceEditPage() {
     <div className="min-h-screen bg-neutral-900 text-white p-6">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link 
-            href="/workshop"
-            className="text-neutral-400 hover:text-white text-sm"
-          >
-            ← Back to Workshop
-          </Link>
-          
-          {/* Space Name - Editable like Canvas */}
+          {/* Space Name - Editable like Canvas - TOP LEFT */}
           <div className="min-w-0">
             {!isEditingName ? (
               <h1 
@@ -201,6 +194,13 @@ export default function SpaceEditPage() {
               />
             )}
           </div>
+          
+          <Link 
+            href="/workshop"
+            className="text-neutral-400 hover:text-white text-sm"
+          >
+            ← Back to Workshop
+          </Link>
         </div>
         
         <div className="flex items-center gap-3">
