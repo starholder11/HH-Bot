@@ -39,6 +39,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
   const [showAssetImportModal, setShowAssetImportModal] = useState(false);
   const [showLayoutImportModal, setShowLayoutImportModal] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const canvasRef = useRef<any>(null);
   const transformControlsRef = useRef<any>(null);
 
@@ -77,14 +78,34 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         if (!res.ok) throw new Error(`Failed to load space ${spaceId}`);
         const space = await res.json();
         if (cancelled) return;
-        const items = space?.space?.items || [];
-        const env = space?.space?.environment || getDefaultEnvironment();
-        const cam = space?.space?.camera || getDefaultCamera();
+        
+        // Safely extract data with proper defaults
+        const items = Array.isArray(space?.space?.items) ? space.space.items : [];
+        const defaultEnv = getDefaultEnvironment();
+        const defaultCam = getDefaultCamera();
+        
+        // Merge with defaults to ensure all required properties exist
+        const env = {
+          ...defaultEnv,
+          ...(space?.space?.environment || {})
+        };
+        const cam = {
+          ...defaultCam,
+          ...(space?.space?.camera || {})
+        };
+        
+        console.log('[NativeSpaceEditor] Loaded space:', { items: items.length, env, cam });
         setSpaceItems(items);
         setEnvironment(env);
         setCameraSettings(cam);
+        setIsDataLoaded(true);
       } catch (e) {
         console.error('[NativeSpaceEditor] Failed to load space:', e);
+        // Use demo data as fallback
+        setSpaceItems(generateDemoSpaceItems());
+        setEnvironment(getDefaultEnvironment());
+        setCameraSettings(getDefaultCamera());
+        setIsDataLoaded(true);
       }
     };
     load();
@@ -695,7 +716,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         </div>
 
         {/* Properties Panel */}
-        {showPropertiesPanel && (
+        {showPropertiesPanel && isDataLoaded && (
           <div className="lg:col-span-1">
             <PropertiesPanel
               selectedObjects={spaceItems.filter(item => selectedObjects.has(item.id))}
