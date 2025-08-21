@@ -3216,7 +3216,7 @@ export default function VisualSearchPage() {
             </button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {(["all", "media", "video", "image", "audio", "text"] as const).map((t) => (
+            {(["all", "media", "video", "image", "audio", "text", "layout", "object", "object_collection", "space"] as const).map((t) => (
               <button
                 type="button"
                 key={t}

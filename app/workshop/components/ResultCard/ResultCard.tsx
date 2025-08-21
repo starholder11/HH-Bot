@@ -85,6 +85,42 @@ function MediaPreview({ r, index = 0 }: { r: UnifiedSearchResult; index?: number
       </div>
     );
   }
+  if (r.content_type === 'object') {
+    return (
+      <div className="w-full h-40 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-900 relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-4xl text-neutral-600">🧱</div>
+        </div>
+        <div className="absolute bottom-2 left-2 right-2 bg-black/70 rounded px-2 py-1 text-xs text-neutral-300">
+          Object • {(r.metadata?.object?.category || 'unknown')}
+        </div>
+      </div>
+    );
+  }
+  if (r.content_type === 'object_collection') {
+    return (
+      <div className="w-full h-40 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-900 relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-4xl text-neutral-600">🧩</div>
+        </div>
+        <div className="absolute bottom-2 left-2 right-2 bg-black/70 rounded px-2 py-1 text-xs text-neutral-300">
+          Collection • {(r.metadata?.collection?.name || 'Unnamed')}
+        </div>
+      </div>
+    );
+  }
+  if (r.content_type === 'space') {
+    return (
+      <div className="w-full h-40 flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-900 relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-4xl text-neutral-600">🌌</div>
+        </div>
+        <div className="absolute bottom-2 left-2 right-2 bg-black/70 rounded px-2 py-1 text-xs text-neutral-300">
+          Space • {(r.metadata?.space_type || 'custom')}
+        </div>
+      </div>
+    );
+  }
   return null;
 }
 

@@ -1,4 +1,4 @@
-export type ContentType = 'video' | 'image' | 'audio' | 'text' | 'layout';
+export type ContentType = 'video' | 'image' | 'audio' | 'text' | 'layout' | 'object' | 'object_collection' | 'space';
 
 export type UnifiedSearchResult = {
   id: string;
