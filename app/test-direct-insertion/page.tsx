@@ -4,6 +4,7 @@ import { useDragAndDropWithPreview } from '@/hooks/useDragAndDrop';
 
 export default function TestDirectInsertionPage() {
   const [insertionResults, setInsertionResults] = useState<any[]>([]);
+  const [remoteObjects, setRemoteObjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const { dragState, makeDraggableWithPreview, makeDropTarget, showPreview } = useDragAndDropWithPreview({
@@ -16,6 +17,17 @@ export default function TestDirectInsertionPage() {
     },
     onDrop: (data, target, position) => console.log('Dropped:', data, target, position),
   });
+
+  // Load real object IDs from API so server insertion works
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/objects');
+        const data = await res.json();
+        if (Array.isArray(data.assets)) setRemoteObjects(data.assets);
+      } catch {}
+    })();
+  }, []);
 
   const mockObjects = [
     {
@@ -72,7 +84,7 @@ export default function TestDirectInsertionPage() {
     try {
       // Test direct insertion via API
       const mockTargetId = targetType === 'layout' ? 'demo-layout' : 'demo-space';
-      const mockObject = mockObjects[0];
+      const mockObject = (remoteObjects[0] || {}).id ? { id: remoteObjects[0].id, type: 'object' as const } : mockObjects[0];
       
       const endpoint = targetType === 'layout' 
         ? `/api/layouts/${mockTargetId}/add-object`
