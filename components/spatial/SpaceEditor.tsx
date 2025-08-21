@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useEffect, useState } from 'react';
 import { EditorBridge, type EditorCommand, type EditorMessage } from '@/lib/spatial/editor-bridge';
+import { convertSpaceToThreeJSScene, convertThreeJSSceneToSpace } from '@/lib/spatial/scene-conversion';
 
 export interface SpaceEditorProps {
   spaceId: string;
@@ -19,6 +20,7 @@ export default function SpaceEditor({
   const [editorReady, setEditorReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [spaceData, setSpaceData] = useState<any>(null);
   const bridgeRef = useRef<EditorBridge | null>(null);
 
   useEffect(() => {
@@ -33,6 +35,8 @@ export default function SpaceEditor({
       setEditorReady(true);
       setLoading(false);
       console.log('Three.js Editor is ready');
+      // Load space data when editor is ready
+      loadSpaceData();
     };
 
     bridge.onError = (errorMsg: string) => {
@@ -54,6 +58,10 @@ export default function SpaceEditor({
         case 'object_transformed':
           // Notify parent of scene changes
           onSceneChange?.(message.data);
+          break;
+        case 'scene_exported':
+          // Handle scene export response
+          handleSceneExport(message.data);
           break;
         default:
           console.log('Unknown editor message:', message);
@@ -78,20 +86,91 @@ export default function SpaceEditor({
     bridgeRef.current.sendCommand(command);
   };
 
+  // Fetch space data from API
+  const loadSpaceData = async () => {
+    try {
+      const response = await fetch(`/api/spaces/${spaceId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load space: ${response.statusText}`);
+      }
+      const space = await response.json();
+      setSpaceData(space);
+      
+      // Convert to Three.js format and load into editor
+      const threeJSScene = convertSpaceToThreeJSScene(space);
+      sendCommand({
+        type: 'load_scene',
+        data: threeJSScene,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to load space data';
+      setError(errorMsg);
+      onError?.(errorMsg);
+    }
+  };
+
   // Load space data into editor
   const loadSpace = async (spaceData: any) => {
+    const threeJSScene = convertSpaceToThreeJSScene(spaceData);
     sendCommand({
       type: 'load_scene',
-      data: spaceData,
+      data: threeJSScene,
     });
   };
 
   // Save current scene
-  const saveScene = () => {
-    sendCommand({
-      type: 'export_scene',
-      data: {},
-    });
+  const saveScene = async () => {
+    if (!spaceData) {
+      setError('No space data loaded');
+      return;
+    }
+
+    try {
+      // Request scene export from editor
+      sendCommand({
+        type: 'export_scene',
+        data: {},
+      });
+      
+      // Note: The actual save will happen in the message handler when we receive the exported scene
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save scene';
+      setError(errorMsg);
+      onError?.(errorMsg);
+    }
+  };
+
+  // Handle scene export response and save to API
+  const handleSceneExport = async (exportedScene: any) => {
+    if (!spaceData) return;
+
+    try {
+      // Convert Three.js scene back to SpaceAsset format
+      const updatedSpace = convertThreeJSSceneToSpace(exportedScene, spaceData);
+      
+      // Save to API
+      const response = await fetch(`/api/spaces/${spaceId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedSpace),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save space: ${response.statusText}`);
+      }
+
+      const savedSpace = await response.json();
+      setSpaceData(savedSpace);
+      onSceneChange?.(savedSpace);
+      
+      console.log('Space saved successfully');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save space';
+      setError(errorMsg);
+      onError?.(errorMsg);
+    }
   };
 
   if (error) {
