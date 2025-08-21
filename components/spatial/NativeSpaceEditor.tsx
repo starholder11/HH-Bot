@@ -134,6 +134,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         setR3F({
           Canvas: fiber.Canvas,
           useFrame: fiber.useFrame,
+          useThree: fiber.useThree,
           TransformControls: drei.TransformControls,
           OrbitControls: drei.OrbitControls,
           Environment: drei.Environment,
@@ -555,7 +556,87 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     );
   }
 
-  const { Canvas, useFrame, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
+  const { Canvas, useFrame, useThree, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
+
+  // Drag wrapper component for direct click-and-drag movement (must be used inside Canvas)
+  const DragWrapper = ({ children, item, onDrag }: { children: React.ReactNode; item: SpaceAssetData; onDrag: (position: [number, number, number]) => void }) => {
+    const meshRef = useRef<any>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const { camera, gl, raycaster } = useThree();
+    
+    const handlePointerDown = useCallback((e: any) => {
+      e.stopPropagation();
+      setIsDragging(true);
+      gl.domElement.style.cursor = 'grabbing';
+    }, [gl]);
+
+    const handlePointerMove = useCallback((e: any) => {
+      if (!isDragging || !meshRef.current) return;
+      
+      e.stopPropagation();
+      
+      // Cast ray to ground plane (y=0)
+      const rect = gl.domElement.getBoundingClientRect();
+      const mouse = {
+        x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        y: -((e.clientY - rect.top) / rect.height) * 2 + 1
+      };
+      
+      raycaster.setFromCamera(mouse, camera);
+      
+      // Intersect with ground plane
+      const groundPlane = new (window as any).THREE.Plane(new (window as any).THREE.Vector3(0, 1, 0), 0);
+      const intersection = new (window as any).THREE.Vector3();
+      raycaster.ray.intersectPlane(groundPlane, intersection);
+      
+      if (intersection) {
+        const newPosition: [number, number, number] = [intersection.x, item.position[1], intersection.z];
+        onDrag(newPosition);
+      }
+    }, [isDragging, camera, raycaster, gl, item.position, onDrag]);
+
+    const handlePointerUp = useCallback((e: any) => {
+      if (isDragging) {
+        e.stopPropagation();
+        setIsDragging(false);
+        gl.domElement.style.cursor = 'default';
+      }
+    }, [isDragging, gl]);
+
+    useEffect(() => {
+      if (isDragging) {
+        const handleGlobalPointerMove = (e: PointerEvent) => handlePointerMove(e as any);
+        const handleGlobalPointerUp = (e: PointerEvent) => handlePointerUp(e as any);
+        
+        document.addEventListener('pointermove', handleGlobalPointerMove);
+        document.addEventListener('pointerup', handleGlobalPointerUp);
+        
+        return () => {
+          document.removeEventListener('pointermove', handleGlobalPointerMove);
+          document.removeEventListener('pointerup', handleGlobalPointerUp);
+        };
+      }
+    }, [isDragging, handlePointerMove, handlePointerUp]);
+
+    return (
+      <group
+        ref={meshRef}
+        onPointerDown={handlePointerDown}
+      >
+        {children}
+      </group>
+    );
+  };
+
+  // Handle direct drag movement
+  const handleObjectDrag = useCallback((itemId: string, newPosition: [number, number, number]) => {
+    setSpaceItems(prev => prev.map(item => 
+      item.id === itemId 
+        ? { ...item, position: newPosition }
+        : item
+    ));
+    onSceneChange?.({ type: 'object_dragged', objectId: itemId, position: newPosition });
+  }, [onSceneChange]);
 
   // Helper component to render and transform a single space item
   const RenderItem = ({ item }: { item: SpaceAssetData }) => {
@@ -640,6 +721,15 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
       </group>
     );
 
+    const draggableContent = (
+      <DragWrapper
+        item={item}
+        onDrag={(newPosition) => handleObjectDrag(item.id, newPosition)}
+      >
+        {content}
+      </DragWrapper>
+    );
+
     if (isSelected && showTransformControls) {
       return (
         <TransformControls
@@ -653,12 +743,12 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             });
           }}
         >
-          {content}
+          {draggableContent}
         </TransformControls>
       );
     }
 
-    return content;
+    return draggableContent;
   };
 
   return (
@@ -862,7 +952,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
       {/* Instructions */}
       <div className="text-xs text-neutral-400 bg-neutral-800 border border-neutral-700 rounded-lg p-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <p><strong>Selection:</strong></p>
             <ul className="list-disc list-inside space-y-1 mt-1">
@@ -873,10 +963,19 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             </ul>
           </div>
           <div>
-            <p><strong>Transform:</strong></p>
+            <p><strong>Movement:</strong></p>
+            <ul className="list-disc list-inside space-y-1 mt-1">
+              <li><strong>Direct Drag:</strong> Click and drag objects to move</li>
+              <li>Camera orbit auto-disables while dragging</li>
+              <li>Objects snap to ground plane (XZ movement)</li>
+              <li>Works with both selected and unselected items</li>
+            </ul>
+          </div>
+          <div>
+            <p><strong>Transform Gizmos:</strong></p>
             <ul className="list-disc list-inside space-y-1 mt-1">
               <li>G (grab/move), R (rotate), S (scale)</li>
-              <li>Drag transform gizmos to modify objects</li>
+              <li>Drag transform gizmos for precise control</li>
               <li>Object/Component/Collection interaction levels</li>
               <li>Group/Duplicate operations for multi-selection</li>
             </ul>
