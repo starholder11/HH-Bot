@@ -11,24 +11,25 @@ import { getDefaultEnvironment, getDefaultCamera } from "@/utils/spatial/leva-st
 import AssetImportModal from "./AssetImportModal";
 import LayoutImportModal from "./LayoutImportModal";
 import type { LayoutAsset } from "@/app/visual-search/types";
+import { getResultMediaUrl } from "@/app/visual-search/utils/mediaUrl";
 
 // Helper component for rendering images as textured planes
 function ImagePlane({ url }: { url: string }) {
   const [texture, setTexture] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   useEffect(() => {
     console.log('[ImagePlane] Loading texture from URL:', url);
-    
+
     if (typeof window !== 'undefined' && (window as any).THREE) {
       const loader = new (window as any).THREE.TextureLoader();
       setLoading(true);
       setError(null);
-      
+
       // Add CORS handling
       loader.crossOrigin = 'anonymous';
-      
+
       loader.load(
         url,
         (loadedTexture: any) => {
@@ -80,8 +81,8 @@ function ImagePlane({ url }: { url: string }) {
   return (
     <mesh>
       <planeGeometry args={[3, 2]} />
-      <meshStandardMaterial 
-        map={texture} 
+      <meshStandardMaterial
+        map={texture}
         transparent={false}
         side={(window as any).THREE?.DoubleSide || 2}
       />
@@ -394,9 +395,9 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     console.log('[NATIVE EDITOR] Selected asset for import:', asset);
 
     // Create a new space item from the selected asset
-    const mediaUrl = asset.cloudflare_url || asset.url || asset.s3_url;
-    const assetType = asset.content_type || asset.type || 'unknown';
-    
+    const mediaUrl = getResultMediaUrl(asset as any) || asset.cloudflare_url || asset.url || asset.s3_url;
+    const assetType = (asset.content_type || asset.type || 'unknown').toLowerCase();
+
     console.log('[NATIVE EDITOR] Asset details:', {
       title: asset.title,
       assetType,
