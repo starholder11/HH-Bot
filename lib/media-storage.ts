@@ -714,9 +714,10 @@ export async function listMediaAssets(
         allKeys = allKeys.filter(k => !k.includes('/keyframes/'));
       }
 
-      // For object types, do a targeted S3 search since they're alphabetically later
-      if (mediaType === 'object' || mediaType === 'object_collection') {
-        const targetPrefix = mediaType === 'object' ? 'obj_' : 'objcol_';
+      // For object and space types, do a targeted S3 search since they're alphabetically later
+      if (mediaType === 'object' || mediaType === 'object_collection' || mediaType === 'space') {
+        const targetPrefix = mediaType === 'object' ? 'obj_' : 
+                            mediaType === 'object_collection' ? 'objcol_' : 'space_';
         console.log(`[media-storage] Performing targeted search for ${targetPrefix} files`);
         
         try {

@@ -165,7 +165,7 @@ export default function SpaceEditPage() {
           <div className="min-w-0">
             {!isEditingName ? (
               <h1 
-                className="text-2xl font-bold cursor-text truncate"
+                className="text-2xl font-bold cursor-text truncate text-white"
                 title={spaceName || 'Untitled Space'}
                 onDoubleClick={() => setIsEditingName(true)}
               >
