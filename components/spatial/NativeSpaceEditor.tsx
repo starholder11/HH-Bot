@@ -139,6 +139,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           Environment: drei.Environment,
           StatsGl: drei.StatsGl,
           Text: drei.Text,
+          Image: (drei as any).Image,
         });
       } catch (err) {
         console.error("NativeSpaceEditor failed to load R3F:", err);
@@ -764,11 +765,14 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
                 >
                   {/* Image/Video as textured plane */}
                   {(['image', 'video'].includes(item.assetType) && item.mediaUrl) ? (
-                    <>
-                      <ImagePlane url={item.mediaUrl} />
-                      {/* Debug info */}
-                      {console.log('[NativeEditor] Rendering ImagePlane for:', item.title, 'URL:', item.mediaUrl, 'Type:', item.assetType)}
-                    </>
+                    r3f?.Image ? (
+                      <r3f.Image url={item.mediaUrl} scale={[3, 2, 1]} toneMapped={true} transparent={false} />
+                    ) : (
+                      <>
+                        <ImagePlane url={item.mediaUrl} />
+                        {console.log('[NativeEditor] Rendering ImagePlane for:', item.title, 'URL:', item.mediaUrl, 'Type:', item.assetType)}
+                      </>
+                    )
                   ) : (
                     /* Fallback colored box with label */
                     <mesh>
