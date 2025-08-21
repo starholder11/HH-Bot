@@ -283,7 +283,7 @@ export interface LayoutAsset extends BaseMediaAsset {
       nx: number; ny: number; nw: number; nh: number;
       z?: number;
       refId?: string;
-      contentType?: 'video' | 'image' | 'audio' | 'text' | 'layout' | '3d_object' | 'shader' | 'playlist';
+      contentType?: 'video' | 'image' | 'audio' | 'text' | 'layout' | '3d_object' | 'shader' | 'playlist' | 'object' | 'object_collection';
       mediaUrl?: string;
       snippet?: string;
       inlineContent?: {
@@ -311,6 +311,19 @@ export interface LayoutAsset extends BaseMediaAsset {
       };
       blockType?: 'hero' | 'media_grid' | 'text_section' | 'cta' | 'footer' | 'spacer';
       config?: Record<string, any>;
+      
+      // Object-specific layout properties (for objects and collections)
+      objectLayoutProperties?: {
+        iconUrl: string;                // 2D representation for layout view
+        previewUrl?: string;            // optional 3D preview thumbnail
+        boundingBox2D: {                // 2D footprint for layout positioning
+          width: number;
+          height: number;
+        };
+        showLabel: boolean;             // display object name in layout
+        category?: string;              // object category for filtering
+        subcategory?: string;           // object subcategory
+      };
     }>;
   };
   html_snapshot?: string;
