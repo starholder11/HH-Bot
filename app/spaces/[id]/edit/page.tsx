@@ -2,6 +2,7 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import SpaceEditor from "@/components/spatial/SpaceEditor";
+import NativeSpaceEditor from "@/components/spatial/NativeSpaceEditor";
 import Link from "next/link";
 
 export default function SpaceEditPage() {
@@ -9,6 +10,7 @@ export default function SpaceEditPage() {
   const spaceId = (params?.id as string) || "demo";
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [editorType, setEditorType] = useState<'native' | 'threejs'>('native');
 
   const handleSceneChange = (sceneData: any) => {
     setHasUnsavedChanges(true);
@@ -48,6 +50,30 @@ export default function SpaceEditPage() {
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Editor Type Selector */}
+          <div className="flex gap-1">
+            <button
+              className={`px-3 py-1.5 text-xs rounded ${
+                editorType === 'native' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+              }`}
+              onClick={() => setEditorType('native')}
+            >
+              Native R3F
+            </button>
+            <button
+              className={`px-3 py-1.5 text-xs rounded ${
+                editorType === 'threejs' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+              }`}
+              onClick={() => setEditorType('threejs')}
+            >
+              Three.js Editor
+            </button>
+          </div>
+          
           {hasUnsavedChanges && (
             <span className="text-amber-400 text-sm">Unsaved changes</span>
           )}
@@ -71,12 +97,20 @@ export default function SpaceEditPage() {
       </div>
 
       <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-        <SpaceEditor
-          spaceId={spaceId}
-          onSceneChange={handleSceneChange}
-          onSelectionChange={handleSelectionChange}
-          onError={handleError}
-        />
+        {editorType === 'native' ? (
+          <NativeSpaceEditor
+            spaceId={spaceId}
+            onSceneChange={handleSceneChange}
+            onSelectionChange={handleSelectionChange}
+          />
+        ) : (
+          <SpaceEditor
+            spaceId={spaceId}
+            onSceneChange={handleSceneChange}
+            onSelectionChange={handleSelectionChange}
+            onError={handleError}
+          />
+        )}
       </div>
 
       <div className="mt-4 text-xs text-neutral-400">
