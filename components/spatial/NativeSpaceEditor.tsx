@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import SpaceViewer from "./SpaceViewer";
 import { generateDemoSpaceItems } from "./SpaceScene";
 import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
@@ -18,11 +18,15 @@ export interface NativeSpaceEditorProps {
   onSelectionChange?: (selectedObjects: string[]) => void;
 }
 
-export default function NativeSpaceEditor({
+export interface NativeSpaceEditorHandle {
+  saveSpace: () => Promise<any>;
+}
+
+export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(function NativeSpaceEditor({
   spaceId,
   onSceneChange,
   onSelectionChange,
-}: NativeSpaceEditorProps) {
+}: NativeSpaceEditorProps, ref) {
   const [r3f, setR3F] = useState<any>(null);
   const [selectedObjects, setSelectedObjects] = useState<Set<string>>(new Set());
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
@@ -64,9 +68,27 @@ export default function NativeSpaceEditor({
     return () => { mounted = false; };
   }, []);
 
-  // Load space items (demo for now)
+  // Load space data from API
   useEffect(() => {
-    setSpaceItems(generateDemoSpaceItems());
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/spaces/${spaceId}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Failed to load space ${spaceId}`);
+        const space = await res.json();
+        if (cancelled) return;
+        const items = space?.space?.items || [];
+        const env = space?.space?.environment || getDefaultEnvironment();
+        const cam = space?.space?.camera || getDefaultCamera();
+        setSpaceItems(items);
+        setEnvironment(env);
+        setCameraSettings(cam);
+      } catch (e) {
+        console.error('[NativeSpaceEditor] Failed to load space:', e);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, [spaceId]);
 
   // Keyboard shortcuts
@@ -271,7 +293,7 @@ export default function NativeSpaceEditor({
 
   const handleAssetSelect = useCallback((asset: any) => {
     console.log('[NATIVE EDITOR] Selected asset for import:', asset);
-    
+
     // Create a new space item from the selected asset
     const newItem: SpaceAssetData = {
       id: `asset-${Date.now()}`,
@@ -296,7 +318,7 @@ export default function NativeSpaceEditor({
 
   const handleLayoutSelect = useCallback((layout: LayoutAsset) => {
     console.log('[NATIVE EDITOR] Selected layout for import:', layout);
-    
+
     // Convert layout items to space items
     const layoutItems = layout.layout_data?.items || [];
     const newSpaceItems: SpaceAssetData[] = layoutItems.map((item, index) => ({
@@ -332,6 +354,38 @@ export default function NativeSpaceEditor({
     setShowLayoutImportModal(false);
     onSceneChange?.({ type: 'layout_imported', layout, items: newSpaceItems });
   }, [onSceneChange]);
+
+  // Expose saveSpace() via ref
+  useImperativeHandle(ref, () => ({
+    async saveSpace() {
+      // Fetch latest space to preserve metadata
+      const res = await fetch(`/api/spaces/${spaceId}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to load space ${spaceId} for save`);
+      const existing = await res.json();
+
+      const updated = {
+        ...existing,
+        space: {
+          ...(existing.space || {}),
+          items: spaceItems,
+          environment,
+          camera: cameraSettings,
+        },
+        updated_at: new Date().toISOString(),
+      };
+
+      const put = await fetch(`/api/spaces/${spaceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+      if (!put.ok) throw new Error(`Failed to save space ${spaceId}: ${put.status}`);
+      const saved = await put.json();
+      // Inform parent with full space object so it can refresh state
+      onSceneChange?.(saved);
+      return saved;
+    },
+  }), [spaceId, spaceItems, environment, cameraSettings, onSceneChange]);
 
   const handleAction = useCallback((action: string, data?: any) => {
     switch (action) {
@@ -696,4 +750,4 @@ export default function NativeSpaceEditor({
       )}
     </div>
   );
-}
+});
