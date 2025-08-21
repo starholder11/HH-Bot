@@ -1,8 +1,11 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import SpaceViewer from "./SpaceViewer";
 import { generateDemoSpaceItems } from "./SpaceScene";
 import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
+import SpaceItem from "./SpaceItem";
+import ObjectRenderer from "./ObjectRenderer";
+import CollectionRenderer from "./CollectionRenderer";
 
 export interface NativeSpaceEditorProps {
   spaceId: string;
@@ -20,6 +23,10 @@ export default function NativeSpaceEditor({
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
   const [spaceItems, setSpaceItems] = useState<SpaceAssetData[]>([]);
   const [showTransformControls, setShowTransformControls] = useState(true);
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multi'>('single');
+  const [interactionLevel, setInteractionLevel] = useState<'object' | 'component' | 'collection'>('object');
+  const canvasRef = useRef<any>(null);
+  const transformControlsRef = useRef<any>(null);
 
   // Load R3F dependencies
   useEffect(() => {
@@ -52,16 +59,72 @@ export default function NativeSpaceEditor({
     setSpaceItems(generateDemoSpaceItems());
   }, [spaceId]);
 
-  const handleObjectSelect = (item: SpaceAssetData) => {
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if not in input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case 'g':
+          e.preventDefault();
+          setTransformMode('translate');
+          break;
+        case 'r':
+          e.preventDefault();
+          setTransformMode('rotate');
+          break;
+        case 's':
+          e.preventDefault();
+          setTransformMode('scale');
+          break;
+        case 'escape':
+          e.preventDefault();
+          clearSelection();
+          break;
+        case 'a':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            selectAll();
+          }
+          break;
+        case 'delete':
+        case 'backspace':
+          e.preventDefault();
+          deleteSelected();
+          break;
+        case 'tab':
+          e.preventDefault();
+          setSelectionMode(prev => prev === 'single' ? 'multi' : 'single');
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleObjectSelect = useCallback((item: SpaceAssetData, addToSelection: boolean = false) => {
     const newSelection = new Set(selectedObjects);
-    if (newSelection.has(item.id)) {
-      newSelection.delete(item.id);
-    } else {
+    
+    if (selectionMode === 'single' && !addToSelection) {
+      // Single selection mode - replace selection
+      newSelection.clear();
       newSelection.add(item.id);
+    } else {
+      // Multi selection mode or additive selection
+      if (newSelection.has(item.id)) {
+        newSelection.delete(item.id);
+      } else {
+        newSelection.add(item.id);
+      }
     }
+    
     setSelectedObjects(newSelection);
     onSelectionChange?.(Array.from(newSelection));
-  };
+  }, [selectedObjects, selectionMode, onSelectionChange]);
 
   const handleTransform = (objectId: string, transform: any) => {
     // Update item transform
@@ -74,16 +137,74 @@ export default function NativeSpaceEditor({
     onSceneChange?.({ type: 'object_transformed', objectId, transform });
   };
 
-  const clearSelection = () => {
+  const clearSelection = useCallback(() => {
     setSelectedObjects(new Set());
     onSelectionChange?.([]);
-  };
+  }, [onSelectionChange]);
 
-  const selectAll = () => {
+  const selectAll = useCallback(() => {
     const allIds = new Set(spaceItems.map(item => item.id));
     setSelectedObjects(allIds);
     onSelectionChange?.(Array.from(allIds));
-  };
+  }, [spaceItems, onSelectionChange]);
+
+  const deleteSelected = useCallback(() => {
+    if (selectedObjects.size === 0) return;
+    
+    setSpaceItems(prev => prev.filter(item => !selectedObjects.has(item.id)));
+    setSelectedObjects(new Set());
+    onSelectionChange?.([]);
+    onSceneChange?.({ type: 'objects_deleted', objectIds: Array.from(selectedObjects) });
+  }, [selectedObjects, onSelectionChange, onSceneChange]);
+
+  const duplicateSelected = useCallback(() => {
+    if (selectedObjects.size === 0) return;
+    
+    const selectedItems = spaceItems.filter(item => selectedObjects.has(item.id));
+    const duplicatedItems = selectedItems.map(item => ({
+      ...item,
+      id: `${item.id}_copy_${Date.now()}`,
+      position: [item.position[0] + 1, item.position[1], item.position[2]] as [number, number, number]
+    }));
+    
+    setSpaceItems(prev => [...prev, ...duplicatedItems]);
+    
+    // Select the duplicated items
+    const newSelection = new Set(duplicatedItems.map(item => item.id));
+    setSelectedObjects(newSelection);
+    onSelectionChange?.(Array.from(newSelection));
+    onSceneChange?.({ type: 'objects_duplicated', originalIds: Array.from(selectedObjects), newIds: Array.from(newSelection) });
+  }, [selectedObjects, spaceItems, onSelectionChange, onSceneChange]);
+
+  const groupSelected = useCallback(() => {
+    if (selectedObjects.size < 2) return;
+    
+    const selectedItems = spaceItems.filter(item => selectedObjects.has(item.id));
+    const groupId = `group_${Date.now()}`;
+    
+    // Calculate group center
+    const center = selectedItems.reduce(
+      (acc, item) => {
+        acc.x += item.position[0];
+        acc.y += item.position[1];
+        acc.z += item.position[2];
+        return acc;
+      },
+      { x: 0, y: 0, z: 0 }
+    );
+    center.x /= selectedItems.length;
+    center.y /= selectedItems.length;
+    center.z /= selectedItems.length;
+    
+    // Update items with group reference
+    setSpaceItems(prev => prev.map(item => 
+      selectedObjects.has(item.id) 
+        ? { ...item, groupId }
+        : item
+    ));
+    
+    onSceneChange?.({ type: 'objects_grouped', groupId, objectIds: Array.from(selectedObjects) });
+  }, [selectedObjects, spaceItems, onSceneChange]);
 
   if (!r3f) {
     return (
@@ -111,7 +232,7 @@ export default function NativeSpaceEditor({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Transform Mode */}
           <div>
             <label className="block text-sm text-neutral-300 mb-2">Transform Mode</label>
@@ -131,14 +252,14 @@ export default function NativeSpaceEditor({
               ))}
             </div>
             <div className="text-xs text-neutral-400 mt-1">
-              Keyboard: G (move), R (rotate), S (scale)
+              G/R/S keys
             </div>
           </div>
 
           {/* Selection Controls */}
           <div>
             <label className="block text-sm text-neutral-300 mb-2">Selection</label>
-            <div className="flex gap-1">
+            <div className="flex gap-1 mb-1">
               <button
                 className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300"
                 onClick={selectAll}
@@ -152,12 +273,64 @@ export default function NativeSpaceEditor({
                 None
               </button>
             </div>
+            <div className="flex gap-1">
+              <button
+                className={`px-2 py-1 text-xs rounded ${
+                  selectionMode === 'single' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                }`}
+                onClick={() => setSelectionMode('single')}
+              >
+                Single
+              </button>
+              <button
+                className={`px-2 py-1 text-xs rounded ${
+                  selectionMode === 'multi' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                }`}
+                onClick={() => setSelectionMode('multi')}
+              >
+                Multi
+              </button>
+            </div>
+          </div>
+
+          {/* Object Operations */}
+          <div>
+            <label className="block text-sm text-neutral-300 mb-2">Operations</label>
+            <div className="flex gap-1 mb-1">
+              <button
+                className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300"
+                onClick={duplicateSelected}
+                disabled={selectedObjects.size === 0}
+              >
+                Duplicate
+              </button>
+              <button
+                className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-300"
+                onClick={groupSelected}
+                disabled={selectedObjects.size < 2}
+              >
+                Group
+              </button>
+            </div>
+            <div className="flex gap-1">
+              <button
+                className="px-3 py-1.5 text-xs rounded bg-red-600 hover:bg-red-700 text-white"
+                onClick={deleteSelected}
+                disabled={selectedObjects.size === 0}
+              >
+                Delete
+              </button>
+            </div>
           </div>
 
           {/* View Controls */}
           <div>
-            <label className="block text-sm text-neutral-300 mb-2">Controls</label>
-            <div className="flex gap-1">
+            <label className="block text-sm text-neutral-300 mb-2">View</label>
+            <div className="flex gap-1 mb-1">
               <button
                 className={`px-3 py-1.5 text-xs rounded ${
                   showTransformControls 
@@ -169,6 +342,21 @@ export default function NativeSpaceEditor({
                 Transform
               </button>
             </div>
+            <div className="flex gap-1">
+              {(['object', 'component', 'collection'] as const).map(level => (
+                <button
+                  key={level}
+                  className={`px-2 py-1 text-xs rounded ${
+                    interactionLevel === level 
+                      ? 'bg-orange-600 text-white' 
+                      : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                  }`}
+                  onClick={() => setInteractionLevel(level)}
+                >
+                  {level.charAt(0).toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -176,6 +364,7 @@ export default function NativeSpaceEditor({
       {/* 3D Editor Viewport */}
       <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">
         <Canvas 
+          ref={canvasRef}
           style={{ height: 500, width: "100%", background: "#111217" }} 
           camera={{ position: [4, 3, 6], fov: 50 }}
         >
@@ -188,27 +377,64 @@ export default function NativeSpaceEditor({
             <meshStandardMaterial color="#1f2430" />
           </mesh>
 
-          {/* Render space items with transform controls */}
+          {/* Render space items with proper asset type support */}
           {spaceItems.map((item) => (
             <group key={item.id}>
-              {/* Basic item representation */}
-              <mesh
-                position={item.position}
-                rotation={item.rotation}
-                scale={item.scale}
-                onClick={() => handleObjectSelect(item)}
-              >
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial 
-                  color={selectedObjects.has(item.id) ? "#4ade80" : "#6b7280"}
-                  wireframe={!selectedObjects.has(item.id)}
+              {/* Render different asset types */}
+              {item.assetType === 'object' && (
+                <ObjectRenderer 
+                  assetData={{ /* mock object data */ id: item.assetId, object_type: 'atomic', object: { modelUrl: '/models/reference/threejs/DamagedHelmet.glb', boundingBox: { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] }, category: 'props' } }}
+                  showComponents={interactionLevel === 'component'}
+                  interactionLevel={interactionLevel}
+                  onComponentSelect={(component) => console.log('Component selected:', component)}
+                  onComponentHover={(component) => console.log('Component hovered:', component)}
                 />
-              </mesh>
+              )}
+              
+              {item.assetType === 'object_collection' && (
+                <CollectionRenderer 
+                  assetData={{ /* mock collection data */ id: item.assetId, collection: { objects: [{ objectId: 'cube-01', transform: { position: [-1, 0, -1], rotation: [0, 0, 0], scale: [0.8, 0.8, 0.8] } }], boundingBox: { min: [-2, 0, -2], max: [2, 1, 2] } } }}
+                  showComponents={interactionLevel !== 'collection'}
+                  interactionLevel={interactionLevel}
+                  useInstancing={true}
+                  onObjectSelect={(objectId) => console.log('Object selected:', objectId)}
+                  onObjectHover={(objectId) => console.log('Object hovered:', objectId)}
+                />
+              )}
+              
+              {/* Fallback for other asset types */}
+              {!['object', 'object_collection'].includes(item.assetType) && (
+                <mesh
+                  position={item.position}
+                  rotation={item.rotation}
+                  scale={item.scale}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleObjectSelect(item, e.shiftKey || selectionMode === 'multi');
+                  }}
+                >
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial 
+                    color={selectedObjects.has(item.id) ? "#4ade80" : "#6b7280"}
+                    wireframe={!selectedObjects.has(item.id)}
+                  />
+                </mesh>
+              )}
+
+              {/* Selection outline for all selected objects */}
+              {selectedObjects.has(item.id) && (
+                <mesh position={item.position} rotation={item.rotation} scale={item.scale}>
+                  <boxGeometry args={[1.1, 1.1, 1.1]} />
+                  <meshBasicMaterial color="#4ade80" wireframe />
+                </mesh>
+              )}
 
               {/* Transform controls for selected objects */}
               {selectedObjects.has(item.id) && showTransformControls && (
                 <TransformControls
+                  ref={transformControlsRef}
                   mode={transformMode}
+                  object={item}
                   onObjectChange={(e: any) => {
                     if (e?.target) {
                       handleTransform(item.id, {
@@ -233,13 +459,26 @@ export default function NativeSpaceEditor({
 
       {/* Instructions */}
       <div className="text-xs text-neutral-400 bg-neutral-800 border border-neutral-700 rounded-lg p-3">
-        <p><strong>Instructions:</strong></p>
-        <ul className="list-disc list-inside space-y-1 mt-1">
-          <li>Click objects to select/deselect them</li>
-          <li>Use transform mode buttons or keyboard shortcuts (G/R/S)</li>
-          <li>Drag transform gizmos to move/rotate/scale selected objects</li>
-          <li>Changes are automatically saved to the space asset</li>
-        </ul>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p><strong>Selection:</strong></p>
+            <ul className="list-disc list-inside space-y-1 mt-1">
+              <li>Click objects to select (Shift+click for multi-select)</li>
+              <li>Tab to toggle single/multi selection mode</li>
+              <li>Ctrl/Cmd+A to select all, Escape to clear</li>
+              <li>Delete/Backspace to remove selected objects</li>
+            </ul>
+          </div>
+          <div>
+            <p><strong>Transform:</strong></p>
+            <ul className="list-disc list-inside space-y-1 mt-1">
+              <li>G (grab/move), R (rotate), S (scale)</li>
+              <li>Drag transform gizmos to modify objects</li>
+              <li>Object/Component/Collection interaction levels</li>
+              <li>Group/Duplicate operations for multi-selection</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
