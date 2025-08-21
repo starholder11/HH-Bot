@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import * as THREE from "three";
 import SpaceViewer from "./SpaceViewer";
 import { generateDemoSpaceItems } from "./SpaceScene";
 import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
@@ -134,7 +135,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         setR3F({
           Canvas: fiber.Canvas,
           useFrame: fiber.useFrame,
-          useThree: fiber.useThree,
           TransformControls: drei.TransformControls,
           OrbitControls: drei.OrbitControls,
           Environment: drei.Environment,
@@ -556,72 +556,42 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     );
   }
 
-  const { Canvas, useFrame, useThree, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
+  const { Canvas, useFrame, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
 
-  // Drag wrapper component for direct click-and-drag movement (must be used inside Canvas)
+  // Drag wrapper component for direct click-and-drag movement (Canvas child)
   const DragWrapper = ({ children, item, onDrag }: { children: React.ReactNode; item: SpaceAssetData; onDrag: (position: [number, number, number]) => void }) => {
     const meshRef = useRef<any>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const { camera, gl, raycaster } = useThree();
-    
+    const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+    const intersectionRef = useRef(new THREE.Vector3());
+
     const handlePointerDown = useCallback((e: any) => {
       e.stopPropagation();
       setIsDragging(true);
-      gl.domElement.style.cursor = 'grabbing';
-    }, [gl]);
+    }, []);
 
     const handlePointerMove = useCallback((e: any) => {
-      if (!isDragging || !meshRef.current) return;
-      
+      if (!isDragging) return;
       e.stopPropagation();
-      
-      // Cast ray to ground plane (y=0)
-      const rect = gl.domElement.getBoundingClientRect();
-      const mouse = {
-        x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
-        y: -((e.clientY - rect.top) / rect.height) * 2 + 1
-      };
-      
-      raycaster.setFromCamera(mouse, camera);
-      
-      // Intersect with ground plane
-      const groundPlane = new (window as any).THREE.Plane(new (window as any).THREE.Vector3(0, 1, 0), 0);
-      const intersection = new (window as any).THREE.Vector3();
-      raycaster.ray.intersectPlane(groundPlane, intersection);
-      
-      if (intersection) {
-        const newPosition: [number, number, number] = [intersection.x, item.position[1], intersection.z];
+      const hasHit = e.ray.intersectPlane(planeRef.current, intersectionRef.current);
+      if (hasHit) {
+        const newPosition: [number, number, number] = [intersectionRef.current.x, item.position[1], intersectionRef.current.z];
         onDrag(newPosition);
       }
-    }, [isDragging, camera, raycaster, gl, item.position, onDrag]);
+    }, [isDragging, item.position, onDrag]);
 
     const handlePointerUp = useCallback((e: any) => {
-      if (isDragging) {
-        e.stopPropagation();
-        setIsDragging(false);
-        gl.domElement.style.cursor = 'default';
-      }
-    }, [isDragging, gl]);
-
-    useEffect(() => {
-      if (isDragging) {
-        const handleGlobalPointerMove = (e: PointerEvent) => handlePointerMove(e as any);
-        const handleGlobalPointerUp = (e: PointerEvent) => handlePointerUp(e as any);
-        
-        document.addEventListener('pointermove', handleGlobalPointerMove);
-        document.addEventListener('pointerup', handleGlobalPointerUp);
-        
-        return () => {
-          document.removeEventListener('pointermove', handleGlobalPointerMove);
-          document.removeEventListener('pointerup', handleGlobalPointerUp);
-        };
-      }
-    }, [isDragging, handlePointerMove, handlePointerUp]);
+      if (!isDragging) return;
+      e.stopPropagation();
+      setIsDragging(false);
+    }, [isDragging]);
 
     return (
       <group
         ref={meshRef}
         onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
       >
         {children}
       </group>
@@ -630,8 +600,8 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
   // Handle direct drag movement
   const handleObjectDrag = useCallback((itemId: string, newPosition: [number, number, number]) => {
-    setSpaceItems(prev => prev.map(item => 
-      item.id === itemId 
+    setSpaceItems(prev => prev.map(item =>
+      item.id === itemId
         ? { ...item, position: newPosition }
         : item
     ));
