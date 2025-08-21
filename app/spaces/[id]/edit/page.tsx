@@ -3,6 +3,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import SpaceEditor from "@/components/spatial/SpaceEditor";
 import NativeSpaceEditor from "@/components/spatial/NativeSpaceEditor";
+import SimpleThreeEditor from "@/components/spatial/SimpleThreeEditor";
 import Link from "next/link";
 
 export default function SpaceEditPage() {
@@ -10,7 +11,7 @@ export default function SpaceEditPage() {
   const spaceId = (params?.id as string) || "demo";
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
-  const [editorType, setEditorType] = useState<'native' | 'threejs'>('native');
+  const [editorType, setEditorType] = useState<'native' | 'threejs' | 'simple'>('native');
 
   const handleSceneChange = (sceneData: any) => {
     setHasUnsavedChanges(true);
@@ -72,6 +73,16 @@ export default function SpaceEditPage() {
             >
               Three.js Editor
             </button>
+            <button
+              className={`px-3 py-1.5 text-xs rounded ${
+                editorType === 'simple' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+              }`}
+              onClick={() => setEditorType('simple')}
+            >
+              Simple Editor
+            </button>
           </div>
           
           {hasUnsavedChanges && (
@@ -102,6 +113,11 @@ export default function SpaceEditPage() {
             spaceId={spaceId}
             onSceneChange={handleSceneChange}
             onSelectionChange={handleSelectionChange}
+          />
+        ) : editorType === 'simple' ? (
+          <SimpleThreeEditor
+            spaceId={spaceId}
+            onSave={handleSceneChange}
           />
         ) : (
           <SpaceEditor
