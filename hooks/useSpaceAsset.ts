@@ -63,14 +63,17 @@ export function useSpaceAsset(assetId: string, assetType: SpaceAssetType) {
         }
 
         if (!response.ok) {
-          throw new Error(`Failed to load ${assetType} asset: ${response.statusText}`);
+          // Fallback to mock data on 404/failed fetch to keep demos functional
+          console.warn(`useSpaceAsset: falling back to mock for ${assetType}:${assetId} (${response.status})`);
+          setData(generateMockAssetData(assetId, assetType));
+        } else {
+          const assetData = await response.json();
+          setData(assetData);
         }
-
-        const assetData = await response.json();
-        setData(assetData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        console.error('useSpaceAsset error:', err);
+        // As a demo-friendly fallback, use mock data on error instead of breaking the scene
+        console.warn('useSpaceAsset error, using mock:', err);
+        setData(generateMockAssetData(assetId, assetType));
       } finally {
         setLoading(false);
       }
@@ -211,7 +214,7 @@ function generateMockAssetData(assetId: string, assetType: SpaceAssetType): any 
     case 'image':
       return {
         id: assetId,
-        cloudflare_url: 'https://picsum.photos/512/512',
+        cloudflare_url: '/logo.png',
         type: assetType,
         title: 'Demo Image',
       };

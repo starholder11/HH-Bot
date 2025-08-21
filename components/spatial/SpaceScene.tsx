@@ -107,7 +107,7 @@ export function generateDemoSpaceItems(): SpaceAssetData[] {
     },
     {
       id: "demo-object-1", 
-      assetId: "DamagedHelmet", // try to match a real reference id if present
+      assetId: "demo-obj",
       assetType: "object",
       position: [0, 0, 0],
       rotation: [0, 0, 0],
@@ -135,7 +135,7 @@ export function generateDemoSpaceItems(): SpaceAssetData[] {
     },
     {
       id: "demo-collection-1",
-      assetId: "reference-collection", // placeholder; renderer will show mock if not found
+      assetId: "demo-collection",
       assetType: "object_collection",
       position: [0, 0, -3],
       rotation: [0, Math.PI / 4, 0],
