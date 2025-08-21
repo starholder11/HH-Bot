@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { EditorBridge, type EditorCommand, type EditorMessage } from '@/lib/spatial/editor-bridge';
 import { convertSpaceToThreeJSScene, convertThreeJSSceneToSpace } from '@/lib/spatial/scene-conversion';
 
@@ -10,18 +10,33 @@ export interface SpaceEditorProps {
   onError?: (error: string) => void;
 }
 
-export default function SpaceEditor({ 
+export interface SpaceEditorRef {
+  saveScene: () => Promise<void>;
+  loadSpace: (spaceData: any) => Promise<void>;
+}
+
+const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({ 
   spaceId, 
   onSceneChange, 
   onSelectionChange, 
   onError 
-}: SpaceEditorProps) {
+}, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [editorReady, setEditorReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [spaceData, setSpaceData] = useState<any>(null);
   const bridgeRef = useRef<EditorBridge | null>(null);
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    saveScene: async () => {
+      await saveScene();
+    },
+    loadSpace: async (spaceData: any) => {
+      await loadSpace(spaceData);
+    }
+  }), []);
 
   useEffect(() => {
     if (!iframeRef.current) return;
@@ -237,4 +252,8 @@ export default function SpaceEditor({
       </div>
     </div>
   );
-}
+});
+
+SpaceEditor.displayName = 'SpaceEditor';
+
+export default SpaceEditor;
