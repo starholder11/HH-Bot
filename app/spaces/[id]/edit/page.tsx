@@ -1,0 +1,88 @@
+"use client";
+import { useParams } from "next/navigation";
+import { useState } from "react";
+import SpaceEditor from "@/components/spatial/SpaceEditor";
+import Link from "next/link";
+
+export default function SpaceEditPage() {
+  const params = useParams();
+  const spaceId = (params?.id as string) || "demo";
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+
+  const handleSceneChange = (sceneData: any) => {
+    setHasUnsavedChanges(true);
+    console.log('Scene changed:', sceneData);
+    // TODO: Auto-save or debounce saves
+  };
+
+  const handleSelectionChange = (selectedObjects: string[]) => {
+    console.log('Selection changed:', selectedObjects);
+  };
+
+  const handleError = (error: string) => {
+    console.error('Editor error:', error);
+  };
+
+  const handleSave = async () => {
+    try {
+      // TODO: Implement save logic
+      setLastSaved(new Date().toLocaleTimeString());
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('Save failed:', error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-neutral-900 text-white p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link 
+            href={`/spaces/${spaceId}`}
+            className="text-neutral-400 hover:text-white text-sm"
+          >
+            ← Back to Space
+          </Link>
+          <h1 className="text-2xl font-bold">Edit Space: {spaceId}</h1>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {hasUnsavedChanges && (
+            <span className="text-amber-400 text-sm">Unsaved changes</span>
+          )}
+          {lastSaved && (
+            <span className="text-neutral-400 text-xs">
+              Last saved: {lastSaved}
+            </span>
+          )}
+          <button
+            className={`px-4 py-2 text-sm rounded ${
+              hasUnsavedChanges 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-neutral-700 text-neutral-300 cursor-not-allowed'
+            }`}
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+        <SpaceEditor
+          spaceId={spaceId}
+          onSceneChange={handleSceneChange}
+          onSelectionChange={handleSelectionChange}
+          onError={handleError}
+        />
+      </div>
+
+      <div className="mt-4 text-xs text-neutral-400">
+        <p>Use the Three.js Editor above to manipulate 3D objects directly.</p>
+        <p>Changes are automatically synced back to the space asset.</p>
+      </div>
+    </div>
+  );
+}
