@@ -570,7 +570,7 @@ function isMediaTypeMatch(asset: MediaAsset, targetType: string): boolean {
  * List all media assets, optionally filtered by type
  */
 export async function listMediaAssets(
-  mediaType?: 'image' | 'video' | 'audio' | 'layout',
+  mediaType?: 'image' | 'video' | 'audio' | 'layout' | 'object' | 'object_collection' | 'space',
   options?: {
     page?: number;
     limit?: number;
@@ -984,6 +984,19 @@ export async function saveMediaAsset(assetId: string, assetData: MediaAsset): Pr
       const s3 = getS3Client();
       const bucket = getBucketName();
       const key = `${PREFIX}${assetId}.json`;
+      const nowIso = new Date().toISOString();
+      // Versioned backup write when updating existing asset: write to versions/ as well
+      try {
+        const existing = await getMediaAsset(assetId);
+        if (existing) {
+          const version = (existing as any).version ? Number((existing as any).version) + 1 : 1;
+          (assetData as any).version = version;
+          const versionKey = `${PREFIX}versions/${assetId}_v${version}.json`;
+          await s3.send(new PutObjectCommand({ Bucket: bucket, Key: versionKey, Body: JSON.stringify(existing, null, 2), ContentType: 'application/json', CacheControl: 'no-cache' }));
+        } else {
+          (assetData as any).version = 1;
+        }
+      } catch {}
       await s3.send(
         new PutObjectCommand({
           Bucket: bucket,
