@@ -14,7 +14,7 @@ interface MediaAsset {
   s3_url: string;
   cloudflare_url: string;
   title: string;
-  media_type: 'image' | 'video' | 'audio' | 'keyframe_still';
+  media_type: 'image' | 'video' | 'audio' | 'keyframe_still' | 'layout' | 'object' | 'object_collection' | 'space';
   metadata: any;
   ai_labels: {
     scenes: string[];
@@ -91,7 +91,7 @@ interface Project {
   };
 }
 
-const MEDIA_TYPES = ['image', 'video', 'audio'] as const;
+const MEDIA_TYPES = ['image', 'video', 'audio', 'layout', 'object', 'object_collection', 'space'] as const;
 
 function encodePath(url: string) {
   try {
@@ -182,6 +182,14 @@ const getAssetIcon = (asset: MediaAsset) => {
       return <Video className="w-5 h-5 text-neutral-600" />;
     case 'audio':
       return <Music className="w-5 h-5 text-neutral-600" />;
+    case 'layout':
+      return <span className="text-neutral-600">🎨</span>;
+    case 'object':
+      return <span className="text-neutral-600">🧱</span>;
+    case 'object_collection':
+      return <span className="text-neutral-600">🧩</span>;
+    case 'space':
+      return <span className="text-neutral-600">🌌</span>;
     default:
       return <FileText className="w-5 h-5 text-neutral-600" />;
   }
@@ -287,6 +295,63 @@ export default function FileManagerPage() {
           prompt: song.prompt || '',
         }));
         hasMoreFromServer = false;
+      } else if (mediaTypeFilter === 'object') {
+        // Fetch objects from Phase 3 API
+        const response = await fetch('/api/objects');
+        const result = await response.json();
+        newData = (result.assets || []).map((obj: any) => ({
+          ...obj,
+          media_type: 'object' as const,
+          ai_labels: obj.ai_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+          manual_labels: obj.manual_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] },
+          processing_status: obj.processing_status || { upload: 'completed', metadata_extraction: 'completed', ai_labeling: 'not_started', manual_review: 'pending' },
+          timestamps: obj.timestamps || { uploaded: obj.created_at, metadata_extracted: null, labeled_ai: null, labeled_reviewed: null },
+          labeling_complete: false,
+          project_id: projectFilter || null,
+        }));
+        hasMoreFromServer = false;
+      } else if (mediaTypeFilter === 'object_collection') {
+        // Fetch object collections from Phase 3 API
+        const response = await fetch('/api/object-collections');
+        const result = await response.json();
+        newData = (result.assets || []).map((col: any) => ({
+          ...col,
+          media_type: 'object_collection' as const,
+          ai_labels: col.ai_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+          manual_labels: col.manual_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] },
+          processing_status: col.processing_status || { upload: 'completed', metadata_extraction: 'completed', ai_labeling: 'not_started', manual_review: 'pending' },
+          timestamps: col.timestamps || { uploaded: col.created_at, metadata_extracted: null, labeled_ai: null, labeled_reviewed: null },
+          labeling_complete: false,
+          project_id: projectFilter || null,
+        }));
+        hasMoreFromServer = false;
+      } else if (mediaTypeFilter === 'space') {
+        // Fetch spaces from Phase 3 API
+        const response = await fetch('/api/spaces');
+        const result = await response.json();
+        newData = (result.assets || []).map((space: any) => ({
+          ...space,
+          media_type: 'space' as const,
+          ai_labels: space.ai_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+          manual_labels: space.manual_labels || { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] },
+          processing_status: space.processing_status || { upload: 'completed', metadata_extraction: 'completed', ai_labeling: 'not_started', manual_review: 'pending' },
+          timestamps: space.timestamps || { uploaded: space.created_at, metadata_extracted: null, labeled_ai: null, labeled_reviewed: null },
+          labeling_complete: false,
+          project_id: projectFilter || null,
+        }));
+        hasMoreFromServer = false;
+      } else if (mediaTypeFilter === 'layout') {
+        // Fetch layouts from existing media-assets API with layout filter
+        const params = new URLSearchParams();
+        params.append('type', 'layout');
+        if (projectFilter) params.append('project', projectFilter);
+        params.append('page', pageToFetch.toString());
+        params.append('limit', limitToFetch.toString());
+        
+        const response = await fetch(`/api/media-labeling/assets?${params.toString()}`);
+        const result = await response.json();
+        newData = result.assets || [];
+        hasMoreFromServer = Boolean(result.hasMore);
       } else {
         // For images, videos, and "all media", use existing media-labeling API with pagination
         const params = new URLSearchParams();
@@ -835,6 +900,26 @@ export default function FileManagerPage() {
           primaryLabel: (asset.manual_labels?.style || []).find(s => s) || 'Video',
           secondaryInfo: `${Math.round((asset.metadata.duration || 0) / 60)}:${String(Math.round((asset.metadata.duration || 0) % 60)).padStart(2, '0')} | ${asset.metadata.format || 'Unknown'}`
         };
+      case 'layout':
+        return {
+          primaryLabel: (asset as any).layout_type || 'Layout',
+          secondaryInfo: `${(asset.metadata?.item_count || 0)} items | ${asset.metadata?.width || 0}×${asset.metadata?.height || 0}`
+        };
+      case 'object':
+        return {
+          primaryLabel: (asset as any).object?.category || 'Object',
+          secondaryInfo: (asset as any).object?.subcategory || asset.filename
+        };
+      case 'object_collection':
+        return {
+          primaryLabel: (asset as any).collection?.name || 'Collection',
+          secondaryInfo: `${((asset as any).collection?.objects || []).length} objects | ${(asset as any).collection?.category || 'Mixed'}`
+        };
+      case 'space':
+        return {
+          primaryLabel: (asset as any).space_type || 'Space',
+          secondaryInfo: `${((asset as any).space?.items || []).length} items`
+        };
       default:
         return {
           primaryLabel: 'Unknown',
@@ -898,6 +983,10 @@ export default function FileManagerPage() {
                 <SelectItem value="audio">Audio</SelectItem>
                 <SelectItem value="image">Images</SelectItem>
                 <SelectItem value="video">Videos</SelectItem>
+                <SelectItem value="layout">Layouts</SelectItem>
+                <SelectItem value="object">Objects</SelectItem>
+                <SelectItem value="object_collection">Collections</SelectItem>
+                <SelectItem value="space">Spaces</SelectItem>
               </SelectContent>
             </Select>
           </div>
