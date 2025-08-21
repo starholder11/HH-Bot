@@ -191,7 +191,9 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
         body: JSON.stringify({
           objectId: dragState.dragData.objectId,
           objectType: dragState.dragData.objectType,
-          position: dragState.previewPosition,
+          position: targetType === 'layout'
+            ? { x: dragState.previewPosition.x, y: dragState.previewPosition.y, w: 64, h: 64 }
+            : dragState.previewPosition,
           config: targetType === 'layout' 
             ? { iconStyle: 'outline', showLabel: true }
             : { snapToFloor: true },

@@ -71,7 +71,7 @@ export default function TestDirectInsertionPage() {
     
     try {
       // Test direct insertion via API
-      const mockTargetId = targetType === 'layout' ? 'demo-layout-001' : 'demo-space-001';
+      const mockTargetId = targetType === 'layout' ? 'demo-layout' : 'demo-space';
       const mockObject = mockObjects[0];
       
       const endpoint = targetType === 'layout' 
