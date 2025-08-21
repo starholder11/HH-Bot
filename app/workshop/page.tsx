@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import type { UnifiedSearchResult, UnifiedSearchResponse, ContentType, PinnedItem, LayoutAsset } from './types';
 import { getResultMediaUrl } from './utils/mediaUrl';
 import { stripCircularDescription } from './utils/textCleanup';
@@ -18,7 +18,7 @@ import OptimizedResultCard from './components/ResultCard/OptimizedResultCard';
 import SkeletonCard from './components/SkeletonCard';
 import DetailsOverlay from './components/DetailsOverlay';
 // Dynamically import CanvasBoardRGL to avoid SSR issues with react-grid-layout
-const CanvasBoard = dynamic(() => import('./components/Canvas/CanvasBoardRGL'), {
+const CanvasBoard = nextDynamic(() => import('./components/Canvas/CanvasBoardRGL'), {
   ssr: false,
   loading: () => (
     <div className="relative w-full min-h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden flex items-center justify-center">
@@ -29,7 +29,7 @@ const CanvasBoard = dynamic(() => import('./components/Canvas/CanvasBoardRGL'), 
 import GridPinned from './components/Canvas/GridPinned';
 import CanvasToolbar from './components/Canvas/CanvasToolbar';
 import CanvasManagerModal from './components/Canvas/CanvasManagerModal';
-const SpacesTab = dynamic(() => import('./components/SpacesTab'), { ssr: false });
+const SpacesTab = nextDynamic(() => import('./components/SpacesTab'), { ssr: false });
 // Legacy Generate UI is embedded in this file to match previous behavior
 import { debug } from './utils/log';
 import { useResultsStore } from './store/resultsStore';
@@ -37,10 +37,10 @@ import { useUiStore } from './store/uiStore';
 import { useCanvasStore } from './store/canvasStore';
 
 // Dynamically import AgentChat to avoid SSR issues
-const AgentChat = dynamic(() => import('../../components/AgentChat'), { ssr: false });
+const AgentChat = nextDynamic(() => import('../../components/AgentChat'), { ssr: false });
 
 // Dynamically import Layout components
-const LayoutsBrowser = dynamic(() => import('./components/Layout/LayoutsBrowser'), { ssr: false });
+const LayoutsBrowser = nextDynamic(() => import('./components/Layout/LayoutsBrowser'), { ssr: false });
 
 // Moved types to ./types
 
