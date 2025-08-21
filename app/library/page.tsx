@@ -1005,7 +1005,7 @@ export default function FileManagerPage() {
                   console.log(`[file-manager] 🖱️  CLICK ATTEMPT: Asset ${selectedAsset.id} (${selectedAsset.media_type}) | Current Filter: ${mediaTypeFilter}`);
 
                   // Additional validation before setting selected asset
-                  if (selectedAsset && selectedAsset.media_type && ['image', 'video', 'audio', 'keyframe_still'].includes(selectedAsset.media_type)) {
+                  if (selectedAsset && selectedAsset.media_type && ['image', 'video', 'audio', 'keyframe_still', 'object'].includes(selectedAsset.media_type)) {
                     console.log(`[file-manager] ✅ CLICK SUCCESS: Setting selectedAsset to ${selectedAsset.id}`);
                     setSelectedAsset(selectedAsset);
                   } else {
@@ -1424,6 +1424,67 @@ export default function FileManagerPage() {
                     frameBorder="0"
                     scrolling="no"
                   />
+                </div>
+              ) : selectedAsset.media_type === 'object' ? (
+                /* Object Detail View */
+                <div className="space-y-6">
+                  <div className="bg-neutral-200 border border-neutral-300 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-2xl">🧱</span>
+                      <div>
+                        <h3 className="text-xl font-semibold text-black">{selectedAsset.title}</h3>
+                        <p className="text-sm text-neutral-600">{selectedAsset.filename}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <div className="text-xs font-medium text-neutral-600 mb-1">Category</div>
+                        <div className="text-sm text-black">{(selectedAsset as any).object?.category || 'Unknown'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-neutral-600 mb-1">Subcategory</div>
+                        <div className="text-sm text-black">{(selectedAsset as any).object?.subcategory || 'None'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-neutral-600 mb-1">Type</div>
+                        <div className="text-sm text-black">{(selectedAsset as any).object_type || 'atomic'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-neutral-600 mb-1">Style</div>
+                        <div className="text-sm text-black">{(selectedAsset as any).object?.style || 'default'}</div>
+                      </div>
+                    </div>
+
+                    {(selectedAsset as any).object?.tags && (selectedAsset as any).object.tags.length > 0 && (
+                      <div className="mb-4">
+                        <div className="text-xs font-medium text-neutral-600 mb-2">Tags</div>
+                        <div className="flex flex-wrap gap-1">
+                          {(selectedAsset as any).object.tags.map((tag: string, idx: number) => (
+                            <span key={idx} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-center py-8 bg-neutral-100 rounded-lg border-2 border-dashed border-neutral-300">
+                      <div className="text-4xl mb-2">📦</div>
+                      <div className="text-sm text-neutral-600">3D Model Preview</div>
+                      <div className="text-xs text-neutral-500 mt-1">
+                        Model: {(selectedAsset as any).object?.modelUrl || 'No model URL'}
+                      </div>
+                      <div className="text-xs text-neutral-400 mt-2">
+                        3D viewer will be implemented in Phase 3 Task 2.2
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-neutral-500 mt-4">
+                      <div>Created: {new Date(selectedAsset.created_at).toLocaleDateString()}</div>
+                      <div>ID: {selectedAsset.id}</div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 /* Unknown media type fallback */
