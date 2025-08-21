@@ -6,6 +6,8 @@ import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
 import SpaceItem from "./SpaceItem";
 import ObjectRenderer from "./ObjectRenderer";
 import CollectionRenderer from "./CollectionRenderer";
+import PropertiesPanel from "./PropertiesPanel";
+import { getDefaultEnvironment, getDefaultCamera } from "@/utils/spatial/leva-store";
 
 export interface NativeSpaceEditorProps {
   spaceId: string;
@@ -25,6 +27,9 @@ export default function NativeSpaceEditor({
   const [showTransformControls, setShowTransformControls] = useState(true);
   const [selectionMode, setSelectionMode] = useState<'single' | 'multi'>('single');
   const [interactionLevel, setInteractionLevel] = useState<'object' | 'component' | 'collection'>('object');
+  const [environment, setEnvironment] = useState(getDefaultEnvironment());
+  const [cameraSettings, setCameraSettings] = useState(getDefaultCamera());
+  const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
   const canvasRef = useRef<any>(null);
   const transformControlsRef = useRef<any>(null);
 
@@ -206,6 +211,89 @@ export default function NativeSpaceEditor({
     onSceneChange?.({ type: 'objects_grouped', groupId, objectIds: Array.from(selectedObjects) });
   }, [selectedObjects, spaceItems, onSceneChange]);
 
+  // Properties panel handlers
+  const handleEnvironmentChange = useCallback((key: string, value: any) => {
+    setEnvironment(prev => {
+      const newEnv = { ...prev };
+      if (key.includes('.')) {
+        const [parentKey, childKey] = key.split('.');
+        newEnv[parentKey as keyof typeof newEnv] = {
+          ...newEnv[parentKey as keyof typeof newEnv],
+          [childKey]: value
+        };
+      } else {
+        newEnv[key as keyof typeof newEnv] = value;
+      }
+      return newEnv;
+    });
+    onSceneChange?.({ type: 'environment_changed', key, value });
+  }, [onSceneChange]);
+
+  const handleCameraChange = useCallback((key: string, value: any) => {
+    setCameraSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    onSceneChange?.({ type: 'camera_changed', key, value });
+  }, [onSceneChange]);
+
+  const handleObjectPropertyChange = useCallback((objectId: string, key: string, value: any) => {
+    setSpaceItems(prev => prev.map(item => {
+      if (item.id !== objectId) return item;
+      
+      const newItem = { ...item };
+      if (key.includes('.')) {
+        const [parentKey, childKey] = key.split('.');
+        newItem[parentKey as keyof typeof newItem] = {
+          ...newItem[parentKey as keyof typeof newItem],
+          [childKey]: value
+        };
+      } else {
+        newItem[key as keyof typeof newItem] = value;
+      }
+      return newItem;
+    }));
+    onSceneChange?.({ type: 'object_property_changed', objectId, key, value });
+  }, [onSceneChange]);
+
+  const handleAction = useCallback((action: string, data?: any) => {
+    switch (action) {
+      case 'resetCamera':
+        setCameraSettings(getDefaultCamera());
+        break;
+      case 'resetEnvironment':
+        setEnvironment(getDefaultEnvironment());
+        break;
+      case 'exportScene':
+        const sceneData = {
+          environment,
+          camera: cameraSettings,
+          items: spaceItems,
+          selectedObjects: Array.from(selectedObjects),
+        };
+        onSceneChange?.({ type: 'scene_exported', data: sceneData });
+        // Could also trigger download
+        const blob = new Blob([JSON.stringify(sceneData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `space-${spaceId}-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        break;
+      case 'clearScene':
+        if (confirm('Are you sure you want to clear the scene? This action cannot be undone.')) {
+          setSpaceItems([]);
+          setSelectedObjects(new Set());
+          onSelectionChange?.([]);
+          onSceneChange?.({ type: 'scene_cleared' });
+        }
+        break;
+      default:
+        onSceneChange?.({ type: 'action_triggered', action, data });
+    }
+  }, [environment, cameraSettings, spaceItems, selectedObjects, spaceId, onSceneChange, onSelectionChange]);
+
   if (!r3f) {
     return (
       <div className="h-[600px] bg-neutral-800 border border-neutral-700 rounded-lg flex items-center justify-center">
@@ -341,6 +429,16 @@ export default function NativeSpaceEditor({
               >
                 Transform
               </button>
+              <button
+                className={`px-3 py-1.5 text-xs rounded ${
+                  showPropertiesPanel 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                }`}
+                onClick={() => setShowPropertiesPanel(!showPropertiesPanel)}
+              >
+                Properties
+              </button>
             </div>
             <div className="flex gap-1">
               {(['object', 'component', 'collection'] as const).map(level => (
@@ -361,9 +459,11 @@ export default function NativeSpaceEditor({
         </div>
       </div>
 
-      {/* 3D Editor Viewport */}
-      <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4">
-        <Canvas 
+      {/* Main Editor Layout */}
+      <div className={`grid gap-4 ${showPropertiesPanel ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>
+        {/* 3D Editor Viewport */}
+        <div className={`${showPropertiesPanel ? 'lg:col-span-2' : 'col-span-1'} bg-neutral-800 border border-neutral-700 rounded-lg p-4`}>
+          <Canvas 
           ref={canvasRef}
           style={{ height: 500, width: "100%", background: "#111217" }} 
           camera={{ position: [4, 3, 6], fov: 50 }}
@@ -454,7 +554,23 @@ export default function NativeSpaceEditor({
           <axesHelper args={[2]} />
           <Environment preset="city" />
           <StatsGl />
-        </Canvas>
+          </Canvas>
+        </div>
+
+        {/* Properties Panel */}
+        {showPropertiesPanel && (
+          <div className="lg:col-span-1">
+            <PropertiesPanel
+              selectedObjects={spaceItems.filter(item => selectedObjects.has(item.id))}
+              environment={environment}
+              camera={cameraSettings}
+              onEnvironmentChange={handleEnvironmentChange}
+              onCameraChange={handleCameraChange}
+              onObjectChange={handleObjectPropertyChange}
+              onAction={handleAction}
+            />
+          </div>
+        )}
       </div>
 
       {/* Instructions */}
