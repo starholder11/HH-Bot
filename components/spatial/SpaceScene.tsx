@@ -101,6 +101,12 @@ export function generateDemoSpaceItems(): SpaceAssetData[] {
       visible: true,
       clickable: true,
       hoverEffect: "scale",
+      objectProperties: {
+        showComponents: true,
+        interactionLevel: 'component',
+        lodLevel: 1,
+        physics: { enabled: false }
+      },
     },
     {
       id: "demo-text-1",
@@ -123,6 +129,46 @@ export function generateDemoSpaceItems(): SpaceAssetData[] {
       visible: true,
       clickable: true,
       hoverEffect: "scale",
+      objectProperties: {
+        showComponents: true,
+        interactionLevel: 'object',
+        lodLevel: 1,
+        physics: { enabled: false }
+      },
+    },
+    {
+      id: "demo-composite-object",
+      assetId: "demo-composite",
+      assetType: "object",
+      position: [-2, 0, -2],
+      rotation: [0, Math.PI / 6, 0],
+      scale: [1, 1, 1],
+      visible: true,
+      clickable: true,
+      hoverEffect: "scale",
+      objectProperties: {
+        showComponents: true,
+        interactionLevel: 'component',
+        lodLevel: 1,
+        physics: { enabled: false }
+      },
+    },
+    {
+      id: "demo-instanced-collection",
+      assetId: "demo-instanced",
+      assetType: "object_collection",
+      position: [2, 0, -2],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+      visible: true,
+      clickable: true,
+      hoverEffect: "glow",
+      objectProperties: {
+        showComponents: true,
+        interactionLevel: 'collection',
+        lodLevel: 1,
+        physics: { enabled: false }
+      },
     },
   ];
 }

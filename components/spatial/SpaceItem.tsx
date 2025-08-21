@@ -1,6 +1,8 @@
 "use client";
 import { useRef, useState, useMemo, useEffect } from "react";
 import { useSpaceAsset, type SpaceAssetData } from "@/hooks/useSpaceAsset";
+import ObjectRenderer from "./ObjectRenderer";
+import CollectionRenderer from "./CollectionRenderer";
 
 type SpaceItemProps = {
   item: SpaceAssetData;
@@ -108,10 +110,27 @@ export default function SpaceItem({ item, cameraPosition = [0, 0, 0], onSelect, 
         return <VideoAsset assetData={assetData} lodQuality={lodQuality} />;
       
       case 'object':
-        return <ObjectAsset assetData={assetData} useGLTF={useGLTF} />;
+        return (
+          <ObjectRenderer 
+            assetData={assetData} 
+            showComponents={item.objectProperties?.showComponents !== false}
+            interactionLevel={item.objectProperties?.interactionLevel || 'object'}
+            onComponentSelect={(component) => console.log('Component selected:', component)}
+            onComponentHover={(component) => console.log('Component hovered:', component)}
+          />
+        );
       
       case 'object_collection':
-        return <CollectionAsset assetData={assetData} useGLTF={useGLTF} />;
+        return (
+          <CollectionRenderer 
+            assetData={assetData}
+            showComponents={item.objectProperties?.showComponents !== false}
+            interactionLevel={item.objectProperties?.interactionLevel || 'collection'}
+            useInstancing={true}
+            onObjectSelect={(objectId) => console.log('Object selected:', objectId)}
+            onObjectHover={(objectId) => console.log('Object hovered:', objectId)}
+          />
+        );
       
       case 'text':
         return <TextAsset assetData={assetData} Text={Text} />;
@@ -205,52 +224,7 @@ function VideoAsset({ assetData, lodQuality }: any) {
   );
 }
 
-function ObjectAsset({ assetData, useGLTF }: any) {
-  if (!assetData?.object?.modelUrl) {
-    return (
-      <mesh>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#8B5A2B" />
-      </mesh>
-    );
-  }
 
-  try {
-    const { scene } = useGLTF(assetData.object.modelUrl);
-    return <primitive object={scene.clone()} />;
-  } catch (error) {
-    return (
-      <mesh>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#8B5A2B" />
-      </mesh>
-    );
-  }
-}
-
-function CollectionAsset({ assetData, useGLTF }: any) {
-  if (!assetData?.collection?.objects) {
-    return (
-      <mesh>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#2563eb" />
-      </mesh>
-    );
-  }
-
-  return (
-    <group>
-      {assetData.collection.objects.map((obj: any, idx: number) => (
-        <group key={idx} position={obj.transform?.position || [0, 0, 0]}>
-          <mesh>
-            <boxGeometry args={[0.5, 0.5, 0.5]} />
-            <meshStandardMaterial color="#2563eb" />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
 
 function TextAsset({ assetData, Text }: any) {
   const content = assetData?.content || assetData?.title || "Text Asset";

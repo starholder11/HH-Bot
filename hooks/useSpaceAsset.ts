@@ -48,8 +48,8 @@ export function useSpaceAsset(assetId: string, assetType: SpaceAssetType) {
             response = await fetch(`/api/media-labeling/assets/${assetId}`);
             break;
           default:
-            // For other types, we'll implement later
-            setData({ id: assetId, type: assetType, placeholder: true });
+            // For demo and other types, provide mock data
+            setData(generateMockAssetData(assetId, assetType));
             setLoading(false);
             return;
         }
@@ -72,4 +72,143 @@ export function useSpaceAsset(assetId: string, assetType: SpaceAssetType) {
   }, [assetId, assetType]);
 
   return { data, loading, error };
+}
+
+// Generate mock asset data for demo purposes
+function generateMockAssetData(assetId: string, assetType: SpaceAssetType): any {
+  switch (assetType) {
+    case 'object':
+      if (assetId === 'demo-composite') {
+        return {
+          id: assetId,
+          object_type: 'composite',
+          object: {
+            boundingBox: { min: [-1, -1, -1], max: [1, 2, 1] },
+            components: [
+              {
+                id: 'seat',
+                objectId: 'chair-seat',
+                transform: { position: [0, 0.5, 0], rotation: [0, 0, 0], scale: [1, 0.2, 1] },
+                role: 'seat',
+                required: true,
+              },
+              {
+                id: 'back',
+                objectId: 'chair-back', 
+                transform: { position: [0, 1, -0.4], rotation: [0, 0, 0], scale: [1, 1, 0.2] },
+                role: 'back',
+                required: true,
+              },
+              {
+                id: 'legs',
+                objectId: 'chair-legs',
+                transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+                role: 'legs',
+                required: true,
+              },
+              {
+                id: 'armrest-left',
+                objectId: 'chair-armrest',
+                transform: { position: [-0.4, 0.8, 0], rotation: [0, 0, 0], scale: [0.2, 0.6, 0.8] },
+                role: 'armrest',
+                required: false,
+              },
+              {
+                id: 'armrest-right',
+                objectId: 'chair-armrest',
+                transform: { position: [0.4, 0.8, 0], rotation: [0, 0, 0], scale: [0.2, 0.6, 0.8] },
+                role: 'armrest',
+                required: false,
+              },
+            ],
+            category: 'furniture',
+            subcategory: 'seating',
+            style: 'modern',
+            tags: ['chair', 'composite', 'furniture'],
+          },
+        };
+      }
+      return {
+        id: assetId,
+        object_type: 'atomic',
+        object: {
+          modelUrl: '/models/reference/threejs/DamagedHelmet.glb',
+          boundingBox: { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] },
+          category: 'props',
+          subcategory: 'helmet',
+          style: 'damaged',
+          tags: ['helmet', 'prop', 'demo'],
+        },
+      };
+
+    case 'object_collection':
+      if (assetId === 'demo-instanced') {
+        return {
+          id: assetId,
+          collection: {
+            objects: [
+              {
+                objectId: 'tree-01',
+                transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+                quantity: 8,
+                pattern: 'circle',
+              },
+              {
+                objectId: 'rock-01',
+                transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [0.5, 0.5, 0.5] },
+                quantity: 12,
+                pattern: 'random',
+              },
+            ],
+            boundingBox: { min: [-5, 0, -5], max: [5, 3, 5] },
+            category: 'nature',
+            style: 'forest',
+            tags: ['trees', 'rocks', 'instanced', 'nature'],
+          },
+        };
+      }
+      return {
+        id: assetId,
+        collection: {
+          objects: [
+            {
+              objectId: 'cube-01',
+              transform: { position: [-1, 0, -1], rotation: [0, 0, 0], scale: [0.8, 0.8, 0.8] },
+            },
+            {
+              objectId: 'cube-02',
+              transform: { position: [1, 0, -1], rotation: [0, Math.PI/4, 0], scale: [0.8, 0.8, 0.8] },
+            },
+            {
+              objectId: 'cube-03',
+              transform: { position: [0, 0, 1], rotation: [0, Math.PI/2, 0], scale: [0.8, 0.8, 0.8] },
+            },
+          ],
+          subCollections: ['demo-sub-collection'],
+          boundingBox: { min: [-2, 0, -2], max: [2, 1, 2] },
+          category: 'demo',
+          style: 'geometric',
+          tags: ['cubes', 'collection', 'demo'],
+        },
+      };
+
+    case 'text':
+      return {
+        id: assetId,
+        title: 'Text Asset',
+        content: 'Demo Text Content',
+        type: assetType,
+      };
+
+    case 'image':
+      return {
+        id: assetId,
+        cloudflare_url: 'https://picsum.photos/512/512',
+        type: assetType,
+        title: 'Demo Image',
+      };
+
+    default:
+      return { id: assetId, type: assetType, placeholder: true };
+  }
 }
