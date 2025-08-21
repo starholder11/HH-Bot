@@ -92,6 +92,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     };
   }, [onSceneChange, onSelectionChange, onError]);
 
+  // Reload space data when spaceId changes
+  useEffect(() => {
+    if (editorReady && spaceId) {
+      loadSpaceData();
+    }
+  }, [spaceId, editorReady]);
+
   // Send command to editor
   const sendCommand = (command: EditorCommand) => {
     if (!bridgeRef.current || !editorReady) {
@@ -104,21 +111,25 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   // Fetch space data from API
   const loadSpaceData = async () => {
     try {
-      const response = await fetch(`/api/spaces/${spaceId}`);
+      console.log('[SpaceEditor] Loading space data for:', spaceId);
+      const response = await fetch(`/api/spaces/${spaceId}`, { cache: 'no-store' });
       if (!response.ok) {
         throw new Error(`Failed to load space: ${response.statusText}`);
       }
       const space = await response.json();
+      console.log('[SpaceEditor] Loaded space:', space);
       setSpaceData(space);
       
       // Convert to Three.js format and load into editor
       const threeJSScene = convertSpaceToThreeJSScene(space);
+      console.log('[SpaceEditor] Converted to Three.js scene:', threeJSScene);
       sendCommand({
         type: 'load_scene',
         data: threeJSScene,
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to load space data';
+      console.error('[SpaceEditor] Load error:', err);
       setError(errorMsg);
       onError?.(errorMsg);
     }

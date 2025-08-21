@@ -12,6 +12,34 @@ import AssetImportModal from "./AssetImportModal";
 import LayoutImportModal from "./LayoutImportModal";
 import type { LayoutAsset } from "@/app/visual-search/types";
 
+// Helper component for rendering images as textured planes
+function ImagePlane({ url }: { url: string }) {
+  const [texture, setTexture] = useState<any>(null);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).THREE) {
+      const loader = new (window as any).THREE.TextureLoader();
+      loader.load(url, setTexture);
+    }
+  }, [url]);
+
+  if (!texture) {
+    return (
+      <mesh>
+        <planeGeometry args={[2, 1.5]} />
+        <meshStandardMaterial color="#666" />
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh>
+      <planeGeometry args={[2, 1.5]} />
+      <meshStandardMaterial map={texture} />
+    </mesh>
+  );
+}
+
 export interface NativeSpaceEditorProps {
   spaceId: string;
   onSceneChange?: (sceneData: any) => void;
@@ -60,6 +88,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           OrbitControls: drei.OrbitControls,
           Environment: drei.Environment,
           StatsGl: drei.StatsGl,
+          Text: drei.Text,
         });
       } catch (err) {
         console.error("NativeSpaceEditor failed to load R3F:", err);
@@ -78,12 +107,12 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         if (!res.ok) throw new Error(`Failed to load space ${spaceId}`);
         const space = await res.json();
         if (cancelled) return;
-        
+
         // Safely extract data with proper defaults
         const items = Array.isArray(space?.space?.items) ? space.space.items : [];
         const defaultEnv = getDefaultEnvironment();
         const defaultCam = getDefaultCamera();
-        
+
         // Merge with defaults to ensure all required properties exist
         const env = {
           ...defaultEnv,
@@ -93,7 +122,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           ...defaultCam,
           ...(space?.space?.camera || {})
         };
-        
+
         console.log('[NativeSpaceEditor] Loaded space:', { items: items.length, env, cam });
         setSpaceItems(items);
         setEnvironment(env);
@@ -660,9 +689,9 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
                 />
               )}
 
-              {/* Fallback for other asset types */}
+              {/* Render different asset types with actual content */}
               {!['object', 'object_collection'].includes(item.assetType) && (
-                <mesh
+                <group
                   position={item.position}
                   rotation={item.rotation}
                   scale={item.scale}
@@ -671,12 +700,42 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
                     handleObjectSelect(item, e.shiftKey || selectionMode === 'multi');
                   }}
                 >
-                  <boxGeometry args={[1, 1, 1]} />
-                  <meshStandardMaterial
-                    color={selectedObjects.has(item.id) ? "#4ade80" : "#6b7280"}
-                    wireframe={!selectedObjects.has(item.id)}
-                  />
-                </mesh>
+                  {/* Image/Video as textured plane */}
+                  {(['image', 'video'].includes(item.assetType) && item.mediaUrl) ? (
+                    <ImagePlane url={item.mediaUrl} />
+                  ) : (
+                    /* Fallback colored box with label */
+                    <mesh>
+                      <boxGeometry args={[1, 1, 1]} />
+                      <meshStandardMaterial
+                        color={
+                          item.assetType === 'image' ? "#3b82f6" :
+                          item.assetType === 'video' ? "#ef4444" :
+                          item.assetType === 'audio' ? "#10b981" :
+                          item.assetType === 'text' ? "#f59e0b" :
+                          item.assetType === 'layout_reference' ? "#8b5cf6" :
+                          "#6b7280"
+                        }
+                        wireframe={!selectedObjects.has(item.id)}
+                        transparent
+                        opacity={selectedObjects.has(item.id) ? 0.8 : 0.6}
+                      />
+                    </mesh>
+                  )}
+                  
+                  {/* Add a text label above the object */}
+                  {r3f?.Text && (
+                    <r3f.Text
+                      position={[0, 1.2, 0]}
+                      fontSize={0.2}
+                      color={selectedObjects.has(item.id) ? "#4ade80" : "#ffffff"}
+                      anchorX="center"
+                      anchorY="middle"
+                    >
+                      {item.title || item.assetType}
+                    </r3f.Text>
+                  )}
+                </group>
               )}
 
               {/* Selection outline for all selected objects */}
