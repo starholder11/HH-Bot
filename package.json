@@ -131,9 +131,7 @@
     "ts-node": "^10.9.2",
     "typescript": "5.9.2"
   },
-  "overrides": {
-    "apache-arrow": "15.0.2"
-  },
+  "overrides": {},
   "engines": {
     "node": ">=18.0.0"
   }
