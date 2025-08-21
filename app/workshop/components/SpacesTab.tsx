@@ -17,7 +17,8 @@ export default function SpacesTab() {
       const res = await fetch('/api/spaces', { cache: 'no-store' });
       if (!res.ok) throw new Error(res.statusText);
       const data = await res.json();
-      setSpaces(Array.isArray(data) ? data : (data?.items || []));
+      // The API returns { assets: [...], totalCount: number }
+      setSpaces(data?.assets || []);
     } catch (e) {
       console.error('Spaces load failed:', e);
       setError('Failed to load spaces');
@@ -30,16 +31,18 @@ export default function SpacesTab() {
     try {
       const body = {
         title: `New Space ${new Date().toLocaleString()}`,
-        space_type: 'mixed',
-        space: { items: [], environment: { preset: 'city', background: true }, camera: { position: [4,3,6], target: [0,0,0], fov: 50 } }
+        space_type: 'custom'
       };
       const res = await fetch('/api/spaces', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error(res.statusText);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`${res.status}: ${errorText}`);
+      }
       const created = await res.json();
       router.push(`/spaces/${created.id}/edit`);
     } catch (e) {
       console.error('Create space failed:', e);
-      setError('Failed to create space');
+      setError(`Failed to create space: ${e.message}`);
     }
   }
 
