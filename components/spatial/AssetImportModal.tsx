@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import * as searchService from '@/app/visual-search/services/searchService';
+// import * as searchService from '@/app/visual-search/services/searchService';
 import VSResultCard from '@/app/visual-search/components/ResultCard/ResultCard';
 
 interface AssetImportModalProps {
@@ -21,16 +21,36 @@ export default function AssetImportModal({ onClose, onSelect }: AssetImportModal
 
   React.useEffect(() => {
     setMounted(true);
+    // Load some initial assets
+    loadInitialAssets();
     return () => {
       controllerRef.current?.abort();
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
   }, []);
 
+  const loadInitialAssets = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/media-assets?limit=20&page=1');
+      if (response.ok) {
+        const json = await response.json();
+        const assets = json.assets || [];
+        console.log('[ASSET IMPORT] Loaded initial assets:', assets.length);
+        setSearchResults(assets);
+      }
+    } catch (error) {
+      console.error('[ASSET IMPORT] Failed to load initial assets:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const searchAssets = async (query: string, overrideTypes?: string[]) => {
     const q = query.trim();
     if (!q) {
-      setSearchResults([]);
+      // If no query, reload initial assets
+      loadInitialAssets();
       return;
     }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
@@ -44,20 +64,69 @@ export default function AssetImportModal({ onClose, onSelect }: AssetImportModal
       setIsLoading(true);
       try {
         const activeTypes = overrideTypes && overrideTypes.length ? overrideTypes : selectedTypes;
-        const typeParam = activeTypes.join(',');
-        console.log('[ASSET IMPORT] Query:', q, 'Types:', activeTypes, 'Param:', typeParam);
-        const json = await searchService.get(q, { type: typeParam, limit: 50, signal: controller.signal });
+        console.log('[ASSET IMPORT] Query:', q, 'Types:', activeTypes);
+        
+        // Use media-assets API with search functionality
+        const params = new URLSearchParams({
+          limit: '50',
+          page: '1',
+          search: q
+        });
+        
+        // Add type filter if specific types are selected
+        if (activeTypes.length < 4) { // If not all types selected
+          const mediaTypeMap: Record<string, string> = {
+            'image': 'image',
+            'video': 'video', 
+            'audio': 'audio',
+            'text': 'text'
+          };
+          const mediaTypes = activeTypes.map(t => mediaTypeMap[t]).filter(Boolean);
+          if (mediaTypes.length === 1) {
+            params.set('mediaType', mediaTypes[0]);
+          }
+        }
+        
+        const response = await fetch(`/api/media-assets?${params.toString()}`, {
+          signal: controller.signal
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Search failed: ${response.status}`);
+        }
+        
+        const json = await response.json();
         if (controller.signal.aborted || requestId !== lastRequestIdRef.current) return;
-        const results = (json as any)?.results || {};
-        console.log('[ASSET IMPORT] Raw results:', results);
-        // Choose list to show based on active filters
-        const onlyText = activeTypes.length === 1 && activeTypes[0] === 'text';
-        const onlyMedia = activeTypes.every(t => ['image', 'video', 'audio'].includes(t)) && !activeTypes.includes('text');
-        const baseList = onlyText ? results.text : onlyMedia ? results.media : (results.all || []);
-        console.log('[ASSET IMPORT] Base list:', baseList?.length, 'items from', onlyText ? 'text' : onlyMedia ? 'media' : 'all');
-        const allow = new Set<string>(activeTypes.includes('text') && activeTypes.length === 1 ? ['text'] : activeTypes);
-        const filtered = (Array.isArray(baseList) ? baseList : []).filter((r: any) => allow.has((r.content_type || r.type || '').toLowerCase()));
-        console.log('[ASSET IMPORT] Filtered results:', filtered.length, 'items, first 3 types:', filtered.slice(0, 3).map((r: any) => r.content_type || r.type));
+        
+        const assets = json.assets || [];
+        console.log('[ASSET IMPORT] Found assets:', assets.length);
+        
+        // Filter by content type if multiple types selected
+        let filtered = assets;
+        if (activeTypes.length < 4) {
+          const allowedTypes = new Set(activeTypes);
+          filtered = assets.filter((asset: any) => {
+            const contentType = asset.content_type || asset.media_type || '';
+            return allowedTypes.has(contentType);
+          });
+        }
+        
+        // Filter by search query (simple text matching)
+        if (q) {
+          filtered = filtered.filter((asset: any) => {
+            const searchText = [
+              asset.title,
+              asset.filename,
+              asset.description,
+              ...(asset.ai_labels?.scenes || []),
+              ...(asset.ai_labels?.objects || []),
+              ...(asset.ai_labels?.themes || [])
+            ].join(' ').toLowerCase();
+            return searchText.includes(q.toLowerCase());
+          });
+        }
+        
+        console.log('[ASSET IMPORT] Filtered results:', filtered.length);
         setSearchResults(filtered);
       } catch (error: any) {
         // Ignore abort errors; they are expected during fast typing
@@ -140,7 +209,7 @@ export default function AssetImportModal({ onClose, onSelect }: AssetImportModal
 
           {!isLoading && searchResults.length === 0 && (
             <div className="text-center py-8 text-neutral-400">
-              {searchQuery ? 'No assets found matching your search.' : 'Start typing to search for assets.'}
+              {searchQuery ? 'No assets found matching your search.' : 'Loading assets...'}
             </div>
           )}
 
