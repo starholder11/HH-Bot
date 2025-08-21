@@ -256,6 +256,46 @@ export default function NativeSpaceEditor({
     onSceneChange?.({ type: 'object_property_changed', objectId, key, value });
   }, [onSceneChange]);
 
+  const handleImportAsset = useCallback(async () => {
+    try {
+      // Fetch available assets (images, videos, audio, objects, etc.)
+      const response = await fetch('/api/media-assets?loadAll=true');
+      if (!response.ok) throw new Error('Failed to fetch assets');
+      
+      const data = await response.json();
+      const assets = data.assets || [];
+      
+      // For now, just log available assets - in the future this could open a modal
+      console.log('Available assets for import:', assets.length);
+      
+      // TODO: Open asset picker modal
+      alert(`Found ${assets.length} assets available for import. Asset picker modal coming soon!`);
+    } catch (error) {
+      console.error('Failed to load assets:', error);
+      alert('Failed to load assets for import');
+    }
+  }, []);
+
+  const handleImportLayout = useCallback(async () => {
+    try {
+      // Fetch available layouts
+      const response = await fetch('/api/layouts');
+      if (!response.ok) throw new Error('Failed to fetch layouts');
+      
+      const data = await response.json();
+      const layouts = data.assets || [];
+      
+      // For now, just log available layouts - in the future this could open a modal
+      console.log('Available layouts for import:', layouts.length);
+      
+      // TODO: Open layout picker modal and convert layout to space items
+      alert(`Found ${layouts.length} layouts available for import. Layout picker modal coming soon!`);
+    } catch (error) {
+      console.error('Failed to load layouts:', error);
+      alert('Failed to load layouts for import');
+    }
+  }, []);
+
   const handleAction = useCallback((action: string, data?: any) => {
     switch (action) {
       case 'resetCamera':
@@ -289,10 +329,16 @@ export default function NativeSpaceEditor({
           onSceneChange?.({ type: 'scene_cleared' });
         }
         break;
+      case 'importAsset':
+        handleImportAsset();
+        break;
+      case 'importLayout':
+        handleImportLayout();
+        break;
       default:
         onSceneChange?.({ type: 'action_triggered', action, data });
     }
-  }, [environment, cameraSettings, spaceItems, selectedObjects, spaceId, onSceneChange, onSelectionChange]);
+  }, [environment, cameraSettings, spaceItems, selectedObjects, spaceId, onSceneChange, onSelectionChange, handleImportAsset, handleImportLayout]);
 
   if (!r3f) {
     return (

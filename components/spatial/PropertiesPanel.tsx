@@ -414,6 +414,18 @@ export default function PropertiesPanel({
               >
                 Clear Scene
               </button>
+              <button
+                onClick={() => onAction('importAsset')}
+                className="px-3 py-2 text-sm rounded bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                Import Asset
+              </button>
+              <button
+                onClick={() => onAction('importLayout')}
+                className="px-3 py-2 text-sm rounded bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                Import Layout
+              </button>
             </div>
           </div>
         </div>
