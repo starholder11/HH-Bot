@@ -35,6 +35,7 @@ export class EditorBridge {
   private messageQueue: EditorCommand[] = [];
   private pendingCommands: Map<string, { resolve: Function; reject: Function; timeout: NodeJS.Timeout }> = new Map();
   private commandIdCounter = 0;
+  private ready = false;
   
   // Event handlers
   public onReady?: () => void;
@@ -96,6 +97,7 @@ export class EditorBridge {
     // Handle special messages
     switch (message.type) {
       case 'ready':
+        this.ready = true;
         this.onReady?.();
         this.flushMessageQueue();
         break;
@@ -185,7 +187,7 @@ export class EditorBridge {
    * Check if editor is ready
    */
   isReady(): boolean {
-    return this.iframe.contentWindow !== null && this.messageQueue.length === 0;
+    return this.ready;
   }
 
   /**

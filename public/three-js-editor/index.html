@@ -119,6 +119,7 @@
 			editor.addObject(cube);
 			
 			console.log('Three.js Editor initialized successfully');
+			try { window.parent.postMessage({ type: 'ready' }, '*'); } catch (e) {}
 		}
 
 		try {
@@ -194,6 +195,15 @@
 		signals.sceneGraphChanged.add( saveState );
 		signals.scriptChanged.add( saveState );
 		signals.historyChanged.add( saveState );
+
+		// Bridge: forward updates to parent
+		function send(msg) { try { window.parent.postMessage(msg, '*'); } catch (e) {} }
+		signals.objectSelected.add(function(object){
+			send({ type: 'selection_changed', data: { selectedObjects: object ? [object.uuid] : [] } });
+		});
+		signals.objectAdded.add(function(object){ send({ type: 'object_added', data: { uuid: object.uuid } }); });
+		signals.objectRemoved.add(function(object){ send({ type: 'object_removed', data: { uuid: object.uuid } }); });
+		signals.objectChanged.add(function(object){ send({ type: 'object_transformed', data: { uuid: object.uuid } }); });
 
 			//
 
