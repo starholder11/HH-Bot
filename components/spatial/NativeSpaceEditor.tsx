@@ -673,15 +673,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
       </group>
     );
 
-    const draggableContent = (
-      <DragWrapper
-        item={item}
-        onDrag={(newPosition) => handleObjectDrag(item.id, newPosition)}
-      >
-        {content}
-      </DragWrapper>
-    );
-
     if (isSelected && showTransformControls) {
       return (
         <TransformControls
@@ -695,12 +686,12 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             });
           }}
         >
-          {draggableContent}
+          {content}
         </TransformControls>
       );
     }
 
-    return draggableContent;
+    return content;
   };
 
   return (
