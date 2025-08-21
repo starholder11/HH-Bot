@@ -33,6 +33,14 @@ export function useSpaceAsset(assetId: string, assetType: SpaceAssetType) {
         setLoading(true);
         setError(null);
 
+        // Fast path for demo IDs: use local mock data instead of hitting APIs
+        const isDemoId = assetId.startsWith('demo-') || assetId === 'demo-img' || assetId === 'demo-text';
+        if (isDemoId) {
+          setData(generateMockAssetData(assetId, assetType));
+          setLoading(false);
+          return;
+        }
+
         let response;
         switch (assetType) {
           case 'object':
