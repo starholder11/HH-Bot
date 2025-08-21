@@ -766,10 +766,10 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
                   {/* Image/Video as textured plane */}
                   {(['image', 'video'].includes(item.assetType) && item.mediaUrl) ? (
                     r3f?.Image ? (
-                      <r3f.Image url={item.mediaUrl} scale={[3, 2, 1]} toneMapped={true} transparent={false} />
+                      <r3f.Image url={`/api/proxy?url=${encodeURIComponent(item.mediaUrl)}`} scale={[3, 2, 1]} toneMapped={true} transparent={false} />
                     ) : (
                       <>
-                        <ImagePlane url={item.mediaUrl} />
+                        <ImagePlane url={`/api/proxy?url=${encodeURIComponent(item.mediaUrl)}`} />
                         {console.log('[NativeEditor] Rendering ImagePlane for:', item.title, 'URL:', item.mediaUrl, 'Type:', item.assetType)}
                       </>
                     )
