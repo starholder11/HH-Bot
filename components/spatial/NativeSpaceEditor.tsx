@@ -557,6 +557,110 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
   const { Canvas, useFrame, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
 
+  // Helper component to render and transform a single space item
+  const RenderItem = ({ item }: { item: SpaceAssetData }) => {
+    const groupRef = useRef<any>(null);
+    const isSelected = selectedObjects.has(item.id);
+
+    const content = (
+      <group
+        ref={groupRef}
+        position={item.position}
+        rotation={item.rotation}
+        scale={item.scale}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleObjectSelect(item, e.shiftKey || selectionMode === 'multi');
+        }}
+      >
+        {/* Render different asset types */}
+        {item.assetType === 'object' && (
+          <ObjectRenderer
+            assetData={{ /* mock object data */ id: item.assetId, object_type: 'atomic', object: { modelUrl: '/models/reference/threejs/DamagedHelmet.glb', boundingBox: { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] }, category: 'props' } }}
+            showComponents={interactionLevel === 'component'}
+            interactionLevel={interactionLevel}
+            onComponentSelect={(component) => console.log('Component selected:', component)}
+            onComponentHover={(component) => console.log('Component hovered:', component)}
+          />
+        )}
+
+        {item.assetType === 'object_collection' && (
+          <CollectionRenderer
+            assetData={{ /* mock collection data */ id: item.assetId, collection: { objects: [{ objectId: 'cube-01', transform: { position: [-1, 0, -1], rotation: [0, 0, 0], scale: [0.8, 0.8, 0.8] } }], boundingBox: { min: [-2, 0, -2], max: [2, 1, 2] } } }}
+            showComponents={interactionLevel !== 'collection'}
+            interactionLevel={interactionLevel}
+            useInstancing={true}
+            onObjectSelect={(objectId) => console.log('Object selected:', objectId)}
+            onObjectHover={(objectId) => console.log('Object hovered:', objectId)}
+          />
+        )}
+
+        {!['object', 'object_collection'].includes(item.assetType) && (
+          // Image/video planes or colored boxes and label
+          <>
+            {/* Image plane or colored box */}
+            {(['image', 'video'].includes(item.assetType) && item.mediaUrl)
+              ? (
+                r3f?.Image
+                  ? (<r3f.Image url={`/api/proxy?url=${encodeURIComponent(item.mediaUrl)}`} scale={[3, 2, 1]} toneMapped={true} transparent={false} />)
+                  : (<ImagePlane url={`/api/proxy?url=${encodeURIComponent(item.mediaUrl)}`} />)
+              )
+              : (
+                <mesh>
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial
+                    color={
+                      item.assetType === 'image' ? "#3b82f6" :
+                      item.assetType === 'video' ? "#ef4444" :
+                      item.assetType === 'audio' ? "#10b981" :
+                      item.assetType === 'text' ? "#f59e0b" :
+                      item.assetType === 'layout_reference' ? "#8b5cf6" :
+                      "#6b7280"
+                    }
+                    wireframe={false}
+                    transparent
+                    opacity={isSelected ? 0.9 : 0.7}
+                  />
+                </mesh>
+              )}
+
+            {r3f?.Text && (
+              <r3f.Text
+                position={[0, 1.2, 0]}
+                fontSize={0.2}
+                color={isSelected ? "#4ade80" : "#ffffff"}
+                anchorX="center"
+                anchorY="middle"
+              >
+                {item.title || item.assetType}
+              </r3f.Text>
+            )}
+          </>
+        )}
+      </group>
+    );
+
+    if (isSelected && showTransformControls) {
+      return (
+        <TransformControls
+          mode={transformMode}
+          onObjectChange={() => {
+            if (!groupRef.current) return;
+            handleTransform(item.id, {
+              position: [groupRef.current.position.x, groupRef.current.position.y, groupRef.current.position.z],
+              rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
+              scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
+            });
+          }}
+        >
+          {content}
+        </TransformControls>
+      );
+    }
+
+    return content;
+  };
+
   return (
     <div className="space-y-4">
       {/* Editor Controls */}
@@ -729,111 +833,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
           {/* Render space items with proper asset type support */}
           {spaceItems.map((item) => (
-            <group key={item.id}>
-              {/* Render different asset types */}
-              {item.assetType === 'object' && (
-                <ObjectRenderer
-                  assetData={{ /* mock object data */ id: item.assetId, object_type: 'atomic', object: { modelUrl: '/models/reference/threejs/DamagedHelmet.glb', boundingBox: { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] }, category: 'props' } }}
-                  showComponents={interactionLevel === 'component'}
-                  interactionLevel={interactionLevel}
-                  onComponentSelect={(component) => console.log('Component selected:', component)}
-                  onComponentHover={(component) => console.log('Component hovered:', component)}
-                />
-              )}
-
-              {item.assetType === 'object_collection' && (
-                <CollectionRenderer
-                  assetData={{ /* mock collection data */ id: item.assetId, collection: { objects: [{ objectId: 'cube-01', transform: { position: [-1, 0, -1], rotation: [0, 0, 0], scale: [0.8, 0.8, 0.8] } }], boundingBox: { min: [-2, 0, -2], max: [2, 1, 2] } } }}
-                  showComponents={interactionLevel !== 'collection'}
-                  interactionLevel={interactionLevel}
-                  useInstancing={true}
-                  onObjectSelect={(objectId) => console.log('Object selected:', objectId)}
-                  onObjectHover={(objectId) => console.log('Object hovered:', objectId)}
-                />
-              )}
-
-              {/* Render different asset types with actual content */}
-              {!['object', 'object_collection'].includes(item.assetType) && (
-                <group
-                  position={item.position}
-                  rotation={item.rotation}
-                  scale={item.scale}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleObjectSelect(item, e.shiftKey || selectionMode === 'multi');
-                  }}
-                >
-                  {/* Image/Video as textured plane */}
-                  {(['image', 'video'].includes(item.assetType) && item.mediaUrl) ? (
-                    r3f?.Image ? (
-                      <r3f.Image url={`/api/proxy?url=${encodeURIComponent(item.mediaUrl)}`} scale={[3, 2, 1]} toneMapped={true} transparent={false} />
-                    ) : (
-                      <>
-                        <ImagePlane url={`/api/proxy?url=${encodeURIComponent(item.mediaUrl)}`} />
-                        {console.log('[NativeEditor] Rendering ImagePlane for:', item.title, 'URL:', item.mediaUrl, 'Type:', item.assetType)}
-                      </>
-                    )
-                  ) : (
-                    /* Fallback colored box with label */
-                    <mesh>
-                      <boxGeometry args={[1, 1, 1]} />
-                      <meshStandardMaterial
-                        color={
-                          item.assetType === 'image' ? "#3b82f6" :
-                          item.assetType === 'video' ? "#ef4444" :
-                          item.assetType === 'audio' ? "#10b981" :
-                          item.assetType === 'text' ? "#f59e0b" :
-                          item.assetType === 'layout_reference' ? "#8b5cf6" :
-                          "#6b7280"
-                        }
-                        wireframe={false}
-                        transparent
-                        opacity={selectedObjects.has(item.id) ? 0.9 : 0.7}
-                      />
-                    </mesh>
-                  )}
-
-                  {/* Add a text label above the object */}
-                  {r3f?.Text && (
-                    <r3f.Text
-                      position={[0, 1.2, 0]}
-                      fontSize={0.2}
-                      color={selectedObjects.has(item.id) ? "#4ade80" : "#ffffff"}
-                      anchorX="center"
-                      anchorY="middle"
-                    >
-                      {item.title || item.assetType}
-                    </r3f.Text>
-                  )}
-                </group>
-              )}
-
-              {/* Selection outline for all selected objects */}
-              {selectedObjects.has(item.id) && (
-                <mesh position={item.position} rotation={item.rotation} scale={item.scale}>
-                  <boxGeometry args={[1.1, 1.1, 1.1]} />
-                  <meshBasicMaterial color="#4ade80" wireframe />
-                </mesh>
-              )}
-
-              {/* Transform controls for selected objects */}
-              {selectedObjects.has(item.id) && showTransformControls && (
-                <TransformControls
-                  ref={transformControlsRef}
-                  mode={transformMode}
-                  object={item}
-                  onObjectChange={(e: any) => {
-                    if (e?.target) {
-                      handleTransform(item.id, {
-                        position: [e.target.position.x, e.target.position.y, e.target.position.z],
-                        rotation: [e.target.rotation.x, e.target.rotation.y, e.target.rotation.z],
-                        scale: [e.target.scale.x, e.target.scale.y, e.target.scale.z],
-                      });
-                    }
-                  }}
-                />
-              )}
-            </group>
+            <RenderItem key={item.id} item={item} />
           ))}
 
           <OrbitControls enablePan enableZoom enableRotate />
