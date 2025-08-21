@@ -105,7 +105,7 @@ export interface BaseMediaAsset {
   cloudflare_url: string;
   title: string;
   description?: string;
-  media_type: 'image' | 'video' | 'audio' | 'keyframe_still' | 'layout';
+  media_type: 'image' | 'video' | 'audio' | 'keyframe_still' | 'layout' | 'object' | 'object_collection' | 'space';
   metadata: any; // Type varies by media type
   ai_labels: {
     scenes: string[];
@@ -331,7 +331,162 @@ export interface LayoutAsset extends BaseMediaAsset {
   };
 }
 
-export type MediaAsset = ImageAsset | VideoAsset | AudioAsset | KeyframeAsset | LayoutAsset;
+// New: Object and Space types per Phase 3 spec
+export interface ObjectAsset extends BaseMediaAsset {
+  media_type: 'object';
+  object_type: 'atomic' | 'composite';
+  // Optional general metadata for quick filtering
+  metadata: {
+    file_size?: number;
+    category: string;
+    subcategory?: string;
+    style?: string;
+    tags?: string[];
+  };
+  object: {
+    modelUrl?: string; // for atomic objects
+    boundingBox: { min: [number, number, number]; max: [number, number, number] };
+    components?: Array<{
+      id: string;
+      objectId: string; // reference to another ObjectAsset
+      transform: {
+        position: [number, number, number];
+        rotation: [number, number, number];
+        scale: [number, number, number];
+      };
+      role: string;
+      required: boolean;
+    }>;
+    materials?: Array<{ name: string; properties: Record<string, any> }>;
+    physics?: { mass?: number; friction?: number; restitution?: number };
+    category: string;
+    subcategory?: string;
+    style?: string;
+    tags: string[];
+  };
+}
+
+export interface ObjectCollection extends BaseMediaAsset {
+  media_type: 'object_collection';
+  collection_type: 'furniture_set' | 'room_kit' | 'scene' | 'custom';
+  // Lightweight metadata for search/index filters
+  metadata: {
+    category: string;
+    style: string;
+    item_count?: number;
+  };
+  collection: {
+    name: string;
+    description?: string;
+    objects: Array<{
+      id: string; // local collection item id
+      objectId: string; // reference to ObjectAsset
+      transform: {
+        position: [number, number, number];
+        rotation: [number, number, number];
+        scale: [number, number, number];
+      };
+      role: string;
+      quantity?: number;
+      optional?: boolean;
+    }>;
+    subCollections?: Array<{
+      id: string;
+      collectionId: string;
+      transform: {
+        position: [number, number, number];
+        rotation: [number, number, number];
+        scale: [number, number, number];
+      };
+      role: string;
+    }>;
+    category: string;
+    style: string;
+    boundingBox?: { min: [number, number, number]; max: [number, number, number] };
+    constraints?: Array<{
+      type: 'proximity' | 'alignment' | 'orientation';
+      objects: string[];
+      parameters: Record<string, any>;
+    }>;
+    version?: number;
+  };
+}
+
+export interface SpaceAsset extends BaseMediaAsset {
+  media_type: 'space';
+  space_type: 'gallery' | 'timeline' | 'grid' | 'cluster' | 'custom';
+  // Optional metadata for search/index
+  metadata: {
+    item_count?: number;
+  };
+  space: {
+    environment: {
+      backgroundColor?: string;
+      lighting?: 'studio' | 'natural' | 'dramatic';
+      fog?: { color: string; density: number };
+      skybox?: string;
+    };
+    camera: {
+      position: [number, number, number];
+      target: [number, number, number];
+      fov?: number;
+      controls?: 'orbit' | 'first-person' | 'fly';
+    };
+    items: Array<{
+      id: string;
+      assetId: string; // references any MediaAsset.id
+      assetType: 'image' | 'video' | 'audio' | 'text' | 'layout' | 'canvas' | 'object' | 'object_collection';
+      position: [number, number, number];
+      rotation: [number, number, number];
+      scale: [number, number, number];
+      opacity?: number;
+      visible?: boolean;
+      clickable?: boolean;
+      hoverEffect?: 'glow' | 'scale' | 'none';
+      objectProperties?: {
+        showComponents?: boolean;
+        interactionLevel?: 'collection' | 'object' | 'component';
+        lodLevel?: number;
+        physics?: { enabled: boolean; kinematic?: boolean };
+      };
+      groupId?: string;
+      importMetadata?: {
+        sourceType: 'layout' | 'manual';
+        sourceId?: string;
+        importVersion?: number;
+        importTimestamp?: string;
+        originalTransform?: {
+          position: [number, number, number];
+          rotation: [number, number, number];
+          scale: [number, number, number];
+        };
+      };
+    }>;
+    relationships?: Array<{
+      from: string;
+      to: string;
+      type: 'maintain-distance' | 'align' | 'orbit' | 'follow';
+      value?: number;
+      enabled?: boolean;
+    }>;
+    zones?: Array<{
+      id: string;
+      name: string;
+      bounds: { min: [number, number, number]; max: [number, number, number] };
+      properties?: { backgroundColor?: string; label?: string };
+    }>;
+  };
+  version?: number;
+  sourceMappings?: Array<{
+    sourceType: 'layout';
+    sourceId: string;
+    layoutItemId: string;
+    spaceItemId: string;
+    importVersion: number;
+  }>;
+}
+
+export type MediaAsset = ImageAsset | VideoAsset | AudioAsset | KeyframeAsset | LayoutAsset | ObjectAsset | ObjectCollection | SpaceAsset;
 
 
 /**
