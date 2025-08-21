@@ -120,6 +120,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const canvasRef = useRef<any>(null);
   const transformControlsRef = useRef<any>(null);
+  const orbitRef = useRef<any>(null);
 
   // Load R3F dependencies
   useEffect(() => {
@@ -135,6 +136,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           Canvas: fiber.Canvas,
           useFrame: fiber.useFrame,
           TransformControls: drei.TransformControls,
+          DragControls: (drei as any).DragControls,
           OrbitControls: drei.OrbitControls,
           Environment: drei.Environment,
           StatsGl: drei.StatsGl,
@@ -555,7 +557,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     );
   }
 
-  const { Canvas, useFrame, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
+  const { Canvas, useFrame, TransformControls, DragControls, OrbitControls, Environment, StatsGl } = r3f;
 
   // Helper component to render and transform a single space item
   const RenderItem = ({ item }: { item: SpaceAssetData }) => {
@@ -655,6 +657,26 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         >
           {content}
         </TransformControls>
+      );
+    }
+
+    // Non-selected: wrap in DragControls for simple XZ drag
+    if (DragControls) {
+      const onDragStart = () => { if (orbitRef.current) orbitRef.current.enabled = false; };
+      const onDragEnd = () => { if (orbitRef.current) orbitRef.current.enabled = true; };
+      const onDrag = () => {
+        if (!groupRef.current) return;
+        // constrain to ground plane (keep Y)
+        handleTransform(item.id, {
+          position: [groupRef.current.position.x, item.position[1], groupRef.current.position.z],
+          rotation: item.rotation,
+          scale: item.scale,
+        });
+      };
+      return (
+        <DragControls transformGroup onDragStart={onDragStart} onDrag={onDrag} onDragEnd={onDragEnd}>
+          {content}
+        </DragControls>
       );
     }
 
@@ -836,7 +858,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             <RenderItem key={item.id} item={item} />
           ))}
 
-          <OrbitControls enablePan enableZoom enableRotate />
+          <OrbitControls ref={orbitRef} enablePan enableZoom enableRotate />
           <gridHelper args={[20, 20, "#666", "#333"]} />
           <axesHelper args={[2]} />
           <Environment preset="city" />
