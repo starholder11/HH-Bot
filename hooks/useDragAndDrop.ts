@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { addObjectToLayout, addObjectToSpace, calculateDefaultPosition, validateInsertionPosition } from '@/lib/spatial/direct-insertion';
+// Note: Direct insertion functions moved to API routes to avoid server-side imports in client code
 
 export interface DragData {
   objectId: string;
@@ -145,16 +145,15 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
       };
     }
 
-    // Validate drop position
-    const validation = validateInsertionPosition(
-      previewPosition,
-      targetType,
-      targetData,
-      dragState.dragData.objectData,
-      targetType === 'layout' 
-        ? (targetData.layout_data?.items || targetData.layout?.items || [])
-        : (targetData.space?.items || [])
-    );
+    // Simple client-side validation (detailed validation happens on server)
+    const existingItems = targetType === 'layout' 
+      ? (targetData.layout_data?.items || targetData.layout?.items || [])
+      : (targetData.space?.items || []);
+    
+    const validation = {
+      valid: true, // Optimistic validation, server will do real validation
+      conflicts: [] as string[],
+    };
 
     setDragState(prev => ({
       ...prev,
@@ -181,33 +180,32 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
     }
 
     try {
-      let result;
-      
-      if (targetType === 'layout') {
-        result = await addObjectToLayout(
-          targetId,
-          dragState.dragData.objectId,
-          dragState.dragData.objectType,
-          dragState.previewPosition,
-          {
-            iconStyle: 'outline',
-            showLabel: true,
-          }
-        );
-      } else {
-        result = await addObjectToSpace(
-          targetId,
-          dragState.dragData.objectId,
-          dragState.dragData.objectType,
-          dragState.previewPosition,
-          {
-            snapToFloor: true,
-          }
-        );
-      }
+      // Call appropriate API endpoint
+      const endpoint = targetType === 'layout' 
+        ? `/api/layouts/${targetId}/add-object`
+        : `/api/spaces/${targetId}/add-object`;
 
-      options.onDrop?.(dragState.dragData, dragState.dropTarget!, dragState.previewPosition);
-      options.onDragEnd?.({ success: true });
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          objectId: dragState.dragData.objectId,
+          objectType: dragState.dragData.objectType,
+          position: dragState.previewPosition,
+          config: targetType === 'layout' 
+            ? { iconStyle: 'outline', showLabel: true }
+            : { snapToFloor: true },
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        options.onDrop?.(dragState.dragData, dragState.dropTarget!, dragState.previewPosition);
+        options.onDragEnd?.({ success: true });
+      } else {
+        throw new Error(result.error || 'API call failed');
+      }
 
     } catch (error) {
       console.error('Drop failed:', error);
