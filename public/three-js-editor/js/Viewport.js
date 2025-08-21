@@ -74,7 +74,7 @@ function Viewport( editor ) {
 	let objectRotationOnDown = null;
 	let objectScaleOnDown = null;
 
-	const transformControls = new TransformControls( camera );
+	const transformControls = new TransformControls( camera, container.dom );
 	transformControls.addEventListener( 'axis-changed', function () {
 
 		if ( editor.viewportShading !== 'realistic' ) render();
