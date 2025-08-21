@@ -61,6 +61,7 @@ export default function ObjectRenderer({
         setR3F({
           useGLTF: drei.useGLTF,
           Clone: drei.Clone,
+          Text: drei.Text,
         });
       } catch (err) {
         console.error("ObjectRenderer failed to load R3F:", err);
@@ -92,7 +93,7 @@ export default function ObjectRenderer({
 
   if (!r3f) return null;
 
-  const { useGLTF, Clone } = r3f;
+  const { useGLTF, Clone, Text } = r3f;
 
   // Render atomic object (single model)
   if (assetData.object_type === 'atomic') {
@@ -132,17 +133,18 @@ export default function ObjectRenderer({
           </mesh>
 
           {/* Component label */}
-          {interactionLevel === 'component' && (
-            <group position={[0, 0.8, 0]}>
-              <mesh>
-                <planeGeometry args={[1, 0.3]} />
-                <meshBasicMaterial color="#000" opacity={0.7} transparent />
-              </mesh>
-              <mesh position={[0, 0, 0.01]}>
-                <textGeometry args={[component.role, { size: 0.1, height: 0.01 }]} />
-                <meshBasicMaterial color="#fff" />
-              </mesh>
-            </group>
+          {interactionLevel === 'component' && Text && (
+            <Text
+              position={[0, 0.8, 0]}
+              fontSize={0.15}
+              color="#fff"
+              anchorX="center"
+              anchorY="middle"
+              outlineWidth={0.01}
+              outlineColor="#000"
+            >
+              {component.role}
+            </Text>
           )}
         </group>
       ))}
