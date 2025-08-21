@@ -15,18 +15,40 @@ import type { LayoutAsset } from "@/app/visual-search/types";
 // Helper component for rendering images as textured planes
 function ImagePlane({ url }: { url: string }) {
   const [texture, setTexture] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).THREE) {
       const loader = new (window as any).THREE.TextureLoader();
-      loader.load(url, setTexture);
+      setLoading(true);
+      loader.load(
+        url,
+        (loadedTexture: any) => {
+          setTexture(loadedTexture);
+          setLoading(false);
+        },
+        undefined,
+        (error: any) => {
+          console.error('Failed to load texture:', error);
+          setLoading(false);
+        }
+      );
     }
   }, [url]);
+
+  if (loading) {
+    return (
+      <mesh>
+        <planeGeometry args={[3, 2]} />
+        <meshStandardMaterial color="#444" />
+      </mesh>
+    );
+  }
 
   if (!texture) {
     return (
       <mesh>
-        <planeGeometry args={[2, 1.5]} />
+        <planeGeometry args={[3, 2]} />
         <meshStandardMaterial color="#666" />
       </mesh>
     );
@@ -34,8 +56,8 @@ function ImagePlane({ url }: { url: string }) {
 
   return (
     <mesh>
-      <planeGeometry args={[2, 1.5]} />
-      <meshStandardMaterial map={texture} />
+      <planeGeometry args={[3, 2]} />
+      <meshStandardMaterial map={texture} transparent />
     </mesh>
   );
 }
@@ -376,15 +398,15 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
       type: 'layout_reference',
       title: item.snippet || `Layout Item ${index + 1}`,
       position: [
-        (item.x || 0) * 0.01, // Scale down layout coordinates
-        0,
-        (item.y || 0) * 0.01
+        (item.x || 0) * 0.02, // Better scale for 3D space
+        0.5, // Lift off ground
+        (item.y || 0) * 0.02
       ],
       rotation: [0, 0, 0],
       scale: [
-        (item.w || 100) * 0.01,
+        Math.max((item.w || 100) * 0.02, 1), // Minimum scale of 1
         1,
-        (item.h || 100) * 0.01
+        Math.max((item.h || 100) * 0.02, 1)
       ],
       layoutItemId: item.id,
       layoutId: layout.id,
@@ -716,13 +738,13 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
                           item.assetType === 'layout_reference' ? "#8b5cf6" :
                           "#6b7280"
                         }
-                        wireframe={!selectedObjects.has(item.id)}
+                        wireframe={false}
                         transparent
-                        opacity={selectedObjects.has(item.id) ? 0.8 : 0.6}
+                        opacity={selectedObjects.has(item.id) ? 0.9 : 0.7}
                       />
                     </mesh>
                   )}
-                  
+
                   {/* Add a text label above the object */}
                   {r3f?.Text && (
                     <r3f.Text

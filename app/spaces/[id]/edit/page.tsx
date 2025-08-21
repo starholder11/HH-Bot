@@ -12,7 +12,8 @@ export default function SpaceEditPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [editorType, setEditorType] = useState<'native' | 'threejs' | 'simple'>('native');
-  
+  const [switchingEditor, setSwitchingEditor] = useState(false);
+
   // Space data and name editing
   const [spaceData, setSpaceData] = useState<any>(null);
   const [spaceName, setSpaceName] = useState('');
@@ -20,10 +21,14 @@ export default function SpaceEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  
+
   // Refs for editor save functionality
   const spaceEditorRef = useRef<any>(null);
   const nativeEditorRef = useRef<any>(null);
+
+  // Import modal states
+  const [showImportAsset, setShowImportAsset] = useState(false);
+  const [showImportLayout, setShowImportLayout] = useState(false);
 
   // Load space data on mount
   useEffect(() => {
@@ -70,7 +75,7 @@ export default function SpaceEditPage() {
   const handleSave = async () => {
     try {
       setSaveStatus('saving');
-      
+
       // Trigger save from the appropriate editor
       if (editorType === 'threejs' && spaceEditorRef.current?.saveScene) {
         await spaceEditorRef.current.saveScene();
@@ -80,11 +85,11 @@ export default function SpaceEditPage() {
         // Fallback: save name changes if any
         await saveSpaceName();
       }
-      
+
       setLastSaved(new Date().toLocaleTimeString());
       setHasUnsavedChanges(false);
       setSaveStatus('saved');
-      
+
       // Reset status after 2 seconds
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
@@ -96,7 +101,7 @@ export default function SpaceEditPage() {
 
   const saveSpaceName = async () => {
     if (!spaceData || !spaceName.trim()) return;
-    
+
     const updatedSpace = {
       ...spaceData,
       title: spaceName.trim(),
@@ -129,6 +134,33 @@ export default function SpaceEditPage() {
     setIsEditingName(false);
   };
 
+  const handleEditorSwitch = async (newEditorType: 'native' | 'threejs' | 'simple') => {
+    if (newEditorType === editorType) return;
+    
+    setSwitchingEditor(true);
+    
+    try {
+      // Save current editor state if there are unsaved changes
+      if (hasUnsavedChanges) {
+        console.log('[Editor Switch] Saving current state before switch');
+        await handleSave();
+      }
+      
+      // Switch editor
+      setEditorType(newEditorType);
+      
+      // Reload space data after a brief delay to ensure new editor is mounted
+      setTimeout(() => {
+        loadSpaceData();
+        setSwitchingEditor(false);
+      }, 100);
+      
+    } catch (error) {
+      console.error('Editor switch failed:', error);
+      setSwitchingEditor(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-900 text-white p-6 flex items-center justify-center">
@@ -146,7 +178,7 @@ export default function SpaceEditPage() {
         <div className="text-center">
           <div className="text-red-400 text-lg mb-2">Error Loading Space</div>
           <div className="text-red-300 text-sm mb-4">{error}</div>
-          <button 
+          <button
             onClick={loadSpaceData}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
           >
@@ -164,7 +196,7 @@ export default function SpaceEditPage() {
           {/* Space Name - Editable like Canvas - TOP LEFT */}
           <div className="min-w-0">
             {!isEditingName ? (
-              <h1 
+              <h1
                 className="text-2xl font-bold cursor-text truncate text-white"
                 title={spaceName || 'Untitled Space'}
                 onDoubleClick={() => setIsEditingName(true)}
@@ -194,52 +226,58 @@ export default function SpaceEditPage() {
               />
             )}
           </div>
-          
-          <Link 
+
+          <Link
             href="/workshop"
             className="text-neutral-400 hover:text-white text-sm"
           >
             ← Back to Workshop
           </Link>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {/* Editor Type Selector */}
           <div className="flex gap-1">
             <button
               className={`px-3 py-1.5 text-xs rounded ${
-                editorType === 'native' 
-                  ? 'bg-blue-600 text-white' 
+                editorType === 'native'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
               }`}
-              onClick={() => setEditorType('native')}
+              onClick={() => handleEditorSwitch('native')}
+              disabled={switchingEditor}
             >
               Native R3F
             </button>
             <button
               className={`px-3 py-1.5 text-xs rounded ${
-                editorType === 'threejs' 
-                  ? 'bg-blue-600 text-white' 
+                editorType === 'threejs'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
               }`}
-              onClick={() => setEditorType('threejs')}
+              onClick={() => handleEditorSwitch('threejs')}
+              disabled={switchingEditor}
             >
               Three.js Editor
             </button>
             <button
               className={`px-3 py-1.5 text-xs rounded ${
-                editorType === 'simple' 
-                  ? 'bg-blue-600 text-white' 
+                editorType === 'simple'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
               }`}
-              onClick={() => setEditorType('simple')}
+              onClick={() => handleEditorSwitch('simple')}
+              disabled={switchingEditor}
             >
               Simple Editor
             </button>
           </div>
-          
+
           {/* Save Status */}
-          {saveStatus === 'saving' && (
+          {switchingEditor && (
+            <span className="text-orange-400 text-sm">Switching editors...</span>
+          )}
+          {!switchingEditor && saveStatus === 'saving' && (
             <span className="text-blue-400 text-sm">Saving...</span>
           )}
           {saveStatus === 'saved' && (
@@ -256,11 +294,11 @@ export default function SpaceEditPage() {
               Last saved: {lastSaved}
             </span>
           )}
-          
+
           <button
             className={`px-4 py-2 text-sm rounded ${
               hasUnsavedChanges || saveStatus === 'saving'
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-neutral-700 text-neutral-300 cursor-not-allowed'
             }`}
             onClick={handleSave}
