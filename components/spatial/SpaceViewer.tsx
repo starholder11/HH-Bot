@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import SpaceScene, { generateDemoSpaceItems } from "./SpaceScene";
+import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
 
 type CameraMode = "orbit" | "first-person" | "fly";
 
@@ -7,11 +9,14 @@ export type SpaceViewerProps = {
   spaceId?: string;
   cameraMode: CameraMode;
   backgroundColor?: string;
+  items?: SpaceAssetData[];
 };
 
 export default function SpaceViewer(props: SpaceViewerProps) {
-  const { cameraMode, backgroundColor = "#111217" } = props;
+  const { cameraMode, backgroundColor = "#111217", items } = props;
   const [r3f, setR3F] = useState<any>(null);
+  const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([4, 3, 6]);
+  const cameraRef = useRef<any>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -24,6 +29,7 @@ export default function SpaceViewer(props: SpaceViewerProps) {
         if (!mounted) return;
         setR3F({
           Canvas: fiber.Canvas,
+          useFrame: fiber.useFrame,
           OrbitControls: drei.OrbitControls,
           FlyControls: drei.FlyControls,
           PointerLockControls: drei.PointerLockControls,
@@ -39,6 +45,11 @@ export default function SpaceViewer(props: SpaceViewerProps) {
       mounted = false;
     };
   }, []);
+
+  // Use demo items if none provided
+  const spaceItems = useMemo(() => {
+    return items || generateDemoSpaceItems();
+  }, [items]);
 
   const overlayHint = useMemo(() => {
     if (cameraMode === "first-person") {
@@ -58,11 +69,29 @@ export default function SpaceViewer(props: SpaceViewerProps) {
     );
   }
 
-  const { Canvas, OrbitControls, FlyControls, PointerLockControls, Environment, StatsGl } = r3f;
+  const { Canvas, useFrame, OrbitControls, FlyControls, PointerLockControls, Environment, StatsGl } = r3f;
+
+  // Camera tracking component
+  function CameraTracker() {
+    useFrame((state) => {
+      if (cameraRef.current) {
+        setCameraPosition([
+          state.camera.position.x,
+          state.camera.position.y,
+          state.camera.position.z,
+        ]);
+      }
+    });
+    return null;
+  }
 
   return (
     <div className="relative">
-      <Canvas style={{ height: 480, width: "100%", background: backgroundColor }} camera={{ position: [4, 3, 6], fov: 50 }}>
+      <Canvas 
+        ref={cameraRef}
+        style={{ height: 480, width: "100%", background: backgroundColor }} 
+        camera={{ position: [4, 3, 6], fov: 50 }}
+      >
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 8, 5]} intensity={0.9} />
 
@@ -72,9 +101,17 @@ export default function SpaceViewer(props: SpaceViewerProps) {
           <meshStandardMaterial color="#1f2430" />
         </mesh>
 
+        {/* Space scene with items */}
+        <SpaceScene 
+          items={spaceItems} 
+          cameraPosition={cameraPosition}
+          onSelectItem={(item) => console.log('Selected:', item)}
+          onHoverItem={(item) => console.log('Hovered:', item)}
+        />
+
         {/* Controls per camera mode */}
         {cameraMode === "orbit" && <OrbitControls enablePan enableZoom enableRotate />}
-        {cameraMode === "fly" && <FlyControls movementSpeed={5} rollSpeed={0.3} dragToLook />} 
+        {cameraMode === "fly" && <FlyControls movementSpeed={5} rollSpeed={0.3} dragToLook />}
         {cameraMode === "first-person" && <PointerLockControls />}
 
         {/* Optional helpers */}
@@ -82,6 +119,7 @@ export default function SpaceViewer(props: SpaceViewerProps) {
         <axesHelper args={[2]} />
         <Environment preset="city" />
         <StatsGl />
+        <CameraTracker />
       </Canvas>
 
       <div className="absolute bottom-3 left-3 rounded bg-black/60 px-2 py-1 text-xs text-neutral-200">
