@@ -197,13 +197,26 @@ function generateMaterialsFromSpace(space: SpaceAsset): any[] {
 }
 
 function generateTexturesFromSpace(space: SpaceAsset): any[] {
-  // TODO: Generate textures based on space items
-  return [];
+  const items = space.space?.items || space.items || [];
+  return items
+    .filter((item: any) => !!(item as any).mediaUrl)
+    .map((item: any) => ({
+      uuid: `tex-${item.id}`,
+      image: `img-${item.id}`,
+      type: 'Texture',
+      flipY: false,
+      colorSpace: 'srgb'
+    }));
 }
 
 function generateImagesFromSpace(space: SpaceAsset): any[] {
-  // TODO: Generate images based on space items
-  return [];
+  const items = space.space?.items || space.items || [];
+  return items
+    .filter((item: any) => !!(item as any).mediaUrl)
+    .map((item: any) => ({
+      uuid: `img-${item.id}`,
+      url: (item as any).mediaUrl
+    }));
 }
 
 function generateGeometryForItem(item: SpaceItem): any {
@@ -251,7 +264,7 @@ function generateMaterialForItem(item: SpaceItem): any {
                    item.assetType === 'video' ? 0xef4444 : 
                    item.assetType === 'layout' ? 0x8b5cf6 : 0x666666;
                    
-  return {
+  const material: any = {
     uuid: `mat-${item.id}`,
     type: 'MeshBasicMaterial',
     color: baseColor,
@@ -259,4 +272,11 @@ function generateMaterialForItem(item: SpaceItem): any {
     transparent: true,
     opacity: item.opacity || 1
   };
+
+  const mediaUrl = (item as any).mediaUrl;
+  if (mediaUrl) {
+    material.map = `tex-${item.id}`;
+  }
+
+  return material;
 }
