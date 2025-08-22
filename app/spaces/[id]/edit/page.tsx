@@ -2,8 +2,6 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import SpaceEditor from "@/components/spatial/SpaceEditor";
-import NativeSpaceEditor from "@/components/spatial/NativeSpaceEditor";
-import SimpleThreeEditor from "@/components/spatial/SimpleThreeEditor";
 import Link from "next/link";
 
 export default function SpaceEditPage() {
@@ -11,8 +9,7 @@ export default function SpaceEditPage() {
   const spaceId = (params?.id as string) || "demo";
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
-  const [editorType, setEditorType] = useState<'native' | 'threejs' | 'simple'>('native');
-  const [switchingEditor, setSwitchingEditor] = useState(false);
+  // Removed editor switching - using only Three.js Editor
 
   // Space data and name editing
   const [spaceData, setSpaceData] = useState<any>(null);
@@ -22,9 +19,8 @@ export default function SpaceEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
-  // Refs for editor save functionality
+  // Ref for Three.js Editor save functionality
   const spaceEditorRef = useRef<any>(null);
-  const nativeEditorRef = useRef<any>(null);
 
   // Import modal states
   const [showImportAsset, setShowImportAsset] = useState(false);
@@ -76,11 +72,9 @@ export default function SpaceEditPage() {
     try {
       setSaveStatus('saving');
 
-      // Trigger save from the appropriate editor
-      if (editorType === 'threejs' && spaceEditorRef.current?.saveScene) {
+      // Trigger save from Three.js Editor
+      if (spaceEditorRef.current?.saveScene) {
         await spaceEditorRef.current.saveScene();
-      } else if (editorType === 'native' && nativeEditorRef.current?.saveSpace) {
-        await nativeEditorRef.current.saveSpace();
       } else {
         // Fallback: save name changes if any
         await saveSpaceName();
@@ -134,32 +128,7 @@ export default function SpaceEditPage() {
     setIsEditingName(false);
   };
 
-  const handleEditorSwitch = async (newEditorType: 'native' | 'threejs' | 'simple') => {
-    if (newEditorType === editorType) return;
-
-    setSwitchingEditor(true);
-
-    try {
-      // Save current editor state if there are unsaved changes
-      if (hasUnsavedChanges) {
-        console.log('[Editor Switch] Saving current state before switch');
-        await handleSave();
-      }
-
-      // Switch editor
-      setEditorType(newEditorType);
-
-      // Reload space data after a brief delay to ensure new editor is mounted
-      setTimeout(() => {
-        loadSpaceData();
-        setSwitchingEditor(false);
-      }, 100);
-
-    } catch (error) {
-      console.error('Editor switch failed:', error);
-      setSwitchingEditor(false);
-    }
-  };
+  // Removed editor switching - using only Three.js Editor
 
   if (loading) {
     return (
@@ -236,48 +205,8 @@ export default function SpaceEditPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Editor Type Selector */}
-          <div className="flex gap-1">
-            <button
-              className={`px-3 py-1.5 text-xs rounded ${
-                editorType === 'native'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
-              }`}
-              onClick={() => handleEditorSwitch('native')}
-              disabled={switchingEditor}
-            >
-              Native R3F
-            </button>
-            <button
-              className={`px-3 py-1.5 text-xs rounded ${
-                editorType === 'threejs'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
-              }`}
-              onClick={() => handleEditorSwitch('threejs')}
-              disabled={switchingEditor}
-            >
-              Three.js Editor
-            </button>
-            <button
-              className={`px-3 py-1.5 text-xs rounded ${
-                editorType === 'simple'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
-              }`}
-              onClick={() => handleEditorSwitch('simple')}
-              disabled={switchingEditor}
-            >
-              Simple Editor
-            </button>
-          </div>
-
           {/* Save Status */}
-          {switchingEditor && (
-            <span className="text-orange-400 text-sm">Switching editors...</span>
-          )}
-          {!switchingEditor && saveStatus === 'saving' && (
+          {saveStatus === 'saving' && (
             <span className="text-blue-400 text-sm">Saving...</span>
           )}
           {saveStatus === 'saved' && (
@@ -310,27 +239,13 @@ export default function SpaceEditPage() {
       </div>
 
       <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
-        {editorType === 'native' ? (
-          <NativeSpaceEditor
-            ref={nativeEditorRef}
-            spaceId={spaceId}
-            onSceneChange={handleSceneChange}
-            onSelectionChange={handleSelectionChange}
-          />
-        ) : editorType === 'simple' ? (
-          <SimpleThreeEditor
-            spaceId={spaceId}
-            onSave={handleSceneChange}
-          />
-        ) : (
-          <SpaceEditor
-            ref={spaceEditorRef}
-            spaceId={spaceId}
-            onSceneChange={handleSceneChange}
-            onSelectionChange={handleSelectionChange}
-            onError={handleError}
-          />
-        )}
+        <SpaceEditor
+          ref={spaceEditorRef}
+          spaceId={spaceId}
+          onSceneChange={handleSceneChange}
+          onSelectionChange={handleSelectionChange}
+          onError={handleError}
+        />
       </div>
 
       <div className="mt-4 text-xs text-neutral-400">
