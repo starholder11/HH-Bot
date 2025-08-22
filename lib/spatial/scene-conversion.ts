@@ -108,6 +108,7 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
           spaceItemId: item.id,
           assetId: item.assetId,
           assetType: item.assetType,
+          mediaUrl: (item as any).mediaUrl,
           importMetadata: item.importMetadata
         }
       }))

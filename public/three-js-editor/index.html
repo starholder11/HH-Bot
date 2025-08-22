@@ -231,12 +231,24 @@
 									case 'video':
 									case 'layout_reference':
 										geometry = new THREE.PlaneGeometry(2, 2);
-										material = new THREE.MeshBasicMaterial({ 
-											color: assetType === 'image' ? 0x4f46e5 : 
-												   assetType === 'video' ? 0xef4444 : 0x8b5cf6,
-											transparent: true,
-											opacity: 0.8
-										});
+										// Support textured planes when mediaUrl is provided
+										(function(){
+											const url = child.userData && child.userData.mediaUrl;
+											if (url) {
+												const tex = new THREE.TextureLoader().load(url, undefined, undefined, () => {
+													console.warn('Failed to load texture', url);
+												});
+												tex.colorSpace = THREE.SRGBColorSpace;
+												material = new THREE.MeshBasicMaterial({ map: tex });
+											} else {
+												material = new THREE.MeshBasicMaterial({ 
+													color: assetType === 'image' ? 0x4f46e5 : 
+														   assetType === 'video' ? 0xef4444 : 0x8b5cf6,
+													transparent: true,
+													opacity: 0.9
+												});
+											}
+										})();
 										break;
 									case 'audio':
 										geometry = new THREE.SphereGeometry(0.5);
