@@ -136,15 +136,36 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
 
   const items = scene.object.children.map(child => {
     console.log('[Scene Conversion] Processing child:', child);
+    
+    // Handle layout references - they don't have assetId but have layoutId and layoutItemId
+    if (child.userData.assetType === 'layout_reference') {
+      return {
+        id: child.userData.spaceItemId || child.uuid,
+        assetId: child.userData.layoutItemId || child.uuid, // Use layoutItemId as assetId for validation
+        assetType: 'layout', // Map layout_reference to valid layout type
+        position: child.position ? [child.position.x, child.position.y, child.position.z] : [0, 0, 0],
+        rotation: child.rotation ? [child.rotation.x, child.rotation.y, child.rotation.z] : [0, 0, 0],
+        scale: child.scale ? [child.scale.x, child.scale.y, child.scale.z] : [1, 1, 1],
+        opacity: 1,
+        visible: child.visible !== false,
+        layoutId: child.userData.layoutId,
+        layoutItemId: child.userData.layoutItemId,
+        mediaUrl: child.userData.mediaUrl,
+        importMetadata: child.userData.importMetadata
+      };
+    }
+    
+    // Handle regular assets
     return {
       id: child.userData.spaceItemId || child.uuid,
-      assetId: child.userData.assetId,
-      assetType: child.userData.assetType || 'unknown',
+      assetId: child.userData.assetId || child.uuid, // Fallback to uuid if no assetId
+      assetType: child.userData.assetType || 'object', // Default to object instead of unknown
       position: child.position ? [child.position.x, child.position.y, child.position.z] : [0, 0, 0],
       rotation: child.rotation ? [child.rotation.x, child.rotation.y, child.rotation.z] : [0, 0, 0],
       scale: child.scale ? [child.scale.x, child.scale.y, child.scale.z] : [1, 1, 1],
       opacity: 1, // TODO: Extract from material
       visible: child.visible !== false,
+      mediaUrl: child.userData.mediaUrl,
       importMetadata: child.userData.importMetadata
     };
   });
