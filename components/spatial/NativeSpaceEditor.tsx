@@ -246,27 +246,18 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     const newSelection = new Set(selectedObjects);
 
     if (selectionMode === 'single' && !addToSelection) {
-      // Single selection mode - replace selection
       newSelection.clear();
       newSelection.add(item.id);
-      setPrimarySelectedId(item.id);
     } else {
-      // Multi selection mode or additive selection
       if (newSelection.has(item.id)) {
         newSelection.delete(item.id);
-        // If we removed the primary, pick a new one
-        if (primarySelectedId === item.id) {
-          const remaining = Array.from(newSelection);
-          setPrimarySelectedId(remaining.length > 0 ? remaining[0] : null);
-        }
       } else {
         newSelection.add(item.id);
-        // If no primary or this is the first selection, make it primary
-        if (!primarySelectedId || newSelection.size === 1) {
-          setPrimarySelectedId(item.id);
-        }
       }
     }
+
+    // Always set the primary to the last clicked item
+    setPrimarySelectedId(item.id);
 
     setSelectedObjects(newSelection);
     onSelectionChange?.(Array.from(newSelection));
