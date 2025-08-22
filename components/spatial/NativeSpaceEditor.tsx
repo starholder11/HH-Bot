@@ -136,7 +136,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           Canvas: fiber.Canvas,
           useFrame: fiber.useFrame,
           TransformControls: drei.TransformControls,
-          DragControls: (drei as any).DragControls,
           OrbitControls: drei.OrbitControls,
           Environment: drei.Environment,
           StatsGl: drei.StatsGl,
@@ -557,7 +556,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     );
   }
 
-  const { Canvas, useFrame, TransformControls, DragControls, OrbitControls, Environment, StatsGl } = r3f;
+  const { Canvas, useFrame, TransformControls, OrbitControls, Environment, StatsGl } = r3f;
 
   // Helper component to render and transform a single space item
   const RenderItem = ({ item }: { item: SpaceAssetData }) => {
@@ -656,32 +655,12 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
               scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
             });
           }}
-          onMouseDown={() => { if (orbitRef.current) orbitRef.current.enabled = false; }}
-          onMouseUp={() => { if (orbitRef.current) orbitRef.current.enabled = true; }}
+          onDraggingChanged={(active: boolean) => {
+            if (orbitRef.current) orbitRef.current.enabled = !active;
+          }}
         >
           {content}
         </TransformControls>
-      );
-    }
-
-    // Non-selected: direct drag
-    if (DragControls) {
-      return (
-        <DragControls
-          transformGroup
-          onDragStart={() => { if (orbitRef.current) orbitRef.current.enabled = false; }}
-          onDrag={() => {
-            if (!groupRef.current) return;
-            handleTransform(item.id, {
-              position: [groupRef.current.position.x, item.position[1], groupRef.current.position.z],
-              rotation: item.rotation,
-              scale: item.scale,
-            });
-          }}
-          onDragEnd={() => { if (orbitRef.current) orbitRef.current.enabled = true; }}
-        >
-          {content}
-        </DragControls>
       );
     }
 
