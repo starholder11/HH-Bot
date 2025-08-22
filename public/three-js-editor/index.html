@@ -243,6 +243,12 @@
 								url,
 								(texture) => {
 									texture.colorSpace = THREE.SRGBColorSpace;
+									// NPOT-safe defaults to avoid warnings and improve stability
+									texture.generateMipmaps = false;
+									texture.minFilter = THREE.LinearFilter;
+									texture.magFilter = THREE.LinearFilter;
+									texture.wrapS = THREE.ClampToEdgeWrapping;
+									texture.wrapT = THREE.ClampToEdgeWrapping;
 									if (!child.material || !(child.material instanceof THREE.MeshBasicMaterial)) {
 										child.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 									}
