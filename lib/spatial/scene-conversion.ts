@@ -151,16 +151,19 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
 
   console.log('[Scene Conversion] Converted items:', items);
 
+  // Ensure we have a base space object to spread
+  const baseSpace = (existingSpace as any).space || {};
+
   const result = {
     ...existingSpace,
     space: {
-      ...existingSpace.space,
+      ...baseSpace,
       items,
-      environment: scene.userData.environment || existingSpace.space?.environment,
-      camera: scene.userData.camera || existingSpace.space?.camera
+      environment: (scene as any).userData?.environment ?? baseSpace.environment ?? {},
+      camera: (scene as any).userData?.camera ?? baseSpace.camera ?? {}
     },
     updated_at: new Date().toISOString()
-  };
+  } as SpaceAsset;
 
   console.log('[Scene Conversion] Final result:', result);
   return result;
