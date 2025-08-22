@@ -106,6 +106,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           break;
         case 'scene_exported':
           // Handle scene export response
+          console.log('[SpaceEditor] Received scene export:', message.data);
           handleSceneExport(message.data);
           break;
         default:
@@ -308,15 +309,18 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     }
 
     try {
+      console.log('[SpaceEditor] Starting scene save...');
       // Request scene export from editor
-      sendCommand({
+      await sendCommand({
         type: 'export_scene',
         data: {},
       });
+      console.log('[SpaceEditor] Export command sent, waiting for response...');
 
       // Note: The actual save will happen in the message handler when we receive the exported scene
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to save scene';
+      console.error('[SpaceEditor] Save error:', err);
       setError(errorMsg);
       onError?.(errorMsg);
     }
@@ -327,10 +331,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     if (!spaceData) return;
 
     try {
+      console.log('[SpaceEditor] Converting exported scene to space format...');
       // Convert Three.js scene back to SpaceAsset format
       const updatedSpace = convertThreeJSSceneToSpace(exportedScene, spaceData);
+      console.log('[SpaceEditor] Converted space:', updatedSpace);
 
       // Save to API
+      console.log('[SpaceEditor] Saving to API...');
       const response = await fetch(`/api/spaces/${spaceId}`, {
         method: 'PUT',
         headers: {
@@ -347,9 +354,10 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       setSpaceData(savedSpace);
       onSceneChange?.(savedSpace);
 
-      console.log('Space saved successfully');
+      console.log('[SpaceEditor] Space saved successfully');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to save space';
+      console.error('[SpaceEditor] Save error:', err);
       setError(errorMsg);
       onError?.(errorMsg);
     }

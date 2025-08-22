@@ -421,8 +421,10 @@
 
 				case 'export_scene':
 					try {
+						console.log('Exporting scene...');
 						const scene = editor.scene;
 						const sceneJSON = scene.toJSON();
+						console.log('Scene JSON:', sceneJSON);
 						send({
 							type: 'scene_exported',
 							data: sceneJSON,
