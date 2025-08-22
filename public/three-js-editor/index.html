@@ -110,13 +110,13 @@
 
 		function initializeEditor() {
 			clearTimeout(initTimeout);
-			
+
 			// Add sample scene objects immediately
 			// Scene will be loaded from space data via postMessage
-			
+
 			// Clear any cached scene data
 			editor.clear();
-			
+
 			console.log('Three.js Editor initialized successfully');
 			try { window.parent.postMessage({ type: 'ready' }, '*'); } catch (e) {}
 		}
@@ -208,16 +208,16 @@
 		window.addEventListener('message', function(event) {
 			// Filter out metamask and other extension messages
 			if (!event.data || typeof event.data !== 'object' || event.data.target) return;
-			
+
 			const command = event.data;
 			console.log('Three.js Editor received command:', command);
-			
+
 			switch (command.type) {
 				case 'load_scene':
 					// Clear current scene first
 					editor.clear();
 					console.log('Cleared scene, loading new data...');
-					
+
 					// Create basic objects from scene data
 					if (command.data && command.data.object && command.data.object.children) {
 						try {
@@ -225,7 +225,7 @@
 								// Create basic geometry based on asset type
 								let geometry, material;
 								const assetType = child.userData?.assetType || 'unknown';
-								
+
 								switch (assetType) {
 									case 'image':
 									case 'video':
@@ -241,8 +241,8 @@
 												tex.colorSpace = THREE.SRGBColorSpace;
 												material = new THREE.MeshBasicMaterial({ map: tex });
 											} else {
-												material = new THREE.MeshBasicMaterial({ 
-													color: assetType === 'image' ? 0x4f46e5 : 
+												material = new THREE.MeshBasicMaterial({
+													color: assetType === 'image' ? 0x4f46e5 :
 														   assetType === 'video' ? 0xef4444 : 0x8b5cf6,
 													transparent: true,
 													opacity: 0.9
@@ -262,7 +262,7 @@
 										geometry = new THREE.BoxGeometry(1, 1, 1);
 										material = new THREE.MeshBasicMaterial({ color: 0x6b7280 });
 								}
-								
+
 								const mesh = new THREE.Mesh(geometry, material);
 								mesh.name = child.name || child.userData?.assetId || 'Unknown';
 								mesh.uuid = child.uuid;
@@ -270,15 +270,15 @@
 								mesh.rotation.fromArray(child.rotation);
 								mesh.scale.fromArray(child.scale);
 								mesh.userData = child.userData || {};
-								
+
 								editor.addObject(mesh);
 							});
 							console.log('Scene loaded successfully with', command.data.object.children.length, 'objects');
 							// Send success response
-							send({ 
-								type: 'scene_loaded', 
+							send({
+								type: 'scene_loaded',
 								data: { success: true, objectCount: command.data.object.children.length },
-								commandId: command.id 
+								commandId: command.id
 							});
 						} catch (error) {
 							console.error('Failed to load scene:', error);
@@ -287,30 +287,30 @@
 					} else {
 						console.log('No scene data or children found, scene remains empty');
 						// Send success response even for empty scene
-						send({ 
-							type: 'scene_loaded', 
+						send({
+							type: 'scene_loaded',
 							data: { success: true, objectCount: 0 },
-							commandId: command.id 
+							commandId: command.id
 						});
 					}
 					break;
-					
+
 				case 'clear_scene':
 					editor.clear();
 					console.log('Scene cleared');
 					break;
-					
+
 				case 'add_object':
 					try {
 						const objData = command.data;
 						let geometry, material;
-						
+
 						// Create geometry
 						switch (objData.geometry.type) {
 							case 'BoxGeometry':
 								geometry = new THREE.BoxGeometry(
 									objData.geometry.width || 1,
-									objData.geometry.height || 1, 
+									objData.geometry.height || 1,
 									objData.geometry.depth || 1
 								);
 								break;
@@ -326,31 +326,23 @@
 							default:
 								geometry = new THREE.BoxGeometry(1, 1, 1);
 						}
-						
-						// Create material (support textures for images/videos/layout refs)
-						const assetType = objData.userData && objData.userData.assetType;
-						const mediaUrl = objData.userData && objData.userData.mediaUrl;
-						if (
-							(objData.geometry.type === 'PlaneGeometry') &&
-							(assetType === 'image' || assetType === 'video' || assetType === 'layout_reference') &&
-							mediaUrl
-						) {
-							const tex = new THREE.TextureLoader().load(mediaUrl, undefined, undefined, () => {
-								console.warn('Failed to load texture', mediaUrl);
-							});
-							tex.colorSpace = THREE.SRGBColorSpace;
-							material = new THREE.MeshBasicMaterial({ map: tex });
+
+												// Create material (support textures)
+						if (objData.userData && objData.userData.mediaUrl) {
+							const texture = new THREE.TextureLoader().load(objData.userData.mediaUrl);
+							texture.colorSpace = THREE.SRGBColorSpace;
+							material = new THREE.MeshBasicMaterial({ map: texture });
 						} else {
-							material = new THREE.MeshBasicMaterial({
-								color: objData.material && objData.material.color ? objData.material.color : 0x888888
+							material = new THREE.MeshBasicMaterial({ 
+								color: objData.material.color || 0x888888 
 							});
 						}
-						
+
 						// Create mesh
 						const mesh = new THREE.Mesh(geometry, material);
 						mesh.name = objData.name || 'Object';
 						mesh.position.fromArray(objData.position || [0, 0, 0]);
-						if (objData.rotation) mesh.rotation.fromArray(objData.rotation);
+												if (objData.rotation) mesh.rotation.fromArray(objData.rotation);
 						if (objData.scale) mesh.scale.fromArray(objData.scale);
 						mesh.userData = objData.userData || {};
 						
@@ -361,15 +353,15 @@
 						send({ type: 'error', data: { error: 'Failed to add object: ' + error.message } });
 					}
 					break;
-					
+
 				case 'export_scene':
 					try {
 						const scene = editor.scene;
 						const sceneJSON = scene.toJSON();
-						send({ 
-							type: 'scene_exported', 
+						send({
+							type: 'scene_exported',
 							data: sceneJSON,
-							commandId: command.id 
+							commandId: command.id
 						});
 						console.log('Scene exported successfully');
 					} catch (error) {
