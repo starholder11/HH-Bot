@@ -119,6 +119,8 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const [showLayoutImportModal, setShowLayoutImportModal] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isTransforming, setIsTransforming] = useState(false);
+  const [transformTarget, setTransformTarget] = useState<any>(null);
+  const [primarySelectedId, setPrimarySelectedId] = useState<string | null>(null);
   const canvasRef = useRef<any>(null);
   const transformControlsRef = useRef<any>(null);
   const orbitRef = useRef<any>(null);
@@ -248,12 +250,22 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
       // Single selection mode - replace selection
       newSelection.clear();
       newSelection.add(item.id);
+      setPrimarySelectedId(item.id);
     } else {
       // Multi selection mode or additive selection
       if (newSelection.has(item.id)) {
         newSelection.delete(item.id);
+        // If we removed the primary, pick a new one
+        if (primarySelectedId === item.id) {
+          const remaining = Array.from(newSelection);
+          setPrimarySelectedId(remaining.length > 0 ? remaining[0] : null);
+        }
       } else {
         newSelection.add(item.id);
+        // If no primary or this is the first selection, make it primary
+        if (!primarySelectedId || newSelection.size === 1) {
+          setPrimarySelectedId(item.id);
+        }
       }
     }
 
@@ -274,6 +286,8 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
   const clearSelection = useCallback(() => {
     setSelectedObjects(new Set());
+    setPrimarySelectedId(null);
+    setTransformTarget(null);
     onSelectionChange?.([]);
   }, [onSelectionChange]);
 
@@ -563,6 +577,14 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const RenderItem = ({ item }: { item: SpaceAssetData }) => {
     const groupRef = useRef<any>(null);
     const isSelected = selectedObjects.has(item.id);
+    const isPrimary = primarySelectedId === item.id;
+
+    // Update transform target when this becomes the primary selection
+    useEffect(() => {
+      if (isPrimary && groupRef.current) {
+        setTransformTarget(groupRef.current);
+      }
+    }, [isPrimary]);
 
     const content = (
       <group
@@ -641,31 +663,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         )}
       </group>
     );
-
-    // Wrap content in DragControls so dragging works whether selected or not
-    if (isSelected && showTransformControls) {
-      return (
-        <TransformControls
-          ref={transformControlsRef}
-          object={groupRef.current as any}
-          mode={transformMode}
-          onObjectChange={() => {
-            if (!groupRef.current) return;
-            handleTransform(item.id, {
-              position: [groupRef.current.position.x, groupRef.current.position.y, groupRef.current.position.z],
-              rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
-              scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
-            });
-          }}
-          onDraggingChanged={(active: boolean) => {
-            setIsTransforming(active);
-            if (orbitRef.current) orbitRef.current.enabled = !active;
-          }}
-        >
-          {content}
-        </TransformControls>
-      );
-    }
 
     return content;
   };
@@ -844,6 +841,27 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           {spaceItems.map((item) => (
             <RenderItem key={item.id} item={item} />
           ))}
+
+          {/* Single TransformControls for the primary selected object */}
+          {transformTarget && showTransformControls && (
+            <TransformControls
+              ref={transformControlsRef}
+              object={transformTarget}
+              mode={transformMode}
+              onObjectChange={() => {
+                if (!transformTarget || !primarySelectedId) return;
+                handleTransform(primarySelectedId, {
+                  position: [transformTarget.position.x, transformTarget.position.y, transformTarget.position.z],
+                  rotation: [transformTarget.rotation.x, transformTarget.rotation.y, transformTarget.rotation.z],
+                  scale: [transformTarget.scale.x, transformTarget.scale.y, transformTarget.scale.z],
+                });
+              }}
+              onDraggingChanged={(active: boolean) => {
+                setIsTransforming(active);
+                if (orbitRef.current) orbitRef.current.enabled = !active;
+              }}
+            />
+          )}
 
           <OrbitControls
             makeDefault
