@@ -78,6 +78,18 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         case 'selection_changed':
           callbacksRef.current.onSelectionChange?.(message.data.selectedObjects || []);
           break;
+        case 'scene_loaded':
+          // If editor reports empty scene and our space has no items, seed samples
+          try {
+            const isEmptyEditor = !message.data || message.data.objectCount === 0;
+            const hasNoItems = !(spaceData?.space?.items && spaceData.space.items.length > 0);
+            if (editorReady && isEmptyEditor && hasNoItems) {
+              console.log('[SpaceEditor] Editor scene empty after load; seeding sample objects…');
+              // Defer to ensure editor settled
+              setTimeout(() => { addSampleObjects(); }, 0);
+            }
+          } catch {}
+          break;
         case 'object_added':
         case 'object_removed':
         case 'object_transformed':
