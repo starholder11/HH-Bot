@@ -81,10 +81,10 @@ export default function PropertiesPanel({
 
       // Create new Leva instance
       const { Leva } = leva;
-      
+
       // Note: Leva doesn't support React rendering directly, so we'll use the imperative API
       // This is a simplified approach - in production, you might want to use leva's store API more directly
-      
+
     } catch (err) {
       console.error('Failed to render Leva panel:', err);
     }
@@ -118,7 +118,7 @@ export default function PropertiesPanel({
       {/* Leva Controls Container */}
       <div className="p-4">
         <div ref={levaRootRef} className="leva-container" />
-        
+
         {/* Fallback Manual Controls */}
         <div className="space-y-6">
           {/* Environment Controls */}
@@ -296,7 +296,7 @@ export default function PropertiesPanel({
                     <h5 className="text-sm font-medium text-white">{obj.id}</h5>
                     <span className="text-xs text-neutral-400">{obj.assetType}</span>
                   </div>
-                  
+
                   <div className="space-y-2">
                     {/* Position */}
                     <div>

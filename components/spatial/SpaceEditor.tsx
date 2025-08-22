@@ -15,11 +15,11 @@ export interface SpaceEditorRef {
   loadSpace: (spaceData: any) => Promise<void>;
 }
 
-const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({ 
-  spaceId, 
-  onSceneChange, 
-  onSelectionChange, 
-  onError 
+const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
+  spaceId,
+  onSceneChange,
+  onSelectionChange,
+  onError
 }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [editorReady, setEditorReady] = useState(false);
@@ -119,7 +119,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       const space = await response.json();
       console.log('[SpaceEditor] Loaded space:', space);
       setSpaceData(space);
-      
+
       // Convert to Three.js format and load into editor
       const threeJSScene = convertSpaceToThreeJSScene(space);
       console.log('[SpaceEditor] Converted to Three.js scene:', threeJSScene);
@@ -157,7 +157,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         type: 'export_scene',
         data: {},
       });
-      
+
       // Note: The actual save will happen in the message handler when we receive the exported scene
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to save scene';
@@ -173,7 +173,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     try {
       // Convert Three.js scene back to SpaceAsset format
       const updatedSpace = convertThreeJSSceneToSpace(exportedScene, spaceData);
-      
+
       // Save to API
       const response = await fetch(`/api/spaces/${spaceId}`, {
         method: 'PUT',
@@ -190,7 +190,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       const savedSpace = await response.json();
       setSpaceData(savedSpace);
       onSceneChange?.(savedSpace);
-      
+
       console.log('Space saved successfully');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to save space';
@@ -205,7 +205,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         <div className="text-center">
           <div className="text-red-400 text-lg mb-2">Editor Error</div>
           <div className="text-red-300 text-sm">{error}</div>
-          <button 
+          <button
             className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
             onClick={() => window.location.reload()}
           >
@@ -226,14 +226,14 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           </div>
         </div>
       )}
-      
+
       <iframe
         ref={iframeRef}
         src="/three-js-editor/index.html"
         className="w-full h-[600px] border border-neutral-700 rounded-lg"
         title="Three.js Editor"
         sandbox="allow-scripts allow-same-origin allow-forms"
-        style={{ 
+        style={{
           opacity: loading ? 0.3 : 1,
           transition: 'opacity 0.3s ease-in-out'
         }}

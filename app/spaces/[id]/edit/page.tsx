@@ -136,25 +136,25 @@ export default function SpaceEditPage() {
 
   const handleEditorSwitch = async (newEditorType: 'native' | 'threejs' | 'simple') => {
     if (newEditorType === editorType) return;
-    
+
     setSwitchingEditor(true);
-    
+
     try {
       // Save current editor state if there are unsaved changes
       if (hasUnsavedChanges) {
         console.log('[Editor Switch] Saving current state before switch');
         await handleSave();
       }
-      
+
       // Switch editor
       setEditorType(newEditorType);
-      
+
       // Reload space data after a brief delay to ensure new editor is mounted
       setTimeout(() => {
         loadSpaceData();
         setSwitchingEditor(false);
       }, 100);
-      
+
     } catch (error) {
       console.error('Editor switch failed:', error);
       setSwitchingEditor(false);

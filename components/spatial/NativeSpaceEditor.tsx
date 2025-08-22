@@ -278,7 +278,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const clearSelection = useCallback(() => {
     setSelectedObjects(new Set());
     setPrimarySelectedId(null);
-    setTransformTarget(null);
     onSelectionChange?.([]);
   }, [onSelectionChange]);
 
@@ -656,29 +655,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
       </group>
     );
 
-    if (isPrimary && showTransformControls) {
-      return (
-        <TransformControls
-          ref={transformControlsRef}
-          mode={transformMode}
-          onObjectChange={() => {
-            if (!groupRef.current) return;
-            handleTransform(item.id, {
-              position: [groupRef.current.position.x, groupRef.current.position.y, groupRef.current.position.z],
-              rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
-              scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
-            });
-          }}
-          onDraggingChanged={(active: boolean) => {
-            setIsTransforming(active);
-            if (orbitRef.current) orbitRef.current.enabled = !active;
-          }}
-        >
-          {content}
-        </TransformControls>
-      );
-    }
-
     return content;
   };
 
@@ -687,7 +663,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     const controls = transformControlsRef.current;
     if (!controls) return;
 
-    if (!primarySelectedId) {
+    if (!showTransformControls || !primarySelectedId) {
       controls.detach();
       return;
     }
@@ -706,7 +682,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [primarySelectedId, spaceItems]);
+  }, [primarySelectedId, spaceItems, showTransformControls]);
 
   return (
     <div className="space-y-4">
