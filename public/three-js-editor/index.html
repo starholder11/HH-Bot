@@ -288,6 +288,53 @@
 					console.log('Scene cleared');
 					break;
 					
+				case 'add_object':
+					try {
+						const objData = command.data;
+						let geometry, material;
+						
+						// Create geometry
+						switch (objData.geometry.type) {
+							case 'BoxGeometry':
+								geometry = new THREE.BoxGeometry(
+									objData.geometry.width || 1,
+									objData.geometry.height || 1, 
+									objData.geometry.depth || 1
+								);
+								break;
+							case 'SphereGeometry':
+								geometry = new THREE.SphereGeometry(objData.geometry.radius || 0.5);
+								break;
+							case 'PlaneGeometry':
+								geometry = new THREE.PlaneGeometry(
+									objData.geometry.width || 1,
+									objData.geometry.height || 1
+								);
+								break;
+							default:
+								geometry = new THREE.BoxGeometry(1, 1, 1);
+						}
+						
+						// Create material
+						material = new THREE.MeshBasicMaterial({ 
+							color: objData.material.color || 0x888888 
+						});
+						
+						// Create mesh
+						const mesh = new THREE.Mesh(geometry, material);
+						mesh.name = objData.name || 'Object';
+						mesh.position.fromArray(objData.position || [0, 0, 0]);
+						if (objData.rotation) mesh.rotation.fromArray(objData.rotation);
+						if (objData.scale) mesh.scale.fromArray(objData.scale);
+						
+						editor.addObject(mesh);
+						console.log('Added object:', mesh.name);
+					} catch (error) {
+						console.error('Failed to add object:', error);
+						send({ type: 'error', data: { error: 'Failed to add object: ' + error.message } });
+					}
+					break;
+					
 				case 'export_scene':
 					try {
 						const scene = editor.scene;

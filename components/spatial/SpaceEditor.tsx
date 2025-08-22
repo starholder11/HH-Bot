@@ -135,11 +135,58 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         data: threeJSScene,
       });
       console.log('[SpaceEditor] Scene loaded into editor');
+      
+      // If space is empty, add some sample objects for testing
+      if ((!space.space?.items || space.space.items.length === 0) && editorReady) {
+        console.log('[SpaceEditor] Space is empty, adding sample objects for testing...');
+        await addSampleObjects();
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to load space data';
       console.error('[SpaceEditor] Load error:', err);
       setError(errorMsg);
       onError?.(errorMsg);
+    }
+  };
+
+  // Add sample objects for testing
+  const addSampleObjects = async () => {
+    const sampleObjects = [
+      {
+        type: 'add_object',
+        data: {
+          type: 'Mesh',
+          geometry: { type: 'BoxGeometry', width: 1, height: 1, depth: 1 },
+          material: { type: 'MeshBasicMaterial', color: 0x00ff00 },
+          position: [0, 0.5, 0],
+          name: 'Sample Cube'
+        }
+      },
+      {
+        type: 'add_object', 
+        data: {
+          type: 'Mesh',
+          geometry: { type: 'SphereGeometry', radius: 0.5 },
+          material: { type: 'MeshBasicMaterial', color: 0xff0000 },
+          position: [2, 0.5, 0],
+          name: 'Sample Sphere'
+        }
+      },
+      {
+        type: 'add_object',
+        data: {
+          type: 'Mesh', 
+          geometry: { type: 'PlaneGeometry', width: 2, height: 2 },
+          material: { type: 'MeshBasicMaterial', color: 0x0000ff },
+          position: [-2, 1, 0],
+          rotation: [0, 0, 0],
+          name: 'Sample Plane'
+        }
+      }
+    ];
+
+    for (const obj of sampleObjects) {
+      await sendCommand(obj);
     }
   };
 
