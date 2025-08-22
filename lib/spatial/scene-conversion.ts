@@ -75,6 +75,11 @@ interface SpaceItem {
  * Convert SpaceAsset to Three.js Scene format
  */
 export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
+  // Handle different possible data structures
+  const items = space.space?.items || space.items || [];
+  
+  console.log('[Scene Conversion] Converting space with items:', items);
+  
   return {
     metadata: {
       version: 4.5,
@@ -89,13 +94,13 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
       uuid: space.id,
       type: "Scene",
       name: space.title,
-      children: space.space.items.map(item => ({
+      children: items.map((item: any) => ({
         uuid: item.id,
         type: "Mesh",
-        name: item.assetId,
-        position: item.position,
-        rotation: item.rotation,
-        scale: item.scale,
+        name: item.assetId || item.title || item.id,
+        position: item.position || [0, 0, 0],
+        rotation: item.rotation || [0, 0, 0],
+        scale: item.scale || [1, 1, 1],
         geometry: generateGeometryForItem(item),
         material: generateMaterialForItem(item),
         visible: item.visible !== false,
@@ -110,8 +115,8 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
     userData: {
       spaceId: space.id,
       spaceType: space.space_type,
-      environment: space.space.environment,
-      camera: space.space.camera
+      environment: space.space?.environment,
+      camera: space.space?.camera
     }
   };
 }

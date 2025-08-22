@@ -262,12 +262,24 @@
 								editor.addObject(mesh);
 							});
 							console.log('Scene loaded successfully with', command.data.object.children.length, 'objects');
+							// Send success response
+							send({ 
+								type: 'scene_loaded', 
+								data: { success: true, objectCount: command.data.object.children.length },
+								commandId: command.id 
+							});
 						} catch (error) {
 							console.error('Failed to load scene:', error);
 							send({ type: 'error', data: { error: 'Failed to load scene: ' + error.message } });
 						}
 					} else {
 						console.log('No scene data or children found, scene remains empty');
+						// Send success response even for empty scene
+						send({ 
+							type: 'scene_loaded', 
+							data: { success: true, objectCount: 0 },
+							commandId: command.id 
+						});
 					}
 					break;
 					

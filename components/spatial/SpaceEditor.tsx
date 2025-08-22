@@ -127,6 +127,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       // Convert to Three.js format and load into editor
       const threeJSScene = convertSpaceToThreeJSScene(space);
       console.log('[SpaceEditor] Converted to Three.js scene:', threeJSScene);
+      console.log('[SpaceEditor] Scene children count:', threeJSScene.object.children.length);
+      console.log('[SpaceEditor] Space items:', space.space?.items || 'No items found');
+      
       await sendCommand({
         type: 'load_scene',
         data: threeJSScene,

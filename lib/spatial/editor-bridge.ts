@@ -101,6 +101,7 @@ export class EditorBridge {
         break;
         
       case 'scene_exported':
+      case 'scene_loaded':
         // Handle command response
         if (message.commandId) {
           this.resolveCommand(message.commandId, message.data);
