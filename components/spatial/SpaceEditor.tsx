@@ -370,6 +370,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
       const savedSpace = await response.json();
       console.log('[SpaceEditor] API response:', savedSpace);
+      console.log('[SpaceEditor] API response.space:', savedSpace.space);
+      console.log('[SpaceEditor] API response.space.items:', savedSpace.space?.items);
+      console.log('[SpaceEditor] API response.space.items length:', savedSpace.space?.items?.length);
       
       setSpaceData(savedSpace);
       onSceneChange?.(savedSpace);
