@@ -213,106 +213,90 @@
 			console.log('Three.js Editor received command:', command);
 
 			switch (command.type) {
-				case 'load_scene':
-					// Clear current scene first
-					editor.clear();
-					console.log('Cleared scene, loading new data...');
+							case 'load_scene':
+				// Clear current scene first
+				editor.clear();
+				console.log('Cleared scene, loading new data...');
 
-					// Create basic objects from scene data
-					if (command.data && command.data.object && command.data.object.children) {
-						try {
-							command.data.object.children.forEach(child => {
-								// Create basic geometry based on asset type
-								let geometry, material;
-								const assetType = child.userData?.assetType || 'unknown';
-
-								switch (assetType) {
-									case 'image':
-									case 'video':
-									case 'layout_reference':
-									case 'layout':
-										geometry = new THREE.PlaneGeometry(2, 2);
-										// Support textured planes when mediaUrl is provided
-										const url = child.userData && child.userData.mediaUrl;
-										if (url) {
-											console.log('Loading texture from userData.mediaUrl:', url);
-											const textureLoader = new THREE.TextureLoader();
-											// Create initial material
-											material = new THREE.MeshBasicMaterial({
-												color: assetType === 'image' ? 0x4f46e5 :
-													   assetType === 'video' ? 0xef4444 : 0x8b5cf6,
-												transparent: true,
-												opacity: 0.9
-											});
-											
-											// Load texture asynchronously and update material
-											textureLoader.load(
-												url,
-												(texture) => {
-													texture.colorSpace = THREE.SRGBColorSpace;
-													texture.needsUpdate = true;
-													material.map = texture;
-													material.needsUpdate = true;
-													console.log('Texture loaded successfully for load_scene:', child.name);
-												},
-												undefined,
-												(error) => {
-													console.warn('Failed to load texture for load_scene:', url, error);
+				// Try to use ObjectLoader first for proper Three.js scene loading
+				if (command.data && command.data.metadata && command.data.object) {
+					try {
+						console.log('Loading scene with ObjectLoader, textures:', command.data.textures?.length || 0, 'images:', command.data.images?.length || 0);
+						
+						const loader = new THREE.ObjectLoader();
+						const loadedObject = loader.parse(command.data);
+						
+						// Post-process loaded objects to ensure textures are applied
+						loadedObject.traverse((child) => {
+							if (child.isMesh) {
+								console.log('Processing mesh:', child.name, 'position:', child.position, 'userData:', child.userData);
+								
+								if (child.userData.mediaUrl) {
+									console.log('Post-processing mesh with mediaUrl:', child.userData.mediaUrl);
+									
+									// Load texture directly if material doesn't have one
+									if (child.material && !child.material.map) {
+										const textureLoader = new THREE.TextureLoader();
+										textureLoader.crossOrigin = 'anonymous';
+										
+										textureLoader.load(
+											child.userData.mediaUrl,
+											(texture) => {
+												console.log('Texture loaded successfully for mesh:', child.name);
+												texture.colorSpace = THREE.SRGBColorSpace;
+												child.material.map = texture;
+												child.material.needsUpdate = true;
+												if (editor.signals && editor.signals.materialChanged) {
+													editor.signals.materialChanged.dispatch(child.material);
 												}
-											);
-										} else {
-											material = new THREE.MeshBasicMaterial({
-												color: assetType === 'image' ? 0x4f46e5 :
-													   assetType === 'video' ? 0xef4444 : 0x8b5cf6,
-												transparent: true,
-												opacity: 0.9
-											});
-										}
-										break;
-									case 'audio':
-										geometry = new THREE.SphereGeometry(0.5);
-										material = new THREE.MeshBasicMaterial({ color: 0x10b981 });
-										break;
-									case 'text':
-										geometry = new THREE.BoxGeometry(1, 0.5, 0.1);
-										material = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
-										break;
-									default:
-										geometry = new THREE.BoxGeometry(1, 1, 1);
-										material = new THREE.MeshBasicMaterial({ color: 0x6b7280 });
+											},
+											undefined,
+											(error) => {
+												console.error('Error loading texture for mesh:', child.name, error);
+											}
+										);
+									} else if (child.material && child.material.map) {
+										console.log('Mesh already has texture:', child.name);
+									}
+								} else {
+									console.log('Mesh has no mediaUrl:', child.name);
 								}
-
-								const mesh = new THREE.Mesh(geometry, material);
-								mesh.name = child.name || child.userData?.assetId || 'Unknown';
-								mesh.uuid = child.uuid;
-								mesh.position.fromArray(child.position);
-								mesh.rotation.fromArray(child.rotation);
-								mesh.scale.fromArray(child.scale);
-								mesh.userData = child.userData || {};
-
-								editor.addObject(mesh);
-							});
-							console.log('Scene loaded successfully with', command.data.object.children.length, 'objects');
-							// Send success response
-							send({
-								type: 'scene_loaded',
-								data: { success: true, objectCount: command.data.object.children.length },
-								commandId: command.id
-							});
-						} catch (error) {
-							console.error('Failed to load scene:', error);
-							send({ type: 'error', data: { error: 'Failed to load scene: ' + error.message } });
-						}
-					} else {
-						console.log('No scene data or children found, scene remains empty');
-						// Send success response even for empty scene
+							}
+						});
+						
+						editor.scene.add(loadedObject);
+						
+						// Update the editor
+						editor.signals.sceneGraphChanged.dispatch();
+						editor.signals.objectSelected.dispatch(null);
+						
+						console.log(`Scene loaded successfully with ${loadedObject.children.length} objects`);
+						
+						// Send success response
 						send({
 							type: 'scene_loaded',
-							data: { success: true, objectCount: 0 },
+							data: { success: true, objectCount: loadedObject.children.length },
 							commandId: command.id
 						});
+						
+					} catch (error) {
+						console.error('ObjectLoader failed, falling back to manual creation:', error);
+						// Fall back to manual object creation
+						loadSceneManually(command, editor, send);
 					}
-					break;
+				} else if (command.data && command.data.object && command.data.object.children) {
+					// Manual object creation for simpler scene data
+					loadSceneManually(command, editor, send);
+				} else {
+					console.log('No scene data or children found, scene remains empty');
+					// Send success response even for empty scene
+					send({
+						type: 'scene_loaded',
+						data: { success: true, objectCount: 0 },
+						commandId: command.id
+					});
+				}
+				break;
 
 				case 'clear_scene':
 					editor.clear();
@@ -486,6 +470,94 @@
 				}
 
 			} );
+
+			// Manual scene loading function for fallback
+			function loadSceneManually(command, editor, send) {
+				try {
+					command.data.object.children.forEach(child => {
+						// Create basic geometry based on asset type
+						let geometry, material;
+						const assetType = child.userData?.assetType || 'unknown';
+
+						switch (assetType) {
+							case 'image':
+							case 'video':
+							case 'layout_reference':
+							case 'layout':
+								geometry = new THREE.PlaneGeometry(2, 2);
+								// Support textured planes when mediaUrl is provided
+								const url = child.userData && child.userData.mediaUrl;
+								if (url) {
+									console.log('Loading texture from userData.mediaUrl:', url);
+									const textureLoader = new THREE.TextureLoader();
+									textureLoader.crossOrigin = 'anonymous';
+									// Create initial material
+									material = new THREE.MeshBasicMaterial({
+										color: assetType === 'image' ? 0x4f46e5 :
+											   assetType === 'video' ? 0xef4444 : 0x8b5cf6,
+										transparent: true,
+										opacity: 0.9
+									});
+									
+									// Load texture asynchronously and update material
+									textureLoader.load(
+										url,
+										(texture) => {
+											texture.colorSpace = THREE.SRGBColorSpace;
+											texture.needsUpdate = true;
+											material.map = texture;
+											material.needsUpdate = true;
+											console.log('Texture loaded successfully for load_scene:', child.name);
+										},
+										undefined,
+										(error) => {
+											console.warn('Failed to load texture for load_scene:', url, error);
+										}
+									);
+								} else {
+									material = new THREE.MeshBasicMaterial({
+										color: assetType === 'image' ? 0x4f46e5 :
+											   assetType === 'video' ? 0xef4444 : 0x8b5cf6,
+										transparent: true,
+										opacity: 0.9
+									});
+								}
+								break;
+							case 'audio':
+								geometry = new THREE.SphereGeometry(0.5);
+								material = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+								break;
+							case 'text':
+								geometry = new THREE.BoxGeometry(1, 0.5, 0.1);
+								material = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+								break;
+							default:
+								geometry = new THREE.BoxGeometry(1, 1, 1);
+								material = new THREE.MeshBasicMaterial({ color: 0x6b7280 });
+						}
+
+						const mesh = new THREE.Mesh(geometry, material);
+						mesh.name = child.name || child.userData?.assetId || 'Unknown';
+						mesh.uuid = child.uuid;
+						mesh.position.fromArray(child.position);
+						mesh.rotation.fromArray(child.rotation);
+						mesh.scale.fromArray(child.scale);
+						mesh.userData = child.userData || {};
+
+						editor.addObject(mesh);
+					});
+					console.log('Scene loaded manually with', command.data.object.children.length, 'objects');
+					// Send success response
+					send({
+						type: 'scene_loaded',
+						data: { success: true, objectCount: command.data.object.children.length },
+						commandId: command.id
+					});
+				} catch (error) {
+					console.error('Failed to load scene manually:', error);
+					send({ type: 'error', data: { error: 'Failed to load scene: ' + error.message } });
+				}
+			}
 
 			function onWindowResize() {
 

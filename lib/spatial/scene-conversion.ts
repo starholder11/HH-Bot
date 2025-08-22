@@ -69,6 +69,10 @@ interface SpaceItem {
   opacity?: number;
   visible?: boolean;
   importMetadata?: any;
+  // Layout coordinates for compatibility
+  x?: number;
+  y?: number;
+  mediaUrl?: string;
 }
 
 /**
@@ -94,24 +98,33 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
       uuid: space.id,
       type: "Scene",
       name: space.title,
-      children: items.map((item: any) => ({
-        uuid: item.id,
-        type: "Mesh",
-        name: item.assetId || item.title || item.id,
-        position: item.position || [0, 0, 0],
-        rotation: item.rotation || [0, 0, 0],
-        scale: item.scale || [1, 1, 1],
-        geometry: `geom-${item.id}`, // Reference to geometry in geometries array
-        material: `mat-${item.id}`, // Reference to material in materials array
-        visible: item.visible !== false,
-        userData: {
-          spaceItemId: item.id,
-          assetId: item.assetId,
-          assetType: item.assetType,
-          mediaUrl: (item as any).mediaUrl,
-          importMetadata: item.importMetadata
-        }
-      }))
+      children: items.map((item: any) => {
+        // Use stored position or calculate from layout coordinates
+        const x = item.position?.[0] ?? (item.x || 0);
+        const y = item.position?.[1] ?? 0.5; // Keep objects slightly above ground
+        const z = item.position?.[2] ?? (item.y || 0);
+        
+        console.log(`[Scene Conversion] Item ${item.id}: position [${x}, ${y}, ${z}], mediaUrl: ${item.mediaUrl}`);
+        
+        return {
+          uuid: item.id,
+          type: "Mesh",
+          name: item.assetId || item.title || item.id,
+          position: [x, y, z],
+          rotation: item.rotation || [0, 0, 0],
+          scale: item.scale || [1, 1, 1],
+          geometry: `geom-${item.id}`, // Reference to geometry in geometries array
+          material: `mat-${item.id}`, // Reference to material in materials array
+          visible: item.visible !== false,
+          userData: {
+            spaceItemId: item.id,
+            assetId: item.assetId,
+            assetType: item.assetType,
+            mediaUrl: (item as any).mediaUrl,
+            importMetadata: item.importMetadata
+          }
+        };
+      })
     },
     userData: {
       spaceId: space.id,
@@ -137,36 +150,66 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   const items = scene.object.children.map(child => {
     console.log('[Scene Conversion] Processing child:', child);
     
+    // Extract position from array format used by Three.js
+    const position = child.position || [0, 0.5, 0];
+    const x = position[0];
+    const y = position[1];
+    const z = position[2];
+    
+    // Extract mediaUrl from material texture or userData
+    let mediaUrl = child.userData?.mediaUrl || '';
+    if (!mediaUrl && child.material) {
+      // Try to find texture and its image URL from scene data
+      const material = scene.materials?.find((m: any) => m.uuid === child.material);
+      if (material?.map) {
+        const texture = scene.textures?.find((t: any) => t.uuid === material.map);
+        if (texture) {
+          const image = scene.images?.find((i: any) => i.uuid === texture.image);
+          if (image) {
+            mediaUrl = image.url || '';
+          }
+        }
+      }
+    }
+    
+    console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], mediaUrl: ${mediaUrl}`);
+    
     // Handle layout references - they don't have assetId but have layoutId and layoutItemId
-    if (child.userData.assetType === 'layout_reference') {
+    if (child.userData?.assetType === 'layout_reference') {
       return {
         id: child.userData.spaceItemId || child.uuid,
         assetId: child.userData.layoutItemId || child.uuid, // Use layoutItemId as assetId for validation
         assetType: 'layout', // Map layout_reference to valid layout type
-        position: child.position ? [child.position.x, child.position.y, child.position.z] : [0, 0, 0],
-        rotation: child.rotation ? [child.rotation.x, child.rotation.y, child.rotation.z] : [0, 0, 0],
-        scale: child.scale ? [child.scale.x, child.scale.y, child.scale.z] : [1, 1, 1],
+        position: [x, y, z],
+        rotation: child.rotation || [0, 0, 0],
+        scale: child.scale || [1, 1, 1],
+        // Store both layout coordinates and 3D position for compatibility
+        x: x,
+        y: z, // z maps to layout y
         opacity: 1,
         visible: child.visible !== false,
         layoutId: child.userData.layoutId,
         layoutItemId: child.userData.layoutItemId,
-        mediaUrl: child.userData.mediaUrl,
+        mediaUrl,
         importMetadata: child.userData.importMetadata
       };
     }
     
     // Handle regular assets
     return {
-      id: child.userData.spaceItemId || child.uuid,
-      assetId: child.userData.assetId || child.uuid, // Fallback to uuid if no assetId
-      assetType: child.userData.assetType || 'object', // Default to object instead of unknown
-      position: child.position ? [child.position.x, child.position.y, child.position.z] : [0, 0, 0],
-      rotation: child.rotation ? [child.rotation.x, child.rotation.y, child.rotation.z] : [0, 0, 0],
-      scale: child.scale ? [child.scale.x, child.scale.y, child.scale.z] : [1, 1, 1],
+      id: child.userData?.spaceItemId || child.uuid,
+      assetId: child.userData?.assetId || child.uuid, // Fallback to uuid if no assetId
+      assetType: child.userData?.assetType || 'object', // Default to object instead of unknown
+      position: [x, y, z],
+      rotation: child.rotation || [0, 0, 0],
+      scale: child.scale || [1, 1, 1],
+      // Store both layout coordinates and 3D position for compatibility
+      x: x,
+      y: z, // z maps to layout y
       opacity: 1, // TODO: Extract from material
       visible: child.visible !== false,
-      mediaUrl: child.userData.mediaUrl,
-      importMetadata: child.userData.importMetadata
+      mediaUrl,
+      importMetadata: child.userData?.importMetadata
     };
   });
 
