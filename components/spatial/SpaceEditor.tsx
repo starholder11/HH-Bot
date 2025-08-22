@@ -51,7 +51,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     addLayout: async (layout: any) => {
       await addLayoutToEditor(layout);
     }
-  }), []);
+  }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor]);
 
   useEffect(() => {
     if (!iframeRef.current) return;
