@@ -147,6 +147,8 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       }
       const space = await response.json();
       console.log('[SpaceEditor] Loaded space:', space);
+      console.log('[SpaceEditor] Space.space:', space.space);
+      console.log('[SpaceEditor] Space.space.items:', space.space?.items);
       setSpaceData(space);
 
       // Convert to Three.js format and load into editor
