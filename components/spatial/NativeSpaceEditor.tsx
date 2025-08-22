@@ -582,9 +582,18 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     // Update transform target when this becomes the primary selection
     useEffect(() => {
       if (isPrimary && groupRef.current) {
-        setTransformTarget(groupRef.current);
+        // Use a small delay to ensure the object is in the scene graph
+        const timer = setTimeout(() => {
+          if (groupRef.current && groupRef.current.parent) {
+            setTransformTarget(groupRef.current);
+          }
+        }, 10);
+        return () => clearTimeout(timer);
+      } else if (!isPrimary && transformTarget === groupRef.current) {
+        // Clear transform target if this object is no longer primary
+        setTransformTarget(null);
       }
-    }, [isPrimary]);
+    }, [isPrimary, transformTarget]);
 
     const content = (
       <group
@@ -843,7 +852,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
           ))}
 
           {/* Single TransformControls for the primary selected object */}
-          {transformTarget && showTransformControls && (
+          {transformTarget && transformTarget.parent && showTransformControls && (
             <TransformControls
               ref={transformControlsRef}
               object={transformTarget}
