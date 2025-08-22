@@ -119,7 +119,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const [showLayoutImportModal, setShowLayoutImportModal] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isTransforming, setIsTransforming] = useState(false);
-  const [transformTarget, setTransformTarget] = useState<any>(null);
   const [primarySelectedId, setPrimarySelectedId] = useState<string | null>(null);
   const canvasRef = useRef<any>(null);
   const transformControlsRef = useRef<any>(null);
@@ -579,22 +578,6 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     const isSelected = selectedObjects.has(item.id);
     const isPrimary = primarySelectedId === item.id;
 
-    // Update transform target when this becomes the primary selection
-    useEffect(() => {
-      if (isPrimary && groupRef.current) {
-        // Use a small delay to ensure the object is in the scene graph
-        const timer = setTimeout(() => {
-          if (groupRef.current && groupRef.current.parent) {
-            setTransformTarget(groupRef.current);
-          }
-        }, 10);
-        return () => clearTimeout(timer);
-      } else if (!isPrimary && transformTarget === groupRef.current) {
-        // Clear transform target if this object is no longer primary
-        setTransformTarget(null);
-      }
-    }, [isPrimary, transformTarget]);
-
     const content = (
       <group
         ref={groupRef}
@@ -672,6 +655,29 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
         )}
       </group>
     );
+
+    if (isPrimary && showTransformControls) {
+      return (
+        <TransformControls
+          ref={transformControlsRef}
+          mode={transformMode}
+          onObjectChange={() => {
+            if (!groupRef.current) return;
+            handleTransform(item.id, {
+              position: [groupRef.current.position.x, groupRef.current.position.y, groupRef.current.position.z],
+              rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
+              scale: [groupRef.current.scale.x, groupRef.current.scale.y, groupRef.current.scale.z],
+            });
+          }}
+          onDraggingChanged={(active: boolean) => {
+            setIsTransforming(active);
+            if (orbitRef.current) orbitRef.current.enabled = !active;
+          }}
+        >
+          {content}
+        </TransformControls>
+      );
+    }
 
     return content;
   };
@@ -851,26 +857,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             <RenderItem key={item.id} item={item} />
           ))}
 
-          {/* Single TransformControls for the primary selected object */}
-          {transformTarget && transformTarget.parent && showTransformControls && (
-            <TransformControls
-              ref={transformControlsRef}
-              object={transformTarget}
-              mode={transformMode}
-              onObjectChange={() => {
-                if (!transformTarget || !primarySelectedId) return;
-                handleTransform(primarySelectedId, {
-                  position: [transformTarget.position.x, transformTarget.position.y, transformTarget.position.z],
-                  rotation: [transformTarget.rotation.x, transformTarget.rotation.y, transformTarget.rotation.z],
-                  scale: [transformTarget.scale.x, transformTarget.scale.y, transformTarget.scale.z],
-                });
-              }}
-              onDraggingChanged={(active: boolean) => {
-                setIsTransforming(active);
-                if (orbitRef.current) orbitRef.current.enabled = !active;
-              }}
-            />
-          )}
+          {/* TransformControls now wrapped per primary item; nothing at canvas level */}
 
           <OrbitControls
             makeDefault
