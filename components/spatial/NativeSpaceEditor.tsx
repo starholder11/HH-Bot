@@ -646,7 +646,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
       return (
         <TransformControls
           ref={transformControlsRef}
-          object={groupRef as any}
+          object={groupRef.current as any}
           mode={transformMode}
           onObjectChange={() => {
             if (!groupRef.current) return;
