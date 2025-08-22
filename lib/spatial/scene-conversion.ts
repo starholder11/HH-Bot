@@ -126,26 +126,44 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
  * Convert Three.js Scene back to SpaceAsset format
  */
 export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: SpaceAsset): SpaceAsset {
-  return {
+  console.log('[Scene Conversion] Converting Three.js scene to SpaceAsset:', scene);
+  console.log('[Scene Conversion] Existing space:', existingSpace);
+  
+  if (!scene || !scene.object || !scene.object.children) {
+    console.error('[Scene Conversion] Invalid scene structure:', scene);
+    throw new Error('Invalid scene structure for conversion');
+  }
+
+  const items = scene.object.children.map(child => {
+    console.log('[Scene Conversion] Processing child:', child);
+    return {
+      id: child.userData.spaceItemId || child.uuid,
+      assetId: child.userData.assetId,
+      assetType: child.userData.assetType || 'unknown',
+      position: child.position ? [child.position.x, child.position.y, child.position.z] : [0, 0, 0],
+      rotation: child.rotation ? [child.rotation.x, child.rotation.y, child.rotation.z] : [0, 0, 0],
+      scale: child.scale ? [child.scale.x, child.scale.y, child.scale.z] : [1, 1, 1],
+      opacity: 1, // TODO: Extract from material
+      visible: child.visible !== false,
+      importMetadata: child.userData.importMetadata
+    };
+  });
+
+  console.log('[Scene Conversion] Converted items:', items);
+
+  const result = {
     ...existingSpace,
     space: {
       ...existingSpace.space,
-      items: scene.object.children.map(child => ({
-        id: child.userData.spaceItemId,
-        assetId: child.userData.assetId,
-        assetType: child.userData.assetType,
-        position: child.position,
-        rotation: child.rotation,
-        scale: child.scale,
-        opacity: 1, // TODO: Extract from material
-        visible: child.visible !== false,
-        importMetadata: child.userData.importMetadata
-      })),
-      environment: scene.userData.environment || existingSpace.space.environment,
-      camera: scene.userData.camera || existingSpace.space.camera
+      items,
+      environment: scene.userData.environment || existingSpace.space?.environment,
+      camera: scene.userData.camera || existingSpace.space?.camera
     },
     updated_at: new Date().toISOString()
   };
+
+  console.log('[Scene Conversion] Final result:', result);
+  return result;
 }
 
 // Helper functions for material/texture generation

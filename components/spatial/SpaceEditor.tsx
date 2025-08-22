@@ -303,8 +303,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
   // Save current scene
   const saveScene = async () => {
+    console.log('[SpaceEditor] Save requested, spaceData:', spaceData);
+    
     if (!spaceData) {
-      setError('No space data loaded');
+      const errorMsg = 'No space data loaded';
+      console.error('[SpaceEditor]', errorMsg);
+      setError(errorMsg);
+      onError?.(errorMsg);
       return;
     }
 
@@ -328,7 +333,14 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
   // Handle scene export response and save to API
   const handleSceneExport = async (exportedScene: any) => {
-    if (!spaceData) return;
+    console.log('[SpaceEditor] handleSceneExport called, spaceData:', spaceData);
+    
+    if (!spaceData) {
+      console.error('[SpaceEditor] No spaceData available for save');
+      setError('No space data available for save');
+      onError?.('No space data available for save');
+      return;
+    }
 
     try {
       console.log('[SpaceEditor] Converting exported scene to space format...');
@@ -347,10 +359,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to save space: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to save space: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const savedSpace = await response.json();
+      console.log('[SpaceEditor] API response:', savedSpace);
+      
       setSpaceData(savedSpace);
       onSceneChange?.(savedSpace);
 
