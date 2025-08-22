@@ -327,10 +327,24 @@
 								geometry = new THREE.BoxGeometry(1, 1, 1);
 						}
 						
-						// Create material
-						material = new THREE.MeshBasicMaterial({ 
-							color: objData.material.color || 0x888888 
-						});
+						// Create material (support textures for images/videos/layout refs)
+						const assetType = objData.userData && objData.userData.assetType;
+						const mediaUrl = objData.userData && objData.userData.mediaUrl;
+						if (
+							(objData.geometry.type === 'PlaneGeometry') &&
+							(assetType === 'image' || assetType === 'video' || assetType === 'layout_reference') &&
+							mediaUrl
+						) {
+							const tex = new THREE.TextureLoader().load(mediaUrl, undefined, undefined, () => {
+								console.warn('Failed to load texture', mediaUrl);
+							});
+							tex.colorSpace = THREE.SRGBColorSpace;
+							material = new THREE.MeshBasicMaterial({ map: tex });
+						} else {
+							material = new THREE.MeshBasicMaterial({
+								color: objData.material && objData.material.color ? objData.material.color : 0x888888
+							});
+						}
 						
 						// Create mesh
 						const mesh = new THREE.Mesh(geometry, material);
@@ -338,6 +352,7 @@
 						mesh.position.fromArray(objData.position || [0, 0, 0]);
 						if (objData.rotation) mesh.rotation.fromArray(objData.rotation);
 						if (objData.scale) mesh.scale.fromArray(objData.scale);
+						mesh.userData = objData.userData || {};
 						
 						editor.addObject(mesh);
 						console.log('Added object:', mesh.name);
