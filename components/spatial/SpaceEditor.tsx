@@ -31,6 +31,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   const bridgeRef = useRef<EditorBridge | null>(null);
   const callbacksRef = useRef<{ onSceneChange?: (d:any)=>void; onSelectionChange?: (s:string[])=>void; onError?: (e:string)=>void }>({ onSceneChange, onSelectionChange, onError });
   const lastLoadedIdRef = useRef<string | null>(null);
+  const pendingSaveRef = useRef<boolean>(false);
 
   // Keep latest callbacks without re-initializing the bridge
   useEffect(() => {
@@ -55,6 +56,11 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       if (spaceId && lastLoadedIdRef.current !== spaceId) {
         loadSpaceData();
         lastLoadedIdRef.current = spaceId;
+      }
+      // If a save was in-flight when the iframe reloaded, re-request export
+      if (pendingSaveRef.current) {
+        console.log('[SpaceEditor] Editor ready during pending save; re-requesting export...');
+        sendCommand({ type: 'export_scene', data: {} });
       }
     };
 
@@ -93,6 +99,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         case 'scene_exported':
           // Handle scene export response
           console.log('[SpaceEditor] Received scene export:', message.data);
+          pendingSaveRef.current = false;
           handleSceneExport(message.data);
           break;
         default:
@@ -301,6 +308,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
     try {
       console.log('[SpaceEditor] Starting scene save...');
+      pendingSaveRef.current = true;
       // Request scene export from editor
       await sendCommand({
         type: 'export_scene',
@@ -310,6 +318,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
       // Note: The actual save will happen in the message handler when we receive the exported scene
     } catch (err) {
+      pendingSaveRef.current = false;
       const errorMsg = err instanceof Error ? err.message : 'Failed to save scene';
       console.error('[SpaceEditor] Save error:', err);
       setError(errorMsg);
