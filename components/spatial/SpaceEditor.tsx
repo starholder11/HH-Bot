@@ -101,11 +101,15 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
   // Send command to editor
   const sendCommand = (command: EditorCommand) => {
-    if (!bridgeRef.current || !editorReady) {
-      console.warn('Editor not ready, queuing command:', command);
-      return;
+    if (!bridgeRef.current) {
+      console.warn('Bridge not available, cannot send command:', command);
+      return Promise.resolve();
     }
-    bridgeRef.current.sendCommand(command);
+    if (!editorReady) {
+      console.warn('Editor not ready, queuing command:', command);
+      // Still send the command - the bridge will queue it
+    }
+    return bridgeRef.current.sendCommand(command);
   };
 
   // Fetch space data from API
@@ -123,10 +127,11 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       // Convert to Three.js format and load into editor
       const threeJSScene = convertSpaceToThreeJSScene(space);
       console.log('[SpaceEditor] Converted to Three.js scene:', threeJSScene);
-      sendCommand({
+      await sendCommand({
         type: 'load_scene',
         data: threeJSScene,
       });
+      console.log('[SpaceEditor] Scene loaded into editor');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to load space data';
       console.error('[SpaceEditor] Load error:', err);
@@ -138,7 +143,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   // Load space data into editor
   const loadSpace = async (spaceData: any) => {
     const threeJSScene = convertSpaceToThreeJSScene(spaceData);
-    sendCommand({
+    await sendCommand({
       type: 'load_scene',
       data: threeJSScene,
     });
