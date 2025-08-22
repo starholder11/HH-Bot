@@ -86,7 +86,7 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
       type: "Object",
       generator: "HH-Bot Spatial CMS"
     },
-    geometries: [],
+    geometries: (space.space?.items || space.items || []).map((item: any) => generateGeometryForItem(item)),
     materials: generateMaterialsFromSpace(space),
     textures: generateTexturesFromSpace(space),
     images: generateImagesFromSpace(space),
@@ -101,8 +101,8 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
         position: item.position || [0, 0, 0],
         rotation: item.rotation || [0, 0, 0],
         scale: item.scale || [1, 1, 1],
-        geometry: generateGeometryForItem(item),
-        material: generateMaterialForItem(item),
+        geometry: `geom-${item.id}`, // Reference to geometry in geometries array
+        material: `mat-${item.id}`, // Reference to material in materials array
         visible: item.visible !== false,
         userData: {
           spaceItemId: item.id,
@@ -192,8 +192,8 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
 
 // Helper functions for material/texture generation
 function generateMaterialsFromSpace(space: SpaceAsset): any[] {
-  // TODO: Generate materials based on space items
-  return [];
+  const items = space.space?.items || space.items || [];
+  return items.map((item: any) => generateMaterialForItem(item));
 }
 
 function generateTexturesFromSpace(space: SpaceAsset): any[] {
@@ -206,32 +206,57 @@ function generateImagesFromSpace(space: SpaceAsset): any[] {
   return [];
 }
 
-function generateGeometryForItem(item: SpaceItem): string {
-  // TODO: Generate geometry reference based on item type
+function generateGeometryForItem(item: SpaceItem): any {
+  // Generate actual Three.js geometry objects
   switch (item.assetType) {
     case 'image':
     case 'video':
-      return 'plane-geometry';
+    case 'layout':
+      return {
+        uuid: `geom-${item.id}`,
+        type: 'PlaneGeometry',
+        width: 2,
+        height: 2
+      };
     case 'object':
-      return 'gltf-geometry';
+      return {
+        uuid: `geom-${item.id}`,
+        type: 'BoxGeometry',
+        width: 1,
+        height: 1,
+        depth: 1
+      };
     case 'object_collection':
-      return 'collection-geometry';
+      return {
+        uuid: `geom-${item.id}`,
+        type: 'BoxGeometry',
+        width: 2,
+        height: 2,
+        depth: 2
+      };
     default:
-      return 'box-geometry';
+      return {
+        uuid: `geom-${item.id}`,
+        type: 'BoxGeometry',
+        width: 1,
+        height: 1,
+        depth: 1
+      };
   }
 }
 
-function generateMaterialForItem(item: SpaceItem): string {
-  // TODO: Generate material reference based on item type
-  switch (item.assetType) {
-    case 'image':
-    case 'video':
-      return 'texture-material';
-    case 'object':
-      return 'gltf-material';
-    case 'object_collection':
-      return 'collection-material';
-    default:
-      return 'basic-material';
-  }
+function generateMaterialForItem(item: SpaceItem): any {
+  // Generate actual Three.js material objects
+  const baseColor = item.assetType === 'image' ? 0x3b82f6 : 
+                   item.assetType === 'video' ? 0xef4444 : 
+                   item.assetType === 'layout' ? 0x8b5cf6 : 0x666666;
+                   
+  return {
+    uuid: `mat-${item.id}`,
+    type: 'MeshBasicMaterial',
+    color: baseColor,
+    side: 2, // DoubleSide
+    transparent: true,
+    opacity: item.opacity || 1
+  };
 }
