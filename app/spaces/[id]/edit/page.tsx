@@ -2,6 +2,8 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import SpaceEditor from "@/components/spatial/SpaceEditor";
+import AssetImportModal from "@/components/spatial/AssetImportModal";
+import LayoutImportModal from "@/components/spatial/LayoutImportModal";
 import Link from "next/link";
 
 export default function SpaceEditPage() {
@@ -205,6 +207,20 @@ export default function SpaceEditPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Actions */}
+          <button
+            className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
+            onClick={() => setShowImportAsset(true)}
+          >
+            Import Asset
+          </button>
+          <button
+            className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
+            onClick={() => setShowImportLayout(true)}
+          >
+            Import Layout
+          </button>
+
           {/* Save Status */}
           {saveStatus === 'saving' && (
             <span className="text-blue-400 text-sm">Saving...</span>
@@ -252,6 +268,29 @@ export default function SpaceEditPage() {
         <p>Use the Three.js Editor above to manipulate 3D objects directly.</p>
         <p>Changes are automatically synced back to the space asset.</p>
       </div>
+
+      {/* Import Modals */}
+      {showImportAsset && (
+        <AssetImportModal
+          onClose={() => setShowImportAsset(false)}
+          onSelect={async (asset: any) => {
+            setShowImportAsset(false);
+            await spaceEditorRef.current?.addAsset?.(asset);
+            setHasUnsavedChanges(true);
+          }}
+        />
+      )}
+
+      {showImportLayout && (
+        <LayoutImportModal
+          onClose={() => setShowImportLayout(false)}
+          onSelect={async (layout: any) => {
+            setShowImportLayout(false);
+            await spaceEditorRef.current?.addLayout?.(layout);
+            setHasUnsavedChanges(true);
+          }}
+        />
+      )}
     </div>
   );
 }

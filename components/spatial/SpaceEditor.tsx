@@ -13,6 +13,8 @@ export interface SpaceEditorProps {
 export interface SpaceEditorRef {
   saveScene: () => Promise<void>;
   loadSpace: (spaceData: any) => Promise<void>;
+  addAsset: (asset: any) => Promise<void>;
+  addLayout: (layout: any) => Promise<void>;
 }
 
 const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
@@ -42,6 +44,12 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     },
     loadSpace: async (spaceData: any) => {
       await loadSpace(spaceData);
+    },
+    addAsset: async (asset: any) => {
+      await addAssetToEditor(asset);
+    },
+    addLayout: async (layout: any) => {
+      await addLayoutToEditor(layout);
     }
   }), []);
 
@@ -220,6 +228,56 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       type: 'load_scene',
       data: threeJSScene,
     });
+  };
+
+  // Helpers: add objects based on selected assets/layouts
+  const addAssetToEditor = async (asset: any) => {
+    const assetType = (asset.content_type || asset.type || 'unknown').toLowerCase();
+    const id = asset.id || `asset-${Date.now()}`;
+    const color = assetType.includes('image') ? 0x3b82f6 : assetType.includes('video') ? 0xef4444 : 0x6b7280;
+
+    // plane for image/video, box otherwise
+    const geometry = assetType.includes('image') || assetType.includes('video')
+      ? { type: 'PlaneGeometry', width: 2, height: 2 }
+      : { type: 'BoxGeometry', width: 1, height: 1, depth: 1 };
+
+    await sendCommand({
+      type: 'add_object',
+      data: {
+        type: 'Mesh',
+        geometry,
+        material: { type: 'MeshBasicMaterial', color },
+        position: [Math.random() * 4 - 2, 0.5, Math.random() * 4 - 2],
+        name: asset.title || asset.filename || id,
+        userData: { assetType, assetId: id }
+      }
+    });
+  };
+
+  const addLayoutToEditor = async (layout: any) => {
+    const items = layout?.layout_data?.items || [];
+    const scale = 0.02;
+    for (const item of items) {
+      const type = (item.type || 'unknown').toLowerCase();
+      const isPlane = type === 'image' || type === 'video';
+      const geometry = isPlane
+        ? { type: 'PlaneGeometry', width: 2, height: 2 }
+        : { type: 'BoxGeometry', width: 1, height: 1, depth: 1 };
+      const color = type === 'image' ? 0x3b82f6 : type === 'video' ? 0xef4444 : 0x8b5cf6;
+
+      await sendCommand({
+        type: 'add_object',
+        data: {
+          type: 'Mesh',
+          geometry,
+          material: { type: 'MeshBasicMaterial', color },
+          position: [ (item.x || 0) * scale, 0.5, (item.y || 0) * scale ],
+          scale: [ Math.max((item.w || 100) * scale, 1), 1, Math.max((item.h || 100) * scale, 1) ],
+          name: item.snippet || `Layout Item` ,
+          userData: { assetType: 'layout_reference', layoutId: layout.id, layoutItemId: item.id }
+        }
+      });
+    }
   };
 
   // Save current scene
