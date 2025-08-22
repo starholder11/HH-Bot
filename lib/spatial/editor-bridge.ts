@@ -103,8 +103,10 @@ export class EditorBridge {
       case 'scene_exported':
       case 'scene_loaded':
       case 'object_added_success':
+        console.log('[EditorBridge] Received response:', message);
         // Handle command response
         if (message.commandId) {
+          console.log('[EditorBridge] Resolving command:', message.commandId);
           this.resolveCommand(message.commandId, message.data);
         }
         break;

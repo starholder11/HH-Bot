@@ -350,11 +350,13 @@
 						console.log('Added object:', mesh.name);
 						
 						// Send success response
-						send({ 
+						const response = { 
 							type: 'object_added_success', 
 							data: { success: true, uuid: mesh.uuid, name: mesh.name },
 							commandId: command.id 
-						});
+						};
+						console.log('Sending response:', response);
+						send(response);
 					} catch (error) {
 						console.error('Failed to add object:', error);
 						send({ type: 'error', data: { error: 'Failed to add object: ' + error.message } });
