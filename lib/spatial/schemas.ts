@@ -148,6 +148,10 @@ export const SpaceItemZ = z.object({
     })
     .optional(),
   groupId: z.string().optional(),
+  // Media URL and layout coordinates (optional) - ensure preserved in API
+  mediaUrl: z.string().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
   importMetadata: z
     .object({
       sourceType: z.union([z.literal('layout'), z.literal('manual')]),
