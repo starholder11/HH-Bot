@@ -273,6 +273,8 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       const z = item.y !== undefined ? (item.y * scale) : 0;
       const width = item.w ? Math.max(item.w * scale, 0.5) : 1;
       const height = item.h ? Math.max(item.h * scale, 0.5) : 1;
+      
+      console.log(`[SpaceEditor] Layout item ${i}: x=${x}, z=${z}, width=${width}, height=${height}`);
 
       await sendCommand({
         type: 'add_object',
