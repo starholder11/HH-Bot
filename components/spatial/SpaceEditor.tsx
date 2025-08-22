@@ -235,6 +235,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     const assetType = (asset.content_type || asset.type || 'unknown').toLowerCase();
     const id = asset.id || `asset-${Date.now()}`;
     const color = assetType.includes('image') ? 0x3b82f6 : assetType.includes('video') ? 0xef4444 : 0x6b7280;
+    const mediaUrl = asset.cloudflare_url || asset.url || asset.s3_url || null;
 
     // plane for image/video, box otherwise
     const geometry = assetType.includes('image') || assetType.includes('video')
@@ -249,7 +250,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         material: { type: 'MeshBasicMaterial', color },
         position: [Math.random() * 4 - 2, 0.5, Math.random() * 4 - 2],
         name: asset.title || asset.filename || id,
-        userData: { assetType, assetId: id }
+        userData: { assetType, assetId: id, mediaUrl }
       }
     });
   };
