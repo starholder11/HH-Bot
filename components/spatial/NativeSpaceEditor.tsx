@@ -123,6 +123,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const canvasRef = useRef<any>(null);
   const transformControlsRef = useRef<any>(null);
   const orbitRef = useRef<any>(null);
+  const objectRefMap = useRef<Map<string, any>>(new Map());
 
   // Load R3F dependencies
   useEffect(() => {
@@ -568,6 +569,14 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
     const groupRef = useRef<any>(null);
     const isSelected = selectedObjects.has(item.id);
     const isPrimary = primarySelectedId === item.id;
+    useEffect(() => {
+      if (groupRef.current) {
+        objectRefMap.current.set(item.id, groupRef.current);
+      }
+      return () => {
+        objectRefMap.current.delete(item.id);
+      };
+    }, [item.id]);
 
     const content = (
       <group
@@ -672,6 +681,32 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
 
     return content;
   };
+
+  // Attach/detach controls to the primary selected object when it changes
+  useEffect(() => {
+    const controls = transformControlsRef.current;
+    if (!controls) return;
+
+    if (!primarySelectedId) {
+      controls.detach();
+      return;
+    }
+
+    let rafId: number | null = null;
+    const tryAttach = () => {
+      const target = objectRefMap.current.get(primarySelectedId);
+      if (target && target.parent) {
+        controls.attach(target);
+      } else {
+        rafId = requestAnimationFrame(tryAttach);
+      }
+    };
+    tryAttach();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [primarySelectedId, spaceItems]);
 
   return (
     <div className="space-y-4">
@@ -848,7 +883,25 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             <RenderItem key={item.id} item={item} />
           ))}
 
-          {/* TransformControls now wrapped per primary item; nothing at canvas level */}
+          {/* Single TransformControls instance that attaches to the primary selected object via ref map */}
+          <TransformControls
+            ref={transformControlsRef}
+            mode={transformMode}
+            onObjectChange={() => {
+              const id = primarySelectedId;
+              const obj = id ? objectRefMap.current.get(id) : null;
+              if (!id || !obj) return;
+              handleTransform(id, {
+                position: [obj.position.x, obj.position.y, obj.position.z],
+                rotation: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
+                scale: [obj.scale.x, obj.scale.y, obj.scale.z],
+              });
+            }}
+            onDraggingChanged={(active: boolean) => {
+              setIsTransforming(active);
+              if (orbitRef.current) orbitRef.current.enabled = !active;
+            }}
+          />
 
           <OrbitControls
             makeDefault
