@@ -112,11 +112,10 @@
 			clearTimeout(initTimeout);
 			
 			// Add sample scene objects immediately
-			const geometry = new THREE.BoxGeometry();
-			const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-			const cube = new THREE.Mesh(geometry, material);
-			cube.name = 'Sample Cube';
-			editor.addObject(cube);
+			// Scene will be loaded from space data via postMessage
+			
+			// Clear any cached scene data
+			editor.clear();
 			
 			console.log('Three.js Editor initialized successfully');
 			try { window.parent.postMessage({ type: 'ready' }, '*'); } catch (e) {}
@@ -204,6 +203,54 @@
 		signals.objectAdded.add(function(object){ send({ type: 'object_added', data: { uuid: object.uuid } }); });
 		signals.objectRemoved.add(function(object){ send({ type: 'object_removed', data: { uuid: object.uuid } }); });
 		signals.objectChanged.add(function(object){ send({ type: 'object_transformed', data: { uuid: object.uuid } }); });
+
+		// Listen for commands from parent
+		window.addEventListener('message', function(event) {
+			if (!event.data || typeof event.data !== 'object') return;
+			
+			const command = event.data;
+			console.log('Three.js Editor received command:', command);
+			
+			switch (command.type) {
+				case 'load_scene':
+					// Clear current scene first
+					editor.clear();
+					
+					// Load new scene data
+					if (command.data && command.data.object) {
+						try {
+							const loader = new THREE.ObjectLoader();
+							const scene = loader.parse(command.data);
+							editor.setScene(scene);
+							console.log('Scene loaded successfully');
+						} catch (error) {
+							console.error('Failed to load scene:', error);
+							send({ type: 'error', data: { error: 'Failed to load scene: ' + error.message } });
+						}
+					}
+					break;
+					
+				case 'clear_scene':
+					editor.clear();
+					console.log('Scene cleared');
+					break;
+					
+				case 'export_scene':
+					try {
+						const scene = editor.scene;
+						const sceneJSON = scene.toJSON();
+						send({ 
+							type: 'scene_exported', 
+							data: sceneJSON,
+							commandId: command.id 
+						});
+					} catch (error) {
+						console.error('Failed to export scene:', error);
+						send({ type: 'error', data: { error: 'Failed to export scene: ' + error.message } });
+					}
+					break;
+			}
+		});
 
 			//
 
