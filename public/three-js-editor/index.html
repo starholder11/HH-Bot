@@ -228,40 +228,35 @@
 						
 						// Post-process loaded objects to ensure textures are applied
 						loadedObject.traverse((child) => {
-							if (child.isMesh) {
-								console.log('Processing mesh:', child.name, 'position:', child.position, 'userData:', child.userData);
-								
-								if (child.userData.mediaUrl) {
-									console.log('Post-processing mesh with mediaUrl:', child.userData.mediaUrl);
-									
-									// Load texture directly if material doesn't have one
-									if (child.material && !child.material.map) {
-										const textureLoader = new THREE.TextureLoader();
-										textureLoader.crossOrigin = 'anonymous';
-										
-										textureLoader.load(
-											child.userData.mediaUrl,
-											(texture) => {
-												console.log('Texture loaded successfully for mesh:', child.name);
-												texture.colorSpace = THREE.SRGBColorSpace;
-												child.material.map = texture;
-												child.material.needsUpdate = true;
-												if (editor.signals && editor.signals.materialChanged) {
-													editor.signals.materialChanged.dispatch(child.material);
-												}
-											},
-											undefined,
-											(error) => {
-												console.error('Error loading texture for mesh:', child.name, error);
-											}
-										);
-									} else if (child.material && child.material.map) {
-										console.log('Mesh already has texture:', child.name);
-									}
-								} else {
-									console.log('Mesh has no mediaUrl:', child.name);
-								}
+							if (!child.isMesh) return;
+							console.log('Processing mesh:', child.name, 'position:', child.position, 'userData:', child.userData);
+
+							const url = child.userData && child.userData.mediaUrl;
+							if (!url) {
+								console.log('Mesh has no mediaUrl:', child.name);
+								return;
 							}
+
+							const textureLoader = new THREE.TextureLoader();
+							textureLoader.crossOrigin = 'anonymous';
+							textureLoader.load(
+								url,
+								(texture) => {
+									texture.colorSpace = THREE.SRGBColorSpace;
+									if (!child.material || !(child.material instanceof THREE.MeshBasicMaterial)) {
+										child.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+									}
+									child.material.map = texture;
+									child.material.needsUpdate = true;
+									if (editor.signals && editor.signals.materialChanged) {
+										editor.signals.materialChanged.dispatch(child.material);
+									}
+								},
+								undefined,
+								(error) => {
+									console.error('Error loading texture for mesh:', child.name, error);
+								}
+							);
 						});
 						
 						editor.scene.add(loadedObject);
