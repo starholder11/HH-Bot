@@ -237,10 +237,8 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     const color = assetType.includes('image') ? 0x3b82f6 : assetType.includes('video') ? 0xef4444 : 0x6b7280;
     const originalMediaUrl = asset.cloudflare_url || asset.url || asset.s3_url || null;
     
-    // Use proxy for images to avoid CORS issues
-    const mediaUrl = originalMediaUrl && assetType.includes('image') 
-      ? `/api/proxy?url=${encodeURIComponent(originalMediaUrl)}`
-      : originalMediaUrl;
+    // Try direct URL first, fallback to proxy if needed
+    const mediaUrl = originalMediaUrl;
 
     // plane for image/video, box otherwise
     const geometry = assetType.includes('image') || assetType.includes('video')
@@ -293,7 +291,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
             assetType: 'layout_reference', 
             layoutId: layout.id, 
             layoutItemId: item.id,
-            mediaUrl: item.mediaUrl ? `/api/proxy?url=${encodeURIComponent(item.mediaUrl)}` : null
+            mediaUrl: item.mediaUrl || null
           }
         }
       });

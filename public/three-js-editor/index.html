@@ -329,6 +329,7 @@
 
 												// Create material (support textures)
 						if (objData.userData && objData.userData.mediaUrl) {
+							console.log('Loading texture from URL:', objData.userData.mediaUrl);
 							const textureLoader = new THREE.TextureLoader();
 							// Create initial material while texture loads
 							material = new THREE.MeshBasicMaterial({ 
@@ -348,8 +349,19 @@
 								objData.userData.mediaUrl,
 								(texture) => {
 									texture.colorSpace = THREE.SRGBColorSpace;
-									mesh.material = new THREE.MeshBasicMaterial({ map: texture });
+									texture.needsUpdate = true;
+									mesh.material = new THREE.MeshBasicMaterial({ 
+										map: texture,
+										transparent: false,
+										side: THREE.DoubleSide
+									});
+									mesh.material.needsUpdate = true;
 									console.log('Texture loaded successfully for:', objData.name);
+									
+									// Force a render update
+									if (editor.renderer) {
+										editor.renderer.render(editor.scene, editor.camera);
+									}
 								},
 								undefined,
 								(error) => {
