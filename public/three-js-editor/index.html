@@ -329,16 +329,52 @@
 
 												// Create material (support textures)
 						if (objData.userData && objData.userData.mediaUrl) {
-							const texture = new THREE.TextureLoader().load(objData.userData.mediaUrl);
-							texture.colorSpace = THREE.SRGBColorSpace;
-							material = new THREE.MeshBasicMaterial({ map: texture });
+							const textureLoader = new THREE.TextureLoader();
+							// Create initial material while texture loads
+							material = new THREE.MeshBasicMaterial({ 
+								color: objData.material.color || 0x888888 
+							});
+							
+							// Create mesh first
+							const mesh = new THREE.Mesh(geometry, material);
+							mesh.name = objData.name || 'Object';
+							mesh.position.fromArray(objData.position || [0, 0, 0]);
+							if (objData.rotation) mesh.rotation.fromArray(objData.rotation);
+							if (objData.scale) mesh.scale.fromArray(objData.scale);
+							mesh.userData = objData.userData || {};
+							
+							// Load texture asynchronously
+							textureLoader.load(
+								objData.userData.mediaUrl,
+								(texture) => {
+									texture.colorSpace = THREE.SRGBColorSpace;
+									mesh.material = new THREE.MeshBasicMaterial({ map: texture });
+									console.log('Texture loaded successfully for:', objData.name);
+								},
+								undefined,
+								(error) => {
+									console.error('Failed to load texture for:', objData.name, error);
+									// Keep the default material if texture fails
+								}
+							);
+							
+							editor.addObject(mesh);
+							console.log('Added object:', mesh.name);
+							
+							// Send success response
+							send({ 
+								type: 'object_added_success', 
+								data: { success: true, uuid: mesh.uuid, name: mesh.name },
+								commandId: command.id 
+							});
+							return; // Exit early since we handled the mesh creation
 						} else {
 							material = new THREE.MeshBasicMaterial({ 
 								color: objData.material.color || 0x888888 
 							});
 						}
 
-						// Create mesh
+						// Create mesh (for non-textured objects)
 						const mesh = new THREE.Mesh(geometry, material);
 						mesh.name = objData.name || 'Object';
 						mesh.position.fromArray(objData.position || [0, 0, 0]);
