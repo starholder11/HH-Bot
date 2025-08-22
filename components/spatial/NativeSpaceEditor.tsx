@@ -646,6 +646,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
       return (
         <TransformControls
           ref={transformControlsRef}
+          object={groupRef as any}
           mode={transformMode}
           onObjectChange={() => {
             if (!groupRef.current) return;
@@ -842,7 +843,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             <RenderItem key={item.id} item={item} />
           ))}
 
-          <OrbitControls ref={orbitRef} enablePan enableZoom enableRotate />
+          <OrbitControls makeDefault ref={orbitRef} enablePan enableZoom enableRotate />
           <gridHelper args={[20, 20, "#666", "#333"]} />
           <axesHelper args={[2]} />
           <Environment preset="city" />
