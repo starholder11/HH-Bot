@@ -37,21 +37,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     callbacksRef.current = { onSceneChange, onSelectionChange, onError };
   }, [onSceneChange, onSelectionChange, onError]);
 
-  // Expose methods to parent component
-  useImperativeHandle(ref, () => ({
-    saveScene: async () => {
-      await saveScene();
-    },
-    loadSpace: async (spaceData: any) => {
-      await loadSpace(spaceData);
-    },
-    addAsset: async (asset: any) => {
-      await addAssetToEditor(asset);
-    },
-    addLayout: async (layout: any) => {
-      await addLayoutToEditor(layout);
-    }
-  }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor]);
+  // Expose methods to parent component will be set after function declarations
 
   useEffect(() => {
     if (!iframeRef.current) return;
@@ -377,6 +363,14 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       onError?.(errorMsg);
     }
   };
+
+  // Expose methods to parent component (placed after function declarations)
+  useImperativeHandle(ref, () => ({
+    saveScene: async () => { await saveScene(); },
+    loadSpace: async (sd: any) => { await loadSpace(sd); },
+    addAsset: async (asset: any) => { await addAssetToEditor(asset); },
+    addLayout: async (layout: any) => { await addLayoutToEditor(layout); }
+  }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor]);
 
   if (error) {
     return (
