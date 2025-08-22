@@ -309,14 +309,22 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     try {
       console.log('[SpaceEditor] Starting scene save...');
       pendingSaveRef.current = true;
-      // Request scene export from editor
-      await sendCommand({
+      // Request scene export from editor and use the response payload
+      const exportedScene = await sendCommand({
         type: 'export_scene',
         data: {},
       });
       console.log('[SpaceEditor] Export command sent, waiting for response...');
 
-      // Note: The actual save will happen in the message handler when we receive the exported scene
+      // If bridge resolves with scene payload, proceed to save immediately
+      if (exportedScene) {
+        console.log('[SpaceEditor] Export resolved via command promise');
+        pendingSaveRef.current = false;
+        await handleSceneExport(exportedScene);
+        return;
+      }
+
+      // Note: If no payload returned (queued pre-ready), onMessage handler will catch when delivered
     } catch (err) {
       pendingSaveRef.current = false;
       const errorMsg = err instanceof Error ? err.message : 'Failed to save scene';
