@@ -118,6 +118,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
   const [showAssetImportModal, setShowAssetImportModal] = useState(false);
   const [showLayoutImportModal, setShowLayoutImportModal] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isTransforming, setIsTransforming] = useState(false);
   const canvasRef = useRef<any>(null);
   const transformControlsRef = useRef<any>(null);
   const orbitRef = useRef<any>(null);
@@ -657,6 +658,7 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             });
           }}
           onDraggingChanged={(active: boolean) => {
+            setIsTransforming(active);
             if (orbitRef.current) orbitRef.current.enabled = !active;
           }}
         >
@@ -843,7 +845,15 @@ export default forwardRef<NativeSpaceEditorHandle, NativeSpaceEditorProps>(funct
             <RenderItem key={item.id} item={item} />
           ))}
 
-          <OrbitControls makeDefault ref={orbitRef} enablePan enableZoom enableRotate />
+          <OrbitControls
+            makeDefault
+            ref={orbitRef}
+            enablePan
+            enableZoom
+            enableRotate
+            enableDamping
+            onStart={() => { if (isTransforming && orbitRef.current) orbitRef.current.enabled = false; }}
+          />
           <gridHelper args={[20, 20, "#666", "#333"]} />
           <axesHelper args={[2]} />
           <Environment preset="city" />
