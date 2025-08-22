@@ -27,6 +27,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   const [error, setError] = useState<string | null>(null);
   const [spaceData, setSpaceData] = useState<any>(null);
   const bridgeRef = useRef<EditorBridge | null>(null);
+  const callbacksRef = useRef<{ onSceneChange?: (d:any)=>void; onSelectionChange?: (s:string[])=>void; onError?: (e:string)=>void }>({ onSceneChange, onSelectionChange, onError });
+  const lastLoadedIdRef = useRef<string | null>(null);
+
+  // Keep latest callbacks without re-initializing the bridge
+  useEffect(() => {
+    callbacksRef.current = { onSceneChange, onSelectionChange, onError };
+  }, [onSceneChange, onSelectionChange, onError]);
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -50,29 +57,32 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       setEditorReady(true);
       setLoading(false);
       console.log('Three.js Editor is ready');
-      // Load space data when editor is ready
-      loadSpaceData();
+      // Load space data when editor is ready (guard against double-load)
+      if (spaceId && lastLoadedIdRef.current !== spaceId) {
+        loadSpaceData();
+        lastLoadedIdRef.current = spaceId;
+      }
     };
 
     bridge.onError = (errorMsg: string) => {
       setError(errorMsg);
       setLoading(false);
-      onError?.(errorMsg);
+      callbacksRef.current.onError?.(errorMsg);
     };
 
     bridge.onMessage = (message: EditorMessage) => {
       switch (message.type) {
         case 'scene_changed':
-          onSceneChange?.(message.data);
+          callbacksRef.current.onSceneChange?.(message.data);
           break;
         case 'selection_changed':
-          onSelectionChange?.(message.data.selectedObjects || []);
+          callbacksRef.current.onSelectionChange?.(message.data.selectedObjects || []);
           break;
         case 'object_added':
         case 'object_removed':
         case 'object_transformed':
           // Notify parent of scene changes
-          onSceneChange?.(message.data);
+          callbacksRef.current.onSceneChange?.(message.data);
           break;
         case 'scene_exported':
           // Handle scene export response
@@ -90,12 +100,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     return () => {
       bridge.destroy();
     };
-  }, [onSceneChange, onSelectionChange, onError]);
+  }, []);
 
   // Reload space data when spaceId changes
   useEffect(() => {
-    if (editorReady && spaceId) {
+    if (editorReady && spaceId && lastLoadedIdRef.current !== spaceId) {
       loadSpaceData();
+      lastLoadedIdRef.current = spaceId;
     }
   }, [spaceId, editorReady]);
 
