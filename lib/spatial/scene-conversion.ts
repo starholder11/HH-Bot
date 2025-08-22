@@ -187,9 +187,6 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   } as SpaceAsset;
 
   console.log('[Scene Conversion] Final result:', result);
-  console.log('[Scene Conversion] Final result.space:', result.space);
-  console.log('[Scene Conversion] Final result.space.items:', result.space.items);
-  console.log('[Scene Conversion] Final result.space.items length:', result.space.items.length);
   return result;
 }
 

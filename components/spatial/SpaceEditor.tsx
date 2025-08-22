@@ -147,8 +147,6 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       }
       const space = await response.json();
       console.log('[SpaceEditor] Loaded space:', space);
-      console.log('[SpaceEditor] Space.space:', space.space);
-      console.log('[SpaceEditor] Space.space.items:', space.space?.items);
       setSpaceData(space);
 
       // Convert to Three.js format and load into editor
@@ -370,9 +368,6 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
       const savedSpace = await response.json();
       console.log('[SpaceEditor] API response:', savedSpace);
-      console.log('[SpaceEditor] API response.space:', savedSpace.space);
-      console.log('[SpaceEditor] API response.space.items:', savedSpace.space?.items);
-      console.log('[SpaceEditor] API response.space.items length:', savedSpace.space?.items?.length);
       
       setSpaceData(savedSpace);
       onSceneChange?.(savedSpace);
