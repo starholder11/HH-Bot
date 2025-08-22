@@ -350,17 +350,26 @@
 								(texture) => {
 									texture.colorSpace = THREE.SRGBColorSpace;
 									texture.needsUpdate = true;
-									mesh.material = new THREE.MeshBasicMaterial({ 
+									const newMaterial = new THREE.MeshBasicMaterial({ 
 										map: texture,
 										transparent: false,
 										side: THREE.DoubleSide
 									});
-									mesh.material.needsUpdate = true;
-									console.log('Texture loaded successfully for:', objData.name);
+									newMaterial.needsUpdate = true;
+									mesh.material = newMaterial;
+									console.log('Texture loaded successfully for:', objData.name, 'Material:', newMaterial);
 									
 									// Force a render update
 									if (editor.renderer) {
 										editor.renderer.render(editor.scene, editor.camera);
+									}
+									
+									// Trigger editor signals to update UI
+									if (editor.signals && editor.signals.sceneGraphChanged) {
+										editor.signals.sceneGraphChanged.dispatch();
+									}
+									if (editor.signals && editor.signals.materialChanged) {
+										editor.signals.materialChanged.dispatch();
 									}
 								},
 								undefined,
