@@ -150,11 +150,25 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   const items = scene.object.children.map(child => {
     console.log('[Scene Conversion] Processing child:', child);
     
-    // Extract position from array format used by Three.js
-    const position = child.position || [0, 0.5, 0];
-    const x = position[0];
-    const y = position[1];
-    const z = position[2];
+    // Extract position from Three.js object (could be array or matrix)
+    let x = 0, y = 0.5, z = 0;
+    
+    if (child.position && Array.isArray(child.position)) {
+      // Direct position array
+      x = child.position[0] || 0;
+      y = child.position[1] || 0.5;
+      z = child.position[2] || 0;
+    } else if (child.matrix && Array.isArray(child.matrix) && child.matrix.length === 16) {
+      // Extract position from transformation matrix (elements 12, 13, 14)
+      x = child.matrix[12] || 0;
+      y = child.matrix[13] || 0.5;
+      z = child.matrix[14] || 0;
+    } else if (child.position && typeof child.position === 'object') {
+      // Position object with x, y, z properties
+      x = child.position.x || 0;
+      y = child.position.y || 0.5;
+      z = child.position.z || 0;
+    }
     
     // Extract mediaUrl from material texture or userData
     let mediaUrl = child.userData?.mediaUrl || '';
