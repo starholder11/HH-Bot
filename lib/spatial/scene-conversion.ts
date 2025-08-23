@@ -292,16 +292,17 @@ function generateImagesFromSpace(space: SpaceAsset): any[] {
 
 function generateGeometryForItem(item: SpaceItem): any {
   // Generate actual Three.js geometry objects
+  // Match the logic from SpaceEditor.tsx import: only image and video are flat planes
   switch (item.assetType) {
     case 'image':
     case 'video':
-    case 'layout':
       return {
         uuid: `geom-${item.id}`,
         type: 'PlaneGeometry',
         width: 2,
         height: 2
       };
+    case 'layout':
     case 'object':
       return {
         uuid: `geom-${item.id}`,
