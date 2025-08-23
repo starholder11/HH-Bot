@@ -706,6 +706,7 @@
 			function applyMediaToMesh(mesh, url, assetType, editor) {
 				if (!url) return;
 				const isVideo = (assetType === 'video') || /\.mp4(\?|$)/i.test(url);
+				console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
 				if (isVideo) {
 					// SIMPLE Three.js VideoTexture - the official way
 					const video = document.createElement('video');
