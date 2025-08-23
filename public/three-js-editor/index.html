@@ -333,7 +333,8 @@
 
 				timeout = setTimeout( function () {
 
-					editor.storage.set( editor.toJSON() );
+					// Use safe serialization that skips VideoTexture maps
+					editor.storage.set( safeEditorToJSON(editor) );
 
 					editor.signals.savingFinished.dispatch();
 
@@ -341,6 +342,34 @@
 
 			}, 1000 );
 
+		}
+
+		// Safely serialize the scene by temporarily removing video material maps
+		function safeEditorToJSON(editor){
+			const removedMaps = [];
+			try {
+				editor.scene.traverse((obj)=>{
+					try {
+						if (obj && obj.isMesh && obj.material && obj.material.map) {
+							const isVideoMesh = obj.userData?.assetType === 'video' || /VideoFrame/i.test(obj.name||'');
+							if (isVideoMesh) {
+								removedMaps.push({ material: obj.material, map: obj.material.map });
+								obj.material.map = null;
+								obj.material.needsUpdate = true;
+							}
+						}
+					} catch {}
+				});
+				return editor.toJSON();
+			} finally {
+				// Restore maps
+				for (const { material, map } of removedMaps) {
+					try {
+						material.map = map;
+						material.needsUpdate = true;
+					} catch {}
+				}
+			}
 		}
 
 		const signals = editor.signals;
@@ -728,6 +757,7 @@
 						mesh.material.color && mesh.material.color.set(0xffffff);
 						mesh.material.map = videoTexture;
 						mesh.material.transparent = false;
+						mesh.material.toneMapped = false;
 						mesh.material.needsUpdate = true;
 							
 							// Adjust mesh scale to video aspect ratio
