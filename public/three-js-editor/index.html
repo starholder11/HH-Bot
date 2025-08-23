@@ -740,13 +740,18 @@
 						videoTexture.generateMipmaps = false;
 						videoTexture.minFilter = THREE.LinearFilter;
 						videoTexture.magFilter = THREE.LinearFilter;
-						videoTexture.flipY = true;
+						// Do not override flipY; use VideoTexture defaults
 						
-						// Apply to mesh
-						if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
-							mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+						// Apply to mesh with a fresh unlit material
+						if (mesh.material) {
+							try { mesh.material.dispose && mesh.material.dispose(); } catch {}
 						}
-						mesh.material.map = videoTexture;
+						mesh.material = new THREE.MeshBasicMaterial({
+							map: videoTexture,
+							side: THREE.DoubleSide,
+							transparent: false,
+							toneMapped: false
+						});
 						mesh.material.needsUpdate = true;
 						
 						// Set aspect ratio
@@ -755,8 +760,10 @@
 							mesh.scale.set(aspectRatio * 2, 2, 1);
 						}
 						
-						// Auto-play
-						video.play().catch(() => {}); // Ignore autoplay failures
+						// Ensure autoplay and kick first update
+						video.play().then(() => {
+							videoTexture.needsUpdate = true;
+						}).catch(() => {});
 						
 						if (editor.signals) {
 							editor.signals.materialChanged?.dispatch(mesh.material);
