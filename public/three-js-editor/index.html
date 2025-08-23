@@ -707,45 +707,45 @@
 				if (!url) return;
 				const isVideo = (assetType === 'video') || /\.mp4(\?|$)/i.test(url);
 				if (isVideo) {
-					// Standard Three.js video texture approach
+					// Standard Three.js video texture approach - wait for video to be ready
 					const video = document.createElement('video');
 					video.src = url;
 					video.crossOrigin = 'anonymous';
 					video.muted = true;
 					video.loop = true;
 					video.playsInline = true;
+					video.preload = 'auto';
 					
-					// Create VideoTexture immediately - Three.js handles the rest
-					const videoTexture = new THREE.VideoTexture(video);
-					videoTexture.colorSpace = THREE.SRGBColorSpace;
-					videoTexture.generateMipmaps = false;
-					videoTexture.minFilter = THREE.LinearFilter;
-					videoTexture.magFilter = THREE.LinearFilter;
-					videoTexture.flipY = true;
-					
-					// Apply to mesh
-					if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
-						mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
-					}
-					mesh.material.map = videoTexture;
-					mesh.material.needsUpdate = true;
-					
-					// Set aspect ratio when video loads
-					video.addEventListener('loadedmetadata', () => {
+					// Only create VideoTexture when video can play through without buffering
+					video.addEventListener('canplaythrough', () => {
+						const videoTexture = new THREE.VideoTexture(video);
+						videoTexture.colorSpace = THREE.SRGBColorSpace;
+						videoTexture.generateMipmaps = false;
+						videoTexture.minFilter = THREE.LinearFilter;
+						videoTexture.magFilter = THREE.LinearFilter;
+						videoTexture.flipY = true;
+						
+						// Apply to mesh
+						if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
+							mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+						}
+						mesh.material.map = videoTexture;
+						mesh.material.needsUpdate = true;
+						
+						// Set aspect ratio
 						const aspectRatio = video.videoWidth / video.videoHeight;
 						if (aspectRatio > 0 && isFinite(aspectRatio)) {
 							mesh.scale.set(aspectRatio * 2, 2, 1);
 						}
+						
+						// Auto-play
+						video.play().catch(() => {}); // Ignore autoplay failures
+						
 						if (editor.signals) {
 							editor.signals.materialChanged?.dispatch(mesh.material);
 							editor.signals.sceneGraphChanged?.dispatch();
 						}
 						ensureFrameForMesh(mesh, editor);
-					});
-					
-					// Auto-play when ready
-					video.addEventListener('canplay', () => {
-						video.play().catch(() => {}); // Ignore autoplay failures
 					});
 					
 					// Track video element
