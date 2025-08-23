@@ -707,7 +707,7 @@
 				if (!url) return;
 				const isVideo = (assetType === 'video') || /\.mp4(\?|$)/i.test(url);
 				if (isVideo) {
-					// Standard Three.js video texture approach - wait for video to be ready
+					// Create video element and add to DOM for loading
 					const video = document.createElement('video');
 					video.src = url;
 					video.crossOrigin = 'anonymous';
@@ -715,9 +715,18 @@
 					video.loop = true;
 					video.playsInline = true;
 					video.preload = 'auto';
+					video.style.display = 'none'; // Hide but keep in DOM
+					document.body.appendChild(video); // Required for loading
 					
-					// Only create VideoTexture when video can play through without buffering
+					console.log('Loading video:', url);
+					
+					// Debug all video events
+					video.addEventListener('loadstart', () => console.log('Video loadstart'));
+					video.addEventListener('loadedmetadata', () => console.log('Video loadedmetadata'));
+					video.addEventListener('canplay', () => console.log('Video canplay'));
 					video.addEventListener('canplaythrough', () => {
+						console.log('Video canplaythrough - creating texture');
+						
 						const videoTexture = new THREE.VideoTexture(video);
 						videoTexture.colorSpace = THREE.SRGBColorSpace;
 						videoTexture.generateMipmaps = false;
@@ -746,6 +755,10 @@
 							editor.signals.sceneGraphChanged?.dispatch();
 						}
 						ensureFrameForMesh(mesh, editor);
+					});
+					
+					video.addEventListener('error', (e) => {
+						console.error('Video loading error:', e, video.error);
 					});
 					
 					// Track video element
