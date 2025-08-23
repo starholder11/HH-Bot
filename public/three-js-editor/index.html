@@ -635,12 +635,17 @@
 						video.autoplay = true;
 						const startPlayback = () => video.play().catch(() => {});
 						video.addEventListener('loadedmetadata', () => {
+							startPlayback();
+						});
+						video.addEventListener('loadeddata', () => {
 							if (video.videoWidth === 0 || video.videoHeight === 0) return;
 							const texture = new THREE.VideoTexture(video);
 							texture.colorSpace = THREE.SRGBColorSpace;
 							texture.generateMipmaps = false;
 							texture.minFilter = THREE.LinearFilter;
 							texture.magFilter = THREE.LinearFilter;
+							texture.wrapS = THREE.ClampToEdgeWrapping;
+							texture.wrapT = THREE.ClampToEdgeWrapping;
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 								mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 							}
@@ -656,12 +661,16 @@
 							ensureFrameForMesh(mesh, editor);
 							startPlayback();
 						});
-						video.addEventListener('loadeddata', () => { startPlayback(); });
 						video.addEventListener('canplaythrough', () => {
-							try { if (mesh.material && mesh.material.map) mesh.material.map.needsUpdate = true; } catch {}
 							startPlayback();
 						});
-						video.addEventListener('play', () => { try { if (mesh.material && mesh.material.map) mesh.material.map.needsUpdate = true; } catch {} });
+						video.addEventListener('play', () => { 
+							try { 
+								if (mesh.material && mesh.material.map) {
+									mesh.material.map.needsUpdate = true;
+								}
+							} catch {} 
+						});
 						// Track the video element without polluting scene/userData (avoids IndexedDB clone errors)
 						videoMap.set(mesh.uuid, video);
 					} catch (e) {
