@@ -118,23 +118,32 @@
 				} catch {}
 			}
 
-			// Simple video controls overlay – anchored to selected video card bottom
+			// Enhanced video controls overlay – anchored to selected video card bottom
 			const controls = document.createElement('div');
-			controls.style.cssText = 'position:absolute;left:0;top:0;display:none;gap:8px;align-items:center;background:#0b0b0de0;border:1px solid #1f2937;border-radius:10px;padding:8px 10px;color:#e5e7eb;font:12px system-ui;z-index:1000;box-shadow:0 6px 24px rgba(0,0,0,.5)';
+			controls.style.cssText = 'position:absolute;left:0;top:0;display:none;gap:8px;align-items:center;background:#0b0b0de0;border:1px solid #1f2937;border-radius:10px;padding:8px 12px;color:#e5e7eb;font:12px system-ui;z-index:1000;box-shadow:0 6px 24px rgba(0,0,0,.5);backdrop-filter:blur(8px)';
 			const playBtn = document.createElement('button');
-			playBtn.textContent = 'Play';
-			playBtn.style.cssText = 'background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:4px 10px;cursor:pointer';
+			playBtn.textContent = '▶️';
+			playBtn.style.cssText = 'background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:6px 12px;cursor:pointer;transition:all 0.2s;font-size:14px';
+			playBtn.addEventListener('mouseenter', () => playBtn.style.background = '#1f2937');
+			playBtn.addEventListener('mouseleave', () => playBtn.style.background = '#111827');
+			
 			const muteBtn = document.createElement('button');
-			muteBtn.textContent = 'Mute';
+			muteBtn.textContent = '🔊';
 			muteBtn.style.cssText = playBtn.style.cssText;
+			muteBtn.addEventListener('mouseenter', () => muteBtn.style.background = '#1f2937');
+			muteBtn.addEventListener('mouseleave', () => muteBtn.style.background = '#111827');
+			
 			const timeLabel = document.createElement('span');
 			timeLabel.textContent = '0:00 / 0:00';
+			timeLabel.style.cssText = 'min-width:80px;text-align:center;font-family:monospace';
+			
 			const seek = document.createElement('input');
 			seek.type = 'range';
 			seek.min = '0';
 			seek.max = '0';
 			seek.step = '0.01';
-			seek.style.width = '280px';
+			seek.style.cssText = 'width:280px;height:6px;background:#374151;border-radius:3px;outline:none;cursor:pointer';
+			
 			controls.appendChild(playBtn);
 			controls.appendChild(muteBtn);
 			controls.appendChild(seek);
@@ -155,8 +164,8 @@
 				seek.max = isFinite(boundVideo.duration) ? String(boundVideo.duration) : '0';
 				seek.value = String(boundVideo.currentTime || 0);
 				timeLabel.textContent = `${fmtTime(boundVideo.currentTime||0)} / ${fmtTime(boundVideo.duration||0)}`;
-				playBtn.textContent = boundVideo.paused ? 'Play' : 'Pause';
-				muteBtn.textContent = boundVideo.muted ? 'Unmute' : 'Mute';
+				playBtn.textContent = boundVideo.paused ? '▶️' : '⏸️';
+				muteBtn.textContent = boundVideo.muted ? '🔇' : '🔊';
 				updateControlsPosition();
 			}
 			function updateControlsPosition(){
@@ -175,8 +184,20 @@
 					controls.style.top = Math.round(y + 8) + 'px';
 				}catch{}
 			}
-			playBtn.onclick = ()=>{ if(!boundVideo) return; if(boundVideo.paused){ boundVideo.play().catch(()=>{}); } else { boundVideo.pause(); } playBtn.textContent = boundVideo.paused ? 'Play' : 'Pause'; };
-			muteBtn.onclick = ()=>{ if(!boundVideo) return; boundVideo.muted = !boundVideo.muted; muteBtn.textContent = boundVideo.muted ? 'Unmute' : 'Mute'; };
+			playBtn.onclick = ()=>{ 
+				if(!boundVideo) return; 
+				if(boundVideo.paused){ 
+					boundVideo.play().catch(()=>{}); 
+				} else { 
+					boundVideo.pause(); 
+				} 
+				playBtn.textContent = boundVideo.paused ? '▶️' : '⏸️'; 
+			};
+			muteBtn.onclick = ()=>{ 
+				if(!boundVideo) return; 
+				boundVideo.muted = !boundVideo.muted; 
+				muteBtn.textContent = boundVideo.muted ? '🔇' : '🔊'; 
+			};
 			seek.oninput = ()=>{ if(!boundVideo) return; try{ boundVideo.currentTime = parseFloat(seek.value); }catch{} };
 			function tick(){
 				if(boundVideo){
@@ -652,13 +673,28 @@
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
 							texture.flipY = false;
+							texture.needsUpdate = true;
 							
+							// Create optimized material for video
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
-								mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+								mesh.material = new THREE.MeshBasicMaterial({ 
+									side: THREE.DoubleSide,
+									transparent: true,
+									opacity: 0.95
+								});
 							}
 							mesh.material.color && mesh.material.color.set(0xffffff);
 							mesh.material.map = texture;
+							mesh.material.transparent = true;
+							mesh.material.opacity = 0.95;
 							mesh.material.needsUpdate = true;
+							
+							// Adjust mesh scale to video aspect ratio
+							const aspectRatio = video.videoWidth / video.videoHeight;
+							if (aspectRatio > 0 && isFinite(aspectRatio)) {
+								mesh.scale.set(aspectRatio * 2, 2, 1);
+							}
+							
 							if (editor.signals && editor.signals.materialChanged) {
 								editor.signals.materialChanged.dispatch(mesh.material);
 							}
@@ -676,6 +712,25 @@
 							startPlayback();
 						});
 						video.addEventListener('play', () => { 
+							try { 
+								if (mesh.material && mesh.material.map) {
+									mesh.material.map.needsUpdate = true;
+								}
+								// Update controls when play state changes
+								if (boundVideo === video) {
+									playBtn.textContent = '⏸️';
+								}
+							} catch {} 
+						});
+						video.addEventListener('pause', () => { 
+							try { 
+								// Update controls when play state changes
+								if (boundVideo === video) {
+									playBtn.textContent = '▶️';
+								}
+							} catch {} 
+						});
+						video.addEventListener('timeupdate', () => { 
 							try { 
 								if (mesh.material && mesh.material.map) {
 									mesh.material.map.needsUpdate = true;
