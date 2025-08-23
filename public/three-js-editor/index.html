@@ -109,8 +109,8 @@
 						const size = box.getSize(new THREERef.Vector3());
 						const center = box.getCenter(new THREERef.Vector3());
 						const maxDim = Math.max(size.x, size.y, size.z);
-						const distance = maxDim * 1.6 + 1; // tighter fit
-						editor.camera.position.set(center.x, center.y + maxDim * 0.6, center.z + distance);
+						const distance = maxDim * 1.2 + 0.6; // tighter fit
+						editor.camera.position.set(center.x, center.y + maxDim * 0.5, center.z + distance);
 						editor.camera.lookAt(center);
 						if (editor.signals && editor.signals.cameraChanged) editor.signals.cameraChanged.dispatch();
 						if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
@@ -366,6 +366,8 @@
 						
 						editor.scene.add(loadedObject);
 						frameScene(editor, loadedObject);
+						// Reframe after first render tick to ensure bounds are final
+						requestAnimationFrame(()=> frameScene(editor, loadedObject));
 						
 						// Update the editor
 						editor.signals.sceneGraphChanged.dispatch();
@@ -624,6 +626,7 @@
 						video.src = url;
 						video.crossOrigin = 'anonymous';
 						video.muted = true;
+						video.defaultMuted = true;
 						video.preload = 'auto';
 						video.loop = true;
 						video.playsInline = true;
@@ -631,7 +634,7 @@
 						video.setAttribute('muted', '');
 						video.autoplay = true;
 						const startPlayback = () => video.play().catch(() => {});
-						video.addEventListener('loadeddata', () => {
+						video.addEventListener('loadedmetadata', () => {
 							if (video.videoWidth === 0 || video.videoHeight === 0) return;
 							const texture = new THREE.VideoTexture(video);
 							texture.colorSpace = THREE.SRGBColorSpace;
@@ -653,10 +656,12 @@
 							ensureFrameForMesh(mesh, editor);
 							startPlayback();
 						});
+						video.addEventListener('loadeddata', () => { startPlayback(); });
 						video.addEventListener('canplaythrough', () => {
 							try { if (mesh.material && mesh.material.map) mesh.material.map.needsUpdate = true; } catch {}
 							startPlayback();
 						});
+						video.addEventListener('play', () => { try { if (mesh.material && mesh.material.map) mesh.material.map.needsUpdate = true; } catch {} });
 						// Track the video element without polluting scene/userData (avoids IndexedDB clone errors)
 						videoMap.set(mesh.uuid, video);
 					} catch (e) {
