@@ -100,6 +100,24 @@
 			const resizer = new Resizer( editor );
 			document.body.appendChild( resizer.dom );
 
+			// Helper: frame camera to scene or object with a tight fit
+			function frameScene(editor, target) {
+				try {
+					const THREERef = THREE;
+					const box = new THREERef.Box3().setFromObject(target || editor.scene);
+					if (!box.isEmpty()) {
+						const size = box.getSize(new THREERef.Vector3());
+						const center = box.getCenter(new THREERef.Vector3());
+						const maxDim = Math.max(size.x, size.y, size.z);
+						const distance = maxDim * 1.6 + 1; // tighter fit
+						editor.camera.position.set(center.x, center.y + maxDim * 0.6, center.z + distance);
+						editor.camera.lookAt(center);
+						if (editor.signals && editor.signals.cameraChanged) editor.signals.cameraChanged.dispatch();
+						if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
+					}
+				} catch {}
+			}
+
 			//
 
 		// Add timeout and error handling for storage initialization
@@ -252,6 +270,7 @@
 						});
 						
 						editor.scene.add(loadedObject);
+						frameScene(editor, loadedObject);
 						
 						// Update the editor
 						editor.signals.sceneGraphChanged.dispatch();
@@ -521,6 +540,10 @@
 							if (editor.signals && editor.signals.sceneGraphChanged) {
 								editor.signals.sceneGraphChanged.dispatch();
 							}
+							startPlayback();
+						});
+						video.addEventListener('canplaythrough', () => {
+							try { if (mesh.material && mesh.material.map) mesh.material.map.needsUpdate = true; } catch {}
 							startPlayback();
 						});
 						video.addEventListener('error', (e) => {
