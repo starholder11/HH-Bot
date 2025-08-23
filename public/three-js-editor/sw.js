@@ -277,8 +277,17 @@ async function networkFirst( request ) {
 
 		if ( request.method === 'GET' ) {
 
-			const cache = await caches.open( cacheName );
-			cache.put( request, response.clone() );
+			// Avoid caching partial (206) responses or media/proxy requests that may be streaming
+			const statusOK = response.status === 200;
+			const ct = (response.headers.get('content-type') || '').toLowerCase();
+			const hasContentRange = response.headers.has('content-range') || response.headers.has('Content-Range');
+			const isVideo = ct.startsWith('video/') || /\.(mp4|webm)(\?|$)/i.test(request.url);
+			const isProxy = request.url.includes('/api/proxy');
+
+			if ( statusOK && !hasContentRange && !isVideo && !isProxy ) {
+				const cache = await caches.open( cacheName );
+				cache.put( request, response.clone() );
+			}
 
 		}
 
