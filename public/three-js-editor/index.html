@@ -198,19 +198,35 @@
 			}
 			playBtn.onclick = ()=>{ 
 				if(!boundVideo) return; 
+				console.log('Play button clicked, video paused:', boundVideo.paused);
 				if(boundVideo.paused){ 
-					boundVideo.play().catch(()=>{}); 
+					boundVideo.play().then(() => {
+						console.log('Video play succeeded');
+						playBtn.textContent = '⏸️';
+					}).catch((error) => {
+						console.error('Video play failed:', error);
+					}); 
 				} else { 
 					boundVideo.pause(); 
+					console.log('Video paused');
+					playBtn.textContent = '▶️';
 				} 
-				playBtn.textContent = boundVideo.paused ? '▶️' : '⏸️'; 
 			};
 			muteBtn.onclick = ()=>{ 
 				if(!boundVideo) return; 
 				boundVideo.muted = !boundVideo.muted; 
 				muteBtn.textContent = boundVideo.muted ? '🔇' : '🔊'; 
 			};
-			seek.oninput = ()=>{ if(!boundVideo) return; try{ boundVideo.currentTime = parseFloat(seek.value); }catch{} };
+			seek.oninput = ()=>{ 
+				if(!boundVideo) return; 
+				try{ 
+					const newTime = parseFloat(seek.value);
+					console.log('Seeking to:', newTime);
+					boundVideo.currentTime = newTime; 
+				}catch(error) {
+					console.error('Seek failed:', error);
+				} 
+			};
 			function tick(){
 				if(boundVideo){
 					seek.max = isFinite(boundVideo.duration)? String(boundVideo.duration) : seek.max;
@@ -690,18 +706,18 @@
 							startPlayback();
 						});
 						let textureCreated = false;
-						const createVideoTexture = () => {
-							if (textureCreated || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) {
-								console.log('Video not ready for texture creation:', {
-									textureCreated,
-									videoWidth: video.videoWidth,
-									videoHeight: video.videoHeight,
-									readyState: video.readyState
-								});
-								return;
-							}
-							textureCreated = true;
-							console.log('Creating video texture for:', video.src);
+											const createVideoTexture = () => {
+						if (textureCreated || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 3) {
+							console.log('Video not ready for texture creation:', {
+								textureCreated,
+								videoWidth: video.videoWidth,
+								videoHeight: video.videoHeight,
+								readyState: video.readyState
+							});
+							return;
+						}
+						textureCreated = true;
+						console.log('Creating video texture for:', video.src);
 							
 							const texture = new THREE.VideoTexture(video);
 							texture.colorSpace = THREE.SRGBColorSpace;
@@ -713,7 +729,12 @@
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
 							texture.flipY = true;  // Fix upside-down video
-							texture.needsUpdate = true;
+							
+							// Wait for next frame to ensure video is ready
+							requestAnimationFrame(() => {
+								texture.needsUpdate = true;
+								console.log('Video texture needsUpdate set');
+							});
 							
 							// Create optimized material for video
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
@@ -748,12 +769,15 @@
 						video.addEventListener('loadeddata', () => {
 							console.log('Video loadeddata event fired');
 							createVideoTexture();
-							startPlayback();
 						});
 						video.addEventListener('canplaythrough', () => {
 							console.log('Video canplaythrough event fired');
-							createVideoTexture(); // Try again in case first attempt failed
-							startPlayback();
+							if (!textureCreated) {
+								createVideoTexture(); // Only try again if texture wasn't created
+							}
+							if (video.paused) {
+								startPlayback(); // Only start if not already playing
+							}
 						});
 						video.addEventListener('play', () => { 
 							try { 
