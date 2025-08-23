@@ -810,14 +810,15 @@
 					// Prefer requestVideoFrameCallback when supported for precise updates
 					const startPreciseVideoUpdates = () => {
 						try {
-							if (typeof (video as any).requestVideoFrameCallback === 'function') {
+							const rvfc = (video && (video.requestVideoFrameCallback || video.webkitRequestVideoFrameCallback));
+							if (typeof rvfc === 'function') {
 								const loop = () => {
 									if (videoTexture && video.readyState >= 2) {
 										videoTexture.needsUpdate = true;
 									}
-									(video as any).requestVideoFrameCallback(loop);
+									rvfc.call(video, loop);
 								};
-								(video as any).requestVideoFrameCallback(loop);
+								rvfc.call(video, loop);
 								return true;
 							}
 						} catch {}
