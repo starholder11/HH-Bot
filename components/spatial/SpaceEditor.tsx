@@ -265,13 +265,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     const originalMediaUrl = asset.cloudflare_url || asset.url || asset.s3_url || null;
     
     // Use proxy for images to avoid CORS issues
-    const mediaUrl = originalMediaUrl && assetType.includes('image') 
+    const mediaUrl = originalMediaUrl && (assetType.includes('image') || assetType.includes('video')) 
       ? `/api/proxy?url=${encodeURIComponent(originalMediaUrl)}`
       : originalMediaUrl;
 
     // plane for image/video, box otherwise
     const geometry = assetType.includes('image') || assetType.includes('video')
-      ? { type: 'PlaneGeometry', width: 2, height: 2 }
+      ? { type: 'PlaneGeometry', width: 1, height: 1 }
       : { type: 'BoxGeometry', width: 1, height: 1, depth: 1 };
 
     await sendCommand({
@@ -402,7 +402,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       const type = normalizeType(rawType);
       const isPlane = type === 'image' || type === 'video';
       const geometry = isPlane
-        ? { type: 'PlaneGeometry', width: 2, height: 2 }
+        ? { type: 'PlaneGeometry', width: 1, height: 1 }
         : { type: 'BoxGeometry', width: 1, height: 1, depth: 1 };
       const color = type === 'image' ? 0x3b82f6 : type === 'video' ? 0xef4444 : 0x8b5cf6;
       

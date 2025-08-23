@@ -234,7 +234,7 @@
 							// Ensure correct geometry for media assets (force plane for image/video)
 							const at = (child.userData && child.userData.assetType) || '';
 							if ((at === 'image' || at === 'video') && !(child.geometry && child.geometry.isPlaneGeometry)) {
-								child.geometry = new THREE.PlaneGeometry(2, 2);
+								child.geometry = new THREE.PlaneGeometry(1, 1);
 							}
 
 							// Re-apply saved transform defensively before media attaches
@@ -518,6 +518,9 @@
 							if (editor.signals && editor.signals.materialChanged) {
 								editor.signals.materialChanged.dispatch(mesh.material);
 							}
+							if (editor.signals && editor.signals.sceneGraphChanged) {
+								editor.signals.sceneGraphChanged.dispatch();
+							}
 							startPlayback();
 						});
 						video.addEventListener('error', (e) => {
@@ -555,6 +558,9 @@
 							mesh.material.needsUpdate = true;
 							if (editor.signals && editor.signals.materialChanged) {
 								editor.signals.materialChanged.dispatch(mesh.material);
+							}
+							if (editor.signals && editor.signals.sceneGraphChanged) {
+								editor.signals.sceneGraphChanged.dispatch();
 							}
 						},
 						undefined,
