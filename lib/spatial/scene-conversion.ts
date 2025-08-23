@@ -198,12 +198,13 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     
     console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], mediaUrl: ${mediaUrl}`);
     
-    // Handle layout references - they don't have assetId but have layoutId and layoutItemId
-    if (child.userData?.assetType === 'layout_reference') {
+    // If added from layout import, preserve the declared media type/content type
+    const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
+    if (child.userData?.sourceType === 'layout' && declaredType) {
       return {
         id: child.userData.spaceItemId || child.uuid,
-        assetId: child.userData.layoutItemId || child.uuid, // Use layoutItemId as assetId for validation
-        assetType: 'layout', // Map layout_reference to valid layout type
+        assetId: child.userData.layoutItemId || child.uuid,
+        assetType: declaredType,
         position: [x, y, z],
         rotation: child.rotation || [0, 0, 0],
         scale: child.scale || [1, 1, 1],

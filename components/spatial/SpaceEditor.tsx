@@ -294,7 +294,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const type = (item.type || 'unknown').toLowerCase();
+      const type = (item.type || item.contentType || 'unknown').toLowerCase();
       const isPlane = type === 'image' || type === 'video';
       const geometry = isPlane
         ? { type: 'PlaneGeometry', width: 2, height: 2 }
@@ -319,10 +319,18 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           scale: [width, 1, height],
           name: item.snippet || `Layout Item ${i + 1}`,
           userData: { 
-            assetType: 'layout_reference', 
-            layoutId: layout.id, 
+            // Persist the actual media type from the layout so save/load can render correctly
+            assetType: type,
+            sourceType: 'layout',
+            layoutId: layout.id,
             layoutItemId: item.id,
-            mediaUrl: item.mediaUrl ? `/api/proxy?url=${encodeURIComponent(item.mediaUrl)}` : null
+            contentType: type,
+            mediaUrl: item.mediaUrl ? `/api/proxy?url=${encodeURIComponent(item.mediaUrl)}` : null,
+            importMetadata: {
+              sourceType: 'layout',
+              sourceId: layout.id,
+              originalLayoutItem: item
+            }
           }
         }
       });
