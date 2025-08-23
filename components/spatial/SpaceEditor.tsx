@@ -422,7 +422,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       <iframe
         ref={iframeRef}
         src="/three-js-editor/index.html"
-        className="w-full h-[600px] border border-neutral-700 rounded-lg"
+        className="w-full h-[600px] rounded-lg"
         title="Three.js Editor"
         sandbox="allow-scripts allow-same-origin allow-forms"
         style={{
