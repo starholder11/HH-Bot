@@ -690,24 +690,11 @@
 						video.setAttribute('playsinline', '');
 						video.setAttribute('muted', '');
 						video.autoplay = true;
-						const startPlayback = () => {
-							video.play().then(() => {
-								console.log('Video started playing:', video.src);
-							}).catch((error) => {
-								console.warn('Video autoplay failed:', error);
-								// Try again after user interaction
-								document.addEventListener('click', () => {
-									video.play().catch(() => {});
-								}, { once: true });
-							});
-						};
-						video.addEventListener('loadedmetadata', () => {
-							console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-							startPlayback();
-						});
-						let textureCreated = false;
-											const createVideoTexture = () => {
-						if (textureCreated || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 3) {
+											let textureCreated = false;
+					let videoTexture = null;
+					
+					const createVideoTexture = () => {
+						if (textureCreated || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) {
 							console.log('Video not ready for texture creation:', {
 								textureCreated,
 								videoWidth: video.videoWidth,
@@ -716,39 +703,32 @@
 							});
 							return;
 						}
-						textureCreated = true;
+						
 						console.log('Creating video texture for:', video.src);
+						textureCreated = true;
+						
+						videoTexture = new THREE.VideoTexture(video);
+						videoTexture.colorSpace = THREE.SRGBColorSpace;
+						videoTexture.format = THREE.RGBAFormat;
+						videoTexture.type = THREE.UnsignedByteType;
+						videoTexture.generateMipmaps = false;
+						videoTexture.minFilter = THREE.LinearFilter;
+						videoTexture.magFilter = THREE.LinearFilter;
+						videoTexture.wrapS = THREE.ClampToEdgeWrapping;
+						videoTexture.wrapT = THREE.ClampToEdgeWrapping;
+						videoTexture.flipY = true;  // Fix upside-down video
 							
-							const texture = new THREE.VideoTexture(video);
-							texture.colorSpace = THREE.SRGBColorSpace;
-							texture.format = THREE.RGBAFormat;
-							texture.type = THREE.UnsignedByteType;
-							texture.generateMipmaps = false;
-							texture.minFilter = THREE.LinearFilter;
-							texture.magFilter = THREE.LinearFilter;
-							texture.wrapS = THREE.ClampToEdgeWrapping;
-							texture.wrapT = THREE.ClampToEdgeWrapping;
-							texture.flipY = true;  // Fix upside-down video
-							
-							// Wait for next frame to ensure video is ready
-							requestAnimationFrame(() => {
-								texture.needsUpdate = true;
-								console.log('Video texture needsUpdate set');
+													// Create optimized material for video
+						if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
+							mesh.material = new THREE.MeshBasicMaterial({ 
+								side: THREE.DoubleSide,
+								transparent: false
 							});
-							
-							// Create optimized material for video
-							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
-								mesh.material = new THREE.MeshBasicMaterial({ 
-									side: THREE.DoubleSide,
-									transparent: true,
-									opacity: 0.95
-								});
-							}
-							mesh.material.color && mesh.material.color.set(0xffffff);
-							mesh.material.map = texture;
-							mesh.material.transparent = true;
-							mesh.material.opacity = 0.95;
-							mesh.material.needsUpdate = true;
+						}
+						mesh.material.color && mesh.material.color.set(0xffffff);
+						mesh.material.map = videoTexture;
+						mesh.material.transparent = false;
+						mesh.material.needsUpdate = true;
 							
 							// Adjust mesh scale to video aspect ratio
 							const aspectRatio = video.videoWidth / video.videoHeight;
@@ -757,54 +737,64 @@
 								console.log('Set video aspect ratio:', aspectRatio, 'scale:', mesh.scale);
 							}
 							
-							if (editor.signals && editor.signals.materialChanged) {
-								editor.signals.materialChanged.dispatch(mesh.material);
-							}
-							if (editor.signals && editor.signals.sceneGraphChanged) {
-								editor.signals.sceneGraphChanged.dispatch();
-							}
-							ensureFrameForMesh(mesh, editor);
-						};
+													if (editor.signals && editor.signals.materialChanged) {
+							editor.signals.materialChanged.dispatch(mesh.material);
+						}
+						if (editor.signals && editor.signals.sceneGraphChanged) {
+							editor.signals.sceneGraphChanged.dispatch();
+						}
+						ensureFrameForMesh(mesh, editor);
 						
-						video.addEventListener('loadeddata', () => {
-							console.log('Video loadeddata event fired');
+						// Start the video and update texture
+						if (video.paused) {
+							video.play().then(() => {
+								console.log('Video started playing after texture creation');
+								videoTexture.needsUpdate = true;
+							}).catch((error) => {
+								console.warn('Video autoplay failed:', error);
+							});
+						} else {
+							videoTexture.needsUpdate = true;
+						}
+					};
+					
+					// Simple event handlers
+					video.addEventListener('loadedmetadata', () => {
+						console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
+						createVideoTexture();
+					});
+					
+					video.addEventListener('canplay', () => {
+						console.log('Video canplay event fired');
+						if (!textureCreated) {
 							createVideoTexture();
-						});
-						video.addEventListener('canplaythrough', () => {
-							console.log('Video canplaythrough event fired');
-							if (!textureCreated) {
-								createVideoTexture(); // Only try again if texture wasn't created
-							}
-							if (video.paused) {
-								startPlayback(); // Only start if not already playing
-							}
-						});
-						video.addEventListener('play', () => { 
-							try { 
-								if (mesh.material && mesh.material.map) {
-									mesh.material.map.needsUpdate = true;
-								}
-								// Update controls when play state changes
-								if (boundVideo === video) {
-									playBtn.textContent = '⏸️';
-								}
-							} catch {} 
-						});
-						video.addEventListener('pause', () => { 
-							try { 
-								// Update controls when play state changes
-								if (boundVideo === video) {
-									playBtn.textContent = '▶️';
-								}
-							} catch {} 
-						});
-						video.addEventListener('timeupdate', () => { 
-							try { 
-								if (mesh.material && mesh.material.map) {
-									mesh.material.map.needsUpdate = true;
-								}
-							} catch {} 
-						});
+						}
+					});
+					
+					// Continuous texture update for video
+					const updateVideoTexture = () => {
+						if (videoTexture && !video.paused && !video.ended) {
+							videoTexture.needsUpdate = true;
+						}
+						requestAnimationFrame(updateVideoTexture);
+					};
+					
+					video.addEventListener('play', () => {
+						console.log('Video play event - starting texture updates');
+						updateVideoTexture();
+						// Update controls when play state changes
+						if (boundVideo === video) {
+							playBtn.textContent = '⏸️';
+						}
+					});
+					
+					video.addEventListener('pause', () => { 
+						console.log('Video paused');
+						// Update controls when play state changes
+						if (boundVideo === video) {
+							playBtn.textContent = '▶️';
+						}
+					});
 						// Track the video element without polluting scene/userData (avoids IndexedDB clone errors)
 						videoMap.set(mesh.uuid, video);
 						console.log('Video mapped for mesh:', mesh.uuid, mesh.name);
