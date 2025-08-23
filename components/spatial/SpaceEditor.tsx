@@ -446,6 +446,25 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           >
             Clear
           </button>
+          <button
+            className="px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white text-xs rounded"
+            onClick={async () => {
+              if (!confirm('Delete this space? This cannot be undone.')) return;
+              try {
+                const res = await fetch(`/api/spaces/${spaceId}`, { method: 'DELETE' });
+                if (!res.ok) {
+                  const msg = await res.text();
+                  throw new Error(`${res.status} ${res.statusText}: ${msg}`);
+                }
+                window.location.href = '/workshop';
+              } catch (e: any) {
+                console.error('Delete space failed:', e);
+                alert('Failed to delete space: ' + e.message);
+              }
+            }}
+          >
+            Delete
+          </button>
         </div>
       )}
 

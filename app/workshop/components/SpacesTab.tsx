@@ -19,7 +19,7 @@ export default function SpacesTab() {
       const data = await res.json();
       // The API returns { assets: [...], totalCount: number }
       setSpaces(data?.assets || []);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Spaces load failed:', e);
       setError('Failed to load spaces');
     } finally {
@@ -40,7 +40,7 @@ export default function SpacesTab() {
       }
       const created = await res.json();
       router.push(`/spaces/${created.id}/edit`);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Create space failed:', e);
       setError(`Failed to create space: ${e.message}`);
     }
@@ -48,6 +48,22 @@ export default function SpacesTab() {
 
   function openSpace(spaceId: string) {
     router.push(`/spaces/${spaceId}/edit`);
+  }
+
+  async function deleteSpace(spaceId: string) {
+    if (!confirm('Delete this space? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/spaces/${spaceId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(`${res.status} ${res.statusText}: ${msg}`);
+      }
+      // Optimistically remove from list
+      setSpaces(prev => prev.filter(s => s.id !== spaceId));
+    } catch (e: any) {
+      console.error('Delete space failed:', e);
+      setError(`Failed to delete space: ${e.message}`);
+    }
   }
 
   return (
@@ -71,14 +87,24 @@ export default function SpacesTab() {
           <div className="p-6 text-neutral-400">No spaces yet. Click "New Space" to create one.</div>
         ) : (
           spaces.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => openSpace(s.id)}
-              className="w-full text-left px-4 py-3 hover:bg-neutral-900 focus:bg-neutral-900"
-            >
-              <div className="font-medium text-neutral-100">{s.title || s.id}</div>
-              <div className="text-xs text-neutral-400">{s.updated_at ? `Updated ${new Date(s.updated_at).toLocaleString()}` : 'No updates yet'}</div>
-            </button>
+            <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900 focus:bg-neutral-900">
+              <button
+                onClick={() => openSpace(s.id)}
+                className="flex-1 text-left min-w-0"
+              >
+                <div className="font-medium text-neutral-100 truncate">{s.title || s.id}</div>
+                <div className="text-xs text-neutral-400">{s.updated_at ? `Updated ${new Date(s.updated_at).toLocaleString()}` : 'No updates yet'}</div>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); void deleteSpace(s.id); }}
+                className="ml-2 p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-red-900/20"
+                title="Delete space"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
           ))
         )}
       </div>
