@@ -736,11 +736,15 @@
 						textureCreated = true;
 						
 						const videoTexture = new THREE.VideoTexture(video);
-						videoTexture.colorSpace = THREE.SRGBColorSpace;
+						videoTexture.colorSpace = THREE.NoColorSpace;
+						videoTexture.format = THREE.RGBAFormat;
+						videoTexture.type = THREE.UnsignedByteType;
 						videoTexture.generateMipmaps = false;
 						videoTexture.minFilter = THREE.LinearFilter;
 						videoTexture.magFilter = THREE.LinearFilter;
-						// Do not override flipY; use VideoTexture defaults
+						videoTexture.wrapS = THREE.ClampToEdgeWrapping;
+						videoTexture.wrapT = THREE.ClampToEdgeWrapping;
+						videoTexture.flipY = false;
 						
 						// Apply to mesh with a fresh unlit material
 						if (mesh.material) {
@@ -760,10 +764,29 @@
 							mesh.scale.set(aspectRatio * 2, 2, 1);
 						}
 						
-						// Ensure autoplay and kick first update
+						// Ensure autoplay and start precise per-frame updates
+						const startUpdates = () => {
+							const update = () => {
+								if (!video.paused && !video.ended && video.readyState >= 2) {
+									videoTexture.needsUpdate = true;
+								}
+								if (video.requestVideoFrameCallback) {
+									video.requestVideoFrameCallback(update);
+								} else {
+									requestAnimationFrame(update);
+								}
+							};
+							if (video.requestVideoFrameCallback) {
+								video.requestVideoFrameCallback(update);
+							} else {
+								requestAnimationFrame(update);
+							}
+						};
+						
 						video.play().then(() => {
 							videoTexture.needsUpdate = true;
-						}).catch(() => {});
+							startUpdates();
+						}).catch(() => { startUpdates(); });
 						
 						if (editor.signals) {
 							editor.signals.materialChanged?.dispatch(mesh.material);
