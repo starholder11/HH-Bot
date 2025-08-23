@@ -486,9 +486,13 @@
 						video.src = url;
 						video.crossOrigin = 'anonymous';
 						video.muted = true;
+						video.preload = 'auto';
 						video.loop = true;
 						video.playsInline = true;
+						video.setAttribute('playsinline', '');
+						video.setAttribute('muted', '');
 						video.autoplay = true;
+						const startPlayback = () => video.play().catch(() => {});
 						video.addEventListener('canplay', () => {
 							const texture = new THREE.VideoTexture(video);
 							texture.colorSpace = THREE.SRGBColorSpace;
@@ -503,12 +507,18 @@
 							if (editor.signals && editor.signals.materialChanged) {
 								editor.signals.materialChanged.dispatch(mesh.material);
 							}
+							startPlayback();
 						});
 						video.addEventListener('error', (e) => {
 							console.warn('Video failed to load:', url, e);
 						});
 						video.load();
-						video.play().catch(() => {});
+						// User-gesture fallback
+						video.play().catch(() => {
+							const onInteract = () => { startPlayback(); document.removeEventListener('pointerdown', onInteract); document.removeEventListener('keydown', onInteract); };
+							document.addEventListener('pointerdown', onInteract, { once: true });
+							document.addEventListener('keydown', onInteract, { once: true });
+						});
 					} catch (e) {
 						console.warn('Video setup error:', e);
 					}
