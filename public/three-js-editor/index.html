@@ -417,6 +417,18 @@
 						const loader = new THREE.ObjectLoader();
 						const loadedObject = loader.parse(command.data);
 						
+						// Post-process all textures to ensure correct format for sRGB
+						loadedObject.traverse((child) => {
+							if (child.material && child.material.map) {
+								const texture = child.material.map;
+								if (texture.colorSpace === THREE.SRGBColorSpace) {
+									texture.format = THREE.RGBAFormat;
+									texture.type = THREE.UnsignedByteType;
+									texture.needsUpdate = true;
+								}
+							}
+						});
+						
 						// Post-process loaded objects to ensure textures are applied
 						loadedObject.traverse((child) => {
 							if (!child.isMesh) return;
