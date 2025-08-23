@@ -637,15 +637,22 @@
 						video.addEventListener('loadedmetadata', () => {
 							startPlayback();
 						});
-						video.addEventListener('loadeddata', () => {
-							if (video.videoWidth === 0 || video.videoHeight === 0) return;
+						let textureCreated = false;
+						const createVideoTexture = () => {
+							if (textureCreated || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) return;
+							textureCreated = true;
+							
 							const texture = new THREE.VideoTexture(video);
 							texture.colorSpace = THREE.SRGBColorSpace;
+							texture.format = THREE.RGBAFormat;
+							texture.type = THREE.UnsignedByteType;
 							texture.generateMipmaps = false;
 							texture.minFilter = THREE.LinearFilter;
 							texture.magFilter = THREE.LinearFilter;
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
+							texture.flipY = false;
+							
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 								mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 							}
@@ -659,6 +666,10 @@
 								editor.signals.sceneGraphChanged.dispatch();
 							}
 							ensureFrameForMesh(mesh, editor);
+						};
+						
+						video.addEventListener('loadeddata', () => {
+							createVideoTexture();
 							startPlayback();
 						});
 						video.addEventListener('canplaythrough', () => {
@@ -690,6 +701,7 @@
 							texture.magFilter = THREE.LinearFilter;
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
+							texture.flipY = false;
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 								mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 							}
@@ -702,6 +714,7 @@
 							if (editor.signals && editor.signals.sceneGraphChanged) {
 								editor.signals.sceneGraphChanged.dispatch();
 							}
+							ensureFrameForMesh(mesh, editor);
 						},
 						undefined,
 						(error) => {
