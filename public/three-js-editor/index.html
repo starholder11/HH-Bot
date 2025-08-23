@@ -118,6 +118,47 @@
 				} catch {}
 			}
 
+			// Simple video controls overlay
+			const controls = document.createElement('div');
+			controls.style.cssText = 'position:absolute;left:16px;bottom:16px;display:none;gap:8px;align-items:center;background:#0b0b0bcc;border:1px solid #222;border-radius:8px;padding:8px 10px;color:#ddd;font:12px system-ui;z-index:1000;backdrop-filter:blur(4px)';
+			const playBtn = document.createElement('button');
+			playBtn.textContent = 'Play';
+			playBtn.style.cssText = 'background:#1f2937;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:4px 8px;cursor:pointer';
+			const muteBtn = document.createElement('button');
+			muteBtn.textContent = 'Mute';
+			muteBtn.style.cssText = playBtn.style.cssText;
+			const timeLabel = document.createElement('span');
+			timeLabel.textContent = '0:00 / 0:00';
+			const seek = document.createElement('input');
+			seek.type = 'range';
+			seek.min = '0';
+			seek.max = '0';
+			seek.step = '0.01';
+			seek.style.width = '220px';
+			controls.appendChild(playBtn);
+			controls.appendChild(muteBtn);
+			controls.appendChild(seek);
+			controls.appendChild(timeLabel);
+			document.body.appendChild(controls);
+
+			let boundVideo = null;
+			function fmtTime(t){ if(!isFinite(t)) return '0:00'; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+':' + String(s).padStart(2,'0'); }
+			function bindVideoForControls(video){
+				boundVideo = video || null;
+				if(!boundVideo){ controls.style.display='none'; return; }
+				controls.style.display='flex';
+				seek.max = isFinite(boundVideo.duration) ? String(boundVideo.duration) : '0';
+				seek.value = String(boundVideo.currentTime || 0);
+				timeLabel.textContent = `${fmtTime(boundVideo.currentTime||0)} / ${fmtTime(boundVideo.duration||0)}`;
+				playBtn.textContent = boundVideo.paused ? 'Play' : 'Pause';
+				muteBtn.textContent = boundVideo.muted ? 'Unmute' : 'Mute';
+			}
+			playBtn.onclick = ()=>{ if(!boundVideo) return; if(boundVideo.paused){ boundVideo.play().catch(()=>{}); } else { boundVideo.pause(); } playBtn.textContent = boundVideo.paused ? 'Play' : 'Pause'; };
+			muteBtn.onclick = ()=>{ if(!boundVideo) return; boundVideo.muted = !boundVideo.muted; muteBtn.textContent = boundVideo.muted ? 'Unmute' : 'Mute'; };
+			seek.oninput = ()=>{ if(!boundVideo) return; try{ boundVideo.currentTime = parseFloat(seek.value); }catch{} };
+			function tick(){ if(boundVideo){ seek.max = isFinite(boundVideo.duration)? String(boundVideo.duration) : seek.max; seek.value = String(boundVideo.currentTime||0); timeLabel.textContent = `${fmtTime(boundVideo.currentTime||0)} / ${fmtTime(boundVideo.duration||0)}`; } requestAnimationFrame(tick); }
+			requestAnimationFrame(tick);
+
 			// Helper: create/update a simple frame behind a mesh; marked to ignore save
 			function ensureFrameForMesh(mesh, editor, pad = 0.06) {
 				try {
@@ -300,6 +341,13 @@
 						editor.signals.objectSelected.dispatch(null);
 						
 						console.log(`Scene loaded successfully with ${loadedObject.children.length} objects`);
+						
+						// Hook selection to show controls for videos
+						try {
+							editor.signals.objectSelected.add(function(object){
+								if (object && object.userData && object.userData._videoEl) bindVideoForControls(object.userData._videoEl); else bindVideoForControls(null);
+							});
+						} catch {}
 						
 						// Send success response
 						send({
@@ -578,16 +626,8 @@
 							try { if (mesh.material && mesh.material.map) mesh.material.map.needsUpdate = true; } catch {}
 							startPlayback();
 						});
-						video.addEventListener('error', (e) => {
-							console.warn('Video failed to load:', url, e);
-						});
-						video.load();
-						// User-gesture fallback
-						video.play().catch(() => {
-							const onInteract = () => { startPlayback(); document.removeEventListener('pointerdown', onInteract); document.removeEventListener('keydown', onInteract); };
-							document.addEventListener('pointerdown', onInteract, { once: true });
-							document.addEventListener('keydown', onInteract, { once: true });
-						});
+						// Expose video element for controls
+						mesh.userData._videoEl = video;
 					} catch (e) {
 						console.warn('Video setup error:', e);
 					}
