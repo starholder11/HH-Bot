@@ -738,8 +738,6 @@
 						
 						videoTexture = new THREE.VideoTexture(video);
 						videoTexture.colorSpace = THREE.SRGBColorSpace;
-						videoTexture.format = THREE.RGBAFormat;
-						videoTexture.type = THREE.UnsignedByteType;
 						videoTexture.generateMipmaps = false;
 						videoTexture.minFilter = THREE.LinearFilter;
 						videoTexture.magFilter = THREE.LinearFilter;
@@ -838,8 +836,6 @@
 						url,
 						(texture) => {
 							texture.colorSpace = THREE.SRGBColorSpace;
-							texture.format = THREE.RGBAFormat;
-							texture.type = THREE.UnsignedByteType;
 							texture.generateMipmaps = false;
 							texture.minFilter = THREE.LinearFilter;
 							texture.magFilter = THREE.LinearFilter;
