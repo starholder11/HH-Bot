@@ -315,7 +315,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       // If layout item already carries mediaUrl, prefer it
       if (item.mediaUrl) {
         const url = String(item.mediaUrl);
-        const proxied = type === 'image' ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
+        const proxied = type === 'image' || type === 'video' ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
         return { mediaUrl: proxied, assetId: assetRef, extraUserData: extra };
       }
 
@@ -332,6 +332,12 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           canonicalId = asset?.id || assetRef;
           const originalUrl: string | null = asset?.cloudflare_url || asset?.url || asset?.s3_url || null;
           if (originalUrl) mediaUrl = (type === 'image' || type === 'video') ? `/api/proxy?url=${encodeURIComponent(originalUrl)}` : originalUrl;
+          // capture intrinsic dimensions if available
+          const meta = asset?.metadata || {};
+          if (typeof meta.width === 'number' && typeof meta.height === 'number') {
+            extra.mediaWidth = meta.width;
+            extra.mediaHeight = meta.height;
+          }
         }
       } catch {}
 
@@ -403,13 +409,28 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       // Use layout coordinates if available, otherwise space them out
       const x = item.x !== undefined ? (item.x * scale) : (i * spacing);
       const z = item.y !== undefined ? (item.y * scale) : 0;
-      const width = item.w ? Math.max(item.w * scale, 0.5) : 1;
-      const height = item.h ? Math.max(item.h * scale, 0.5) : 1;
+      const boxW = item.w ? Math.max(item.w * scale, 0.5) : 1;
+      const boxH = item.h ? Math.max(item.h * scale, 0.5) : 1;
       
-      console.log(`[SpaceEditor] Layout item ${i}: x=${x}, z=${z}, width=${width}, height=${height}`);
+      console.log(`[SpaceEditor] Layout item ${i}: x=${x}, z=${z}, width=${boxW}, height=${boxH}`);
 
       // Resolve media URL and canonical asset id for proper rendering
       const resolved = await resolveLayoutMedia(item, type);
+
+      // Fit media into layout box while preserving aspect ratio when we know intrinsic size
+      const mediaW = resolved.extraUserData?.mediaWidth as number | undefined;
+      const mediaH = resolved.extraUserData?.mediaHeight as number | undefined;
+      const fitWithin = (mw?: number, mh?: number, bw: number = 1, bh: number = 1) => {
+        if (!mw || !mh || mw <= 0 || mh <= 0) return { w: bw, h: bh };
+        const mediaAR = mw / mh;
+        const boxAR = bw / bh;
+        if (mediaAR >= boxAR) {
+          return { w: bw, h: bw / mediaAR };
+        } else {
+          return { w: bh * mediaAR, h: bh };
+        }
+      };
+      const fitted = isPlane ? fitWithin(mediaW, mediaH, boxW, boxH) : { w: boxW, h: boxH };
 
       await sendCommand({
         type: 'add_object',
@@ -418,7 +439,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           geometry,
           material: { type: 'MeshBasicMaterial', color },
           position: [x, 0.5, z],
-          scale: [width, 1, height],
+          scale: [fitted.w, 1, fitted.h],
           name: item.snippet || `Layout Item ${i + 1}`,
           userData: { 
             // Persist normalized media type from the layout so save/load can render correctly
@@ -429,6 +450,8 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
             contentType: type,
             mediaUrl: resolved.mediaUrl,
             assetId: resolved.assetId || undefined,
+            mediaWidth: mediaW,
+            mediaHeight: mediaH,
             ...resolved.extraUserData,
             importMetadata: {
               sourceType: 'layout',

@@ -231,6 +231,20 @@
 							if (!child.isMesh) return;
 							console.log('Processing mesh:', child.name, 'position:', child.position, 'userData:', child.userData);
 
+							// Ensure correct geometry for media assets (force plane for image/video)
+							const at = (child.userData && child.userData.assetType) || '';
+							if ((at === 'image' || at === 'video') && !(child.geometry && child.geometry.isPlaneGeometry)) {
+								const w = Math.max(child.scale?.x || 1, 0.01);
+								const h = Math.max(child.scale?.z || 1, 0.01);
+								child.geometry = new THREE.PlaneGeometry(2, 2);
+								// keep existing scale which already encodes fitted size
+							}
+
+							// Re-apply saved transform defensively before media attaches
+							if (Array.isArray(child.position)) child.position.fromArray(child.position);
+							if (Array.isArray(child.rotation)) child.rotation.fromArray(child.rotation);
+							if (Array.isArray(child.scale)) child.scale.fromArray(child.scale);
+
 							const url = child.userData && child.userData.mediaUrl;
 							if (!url) {
 								console.log('Mesh has no mediaUrl:', child.name);
