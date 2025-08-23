@@ -708,6 +708,8 @@
 				const isVideo = (assetType === 'video') || /\.mp4(\?|$)/i.test(url);
 				console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
 				if (isVideo) {
+					console.log('Creating video texture for:', mesh.name);
+					
 					// SIMPLE Three.js VideoTexture - the official way
 					const video = document.createElement('video');
 					video.src = url;
@@ -715,9 +717,11 @@
 					video.muted = true;
 					video.loop = true;
 					video.playsInline = true;
-					video.autoplay = true;
+					video.autoplay = false; // Don't autoplay, we'll play manually
 					video.style.display = 'none';
 					document.body.appendChild(video);
+					
+					console.log('Video element created, src:', video.src);
 					
 					// Create VideoTexture immediately - Three.js handles everything
 					const videoTexture = new THREE.VideoTexture(video);
@@ -725,15 +729,24 @@
 					videoTexture.magFilter = THREE.LinearFilter;
 					videoTexture.format = THREE.RGBFormat;
 					
+					console.log('VideoTexture created');
+					
 					// Apply to material
 					const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
 					mesh.material = videoMaterial;
 					
-					// Start video
-					video.play();
+					console.log('Material applied to mesh');
+					
+					// Start video with user interaction fallback
+					video.play().then(() => {
+						console.log('Video playing successfully');
+					}).catch(err => {
+						console.log('Video autoplay failed, will play on user interaction:', err);
+					});
 					
 					// Track video element
 					videoMap.set(mesh.uuid, video);
+					console.log('Video mapped for mesh:', mesh.uuid);
 				} else {
 					const textureLoader = new THREE.TextureLoader();
 					textureLoader.crossOrigin = 'anonymous';
