@@ -215,6 +215,38 @@ export default function SpaceEditPage() {
             Import Layout
           </button>
 
+          {/* Clear and Delete buttons */}
+          <button
+            className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
+            onClick={() => {
+              if (spaceEditorRef.current) {
+                // Send clear command to editor
+                spaceEditorRef.current.sendCommand?.({ type: 'clear_scene', data: {} });
+              }
+            }}
+          >
+            Clear
+          </button>
+          <button
+            className="px-3 py-1.5 text-xs rounded bg-red-700 hover:bg-red-800 text-white"
+            onClick={async () => {
+              if (!confirm('Delete this space? This cannot be undone.')) return;
+              try {
+                const res = await fetch(`/api/spaces/${spaceId}`, { method: 'DELETE' });
+                if (!res.ok) {
+                  const msg = await res.text();
+                  throw new Error(`${res.status} ${res.statusText}: ${msg}`);
+                }
+                window.location.href = '/workshop';
+              } catch (e: any) {
+                console.error('Delete space failed:', e);
+                alert('Failed to delete space: ' + e.message);
+              }
+            }}
+          >
+            Delete
+          </button>
+
           {/* Save Status */}
           {saveStatus === 'saving' && (
             <span className="text-blue-400 text-sm">Saving...</span>

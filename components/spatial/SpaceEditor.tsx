@@ -15,6 +15,7 @@ export interface SpaceEditorRef {
   loadSpace: (spaceData: any) => Promise<void>;
   addAsset: (asset: any) => Promise<void>;
   addLayout: (layout: any) => Promise<void>;
+  sendCommand: (command: any) => Promise<void>;
 }
 
 const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
@@ -388,8 +389,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     saveScene: async () => { await saveScene(); },
     loadSpace: async (sd: any) => { await loadSpace(sd); },
     addAsset: async (asset: any) => { await addAssetToEditor(asset); },
-    addLayout: async (layout: any) => { await addLayoutToEditor(layout); }
-  }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor]);
+    addLayout: async (layout: any) => { await addLayoutToEditor(layout); },
+    sendCommand: async (command: any) => { await sendCommand(command); }
+  }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor, sendCommand]);
 
   if (error) {
     return (
@@ -434,42 +436,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         }}
       />
 
-      {/* Editor Controls Overlay */}
-      {editorReady && (
-        <div className="absolute top-3 right-3 flex gap-2">
-          <button
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
-            onClick={saveScene}
-          >
-            Save Scene
-          </button>
-          <button
-            className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white text-xs rounded"
-            onClick={() => sendCommand({ type: 'clear_scene', data: {} })}
-          >
-            Clear
-          </button>
-          <button
-            className="px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white text-xs rounded"
-            onClick={async () => {
-              if (!confirm('Delete this space? This cannot be undone.')) return;
-              try {
-                const res = await fetch(`/api/spaces/${spaceId}`, { method: 'DELETE' });
-                if (!res.ok) {
-                  const msg = await res.text();
-                  throw new Error(`${res.status} ${res.statusText}: ${msg}`);
-                }
-                window.location.href = '/workshop';
-              } catch (e: any) {
-                console.error('Delete space failed:', e);
-                alert('Failed to delete space: ' + e.message);
-              }
-            }}
-          >
-            Delete
-          </button>
-        </div>
-      )}
+
 
       {/* Status Indicator */}
       <div className="absolute bottom-3 left-3 text-xs text-neutral-300">
