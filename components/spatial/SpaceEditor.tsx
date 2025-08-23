@@ -294,7 +294,36 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const type = (item.type || item.contentType || 'unknown').toLowerCase();
+      // Prefer contentType; fallback to type; then normalize to our schema union
+      const rawType: string = (item.contentType || item.type || 'unknown').toLowerCase();
+      const normalizeType = (t: string): string => {
+        if (!t) return 'object';
+        switch (t) {
+          case 'image':
+          case 'image_ref':
+            return 'image';
+          case 'video':
+          case 'video_ref':
+            return 'video';
+          case 'audio':
+          case 'music':
+          case 'audio_ref':
+          case 'music_ref':
+            return 'audio';
+          case 'text':
+          case 'text_ref':
+          case 'content_ref':
+            return 'text';
+          case 'canvas':
+            return 'canvas';
+          case 'layout':
+          case 'layout_reference':
+            return 'layout';
+          default:
+            return 'object';
+        }
+      };
+      const type = normalizeType(rawType);
       const isPlane = type === 'image' || type === 'video';
       const geometry = isPlane
         ? { type: 'PlaneGeometry', width: 2, height: 2 }
@@ -319,7 +348,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           scale: [width, 1, height],
           name: item.snippet || `Layout Item ${i + 1}`,
           userData: { 
-            // Persist the actual media type from the layout so save/load can render correctly
+            // Persist normalized media type from the layout so save/load can render correctly
             assetType: type,
             sourceType: 'layout',
             layoutId: layout.id,

@@ -200,11 +200,41 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     
     // If added from layout import, preserve the declared media type/content type
     const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
-    if (child.userData?.sourceType === 'layout' && declaredType) {
+    const normalizeType = (t?: string): string | undefined => {
+      if (!t) return undefined;
+      const tt = String(t).toLowerCase();
+      switch (tt) {
+        case 'image':
+        case 'image_ref':
+          return 'image';
+        case 'video':
+        case 'video_ref':
+          return 'video';
+        case 'audio':
+        case 'music':
+        case 'audio_ref':
+        case 'music_ref':
+          return 'audio';
+        case 'text':
+        case 'text_ref':
+        case 'content_ref':
+          return 'text';
+        case 'canvas':
+          return 'canvas';
+        case 'layout':
+        case 'layout_reference':
+          return 'layout';
+        case 'object':
+        default:
+          return 'object';
+      }
+    };
+    const normalizedType = normalizeType(declaredType);
+    if (child.userData?.sourceType === 'layout' && normalizedType) {
       return {
         id: child.userData.spaceItemId || child.uuid,
         assetId: child.userData.layoutItemId || child.uuid,
-        assetType: declaredType,
+        assetType: normalizedType,
         position: [x, y, z],
         rotation: child.rotation || [0, 0, 0],
         scale: child.scale || [1, 1, 1],
@@ -224,7 +254,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     return {
       id: child.userData?.spaceItemId || child.uuid,
       assetId: child.userData?.assetId || child.uuid, // Fallback to uuid if no assetId
-      assetType: child.userData?.assetType || 'object', // Default to object instead of unknown
+      assetType: normalizeType(child.userData?.assetType) || 'object', // Default to object instead of unknown
       position: [x, y, z],
       rotation: child.rotation || [0, 0, 0],
       scale: child.scale || [1, 1, 1],
