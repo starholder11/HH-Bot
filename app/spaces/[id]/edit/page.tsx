@@ -198,13 +198,6 @@ export default function SpaceEditPage() {
                 />
               )}
             </div>
-
-            <Link
-              href="/workshop"
-              className="text-neutral-400 hover:text-white text-sm"
-            >
-              ← Back to Workshop
-            </Link>
           </div>
 
           <div className="flex items-center gap-3">
@@ -231,9 +224,6 @@ export default function SpaceEditPage() {
           )}
           {saveStatus === 'error' && (
             <span className="text-red-400 text-sm">Save failed</span>
-          )}
-          {hasUnsavedChanges && saveStatus === 'idle' && (
-            <span className="text-amber-400 text-sm">Unsaved changes</span>
           )}
           {lastSaved && saveStatus === 'idle' && !hasUnsavedChanges && (
             <span className="text-neutral-400 text-xs">
