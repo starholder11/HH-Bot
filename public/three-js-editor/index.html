@@ -702,151 +702,55 @@
 				}
 			}
 
-			// Shared helper to apply image/video media to a mesh consistently
+						// Shared helper to apply image/video media to a mesh consistently
 			function applyMediaToMesh(mesh, url, assetType, editor) {
 				if (!url) return;
 				const isVideo = (assetType === 'video') || /\.mp4(\?|$)/i.test(url);
 				if (isVideo) {
-					try {
-						const video = document.createElement('video');
-						video.src = url;
-						video.crossOrigin = 'anonymous';
-						video.muted = true;
-						video.defaultMuted = true;
-						video.preload = 'auto';
-						video.loop = true;
-						video.playsInline = true;
-						video.setAttribute('playsinline', '');
-						video.setAttribute('muted', '');
-						video.autoplay = true;
-											let textureCreated = false;
-					let videoTexture = null;
+					// Standard Three.js video texture approach
+					const video = document.createElement('video');
+					video.src = url;
+					video.crossOrigin = 'anonymous';
+					video.muted = true;
+					video.loop = true;
+					video.playsInline = true;
 					
-					const createVideoTexture = () => {
-						if (textureCreated || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) {
-							console.log('Video not ready for texture creation:', {
-								textureCreated,
-								videoWidth: video.videoWidth,
-								videoHeight: video.videoHeight,
-								readyState: video.readyState
-							});
-							return;
+					// Create VideoTexture immediately - Three.js handles the rest
+					const videoTexture = new THREE.VideoTexture(video);
+					videoTexture.colorSpace = THREE.SRGBColorSpace;
+					videoTexture.generateMipmaps = false;
+					videoTexture.minFilter = THREE.LinearFilter;
+					videoTexture.magFilter = THREE.LinearFilter;
+					videoTexture.flipY = true;
+					
+					// Apply to mesh
+					if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
+						mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+					}
+					mesh.material.map = videoTexture;
+					mesh.material.needsUpdate = true;
+					
+					// Set aspect ratio when video loads
+					video.addEventListener('loadedmetadata', () => {
+						const aspectRatio = video.videoWidth / video.videoHeight;
+						if (aspectRatio > 0 && isFinite(aspectRatio)) {
+							mesh.scale.set(aspectRatio * 2, 2, 1);
 						}
-						
-						console.log('Creating video texture for:', video.src);
-						textureCreated = true;
-						
-						videoTexture = new THREE.VideoTexture(video);
-						videoTexture.colorSpace = THREE.SRGBColorSpace;
-						videoTexture.generateMipmaps = false;
-						videoTexture.minFilter = THREE.LinearFilter;
-						videoTexture.magFilter = THREE.LinearFilter;
-						videoTexture.wrapS = THREE.ClampToEdgeWrapping;
-						videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-						videoTexture.flipY = true;  // Fix upside-down video
-							
-													// Create optimized material for video
-						if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
-							mesh.material = new THREE.MeshBasicMaterial({ 
-								side: THREE.DoubleSide,
-								transparent: false
-							});
-						}
-						mesh.material.color && mesh.material.color.set(0xffffff);
-						mesh.material.map = videoTexture;
-						mesh.material.transparent = false;
-						mesh.material.toneMapped = false;
-						mesh.material.needsUpdate = true;
-							
-							// Adjust mesh scale to video aspect ratio
-							const aspectRatio = video.videoWidth / video.videoHeight;
-							if (aspectRatio > 0 && isFinite(aspectRatio)) {
-								mesh.scale.set(aspectRatio * 2, 2, 1);
-								console.log('Set video aspect ratio:', aspectRatio, 'scale:', mesh.scale);
-							}
-							
-													if (editor.signals && editor.signals.materialChanged) {
-							editor.signals.materialChanged.dispatch(mesh.material);
-						}
-						if (editor.signals && editor.signals.sceneGraphChanged) {
-							editor.signals.sceneGraphChanged.dispatch();
+						if (editor.signals) {
+							editor.signals.materialChanged?.dispatch(mesh.material);
+							editor.signals.sceneGraphChanged?.dispatch();
 						}
 						ensureFrameForMesh(mesh, editor);
-						
-						// Start the video and update texture
-						if (video.paused) {
-							video.play().then(() => {
-								console.log('Video started playing after texture creation');
-								videoTexture.needsUpdate = true;
-							}).catch((error) => {
-								console.warn('Video autoplay failed:', error);
-							});
-						} else {
-							videoTexture.needsUpdate = true;
-						}
-					};
-					
-					// Simple event handlers
-					video.addEventListener('loadedmetadata', () => {
-						console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-						createVideoTexture();
 					});
 					
+					// Auto-play when ready
 					video.addEventListener('canplay', () => {
-						console.log('Video canplay event fired');
-						if (!textureCreated) {
-							createVideoTexture();
-						}
+						video.play().catch(() => {}); // Ignore autoplay failures
 					});
 					
-					// Continuous texture update for video
-					const updateVideoTextureRAF = () => {
-						if (videoTexture && video.readyState >= 2 && !video.paused && !video.ended) {
-							videoTexture.needsUpdate = true;
-						}
-						requestAnimationFrame(updateVideoTextureRAF);
-					};
-					
-					// Prefer requestVideoFrameCallback when supported for precise updates
-					const startPreciseVideoUpdates = () => {
-						try {
-							const rvfc = (video && (video.requestVideoFrameCallback || video.webkitRequestVideoFrameCallback));
-							if (typeof rvfc === 'function') {
-								const loop = () => {
-									if (videoTexture && video.readyState >= 2) {
-										videoTexture.needsUpdate = true;
-									}
-									rvfc.call(video, loop);
-								};
-								rvfc.call(video, loop);
-								return true;
-							}
-						} catch {}
-						return false;
-					};
-					
-					video.addEventListener('play', () => {
-						console.log('Video play event - starting texture updates');
-						if (!startPreciseVideoUpdates()) updateVideoTextureRAF();
-						// Update controls when play state changes
-						if (boundVideo === video) {
-							playBtn.textContent = '⏸️';
-						}
-					});
-					
-					video.addEventListener('pause', () => { 
-						console.log('Video paused');
-						// Update controls when play state changes
-						if (boundVideo === video) {
-							playBtn.textContent = '▶️';
-						}
-					});
-						// Track the video element without polluting scene/userData (avoids IndexedDB clone errors)
-						videoMap.set(mesh.uuid, video);
-						console.log('Video mapped for mesh:', mesh.uuid, mesh.name);
-					} catch (e) {
-						console.warn('Video setup error:', e);
-					}
+					// Track video element
+					videoMap.set(mesh.uuid, video);
+					console.log('Video mapped for mesh:', mesh.uuid, mesh.name);
 				} else {
 					const textureLoader = new THREE.TextureLoader();
 					textureLoader.crossOrigin = 'anonymous';
