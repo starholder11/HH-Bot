@@ -118,12 +118,12 @@
 				} catch {}
 			}
 
-			// Simple video controls overlay
+			// Simple video controls overlay – anchored to selected video card bottom
 			const controls = document.createElement('div');
-			controls.style.cssText = 'position:absolute;left:16px;bottom:16px;display:none;gap:8px;align-items:center;background:#0b0b0bcc;border:1px solid #222;border-radius:8px;padding:8px 10px;color:#ddd;font:12px system-ui;z-index:1000;backdrop-filter:blur(4px)';
+			controls.style.cssText = 'position:absolute;left:0;top:0;display:none;gap:8px;align-items:center;background:#0b0b0de0;border:1px solid #1f2937;border-radius:10px;padding:8px 10px;color:#e5e7eb;font:12px system-ui;z-index:1000;box-shadow:0 6px 24px rgba(0,0,0,.5)';
 			const playBtn = document.createElement('button');
 			playBtn.textContent = 'Play';
-			playBtn.style.cssText = 'background:#1f2937;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:4px 8px;cursor:pointer';
+			playBtn.style.cssText = 'background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:4px 10px;cursor:pointer';
 			const muteBtn = document.createElement('button');
 			muteBtn.textContent = 'Mute';
 			muteBtn.style.cssText = playBtn.style.cssText;
@@ -134,7 +134,7 @@
 			seek.min = '0';
 			seek.max = '0';
 			seek.step = '0.01';
-			seek.style.width = '220px';
+			seek.style.width = '280px';
 			controls.appendChild(playBtn);
 			controls.appendChild(muteBtn);
 			controls.appendChild(seek);
@@ -142,22 +142,53 @@
 			document.body.appendChild(controls);
 
 			let boundVideo = null;
+			let boundMesh = null;
+			const videoMap = new Map(); // uuid -> HTMLVideoElement
 			function fmtTime(t){ if(!isFinite(t)) return '0:00'; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+':' + String(s).padStart(2,'0'); }
-			function bindVideoForControls(video){
-				boundVideo = video || null;
-				if(!boundVideo){ controls.style.display='none'; return; }
-				controls.style.display='flex';
+			function bindVideoForControls(mesh){
+				boundMesh = null;
+				boundVideo = null;
+				if(!mesh){ controls.style.display='none'; return; }
+				const v = videoMap.get(mesh.uuid);
+				if(!v){ controls.style.display='none'; return; }
+				boundMesh = mesh; boundVideo = v; controls.style.display='flex';
 				seek.max = isFinite(boundVideo.duration) ? String(boundVideo.duration) : '0';
 				seek.value = String(boundVideo.currentTime || 0);
 				timeLabel.textContent = `${fmtTime(boundVideo.currentTime||0)} / ${fmtTime(boundVideo.duration||0)}`;
 				playBtn.textContent = boundVideo.paused ? 'Play' : 'Pause';
 				muteBtn.textContent = boundVideo.muted ? 'Unmute' : 'Mute';
+				updateControlsPosition();
+			}
+			function updateControlsPosition(){
+				if(!boundMesh){ return; }
+				try{
+					const box = new THREE.Box3().setFromObject(boundMesh);
+					const size = box.getSize(new THREE.Vector3());
+					const center = box.getCenter(new THREE.Vector3());
+					const bottom = new THREE.Vector3(center.x, box.min.y, center.z);
+					bottom.project(editor.camera);
+					const vp = viewport.dom.getBoundingClientRect();
+					const x = (bottom.x * 0.5 + 0.5) * vp.width + vp.left;
+					const y = ( -bottom.y * 0.5 + 0.5) * vp.height + vp.top;
+					// Place controls slightly below bottom edge
+					controls.style.left = Math.round(x - controls.offsetWidth/2) + 'px';
+					controls.style.top = Math.round(y + 8) + 'px';
+				}catch{}
 			}
 			playBtn.onclick = ()=>{ if(!boundVideo) return; if(boundVideo.paused){ boundVideo.play().catch(()=>{}); } else { boundVideo.pause(); } playBtn.textContent = boundVideo.paused ? 'Play' : 'Pause'; };
 			muteBtn.onclick = ()=>{ if(!boundVideo) return; boundVideo.muted = !boundVideo.muted; muteBtn.textContent = boundVideo.muted ? 'Unmute' : 'Mute'; };
 			seek.oninput = ()=>{ if(!boundVideo) return; try{ boundVideo.currentTime = parseFloat(seek.value); }catch{} };
-			function tick(){ if(boundVideo){ seek.max = isFinite(boundVideo.duration)? String(boundVideo.duration) : seek.max; seek.value = String(boundVideo.currentTime||0); timeLabel.textContent = `${fmtTime(boundVideo.currentTime||0)} / ${fmtTime(boundVideo.duration||0)}`; } requestAnimationFrame(tick); }
+			function tick(){
+				if(boundVideo){
+					seek.max = isFinite(boundVideo.duration)? String(boundVideo.duration) : seek.max;
+					seek.value = String(boundVideo.currentTime||0);
+					timeLabel.textContent = `${fmtTime(boundVideo.currentTime||0)} / ${fmtTime(boundVideo.duration||0)}`;
+					updateControlsPosition();
+				}
+				requestAnimationFrame(tick);
+			}
 			requestAnimationFrame(tick);
+			window.addEventListener('resize', updateControlsPosition);
 
 			// Helper: create/update a simple frame behind a mesh; marked to ignore save
 			function ensureFrameForMesh(mesh, editor, pad = 0.06) {
@@ -345,7 +376,7 @@
 						// Hook selection to show controls for videos
 						try {
 							editor.signals.objectSelected.add(function(object){
-								if (object && object.userData && object.userData._videoEl) bindVideoForControls(object.userData._videoEl); else bindVideoForControls(null);
+								if (object && videoMap.has(object.uuid)) bindVideoForControls(object); else bindVideoForControls(null);
 							});
 						} catch {}
 						
@@ -626,8 +657,8 @@
 							try { if (mesh.material && mesh.material.map) mesh.material.map.needsUpdate = true; } catch {}
 							startPlayback();
 						});
-						// Expose video element for controls
-						mesh.userData._videoEl = video;
+						// Track the video element without polluting scene/userData (avoids IndexedDB clone errors)
+						videoMap.set(mesh.uuid, video);
 					} catch (e) {
 						console.warn('Video setup error:', e);
 					}
