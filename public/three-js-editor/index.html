@@ -765,10 +765,13 @@
 							mesh.scale.set(aspectRatio * 2, 2, 1);
 						}
 						
-						// Ensure autoplay and start precise per-frame updates
+						// Only update texture when video has complete frames
 						const startUpdates = () => {
 							const update = () => {
-								if (!video.paused && !video.ended && video.readyState >= 2) {
+								// Only update if video is playing AND has sufficient data AND dimensions are known
+								if (!video.paused && !video.ended && 
+									video.readyState >= 3 && // HAVE_FUTURE_DATA - can play without buffering
+									video.videoWidth > 0 && video.videoHeight > 0) {
 									videoTexture.needsUpdate = true;
 								}
 								if (video.requestVideoFrameCallback) {
@@ -784,8 +787,12 @@
 							}
 						};
 						
+						// Wait for video to be fully ready before starting updates
 						video.play().then(() => {
-							videoTexture.needsUpdate = true;
+							// Only set initial needsUpdate if video dimensions are known
+							if (video.videoWidth > 0 && video.videoHeight > 0) {
+								videoTexture.needsUpdate = true;
+							}
 							startUpdates();
 						}).catch(() => { startUpdates(); });
 						
