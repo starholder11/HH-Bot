@@ -53,6 +53,38 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       setEditorReady(true);
       setLoading(false);
       console.log('Three.js Editor is ready');
+      
+      // Force dark theme by injecting CSS
+      try {
+        const iframeDoc = iframeRef.current?.contentDocument;
+        if (iframeDoc) {
+          const style = iframeDoc.createElement('style');
+          style.textContent = `
+            /* Force dark theme styles */
+            :root { color-scheme: dark; }
+            @media (prefers-color-scheme: light) {
+              /* Override light theme with dark theme styles */
+              button { color: #aaa !important; background-color: #222 !important; }
+              button:hover { color: #ccc !important; background-color: #444 !important; }
+              button.selected { color: #fff !important; background-color: #08f !important; }
+              input, textarea { background-color: #222 !important; border: 1px solid transparent !important; color: #888 !important; }
+              select { color: #aaa !important; background-color: #222 !important; }
+              select:hover { color: #ccc !important; background-color: #444 !important; }
+              #menubar { background: #111 !important; }
+              #sidebar { background-color: #111 !important; }
+              #tabs { background-color: #1b1b1b !important; border-top: 1px solid #222 !important; }
+              #toolbar { background-color: #111 !important; }
+              .Outliner { background: #222 !important; }
+              .TabbedPanel .Tabs { background-color: #1b1b1b !important; }
+              .Listbox { color: #888 !important; background: #222 !important; }
+            }
+          `;
+          iframeDoc.head.appendChild(style);
+        }
+      } catch (e) {
+        console.warn('Could not inject dark theme CSS:', e);
+      }
+      
       // Load space data when editor is ready (guard against double-load)
       if (spaceId && lastLoadedIdRef.current !== spaceId) {
         loadSpaceData();
@@ -432,7 +464,8 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           transition: 'opacity 0.3s ease-in-out',
           border: 'none',
           outline: 'none',
-          boxShadow: 'none'
+          boxShadow: 'none',
+          colorScheme: 'dark'
         }}
       />
 
