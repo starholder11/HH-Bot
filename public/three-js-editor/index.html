@@ -118,6 +118,29 @@
 				} catch {}
 			}
 
+			// Helper: create/update a simple frame behind a mesh; marked to ignore save
+			function ensureFrameForMesh(mesh, editor, pad = 0.06) {
+				try {
+					// Try to find an existing frame linked to this mesh
+					let frame = null;
+					if (editor.scene) {
+						editor.scene.traverse(obj => {
+							if (obj !== mesh && obj.isMesh && obj.userData && obj.userData.ignoreSave && obj.userData.parentUuid === mesh.uuid) frame = obj;
+						});
+					}
+					if (!frame) {
+						frame = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.DoubleSide }));
+						frame.name = 'VideoFrame';
+						frame.userData = { ignoreSave: true, parentUuid: mesh.uuid };
+						editor.addObject(frame);
+					}
+					frame.position.copy(mesh.position);
+					frame.rotation.copy(mesh.rotation);
+					frame.scale.set(Math.max(mesh.scale.x + pad, 0.01), Math.max(mesh.scale.y + pad, 0.01), 1);
+					frame.renderOrder = (mesh.renderOrder || 0) - 1;
+				} catch {}
+			}
+
 			//
 
 		// Add timeout and error handling for storage initialization
@@ -370,7 +393,13 @@
 				case 'export_scene':
 					try {
 						console.log('Exporting scene...');
-						const scene = editor.scene;
+						const scene = editor.scene.clone();
+						// Remove helper frames (ignoreSave)
+						scene.traverse((obj) => {
+							if (obj.userData && obj.userData.ignoreSave) {
+								if (obj.parent) obj.parent.remove(obj);
+							}
+						});
 						const sceneJSON = scene.toJSON();
 						console.log('Scene JSON:', sceneJSON);
 						send({
@@ -540,6 +569,7 @@
 							if (editor.signals && editor.signals.sceneGraphChanged) {
 								editor.signals.sceneGraphChanged.dispatch();
 							}
+							ensureFrameForMesh(mesh, editor);
 							startPlayback();
 						});
 						video.addEventListener('canplaythrough', () => {
