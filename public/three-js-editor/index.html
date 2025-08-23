@@ -712,7 +712,7 @@
 							texture.magFilter = THREE.LinearFilter;
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
-							texture.flipY = false;
+							texture.flipY = true;  // Fix upside-down video
 							texture.needsUpdate = true;
 							
 							// Create optimized material for video
