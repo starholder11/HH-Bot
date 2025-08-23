@@ -727,7 +727,8 @@
 					const videoTexture = new THREE.VideoTexture(video);
 					videoTexture.minFilter = THREE.LinearFilter;
 					videoTexture.magFilter = THREE.LinearFilter;
-					videoTexture.format = THREE.RGBFormat;
+					videoTexture.format = THREE.RGBAFormat;
+					videoTexture.type = THREE.UnsignedByteType;
 					
 					console.log('VideoTexture created');
 					
