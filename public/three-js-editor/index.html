@@ -409,61 +409,85 @@
 				editor.clear();
 				console.log('Cleared scene, loading new data...');
 
-				// Try to use ObjectLoader first for proper Three.js scene loading
+				// Use manual scene loading to avoid ObjectLoader texture issues
 				if (command.data && command.data.metadata && command.data.object) {
 					try {
-						console.log('Loading scene with ObjectLoader, textures:', command.data.textures?.length || 0, 'images:', command.data.images?.length || 0);
+						console.log('Loading scene manually to avoid ObjectLoader texture issues');
 						
-						const loader = new THREE.ObjectLoader();
-						const loadedObject = loader.parse(command.data);
+						// Create a new group to hold all objects
+						const sceneGroup = new THREE.Group();
 						
-						// Post-process all textures to ensure correct format for sRGB
-						loadedObject.traverse((child) => {
-							if (child.material && child.material.map) {
-								const texture = child.material.map;
-								if (texture.colorSpace === THREE.SRGBColorSpace) {
-									texture.format = THREE.RGBAFormat;
-									texture.type = THREE.UnsignedByteType;
-									texture.needsUpdate = true;
+						// Process each object manually
+						if (command.data.object.children) {
+							command.data.object.children.forEach((childData) => {
+								if (childData.type === 'Mesh') {
+									// Create geometry
+									let geometry;
+									if (childData.geometry.type === 'PlaneGeometry') {
+										geometry = new THREE.PlaneGeometry(1, 1);
+									} else {
+										geometry = new THREE.PlaneGeometry(1, 1); // Default to plane
+									}
+									
+									// Create material
+									const material = new THREE.MeshBasicMaterial({ 
+										side: THREE.DoubleSide, 
+										toneMapped: false,
+										color: 0xffffff
+									});
+									
+									// Create mesh
+									const mesh = new THREE.Mesh(geometry, material);
+									
+									// Set position
+									if (childData.position) {
+										mesh.position.set(childData.position[0], childData.position[1], childData.position[2]);
+									}
+									
+									// Set rotation
+									if (childData.rotation) {
+										mesh.rotation.set(childData.rotation[0], childData.rotation[1], childData.rotation[2]);
+									}
+									
+									// Set scale
+									if (childData.scale) {
+										mesh.scale.set(childData.scale[0], childData.scale[1], childData.scale[2]);
+									}
+									
+									// Copy userData
+									if (childData.userData) {
+										mesh.userData = { ...childData.userData };
+									}
+									
+									// Set name
+									mesh.name = childData.name || childData.uuid;
+									mesh.uuid = childData.uuid;
+									
+									// Add to scene group
+									sceneGroup.add(mesh);
+									
+									// Apply media if it has a mediaUrl
+									const url = mesh.userData && mesh.userData.mediaUrl;
+									if (url) {
+										console.log('Processing mesh:', mesh.name, 'position:', mesh.position, 'userData:', mesh.userData);
+										applyMediaToMesh(mesh, url, mesh.userData.assetType, editor);
+									} else {
+										console.log('Mesh has no mediaUrl:', mesh.name);
+									}
 								}
-							}
-						});
+							});
+						}
 						
-						// Post-process loaded objects to ensure textures are applied
-						loadedObject.traverse((child) => {
-							if (!child.isMesh) return;
-							console.log('Processing mesh:', child.name, 'position:', child.position, 'userData:', child.userData);
-
-							// Ensure correct geometry for media assets (force plane for image/video)
-							const at = (child.userData && child.userData.assetType) || '';
-							if ((at === 'image' || at === 'video') && !(child.geometry && child.geometry.isPlaneGeometry)) {
-								child.geometry = new THREE.PlaneGeometry(1, 1);
-							}
-
-							// Re-apply saved transform defensively before media attaches
-							if (Array.isArray(child.position)) child.position.fromArray(child.position);
-							if (Array.isArray(child.rotation)) child.rotation.fromArray(child.rotation);
-							if (Array.isArray(child.scale)) child.scale.fromArray(child.scale);
-
-							const url = child.userData && child.userData.mediaUrl;
-							if (!url) {
-								console.log('Mesh has no mediaUrl:', child.name);
-								return;
-							}
-
-							applyMediaToMesh(child, url, child.userData.assetType, editor);
-						});
-						
-						editor.scene.add(loadedObject);
-						frameScene(editor, loadedObject);
+						editor.scene.add(sceneGroup);
+						frameScene(editor, sceneGroup);
 						// Reframe after first render tick to ensure bounds are final
-						requestAnimationFrame(()=> frameScene(editor, loadedObject));
+						requestAnimationFrame(()=> frameScene(editor, sceneGroup));
 						
 						// Update the editor
 						editor.signals.sceneGraphChanged.dispatch();
 						editor.signals.objectSelected.dispatch(null);
 						
-						console.log(`Scene loaded successfully with ${loadedObject.children.length} objects`);
+						console.log(`Scene loaded successfully with ${sceneGroup.children.length} objects`);
 						
 						// Hook selection to show controls for videos
 						try {
@@ -483,12 +507,12 @@
 						// Send success response
 						send({
 							type: 'scene_loaded',
-							data: { success: true, objectCount: loadedObject.children.length },
+							data: { success: true, objectCount: sceneGroup.children.length },
 							commandId: command.id
 						});
 						
 					} catch (error) {
-						console.error('ObjectLoader failed, falling back to manual creation:', error);
+						console.error('Manual scene loading failed, falling back to manual creation:', error);
 						// Fall back to manual object creation
 						loadSceneManually(command, editor, send);
 					}
