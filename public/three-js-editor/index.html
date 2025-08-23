@@ -740,6 +740,9 @@
 					// Start video with user interaction fallback
 					video.play().then(() => {
 						console.log('Video playing successfully');
+						// Force initial texture update
+						videoTexture.needsUpdate = true;
+						console.log('Forced initial texture update');
 					}).catch(err => {
 						console.log('Video autoplay failed, will play on user interaction:', err);
 					});
