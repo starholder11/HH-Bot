@@ -306,10 +306,8 @@
 								geometry = new THREE.BoxGeometry(1, 1, 1);
 						}
 
-						// Base material color by asset type (consistent with load path)
-						const baseColor = (objData.userData?.assetType === 'image') ? 0x4f46e5 :
-							(objData.userData?.assetType === 'video') ? 0xef4444 : 0x8b5cf6;
-						material = new THREE.MeshBasicMaterial({ color: baseColor, side: THREE.DoubleSide });
+						// Neutral base color; texture/video will set to white
+						material = new THREE.MeshBasicMaterial({ color: 0x999999, side: THREE.DoubleSide });
 
 						// Create mesh
 						const mesh = new THREE.Mesh(geometry, material);
@@ -493,7 +491,8 @@
 						video.setAttribute('muted', '');
 						video.autoplay = true;
 						const startPlayback = () => video.play().catch(() => {});
-						video.addEventListener('canplay', () => {
+						video.addEventListener('loadeddata', () => {
+							if (video.videoWidth === 0 || video.videoHeight === 0) return;
 							const texture = new THREE.VideoTexture(video);
 							texture.colorSpace = THREE.SRGBColorSpace;
 							texture.minFilter = THREE.LinearFilter;
@@ -502,6 +501,7 @@
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 								mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 							}
+							mesh.material.color && mesh.material.color.set(0xffffff);
 							mesh.material.map = texture;
 							mesh.material.needsUpdate = true;
 							if (editor.signals && editor.signals.materialChanged) {
@@ -539,6 +539,7 @@
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 								mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 							}
+							mesh.material.color && mesh.material.color.set(0xffffff);
 							mesh.material.map = texture;
 							mesh.material.needsUpdate = true;
 							if (editor.signals && editor.signals.materialChanged) {
