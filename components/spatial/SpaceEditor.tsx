@@ -331,7 +331,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           const asset = data?.asset || data;
           canonicalId = asset?.id || assetRef;
           const originalUrl: string | null = asset?.cloudflare_url || asset?.url || asset?.s3_url || null;
-          if (originalUrl) mediaUrl = (type === 'image') ? `/api/proxy?url=${encodeURIComponent(originalUrl)}` : originalUrl;
+          if (originalUrl) mediaUrl = (type === 'image' || type === 'video') ? `/api/proxy?url=${encodeURIComponent(originalUrl)}` : originalUrl;
         }
       } catch {}
 
@@ -346,7 +346,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           if (resp2.ok) {
             const j = await resp2.json();
             const url = Array.isArray(j?.refs) && j.refs[0] ? String(j.refs[0]) : undefined;
-            if (url) mediaUrl = (type === 'image') ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
+            if (url) mediaUrl = (type === 'image' || type === 'video') ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
           }
         } catch {}
       }

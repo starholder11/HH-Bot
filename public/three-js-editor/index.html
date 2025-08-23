@@ -237,34 +237,70 @@
 								return;
 							}
 
-							const textureLoader = new THREE.TextureLoader();
-							textureLoader.crossOrigin = 'anonymous';
-							textureLoader.load(
-								url,
-								(texture) => {
-									texture.colorSpace = THREE.SRGBColorSpace;
-									// WebGL-safe params to avoid sRGB/type/internalFormat warnings
-									texture.format = THREE.RGBAFormat;
-									texture.type = THREE.UnsignedByteType;
-									texture.generateMipmaps = false;
-									texture.minFilter = THREE.LinearFilter;
-									texture.magFilter = THREE.LinearFilter;
-									texture.wrapS = THREE.ClampToEdgeWrapping;
-									texture.wrapT = THREE.ClampToEdgeWrapping;
-									if (!child.material || !(child.material instanceof THREE.MeshBasicMaterial)) {
-										child.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
-									}
-									child.material.map = texture;
-									child.material.needsUpdate = true;
-									if (editor.signals && editor.signals.materialChanged) {
-										editor.signals.materialChanged.dispatch(child.material);
-									}
-								},
-								undefined,
-								(error) => {
-									console.error('Error loading texture for mesh:', child.name, error);
+							// If video, attach VideoTexture; else use TextureLoader for images
+							const isVideo = (child.userData.assetType === 'video') || /\.mp4(\?|$)/i.test(url);
+							if (isVideo) {
+								try {
+									const video = document.createElement('video');
+									video.src = url;
+									video.crossOrigin = 'anonymous';
+									video.muted = true;
+									video.loop = true;
+									video.playsInline = true;
+									video.autoplay = true;
+									video.addEventListener('canplay', () => {
+										const texture = new THREE.VideoTexture(video);
+										texture.colorSpace = THREE.SRGBColorSpace;
+										texture.minFilter = THREE.LinearFilter;
+										texture.magFilter = THREE.LinearFilter;
+										texture.generateMipmaps = false;
+										if (!child.material || !(child.material instanceof THREE.MeshBasicMaterial)) {
+											child.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+										}
+										child.material.map = texture;
+										child.material.needsUpdate = true;
+										if (editor.signals && editor.signals.materialChanged) {
+											editor.signals.materialChanged.dispatch(child.material);
+										}
+									});
+									video.addEventListener('error', (e) => {
+										console.warn('Video failed to load:', url, e);
+									});
+									video.load();
+									video.play().catch(() => {});
+								} catch (e) {
+									console.warn('Video setup error:', e);
 								}
-							);
+							} else {
+								const textureLoader = new THREE.TextureLoader();
+								textureLoader.crossOrigin = 'anonymous';
+								textureLoader.load(
+									url,
+									(texture) => {
+										texture.colorSpace = THREE.SRGBColorSpace;
+										// WebGL-safe params to avoid sRGB/type/internalFormat warnings
+										texture.format = THREE.RGBAFormat;
+										texture.type = THREE.UnsignedByteType;
+										texture.generateMipmaps = false;
+										texture.minFilter = THREE.LinearFilter;
+										texture.magFilter = THREE.LinearFilter;
+										texture.wrapS = THREE.ClampToEdgeWrapping;
+										texture.wrapT = THREE.ClampToEdgeWrapping;
+										if (!child.material || !(child.material instanceof THREE.MeshBasicMaterial)) {
+											child.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+										}
+										child.material.map = texture;
+										child.material.needsUpdate = true;
+										if (editor.signals && editor.signals.materialChanged) {
+											editor.signals.materialChanged.dispatch(child.material);
+										}
+									},
+									undefined,
+									(error) => {
+										console.error('Error loading texture for mesh:', child.name, error);
+									}
+								);
+							}
 						});
 						
 						editor.scene.add(loadedObject);
