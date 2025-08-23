@@ -800,16 +800,33 @@
 					});
 					
 					// Continuous texture update for video
-					const updateVideoTexture = () => {
-						if (videoTexture && !video.paused && !video.ended) {
+					const updateVideoTextureRAF = () => {
+						if (videoTexture && video.readyState >= 2 && !video.paused && !video.ended) {
 							videoTexture.needsUpdate = true;
 						}
-						requestAnimationFrame(updateVideoTexture);
+						requestAnimationFrame(updateVideoTextureRAF);
+					};
+					
+					// Prefer requestVideoFrameCallback when supported for precise updates
+					const startPreciseVideoUpdates = () => {
+						try {
+							if (typeof (video as any).requestVideoFrameCallback === 'function') {
+								const loop = () => {
+									if (videoTexture && video.readyState >= 2) {
+										videoTexture.needsUpdate = true;
+									}
+									(video as any).requestVideoFrameCallback(loop);
+								};
+								(video as any).requestVideoFrameCallback(loop);
+								return true;
+							}
+						} catch {}
+						return false;
 					};
 					
 					video.addEventListener('play', () => {
 						console.log('Video play event - starting texture updates');
-						updateVideoTexture();
+						if (!startPreciseVideoUpdates()) updateVideoTextureRAF();
 						// Update controls when play state changes
 						if (boundVideo === video) {
 							playBtn.textContent = '⏸️';
