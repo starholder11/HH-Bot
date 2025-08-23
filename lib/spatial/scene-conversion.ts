@@ -140,14 +140,24 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
  */
 export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: SpaceAsset): SpaceAsset {
   console.log('[Scene Conversion] Converting Three.js scene to SpaceAsset:', scene);
+  console.log('[Scene Conversion] Scene keys:', Object.keys(scene));
+  console.log('[Scene Conversion] Scene.object:', scene.object);
   console.log('[Scene Conversion] Existing space:', existingSpace);
   
-  if (!scene || !scene.object || !scene.object.children) {
-    console.error('[Scene Conversion] Invalid scene structure:', scene);
-    throw new Error('Invalid scene structure for conversion');
+  // Handle different scene structures - sometimes children are directly on scene, sometimes nested under object
+  let children = [];
+  if (scene.object && scene.object.children) {
+    children = scene.object.children;
+  } else if ((scene as any).children) {
+    children = (scene as any).children;
+  } else {
+    console.error('[Scene Conversion] No children found in scene structure:', scene);
+    throw new Error('Invalid scene structure for conversion - no children found');
   }
+  
+  console.log('[Scene Conversion] Found children:', children.length);
 
-  const items = scene.object.children.map(child => {
+  const items = children.map(child => {
     console.log('[Scene Conversion] Processing child:', child);
     
     // Extract position from Three.js object (could be array or matrix)
