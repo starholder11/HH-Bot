@@ -393,14 +393,16 @@
 				case 'export_scene':
 					try {
 						console.log('Exporting scene...');
-						const scene = editor.scene.clone();
-						// Remove helper frames (ignoreSave)
-						scene.traverse((obj) => {
-							if (obj.userData && obj.userData.ignoreSave) {
-								if (obj.parent) obj.parent.remove(obj);
+						// Temporarily remove helper frames (ignoreSave) from the live scene, then restore
+						const removed = [];
+						editor.scene.traverse((obj) => {
+							if (obj.userData && obj.userData.ignoreSave && obj.parent) {
+								removed.push({ obj, parent: obj.parent });
 							}
 						});
-						const sceneJSON = scene.toJSON();
+						removed.forEach(({ obj, parent }) => { try { parent.remove(obj); } catch {} });
+						const sceneJSON = editor.scene.toJSON();
+						removed.forEach(({ obj, parent }) => { try { parent.add(obj); } catch {} });
 						console.log('Scene JSON:', sceneJSON);
 						send({
 							type: 'scene_exported',
