@@ -232,8 +232,12 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   // Ensure we have a base space object to spread
   const baseSpace = (existingSpace as any).space || {};
 
+  // Persist title from the Three.js scene name if present
+  const sceneTitle = (scene as any)?.object?.name || existingSpace.title;
+
   const result = {
     ...existingSpace,
+    title: sceneTitle,
     space: {
       ...baseSpace,
       items,
