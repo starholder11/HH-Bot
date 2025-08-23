@@ -157,10 +157,22 @@
 			function bindVideoForControls(mesh){
 				boundMesh = null;
 				boundVideo = null;
-				if(!mesh){ controls.style.display='none'; return; }
+				if(!mesh){ 
+					controls.style.display='none'; 
+					console.log('No mesh selected, hiding controls');
+					return; 
+				}
 				const v = videoMap.get(mesh.uuid);
-				if(!v){ controls.style.display='none'; return; }
-				boundMesh = mesh; boundVideo = v; controls.style.display='flex';
+				if(!v){ 
+					controls.style.display='none'; 
+					console.log('No video found for mesh:', mesh.uuid);
+					return; 
+				}
+				boundMesh = mesh; 
+				boundVideo = v; 
+				controls.style.display='flex';
+				console.log('Video controls bound to:', mesh.name, 'playing:', !v.paused);
+				
 				seek.max = isFinite(boundVideo.duration) ? String(boundVideo.duration) : '0';
 				seek.value = String(boundVideo.currentTime || 0);
 				timeLabel.textContent = `${fmtTime(boundVideo.currentTime||0)} / ${fmtTime(boundVideo.duration||0)}`;
@@ -399,9 +411,17 @@
 						// Hook selection to show controls for videos
 						try {
 							editor.signals.objectSelected.add(function(object){
-								if (object && videoMap.has(object.uuid)) bindVideoForControls(object); else bindVideoForControls(null);
+								console.log('Object selected:', object?.name, object?.uuid);
+								if (object && videoMap.has(object.uuid)) {
+									console.log('Binding video controls for:', object.name);
+									bindVideoForControls(object);
+								} else {
+									bindVideoForControls(null);
+								}
 							});
-						} catch {}
+						} catch (error) {
+							console.error('Failed to bind video controls:', error);
+						}
 						
 						// Send success response
 						send({
@@ -654,14 +674,34 @@
 						video.setAttribute('playsinline', '');
 						video.setAttribute('muted', '');
 						video.autoplay = true;
-						const startPlayback = () => video.play().catch(() => {});
+						const startPlayback = () => {
+							video.play().then(() => {
+								console.log('Video started playing:', video.src);
+							}).catch((error) => {
+								console.warn('Video autoplay failed:', error);
+								// Try again after user interaction
+								document.addEventListener('click', () => {
+									video.play().catch(() => {});
+								}, { once: true });
+							});
+						};
 						video.addEventListener('loadedmetadata', () => {
+							console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
 							startPlayback();
 						});
 						let textureCreated = false;
 						const createVideoTexture = () => {
-							if (textureCreated || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) return;
+							if (textureCreated || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) {
+								console.log('Video not ready for texture creation:', {
+									textureCreated,
+									videoWidth: video.videoWidth,
+									videoHeight: video.videoHeight,
+									readyState: video.readyState
+								});
+								return;
+							}
 							textureCreated = true;
+							console.log('Creating video texture for:', video.src);
 							
 							const texture = new THREE.VideoTexture(video);
 							texture.colorSpace = THREE.SRGBColorSpace;
@@ -693,6 +733,7 @@
 							const aspectRatio = video.videoWidth / video.videoHeight;
 							if (aspectRatio > 0 && isFinite(aspectRatio)) {
 								mesh.scale.set(aspectRatio * 2, 2, 1);
+								console.log('Set video aspect ratio:', aspectRatio, 'scale:', mesh.scale);
 							}
 							
 							if (editor.signals && editor.signals.materialChanged) {
@@ -705,10 +746,13 @@
 						};
 						
 						video.addEventListener('loadeddata', () => {
+							console.log('Video loadeddata event fired');
 							createVideoTexture();
 							startPlayback();
 						});
 						video.addEventListener('canplaythrough', () => {
+							console.log('Video canplaythrough event fired');
+							createVideoTexture(); // Try again in case first attempt failed
 							startPlayback();
 						});
 						video.addEventListener('play', () => { 
@@ -739,6 +783,7 @@
 						});
 						// Track the video element without polluting scene/userData (avoids IndexedDB clone errors)
 						videoMap.set(mesh.uuid, video);
+						console.log('Video mapped for mesh:', mesh.uuid, mesh.name);
 					} catch (e) {
 						console.warn('Video setup error:', e);
 					}
