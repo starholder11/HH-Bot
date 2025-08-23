@@ -290,21 +290,29 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   // Resolve media URL and canonical assetId for a layout item
   const resolveLayoutMedia = async (item: any, type: string): Promise<{ mediaUrl: string | null; assetId: string | null; extraUserData?: Record<string, any> }> => {
     try {
-      // Extract canonical asset id or text slug
-      let assetRef: string | null = null;
       const extra: Record<string, any> = {};
-      const idStr: string = String(item.id || '');
-      if (type === 'text' && idStr.startsWith('text_')) {
-        assetRef = idStr; // keep full identifier (e.g., text_timeline/slug#index-...)
-        extra.textRef = idStr;
-      } else if (/^[0-9a-fA-F-]{36}/.test(idStr)) {
-        // Likely UUID with optional suffixes; take first 36 chars
-        assetRef = idStr.substring(0, 36);
-      } else if (item.refId) {
-        assetRef = String(item.refId);
+
+      // TEXT: do not call media-assets, extract slug and carry as metadata
+      if (type === 'text') {
+        const raw = String(item.contentId || item.refId || item.id || '');
+        // formats: text_timeline/slug#anchor or content_ref_slug
+        let slug = '';
+        const match = raw.match(/text_timeline\/([^#]+)/);
+        if (match) slug = match[1];
+        else if (raw.startsWith('content_ref_')) slug = raw.replace('content_ref_', '');
+        else slug = raw;
+        extra.textSlug = slug;
+        return { mediaUrl: null, assetId: null, extraUserData: extra };
       }
 
-      // If an explicit mediaUrl exists on item, proxy for images and return
+      // MEDIA (image/video/audio): resolve by contentId/refId first
+      const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
+      const idStr: string = String(item.contentId || item.refId || item.id || '');
+      let assetRef: string | null = null;
+      if (uuidRegex.test(idStr)) assetRef = idStr.match(uuidRegex)?.[0] || null;
+      else if (idStr) assetRef = idStr;
+
+      // If layout item already carries mediaUrl, prefer it
       if (item.mediaUrl) {
         const url = String(item.mediaUrl);
         const proxied = type === 'image' ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
@@ -313,14 +321,37 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
       if (!assetRef) return { mediaUrl: null, assetId: null, extraUserData: extra };
 
-      // Hit media-assets endpoint to resolve to a direct URL
-      const resp = await fetch(`/api/media-assets/${encodeURIComponent(assetRef)}`);
-      if (!resp.ok) return { mediaUrl: null, assetId: assetRef, extraUserData: extra };
-      const asset = await resp.json();
-      const originalUrl: string | null = asset.cloudflare_url || asset.url || asset.s3_url || null;
-      if (!originalUrl) return { mediaUrl: null, assetId: assetRef, extraUserData: extra };
-      const mediaUrl = type === 'image' ? `/api/proxy?url=${encodeURIComponent(originalUrl)}` : originalUrl;
-      return { mediaUrl, assetId: asset.id || assetRef, extraUserData: extra };
+      // Try media-assets first
+      let mediaUrl: string | null = null;
+      let canonicalId: string | null = assetRef;
+      try {
+        const resp = await fetch(`/api/media-assets/${encodeURIComponent(assetRef)}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          const asset = data?.asset || data;
+          canonicalId = asset?.id || assetRef;
+          const originalUrl: string | null = asset?.cloudflare_url || asset?.url || asset?.s3_url || null;
+          if (originalUrl) mediaUrl = (type === 'image') ? `/api/proxy?url=${encodeURIComponent(originalUrl)}` : originalUrl;
+        }
+      } catch {}
+
+      // Fallback: batch resolver by identifier
+      if (!mediaUrl) {
+        try {
+          const resp2 = await fetch('/api/tools/resolveAssetRefs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifiers: [assetRef], preferred: 'cloudflare' })
+          });
+          if (resp2.ok) {
+            const j = await resp2.json();
+            const url = Array.isArray(j?.refs) && j.refs[0] ? String(j.refs[0]) : undefined;
+            if (url) mediaUrl = (type === 'image') ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
+          }
+        } catch {}
+      }
+
+      return { mediaUrl: mediaUrl || null, assetId: canonicalId, extraUserData: extra };
     } catch {
       return { mediaUrl: null, assetId: null };
     }
