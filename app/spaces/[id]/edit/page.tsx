@@ -161,52 +161,53 @@ export default function SpaceEditPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Space Name - Editable like Canvas - TOP LEFT */}
-          <div className="min-w-0">
-            {!isEditingName ? (
-              <h1
-                className="text-2xl font-bold cursor-text truncate text-white"
-                title={spaceName || 'Untitled Space'}
-                onDoubleClick={() => setIsEditingName(true)}
-              >
-                {spaceName || 'Untitled Space'}
-              </h1>
-            ) : (
-              <input
-                value={spaceName}
-                onChange={(e) => {
-                  setSpaceName(e.target.value);
-                  setHasUnsavedChanges(true);
-                }}
-                onBlur={handleNameSave}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleNameSave();
-                  }
-                  if (e.key === 'Escape') {
-                    setSpaceName(spaceData?.title || '');
-                    setIsEditingName(false);
-                  }
-                }}
-                autoFocus
-                className="text-2xl font-bold w-full px-2 py-1 rounded border border-neutral-700 bg-neutral-800 text-white"
-                placeholder="Space name"
-              />
-            )}
+    <div className="min-h-screen bg-neutral-900 text-white">
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Space Name - Editable like Canvas - TOP LEFT */}
+            <div className="min-w-0">
+              {!isEditingName ? (
+                <h1
+                  className="text-2xl font-bold cursor-text truncate text-white"
+                  title={spaceName || 'Untitled Space'}
+                  onDoubleClick={() => setIsEditingName(true)}
+                >
+                  {spaceName || 'Untitled Space'}
+                </h1>
+              ) : (
+                <input
+                  value={spaceName}
+                  onChange={(e) => {
+                    setSpaceName(e.target.value);
+                    setHasUnsavedChanges(true);
+                  }}
+                  onBlur={handleNameSave}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleNameSave();
+                    }
+                    if (e.key === 'Escape') {
+                      setSpaceName(spaceData?.title || '');
+                      setIsEditingName(false);
+                    }
+                  }}
+                  autoFocus
+                  className="text-2xl font-bold w-full px-2 py-1 rounded border border-neutral-700 bg-neutral-800 text-white"
+                  placeholder="Space name"
+                />
+              )}
+            </div>
+
+            <Link
+              href="/workshop"
+              className="text-neutral-400 hover:text-white text-sm"
+            >
+              ← Back to Workshop
+            </Link>
           </div>
 
-          <Link
-            href="/workshop"
-            className="text-neutral-400 hover:text-white text-sm"
-          >
-            ← Back to Workshop
-          </Link>
-        </div>
-
-        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
           {/* Actions */}
           <button
             className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
@@ -291,6 +292,7 @@ export default function SpaceEditPage() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }
