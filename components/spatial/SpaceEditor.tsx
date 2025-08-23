@@ -409,7 +409,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   }
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ border: 'none', outline: 'none' }}>
       {loading && (
         <div className="absolute inset-0 bg-neutral-900/80 flex items-center justify-center z-10 rounded-lg">
           <div className="text-center">
@@ -428,7 +428,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         style={{
           opacity: loading ? 0.3 : 1,
           transition: 'opacity 0.3s ease-in-out',
-          border: 'none'
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none'
         }}
       />
 
