@@ -439,7 +439,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           geometry,
           material: { type: 'MeshBasicMaterial', color },
           position: [x, 0.5, z],
-          scale: [fitted.w, 1, fitted.h],
+          scale: [fitted.w, fitted.h, 1],
           name: item.snippet || `Layout Item ${i + 1}`,
           userData: { 
             // Persist normalized media type from the layout so save/load can render correctly

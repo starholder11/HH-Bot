@@ -234,10 +234,7 @@
 							// Ensure correct geometry for media assets (force plane for image/video)
 							const at = (child.userData && child.userData.assetType) || '';
 							if ((at === 'image' || at === 'video') && !(child.geometry && child.geometry.isPlaneGeometry)) {
-								const w = Math.max(child.scale?.x || 1, 0.01);
-								const h = Math.max(child.scale?.z || 1, 0.01);
 								child.geometry = new THREE.PlaneGeometry(2, 2);
-								// keep existing scale which already encodes fitted size
 							}
 
 							// Re-apply saved transform defensively before media attaches
@@ -509,9 +506,9 @@
 							if (video.videoWidth === 0 || video.videoHeight === 0) return;
 							const texture = new THREE.VideoTexture(video);
 							texture.colorSpace = THREE.SRGBColorSpace;
+							texture.generateMipmaps = false;
 							texture.minFilter = THREE.LinearFilter;
 							texture.magFilter = THREE.LinearFilter;
-							texture.generateMipmaps = false;
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 								mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 							}
