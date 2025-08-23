@@ -736,9 +736,8 @@
 						textureCreated = true;
 						
 						const videoTexture = new THREE.VideoTexture(video);
-						videoTexture.colorSpace = THREE.NoColorSpace;
-						videoTexture.format = THREE.RGBAFormat;
-						videoTexture.type = THREE.UnsignedByteType;
+						videoTexture.colorSpace = THREE.SRGBColorSpace;
+						// Let three.js choose correct internal formats; do not force format/type
 						videoTexture.generateMipmaps = false;
 						videoTexture.minFilter = THREE.LinearFilter;
 						videoTexture.magFilter = THREE.LinearFilter;
@@ -809,9 +808,7 @@
 						url,
 						(texture) => {
 							texture.colorSpace = THREE.SRGBColorSpace;
-							// Ensure sRGB textures use RGBA + UnsignedByte per WebGL/three requirements
-							texture.format = THREE.RGBAFormat;
-							texture.type = THREE.UnsignedByteType;
+							// Let three.js choose internal format/type
 							texture.generateMipmaps = false;
 							texture.minFilter = THREE.LinearFilter;
 							texture.magFilter = THREE.LinearFilter;
