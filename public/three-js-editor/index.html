@@ -720,12 +720,20 @@
 					
 					console.log('Loading video:', url);
 					
+					let textureCreated = false; // Prevent multiple texture creation
+					
 					// Debug all video events
 					video.addEventListener('loadstart', () => console.log('Video loadstart'));
 					video.addEventListener('loadedmetadata', () => console.log('Video loadedmetadata'));
 					video.addEventListener('canplay', () => console.log('Video canplay'));
 					video.addEventListener('canplaythrough', () => {
+						if (textureCreated) {
+							console.log('Video canplaythrough - texture already created, skipping');
+							return;
+						}
+						
 						console.log('Video canplaythrough - creating texture');
+						textureCreated = true;
 						
 						const videoTexture = new THREE.VideoTexture(video);
 						videoTexture.colorSpace = THREE.SRGBColorSpace;
