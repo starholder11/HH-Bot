@@ -710,47 +710,65 @@
 				if (isVideo) {
 					console.log('Creating video texture for:', mesh.name);
 					
-					// SIMPLE Three.js VideoTexture - the official way
+					// Create video element
 					const video = document.createElement('video');
 					video.src = url;
 					video.crossOrigin = 'anonymous';
 					video.muted = true;
 					video.loop = true;
 					video.playsInline = true;
-					video.autoplay = false; // Don't autoplay, we'll play manually
+					video.autoplay = false;
 					video.style.display = 'none';
 					document.body.appendChild(video);
 					
 					console.log('Video element created, src:', video.src);
 					
-					// Create VideoTexture immediately - Three.js handles everything
-					const videoTexture = new THREE.VideoTexture(video);
-					videoTexture.minFilter = THREE.LinearFilter;
-					videoTexture.magFilter = THREE.LinearFilter;
-					videoTexture.format = THREE.RGBAFormat;
-					videoTexture.type = THREE.UnsignedByteType;
-					
-					console.log('VideoTexture created');
-					
-					// Apply to material
-					const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
-					mesh.material = videoMaterial;
-					
-					console.log('Material applied to mesh');
-					
-					// Start video with user interaction fallback
-					video.play().then(() => {
-						console.log('Video playing successfully');
-						// Force initial texture update
-						videoTexture.needsUpdate = true;
-						console.log('Forced initial texture update');
-					}).catch(err => {
-						console.log('Video autoplay failed, will play on user interaction:', err);
+					// Wait for video to be ready before creating texture
+					video.addEventListener('loadeddata', () => {
+						console.log('Video loaded data, ready state:', video.readyState);
+						
+						// Create VideoTexture only when video is ready
+						const videoTexture = new THREE.VideoTexture(video);
+						videoTexture.minFilter = THREE.LinearFilter;
+						videoTexture.magFilter = THREE.LinearFilter;
+						videoTexture.format = THREE.RGBAFormat;
+						videoTexture.type = THREE.UnsignedByteType;
+						
+						console.log('VideoTexture created with ready video');
+						
+						// Apply to material
+						const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
+						mesh.material = videoMaterial;
+						
+						console.log('Material applied to mesh');
+						
+						// Start video
+						video.play().then(() => {
+							console.log('Video playing successfully');
+							videoTexture.needsUpdate = true;
+							console.log('Forced initial texture update');
+						}).catch(err => {
+							console.log('Video autoplay failed, will play on user interaction:', err);
+						});
+						
+						// Track video element
+						videoMap.set(mesh.uuid, video);
+						console.log('Video mapped for mesh:', mesh.uuid);
+						
+						// Notify editor
+						if (editor.signals && editor.signals.materialChanged) {
+							editor.signals.materialChanged.dispatch(mesh.material);
+						}
+						if (editor.signals && editor.signals.sceneGraphChanged) {
+							editor.signals.sceneGraphChanged.dispatch();
+						}
+						ensureFrameForMesh(mesh, editor);
 					});
 					
-					// Track video element
-					videoMap.set(mesh.uuid, video);
-					console.log('Video mapped for mesh:', mesh.uuid);
+					// Handle video load errors
+					video.addEventListener('error', (e) => {
+						console.error('Video load error:', e);
+					});
 				} else {
 					const textureLoader = new THREE.TextureLoader();
 					textureLoader.crossOrigin = 'anonymous';
