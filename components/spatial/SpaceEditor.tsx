@@ -287,6 +287,45 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     });
   };
 
+  // Resolve media URL and canonical assetId for a layout item
+  const resolveLayoutMedia = async (item: any, type: string): Promise<{ mediaUrl: string | null; assetId: string | null; extraUserData?: Record<string, any> }> => {
+    try {
+      // Extract canonical asset id or text slug
+      let assetRef: string | null = null;
+      const extra: Record<string, any> = {};
+      const idStr: string = String(item.id || '');
+      if (type === 'text' && idStr.startsWith('text_')) {
+        assetRef = idStr; // keep full identifier (e.g., text_timeline/slug#index-...)
+        extra.textRef = idStr;
+      } else if (/^[0-9a-fA-F-]{36}/.test(idStr)) {
+        // Likely UUID with optional suffixes; take first 36 chars
+        assetRef = idStr.substring(0, 36);
+      } else if (item.refId) {
+        assetRef = String(item.refId);
+      }
+
+      // If an explicit mediaUrl exists on item, proxy for images and return
+      if (item.mediaUrl) {
+        const url = String(item.mediaUrl);
+        const proxied = type === 'image' ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
+        return { mediaUrl: proxied, assetId: assetRef, extraUserData: extra };
+      }
+
+      if (!assetRef) return { mediaUrl: null, assetId: null, extraUserData: extra };
+
+      // Hit media-assets endpoint to resolve to a direct URL
+      const resp = await fetch(`/api/media-assets/${encodeURIComponent(assetRef)}`);
+      if (!resp.ok) return { mediaUrl: null, assetId: assetRef, extraUserData: extra };
+      const asset = await resp.json();
+      const originalUrl: string | null = asset.cloudflare_url || asset.url || asset.s3_url || null;
+      if (!originalUrl) return { mediaUrl: null, assetId: assetRef, extraUserData: extra };
+      const mediaUrl = type === 'image' ? `/api/proxy?url=${encodeURIComponent(originalUrl)}` : originalUrl;
+      return { mediaUrl, assetId: asset.id || assetRef, extraUserData: extra };
+    } catch {
+      return { mediaUrl: null, assetId: null };
+    }
+  };
+
   const addLayoutToEditor = async (layout: any) => {
     const items = layout?.layout_data?.items || [];
     const scale = 0.1; // Increased scale for better visibility
@@ -338,6 +377,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       
       console.log(`[SpaceEditor] Layout item ${i}: x=${x}, z=${z}, width=${width}, height=${height}`);
 
+      // Resolve media URL and canonical asset id for proper rendering
+      const resolved = await resolveLayoutMedia(item, type);
+
       await sendCommand({
         type: 'add_object',
         data: {
@@ -354,7 +396,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
             layoutId: layout.id,
             layoutItemId: item.id,
             contentType: type,
-            mediaUrl: item.mediaUrl ? `/api/proxy?url=${encodeURIComponent(item.mediaUrl)}` : null,
+            mediaUrl: resolved.mediaUrl,
+            assetId: resolved.assetId || undefined,
+            ...resolved.extraUserData,
             importMetadata: {
               sourceType: 'layout',
               sourceId: layout.id,
