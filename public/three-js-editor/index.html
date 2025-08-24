@@ -827,7 +827,7 @@
 							videoTexture.generateMipmaps = false;
 							videoTexture.wrapS = THREE.ClampToEdgeWrapping;
 							videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-							videoTexture.flipY = false;
+							videoTexture.flipY = true;
 							
 							console.log('VideoTexture created with ready video');
 							
@@ -839,6 +839,7 @@
 							console.log('Material applied to mesh');
 							
 							// Start video
+							// Try to start; if blocked, ensure first frame shows
 							video.play().then(() => {
 								console.log('Video playing successfully');
 								videoTexture.needsUpdate = true;
@@ -849,6 +850,10 @@
 								}
 							}).catch(err => {
 								console.log('Video autoplay failed, will play on user interaction:', err);
+								// Even if play fails, draw the first frame as soon as it can play
+								const showFirstFrame = () => { try { videoTexture.needsUpdate = true; if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch(); } catch {} }
+								video.addEventListener('canplay', showFirstFrame, { once: true });
+								video.addEventListener('loadedmetadata', showFirstFrame, { once: true });
 							});
 							
 							// Also nudge updates when player becomes ready
