@@ -694,31 +694,30 @@
 					try {
 						const objData = command.data;
 						let geometry, material;
+						const assetType = (objData.userData && objData.userData.assetType) ? String(objData.userData.assetType).toLowerCase() : '';
+						const isMediaPlane = ['image','video','text','layout','canvas'].includes(assetType);
 
 						// Create geometry
-						switch (objData.geometry.type) {
-							case 'BoxGeometry':
-								geometry = new THREE.BoxGeometry(
-									objData.geometry.width || 1,
-									objData.geometry.height || 1,
-									objData.geometry.depth || 1
-								);
-								break;
-							case 'SphereGeometry':
-								geometry = new THREE.SphereGeometry(objData.geometry.radius || 0.5);
-								break;
-							case 'PlaneGeometry':
-								geometry = new THREE.PlaneGeometry(
-									objData.geometry.width || 1,
-									objData.geometry.height || 1
-								);
-								break;
-							default:
-								geometry = new THREE.BoxGeometry(1, 1, 1);
+						if (isMediaPlane || objData.geometry.type === 'PlaneGeometry') {
+							geometry = new THREE.PlaneGeometry(
+								objData.geometry.width || 1,
+								objData.geometry.height || 1
+							);
+						} else if (objData.geometry.type === 'BoxGeometry') {
+							geometry = new THREE.BoxGeometry(
+								objData.geometry.width || 1,
+								objData.geometry.height || 1,
+								objData.geometry.depth || 1
+							);
+						} else if (objData.geometry.type === 'SphereGeometry') {
+							geometry = new THREE.SphereGeometry(objData.geometry.radius || 0.5);
+						} else {
+							// Default to plane to match load behavior
+							geometry = new THREE.PlaneGeometry(1, 1);
 						}
 
-						// Neutral base color; texture/video will set to white
-						material = new THREE.MeshBasicMaterial({ color: 0x999999, side: THREE.DoubleSide });
+						// Match load path: white base, DoubleSide, no tone mapping
+						material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, toneMapped: false });
 
 						// Create mesh
 						const mesh = new THREE.Mesh(geometry, material);
