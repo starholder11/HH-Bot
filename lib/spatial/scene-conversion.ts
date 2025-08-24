@@ -228,23 +228,43 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     return [1, 1, 1];
   };
   
-  // Collect Mesh nodes recursively (children may be nested inside Groups)
-  const collectMeshes = (node: any): any[] => {
+  // Collect Mesh nodes recursively and accumulate parent scale so group scaling is preserved
+  type Accumulated = {
+    node: any;
+    worldScale: [number, number, number];
+  };
+
+  const collectMeshes = (node: any): Accumulated[] => {
     if (!node) return [];
-    const out: any[] = [];
-    const process = (n: any) => {
+
+    const out: Accumulated[] = [];
+
+    const multiplyScale = (a: [number, number, number], b: [number, number, number]): [number, number, number] => {
+      return [
+        (a?.[0] ?? 1) * (b?.[0] ?? 1),
+        (a?.[1] ?? 1) * (b?.[1] ?? 1),
+        (a?.[2] ?? 1) * (b?.[2] ?? 1)
+      ];
+    };
+
+    const recurse = (n: any, parentScale: [number, number, number]) => {
       try {
         if (!n) return;
-        if (n.type === 'Mesh') out.push(n);
+        const localScale = extractScale(n);
+        const worldScale = multiplyScale(parentScale, localScale);
+        if (n.type === 'Mesh') {
+          out.push({ node: n, worldScale });
+        }
         const kids = (n.children || []);
-        for (const k of kids) process(k);
+        for (const k of kids) recurse(k, worldScale);
       } catch {}
     };
-    process(node);
+
+    recurse(node, [1, 1, 1]);
     return out;
   };
 
-  let meshChildren: any[] = [];
+  let meshChildren: Accumulated[] = [];
   if (scene.object) {
     meshChildren = collectMeshes(scene.object);
   } else if ((scene as any).children) {
@@ -253,7 +273,8 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
 
   console.log('[Scene Conversion] Found mesh children:', meshChildren.length);
 
-  const items = meshChildren.map(child => {
+  const items = meshChildren.map(entry => {
+    const child = entry.node;
     console.log('[Scene Conversion] Processing child:', child);
     console.log('[Scene Conversion] Child UUID:', child.uuid, 'Child name:', child.name);
     console.log('[Scene Conversion] Child userData:', child.userData);
@@ -264,7 +285,8 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     // Extract transforms from Three.js object (supports array/object/matrix)
     const [x, y, z] = extractPosition(child);
     const rot = extractRotation(child);
-    const scl = extractScale(child);
+    const localScale = extractScale(child);
+    const scl = entry.worldScale || localScale;
     
     // Extract mediaUrl from material texture or userData
     let mediaUrl = child.userData?.mediaUrl || '';
@@ -287,7 +309,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       return null;
     }
     
-    console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], scale [${scl[0]}, ${scl[1]}, ${scl[2]}], mediaUrl: ${mediaUrl}`);
+    console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], localScale [${localScale[0]}, ${localScale[1]}, ${localScale[2]}], worldScale [${scl[0]}, ${scl[1]}, ${scl[2]}], mediaUrl: ${mediaUrl}`);
     
     // If added from layout import, preserve the declared media type/content type
     const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
