@@ -52,6 +52,10 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
   const { position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], userData } = child;
   const assetType: string = String(userData?.assetType || userData?.contentType || "").toLowerCase();
   const [textContent, setTextContent] = useState<string | null>(null);
+  const [canvasTexture, setCanvasTexture] = useState<any>(null);
+  const [scrollOffset, setScrollOffset] = useState(0);
+  const contentHeightRef = useRef(0);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Fetch full text content when not present
   useEffect(() => {
@@ -83,32 +87,102 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
     const url = userData?.mediaUrl;
     if (url) return proxy(url);
     if (userData?.canvasDataUrl) return userData.canvasDataUrl;
-    if (assetType === "text") {
-      const content = userData?.fullTextContent || textContent || userData?.text || userData?.name;
-      if (content) return createTextCanvasDataUrl(String(content));
-    }
+    // For text with dynamic canvas we will bypass TextureLoader and use CanvasTexture below
     return null;
   }, [userData, assetType, textContent]);
 
+  // If this is text, build a live CanvasTexture that supports wheel scrolling
+  useEffect(() => {
+    if (assetType !== "text") return;
+    const content = userData?.fullTextContent || textContent || userData?.text || userData?.name || "";
+    let disposed = false;
+    (async () => {
+      const THREE = await import("three");
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d")!;
+      const width = 1024;
+      const height = 1024;
+      canvas.width = width;
+      canvas.height = height;
+      canvasRef.current = canvas;
+
+      const draw = () => {
+        if (!ctx) return;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = "#000000";
+        ctx.font = "32px Inter, Arial, sans-serif";
+        ctx.textBaseline = "top";
+        const lineHeight = 40;
+        const words = String(content).split(/\s+/);
+        let x = 32;
+        let y = 32 - scrollOffset;
+        let line = "";
+        let total = 0;
+        for (const w of words) {
+          const test = line ? line + " " + w : w;
+          const measure = ctx.measureText(test).width;
+          if (x + measure > width - 32) {
+            if (y + lineHeight >= -lineHeight && y <= height) ctx.fillText(line, x, y);
+            line = w;
+            y += lineHeight;
+            total += lineHeight;
+          } else {
+            line = test;
+          }
+        }
+        if (y + lineHeight >= -lineHeight && y <= height) ctx.fillText(line, x, y);
+        contentHeightRef.current = total + lineHeight + 64; // approximate full content height
+        tex.needsUpdate = true;
+      };
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.generateMipmaps = false;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      setCanvasTexture(tex);
+      draw();
+
+      return () => {
+        disposed = true;
+        try { tex.dispose(); } catch {}
+      };
+    })();
+  }, [assetType, textContent, userData, scrollOffset]);
+
+  // Non-text path: regular texture load
   let texture: any = null;
-  try {
-    texture = useLoader(TextureLoader, effectiveUrl || "");
-    if (texture) {
-      // Match editor defaults
-      // @ts-ignore
-      texture.colorSpace = (window as any).THREE?.SRGBColorSpace || 3002; // constant fallback
-      texture.generateMipmaps = false;
-      texture.minFilter = 1006; // LinearFilter
-      texture.magFilter = 1006;
-      texture.flipY = true;
-    }
-  } catch {}
+  if (assetType !== "text") {
+    try {
+      texture = useLoader(TextureLoader, effectiveUrl || "");
+      if (texture) {
+        // Match editor defaults
+        // @ts-ignore
+        texture.colorSpace = (window as any).THREE?.SRGBColorSpace || 3002;
+        texture.generateMipmaps = false;
+        texture.minFilter = 1006; // LinearFilter
+        texture.magFilter = 1006;
+        texture.flipY = true;
+      }
+    } catch {}
+  }
+
+  const onWheel = (e: any) => {
+    if (assetType !== "text") return;
+    e.stopPropagation();
+    const viewH = 1024;
+    const total = Math.max(contentHeightRef.current, viewH);
+    const maxOffset = Math.max(0, total - viewH);
+    const next = Math.min(maxOffset, Math.max(0, scrollOffset + e.deltaY));
+    if (next !== scrollOffset) setScrollOffset(next);
+  };
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh>
+      <mesh onWheel={onWheel}>
         <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial map={texture ?? undefined} color={texture ? undefined : "#666"} toneMapped={false} />
+        <meshBasicMaterial map={(assetType === "text" ? canvasTexture : texture) ?? undefined} color={(assetType === "text" ? canvasTexture : texture) ? undefined : "#666"} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -142,10 +216,11 @@ function VideoPlane({ position, rotation, scale, url }: { position: [number, num
         setVideoTexture(tex);
         videoRef.current = video;
       };
-      video.addEventListener("canplay", onReady);
+      // Align with editor behavior: create texture after loadeddata to avoid black frame
+      video.addEventListener("loadeddata", onReady);
       return () => {
         disposed = true;
-        video.removeEventListener("canplay", onReady);
+        video.removeEventListener("loadeddata", onReady);
         try { video.pause(); video.src = ""; video.load(); } catch {}
         try { videoTexture?.dispose?.(); } catch {}
       };
