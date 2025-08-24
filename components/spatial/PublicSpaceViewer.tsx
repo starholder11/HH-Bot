@@ -132,7 +132,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
         <>
           {/* Top Bar */}
           <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10 pointer-events-none">
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white pointer-events-auto">
+            <div className="text-white pointer-events-auto">
               <h1 className="text-lg font-semibold">
                 {spaceData?.title || `Space ${spaceId}`}
               </h1>
