@@ -111,6 +111,10 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
 
     // Get camera from R3F context - use gl.camera directly
     const camera = gl.camera;
+    if (!camera) {
+      console.log('[Raycast] Camera is undefined, skipping raycast.');
+      return null;
+    }
     console.log('[Raycast] Camera type:', camera.type);
     console.log('[Raycast] Camera position:', camera.position);
 
