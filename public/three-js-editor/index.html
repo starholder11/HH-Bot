@@ -816,49 +816,60 @@
 					// Wait for video to be ready before creating texture
 					video.addEventListener('loadeddata', () => {
 						console.log('Video loaded data, ready state:', video.readyState);
-
-						// Create VideoTexture only when video is ready
-						const videoTexture = new THREE.VideoTexture(video);
-						videoTexture.minFilter = THREE.LinearFilter;
-						videoTexture.magFilter = THREE.LinearFilter;
-						videoTexture.format = THREE.RGBAFormat;
-						videoTexture.type = THREE.UnsignedByteType;
-
-						console.log('VideoTexture created with ready video');
-
-						// Apply to material
-						const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
-						mesh.material = videoMaterial;
-
-						console.log('Material applied to mesh');
-
-						// Start video
-						video.play().then(() => {
-							console.log('Video playing successfully');
-							videoTexture.needsUpdate = true;
-							console.log('Forced initial texture update');
-							// Force a render update to ensure video appears
+							
+							// Create VideoTexture only when video is ready
+							const videoTexture = new THREE.VideoTexture(video);
+							videoTexture.minFilter = THREE.LinearFilter;
+							videoTexture.magFilter = THREE.LinearFilter;
+							videoTexture.format = THREE.RGBAFormat;
+							videoTexture.type = THREE.UnsignedByteType;
+							videoTexture.colorSpace = THREE.SRGBColorSpace;
+							videoTexture.generateMipmaps = false;
+							videoTexture.wrapS = THREE.ClampToEdgeWrapping;
+							videoTexture.wrapT = THREE.ClampToEdgeWrapping;
+							videoTexture.flipY = false;
+							
+							console.log('VideoTexture created with ready video');
+							
+							// Apply to material
+							const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.DoubleSide, toneMapped: false });
+							mesh.material = videoMaterial;
+							mesh.material.needsUpdate = true;
+							
+							console.log('Material applied to mesh');
+							
+							// Start video
+							video.play().then(() => {
+								console.log('Video playing successfully');
+								videoTexture.needsUpdate = true;
+								console.log('Forced initial texture update');
+								// Force a render update to ensure video appears
+								if (editor.signals && editor.signals.sceneGraphChanged) {
+									editor.signals.sceneGraphChanged.dispatch();
+								}
+							}).catch(err => {
+								console.log('Video autoplay failed, will play on user interaction:', err);
+							});
+							
+							// Also nudge updates when player becomes ready
+							const bumpUpdate = () => { try { videoTexture.needsUpdate = true; } catch {} };
+							video.addEventListener('canplay', bumpUpdate, { once: true });
+							video.addEventListener('loadedmetadata', bumpUpdate, { once: true });
+							
+							// Track video element
+							videoMap.set(mesh.uuid, video);
+							console.log('Video mapped for mesh:', mesh.uuid, 'mesh.name:', mesh.name);
+							console.log('VideoMap now has:', Array.from(videoMap.keys()));
+							
+							// Notify editor
+							if (editor.signals && editor.signals.materialChanged) {
+								editor.signals.materialChanged.dispatch(mesh.material);
+							}
 							if (editor.signals && editor.signals.sceneGraphChanged) {
 								editor.signals.sceneGraphChanged.dispatch();
 							}
-						}).catch(err => {
-							console.log('Video autoplay failed, will play on user interaction:', err);
+							ensureFrameForMesh(mesh, editor);
 						});
-
-						// Track video element
-						videoMap.set(mesh.uuid, video);
-						console.log('Video mapped for mesh:', mesh.uuid, 'mesh.name:', mesh.name);
-						console.log('VideoMap now has:', Array.from(videoMap.keys()));
-
-						// Notify editor
-						if (editor.signals && editor.signals.materialChanged) {
-							editor.signals.materialChanged.dispatch(mesh.material);
-						}
-						if (editor.signals && editor.signals.sceneGraphChanged) {
-							editor.signals.sceneGraphChanged.dispatch();
-						}
-						ensureFrameForMesh(mesh, editor);
-					});
 
 					// Handle video load errors
 					video.addEventListener('error', (e) => {
