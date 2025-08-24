@@ -174,23 +174,97 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   console.log('[Scene Conversion] Scene.object:', scene.object);
   console.log('[Scene Conversion] Existing space:', existingSpace);
   
-  // Collect Mesh nodes recursively (children may be nested inside Groups)
-  const collectMeshes = (node: any): any[] => {
+  // Helpers to robustly extract transforms from various shapes (array/object/matrix)
+  const extractPosition = (child: any): [number, number, number] => {
+    let px = 0, py = 0.5, pz = 0;
+    try {
+      if (child.position && Array.isArray(child.position)) {
+        px = child.position[0] ?? 0;
+        py = child.position[1] ?? 0.5;
+        pz = child.position[2] ?? 0;
+      } else if (child.position && typeof child.position === 'object') {
+        px = child.position.x ?? 0;
+        py = child.position.y ?? 0.5;
+        pz = child.position.z ?? 0;
+      } else if (child.matrix && Array.isArray(child.matrix) && child.matrix.length === 16) {
+        // Extract position from transformation matrix (elements 12, 13, 14)
+        px = child.matrix[12] ?? 0;
+        py = child.matrix[13] ?? 0.5;
+        pz = child.matrix[14] ?? 0;
+      }
+    } catch {}
+    return [px, py, pz];
+  };
+  
+  const extractRotation = (child: any): [number, number, number] => {
+    try {
+      if (Array.isArray(child.rotation)) {
+        return [child.rotation[0] ?? 0, child.rotation[1] ?? 0, child.rotation[2] ?? 0];
+      }
+      if (child.rotation && typeof child.rotation === 'object') {
+        return [child.rotation.x ?? 0, child.rotation.y ?? 0, child.rotation.z ?? 0];
+      }
+    } catch {}
+    return [0, 0, 0];
+  };
+  
+  const extractScale = (child: any): [number, number, number] => {
+    try {
+      if (Array.isArray(child.scale)) {
+        return [child.scale[0] ?? 1, child.scale[1] ?? 1, child.scale[2] ?? 1];
+      }
+      if (child.scale && typeof child.scale === 'object') {
+        return [child.scale.x ?? 1, child.scale.y ?? 1, child.scale.z ?? 1];
+      }
+      if (child.matrix && Array.isArray(child.matrix) && child.matrix.length === 16) {
+        // Derive scale from matrix columns lengths
+        const m = child.matrix;
+        const sx = Math.hypot(m[0], m[1], m[2]) || 1;
+        const sy = Math.hypot(m[4], m[5], m[6]) || 1;
+        const sz = Math.hypot(m[8], m[9], m[10]) || 1;
+        return [sx, sy, sz];
+      }
+    } catch {}
+    return [1, 1, 1];
+  };
+  
+  // Collect Mesh nodes recursively and accumulate parent scale so group scaling is preserved
+  type Accumulated = {
+    node: any;
+    worldScale: [number, number, number];
+  };
+
+  const collectMeshes = (node: any): Accumulated[] => {
     if (!node) return [];
-    const out: any[] = [];
-    const process = (n: any) => {
+
+    const out: Accumulated[] = [];
+
+    const multiplyScale = (a: [number, number, number], b: [number, number, number]): [number, number, number] => {
+      return [
+        (a?.[0] ?? 1) * (b?.[0] ?? 1),
+        (a?.[1] ?? 1) * (b?.[1] ?? 1),
+        (a?.[2] ?? 1) * (b?.[2] ?? 1)
+      ];
+    };
+
+    const recurse = (n: any, parentScale: [number, number, number]) => {
       try {
         if (!n) return;
-        if (n.type === 'Mesh') out.push(n);
+        const localScale = extractScale(n);
+        const worldScale = multiplyScale(parentScale, localScale);
+        if (n.type === 'Mesh') {
+          out.push({ node: n, worldScale });
+        }
         const kids = (n.children || []);
-        for (const k of kids) process(k);
+        for (const k of kids) recurse(k, worldScale);
       } catch {}
     };
-    process(node);
+
+    recurse(node, [1, 1, 1]);
     return out;
   };
 
-  let meshChildren: any[] = [];
+  let meshChildren: Accumulated[] = [];
   if (scene.object) {
     meshChildren = collectMeshes(scene.object);
   } else if ((scene as any).children) {
@@ -199,7 +273,8 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
 
   console.log('[Scene Conversion] Found mesh children:', meshChildren.length);
 
-  const items = meshChildren.map(child => {
+  const items = meshChildren.map(entry => {
+    const child = entry.node;
     console.log('[Scene Conversion] Processing child:', child);
     console.log('[Scene Conversion] Child UUID:', child.uuid, 'Child name:', child.name);
     console.log('[Scene Conversion] Child userData:', child.userData);
@@ -207,25 +282,11 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     // Skip empty groups/placeholders with no userData
     // Note: we only process Mesh nodes; Groups are handled by recursive collection above
     
-    // Extract position from Three.js object (could be array or matrix)
-    let x = 0, y = 0.5, z = 0;
-    
-    if (child.position && Array.isArray(child.position)) {
-      // Direct position array
-      x = child.position[0] || 0;
-      y = child.position[1] || 0.5;
-      z = child.position[2] || 0;
-    } else if (child.matrix && Array.isArray(child.matrix) && child.matrix.length === 16) {
-      // Extract position from transformation matrix (elements 12, 13, 14)
-      x = child.matrix[12] || 0;
-      y = child.matrix[13] || 0.5;
-      z = child.matrix[14] || 0;
-    } else if (child.position && typeof child.position === 'object') {
-      // Position object with x, y, z properties
-      x = child.position.x || 0;
-      y = child.position.y || 0.5;
-      z = child.position.z || 0;
-    }
+    // Extract transforms from Three.js object (supports array/object/matrix)
+    const [x, y, z] = extractPosition(child);
+    const rot = extractRotation(child);
+    const localScale = extractScale(child);
+    const scl = entry.worldScale || localScale;
     
     // Extract mediaUrl from material texture or userData
     let mediaUrl = child.userData?.mediaUrl || '';
@@ -248,7 +309,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       return null;
     }
     
-    console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], mediaUrl: ${mediaUrl}`);
+    console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], localScale [${localScale[0]}, ${localScale[1]}, ${localScale[2]}], worldScale [${scl[0]}, ${scl[1]}, ${scl[2]}], mediaUrl: ${mediaUrl}`);
     
     // If added from layout import, preserve the declared media type/content type
     const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
@@ -290,8 +351,8 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
         assetId: child.userData.layoutItemId || child.uuid,
         assetType: normalizedType,
         position: [x, y, z],
-        rotation: child.rotation || [0, 0, 0],
-        scale: child.scale || [1, 1, 1],
+        rotation: rot,
+        scale: scl,
         // Store both layout coordinates and 3D position for compatibility
         x: x,
         y: z, // z maps to layout y
@@ -310,8 +371,8 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       assetId: child.userData?.assetId || child.uuid, // Fallback to uuid if no assetId
       assetType: normalizeType(child.userData?.assetType) || 'object', // Default to object instead of unknown
       position: [x, y, z],
-      rotation: child.rotation || [0, 0, 0],
-      scale: child.scale || [1, 1, 1],
+      rotation: rot,
+      scale: scl,
       // Store both layout coordinates and 3D position for compatibility
       x: x,
       y: z, // z maps to layout y
