@@ -27,10 +27,10 @@ type ThreeChild = {
 function SpaceMesh({ child }: { child: ThreeChild }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const { position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], userData } = child;
-  
-  console.log(`Rendering mesh ${child.name} at position:`, position, 'scale:', scale);
-  
-  useEffect(() => {
+
+  console.log(`Rendering mesh ${child.name} at position: [${position[0]}, ${position[1]}, ${position[2]}] scale: [${scale[0]}, ${scale[1]}, ${scale[2]}]`);
+
+    useEffect(() => {
     if (!meshRef.current) return;
     
     const mesh = meshRef.current;
@@ -38,14 +38,20 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
     mesh.uuid = child.uuid;
     mesh.userData = { ...userData };
     
+    // Apply position, rotation, scale directly like the editor does
+    mesh.position.set(position[0], position[1], position[2]);
+    mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+    mesh.scale.set(scale[0], scale[1], scale[2]);
+    console.log(`Applied direct positioning to mesh ${child.name}: position [${position[0]}, ${position[1]}, ${position[2]}]`);
+
     // Apply media using editor functions
     const mediaUrl = userData?.mediaUrl;
     if (mediaUrl) {
       console.log(`Applying media to mesh: ${child.name} mediaUrl: ${mediaUrl} assetType: ${userData?.assetType}`);
-      
+
       const assetType = String(userData?.assetType || userData?.contentType || "").toLowerCase();
       const isVideo = assetType === 'video' || mediaUrl.includes('.mp4') || mediaUrl.includes('.webm');
-      
+
       if (isVideo) {
         applyMediaToMesh(mesh, proxy(mediaUrl), assetType, null);
       } else if (assetType === 'text' && !mediaUrl.startsWith('data:image')) {
@@ -57,21 +63,18 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
       }
     }
   }, [child, userData]);
-  
+
   return (
     <mesh
       ref={meshRef}
-      position={position}
-      rotation={rotation}
-      scale={scale}
     >
-      <planeGeometry 
+      <planeGeometry
         args={[
-          Math.max(0.001, child.geometry?.width || 2), 
+          Math.max(0.001, child.geometry?.width || 2),
           Math.max(0.001, child.geometry?.height || 2)
-        ]} 
+        ]}
       />
-      <meshBasicMaterial 
+      <meshBasicMaterial
         side={THREE.DoubleSide}
         toneMapped={false}
         color="#444"
