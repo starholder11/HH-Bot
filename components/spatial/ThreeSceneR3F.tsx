@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLoader } from "@react-three/fiber";
+import { useLoader, useFrame, useThree } from "@react-three/fiber";
 import { TextureLoader } from "three";
 
 type ThreeChild = {
@@ -56,16 +56,20 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
   const [scrollOffset, setScrollOffset] = useState(0);
   const contentHeightRef = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const hoveredRef = useRef(false);
+  const { gl } = useThree();
 
   // Fetch full text content when not present
   useEffect(() => {
     if (assetType !== "text") return;
-    if (userData?.fullTextContent) {
-      setTextContent(String(userData.fullTextContent));
-      return;
+    if (userData?.fullTextContent) { setTextContent(String(userData.fullTextContent)); return; }
+    // Infer slug like SpaceEditor: text_timeline/<slug>#...
+    let slug: string | undefined = userData?.importMetadata?.textSlug || userData?.assetId;
+    if (slug) {
+      const match = String(slug).match(/text_timeline\/([^#]+)/);
+      if (match) slug = match[1];
+      else if (String(slug).startsWith('content_ref_')) slug = String(slug).replace('content_ref_', '');
     }
-    // Try to infer slug from import metadata or assetId
-    const slug: string | undefined = userData?.importMetadata?.textSlug || userData?.assetId;
     if (!slug) return;
     let cancelled = false;
     (async () => {
@@ -168,19 +172,27 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
     } catch {}
   }
 
-  const onWheel = (e: any) => {
+  // Intercept wheel while hovered to scroll text and block OrbitControls
+  useEffect(() => {
     if (assetType !== "text") return;
-    e.stopPropagation();
-    const viewH = 1024;
-    const total = Math.max(contentHeightRef.current, viewH);
-    const maxOffset = Math.max(0, total - viewH);
-    const next = Math.min(maxOffset, Math.max(0, scrollOffset + e.deltaY));
-    if (next !== scrollOffset) setScrollOffset(next);
-  };
+    const handler = (e: WheelEvent) => {
+      if (!hoveredRef.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const viewH = 1024;
+      const total = Math.max(contentHeightRef.current, viewH);
+      const maxOffset = Math.max(0, total - viewH);
+      const next = Math.min(maxOffset, Math.max(0, scrollOffset + e.deltaY));
+      if (next !== scrollOffset) setScrollOffset(next);
+    };
+    const el = gl?.domElement || window;
+    el.addEventListener('wheel', handler, { passive: false, capture: true } as any);
+    return () => { el.removeEventListener('wheel', handler as any, { capture: true } as any); };
+  }, [assetType, scrollOffset, gl]);
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh onWheel={onWheel}>
+      <mesh onPointerOver={() => { hoveredRef.current = true; }} onPointerOut={() => { hoveredRef.current = false; }}>
         <planeGeometry args={[1, 1]} />
         <meshBasicMaterial map={(assetType === "text" ? canvasTexture : texture) ?? undefined} color={(assetType === "text" ? canvasTexture : texture) ? undefined : "#666"} toneMapped={false} />
       </mesh>
