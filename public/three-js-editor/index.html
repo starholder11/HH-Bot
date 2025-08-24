@@ -515,10 +515,12 @@
 										console.log('Processing mesh:', mesh.name, 'position:', mesh.position, 'userData:', mesh.userData);
 										applyMediaToMesh(mesh, url, mesh.userData.assetType, editor);
 									} else {
-										console.log('Mesh has no mediaUrl:', mesh.name);
-										if (mesh.userData && (mesh.userData.assetType === 'text' || mesh.userData.contentType === 'text')) {
-											applyTextToMesh(mesh, mesh.name, editor);
-										}
+																		console.log('Mesh has no mediaUrl:', mesh.name);
+								if (mesh.userData && (mesh.userData.assetType === 'text' || mesh.userData.contentType === 'text')) {
+									const textContent = mesh.userData.fullTextContent || mesh.userData.text || mesh.name;
+									console.log('Applying text content to mesh:', mesh.name, 'Content length:', textContent.length);
+									applyTextToMesh(mesh, textContent, editor);
+								}
 									}
 								}
 							});
@@ -646,10 +648,12 @@
 									console.log('Processing mesh:', mesh.name, 'position:', mesh.position, 'userData:', mesh.userData);
 									applyMediaToMesh(mesh, url, mesh.userData.assetType, editor);
 								} else {
-									console.log('Mesh has no mediaUrl:', mesh.name);
-									if (mesh.userData && (mesh.userData.assetType === 'text' || mesh.userData.contentType === 'text')) {
-										applyTextToMesh(mesh, mesh.name, editor);
-									}
+																	console.log('Mesh has no mediaUrl:', mesh.name);
+								if (mesh.userData && (mesh.userData.assetType === 'text' || mesh.userData.contentType === 'text')) {
+									const textContent = mesh.userData.fullTextContent || mesh.userData.text || mesh.name;
+									console.log('Applying text content to mesh:', mesh.name, 'Content length:', textContent.length);
+									applyTextToMesh(mesh, textContent, editor);
+								}
 								}
 							}
 						});
@@ -739,8 +743,10 @@
 							console.log('Loading media for add_object:', objData.userData.mediaUrl);
 							applyMediaToMesh(mesh, objData.userData.mediaUrl, objData.userData.assetType, editor);
 						} else if (assetType === 'text' || (objData.userData && objData.userData.contentType === 'text')) {
-							// Render text placeholders immediately
-							applyTextToMesh(mesh, objData.userData?.text || objData.text || mesh.name, editor);
+												// Render text with full content if available
+					const textContent = objData.userData?.fullTextContent || objData.userData?.text || objData.text || mesh.name;
+					console.log('Applying text content to mesh:', mesh.name, 'Content length:', textContent.length);
+					applyTextToMesh(mesh, textContent, editor);
 						}
 
 						console.log('Added object:', mesh.name);

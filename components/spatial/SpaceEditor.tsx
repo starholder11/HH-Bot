@@ -292,7 +292,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     try {
       const extra: Record<string, any> = {};
 
-      // TEXT: do not call media-assets, extract slug and carry as metadata
+      // TEXT: fetch full content from timeline system
       if (type === 'text') {
         const raw = String(item.contentId || item.refId || item.id || '');
         // formats: text_timeline/slug#anchor or content_ref_slug
@@ -301,7 +301,25 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         if (match) slug = match[1];
         else if (raw.startsWith('content_ref_')) slug = raw.replace('content_ref_', '');
         else slug = raw;
+        
         extra.textSlug = slug;
+        
+        // Fetch full text content
+        try {
+          const contentResponse = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+          if (contentResponse.ok) {
+            const contentData = await contentResponse.json();
+            if (contentData.success && contentData.content) {
+              extra.fullTextContent = contentData.content;
+              console.log(`[SpaceEditor] Fetched text content for slug '${slug}': ${contentData.content.length} chars`);
+            }
+          } else {
+            console.warn(`[SpaceEditor] Failed to fetch text content for slug '${slug}':`, contentResponse.status);
+          }
+        } catch (error) {
+          console.error(`[SpaceEditor] Error fetching text content for slug '${slug}':`, error);
+        }
+        
         return { mediaUrl: null, assetId: null, extraUserData: extra };
       }
 
