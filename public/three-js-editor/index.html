@@ -977,6 +977,7 @@
 			// Render text to a canvas and apply as a texture to the mesh
 			(function(){
 				const textScrollState = new Map(); // uuid -> { scrollY, totalHeight }
+				const textCanvasMap = new WeakMap(); // Mesh -> { canvas, ctx, padding, maxWidth, lineHeight, textContent, texture }
 				let selectedTextMesh = null;
 				function wrapLines(ctx, text, maxWidth){
 					const words = (text || '').toString().replace(/\s+/g, ' ').trim().split(' ');
@@ -997,7 +998,8 @@
 				function renderTextMesh(mesh){
 					try{
 						const state = textScrollState.get(mesh.uuid) || { scrollY:0, totalHeight:0 };
-						const { canvas, ctx, padding, maxWidth, lineHeight, textContent, texture } = mesh.userData.__textCanvas || {};
+						const entry = textCanvasMap.get(mesh) || {};
+						const { canvas, ctx, padding, maxWidth, lineHeight, textContent, texture } = entry;
 						if(!canvas || !ctx) return;
 						// background
 						ctx.fillStyle = '#ffffff';
@@ -1072,7 +1074,7 @@
 						mesh.material.color && mesh.material.color.set(0xffffff);
 						mesh.material.map = texture;
 						mesh.material.needsUpdate = true;
-						mesh.userData.__textCanvas = { canvas, ctx, padding, maxWidth, lineHeight, textContent: safeText, texture };
+						textCanvasMap.set(mesh, { canvas, ctx, padding, maxWidth, lineHeight, textContent: safeText, texture });
 						textScrollState.set(mesh.uuid, { scrollY: 0, totalHeight: 0 });
 						renderTextMesh(mesh);
 					}catch{}
