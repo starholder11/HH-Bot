@@ -786,6 +786,20 @@
 								});
 								removedHelpers.forEach(({ obj, parent }) => { try { parent.remove(obj); } catch {} });
 								const json = editor.scene.toJSON();
+								// Persist camera pose into userData so the viewer can match the editor view
+								try {
+									const cam = editor.camera;
+									json.userData = json.userData || {};
+									json.userData.camera = {
+										position: [cam.position.x, cam.position.y, cam.position.z],
+										target: (function(){
+											const t = new THREE.Vector3(0,0,-1).applyQuaternion(cam.quaternion).add(cam.position);
+											return [t.x, t.y, t.z];
+										})(),
+										quaternion: [cam.quaternion.x, cam.quaternion.y, cam.quaternion.z, cam.quaternion.w],
+										fov: cam.fov
+									};
+								} catch (e) { console.warn('Failed to serialize camera pose', e); }
 								// Restore
 								removedHelpers.forEach(({ obj, parent }) => { try { parent.add(obj); } catch {} });
 								for (const { material, map } of removedVideoMaps) { try { material.map = map; material.needsUpdate = true; } catch {} }

@@ -31,7 +31,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   
   const { metrics, isPerformanceAcceptable } = usePerformanceMonitor(rendererRef.current);
 
-  // Convert space data to items
+  // Convert space data to items and set camera from saved space
   useEffect(() => {
     if (!spaceData) return;
 
@@ -39,6 +39,12 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       const items = Array.isArray(spaceData?.space?.items) ? spaceData.space.items : [];
       console.log('[PublicSpaceViewer] Loaded space items:', items.length);
       setSpaceItems(items);
+
+      // Apply saved camera pose if available
+      const cam = spaceData?.space?.camera;
+      if (cam && Array.isArray(cam.position) && cam.position.length === 3) {
+        setCameraPosition([cam.position[0], cam.position[1], cam.position[2]]);
+      }
     } catch (error) {
       console.error('[PublicSpaceViewer] Error processing space data:', error);
     }
