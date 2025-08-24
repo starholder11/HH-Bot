@@ -459,10 +459,15 @@
 										mesh.userData = { ...childData.userData };
 									}
 
-									// Set name and UUID consistently
-									mesh.name = childData.name || childData.uuid;
+																		// Set name and UUID consistently
+									// For layout items, use the layoutItemId as the name for consistency
+									if (childData.userData && childData.userData.layoutItemId) {
+										mesh.name = childData.userData.layoutItemId;
+									} else {
+										mesh.name = childData.name || childData.uuid;
+									}
 									mesh.uuid = childData.uuid;
-
+									
 									// Debug: Log UUID assignment
 									console.log('Mesh created:', mesh.name, 'UUID:', mesh.uuid);
 
@@ -491,9 +496,17 @@
 						editor.signals.objectSelected.dispatch(null);
 
 						console.log(`Scene loaded successfully with ${sceneGroup.children.length} objects`);
+						
+						// Debug: List all objects and their video mapping status
+						sceneGroup.children.forEach((child, index) => {
+							console.log(`Object ${index}: name="${child.name}", uuid="${child.uuid}", hasVideo=${videoMap.has(child.uuid)}`);
+						});
 
 						// Hook selection to show controls for videos
 						try {
+							// Clear any existing handlers first
+							editor.signals.objectSelected.dispatch = editor.signals.objectSelected.dispatch || function() {};
+							
 							editor.signals.objectSelected.add(function(object){
 								console.log('Object selected:', object?.name, object?.uuid);
 								console.log('VideoMap has keys:', Array.from(videoMap.keys()));
@@ -506,6 +519,7 @@
 									bindVideoForControls(null);
 								}
 							});
+							console.log('Video selection handler bound successfully');
 						} catch (error) {
 							console.error('Failed to bind video controls:', error);
 						}
