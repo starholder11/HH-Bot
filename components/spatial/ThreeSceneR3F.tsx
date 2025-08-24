@@ -158,7 +158,8 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
 export default function ThreeSceneR3F({ children, onObjectSelect }: { children: ThreeChild[]; onObjectSelect?: (assetId: string, assetType: string) => void }) {
   const { gl, camera, scene } = useThree();
   const groupRef = useRef<THREE.Group>(null);
-  const [hoveredObject, setHoveredObject] = useState<THREE.Object3D | null>(null);
+  // Track hovered object without re-rendering the component to avoid re-attaching listeners
+  const hoveredRef = useRef<THREE.Object3D | null>(null);
 
   // Helper function to get intersected objects
   const getIntersectedObject = (event: MouseEvent) => {
@@ -241,11 +242,11 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
       console.log('[MouseMove] Event triggered at:', event.clientX, event.clientY);
       const intersectedObject = getIntersectedObject(event);
 
-      if (intersectedObject !== hoveredObject) {
-        console.log('[MouseMove] Object changed, old:', hoveredObject?.name, 'new:', intersectedObject?.name);
+      if (intersectedObject !== hoveredRef.current) {
+        console.log('[MouseMove] Object changed, old:', hoveredRef.current?.name, 'new:', intersectedObject?.name);
 
         // Reset previous hover
-        if (hoveredObject) {
+        if (hoveredRef.current) {
           gl.domElement.style.cursor = 'default';
           console.log('[MouseMove] Reset cursor to default');
         }
@@ -265,8 +266,7 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
             console.log('[MouseMove] No assetId found in userData');
           }
         }
-
-        setHoveredObject(intersectedObject);
+        hoveredRef.current = intersectedObject;
       }
     };
 
@@ -330,7 +330,7 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
       // Reset cursor on cleanup
       gl.domElement.style.cursor = 'default';
     };
-  }, [gl, hoveredObject, onObjectSelect]);
+  }, [gl, onObjectSelect, scene, camera]);
 
   // Cleanup on unmount
   useEffect(() => {
