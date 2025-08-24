@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, StatsGl } from '@react-three/drei';
 import * as THREE from 'three';
 import { convertSpaceToThreeJSScene } from '@/lib/spatial/scene-conversion';
@@ -104,6 +104,13 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
           target={cameraTarget || undefined}
           makeDefault
         />
+
+        {/* Apply saved camera pose exactly like the editor */}
+        <CameraPoseApplier 
+          position={cameraPosition}
+          quaternion={cameraQuaternion}
+          target={cameraTarget}
+        />
         {process.env.NODE_ENV === 'development' && <StatsGl />}
       </Canvas>
 
@@ -174,4 +181,23 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       )}
     </div>
   );
+}
+
+function CameraPoseApplier({ position, quaternion, target }: { position: [number, number, number]; quaternion: [number, number, number, number] | null; target: [number, number, number] | null; }){
+  const { camera, controls } = useThree() as any;
+  useEffect(() => {
+    try {
+      if (position) {
+        camera.position.set(position[0], position[1], position[2]);
+      }
+      if (quaternion) {
+        camera.quaternion.set(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+      }
+      if (target && controls) {
+        controls.target.set(target[0], target[1], target[2]);
+        controls.update();
+      }
+    } catch {}
+  }, [position, quaternion, target, camera, controls]);
+  return null;
 }
