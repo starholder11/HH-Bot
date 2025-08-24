@@ -63,7 +63,7 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
   useEffect(() => {
     if (assetType !== "text") return;
     if (userData?.fullTextContent) { setTextContent(String(userData.fullTextContent)); return; }
-    
+
     // For text items, if we already have a canvas data URL, decode it and use fallback text
     if (userData?.mediaUrl && String(userData.mediaUrl).startsWith('data:image/png;base64,')) {
       // We have a rendered canvas from the editor, use fallback text or asset name
@@ -71,7 +71,7 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
       setTextContent(String(fallback));
       return;
     }
-    
+
     // Try to extract slug from assetId for API fetch
     let slug: string | undefined = userData?.assetId;
     if (slug) {
@@ -86,7 +86,7 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
       setTextContent(String(fallback));
       return;
     }
-    
+
     let cancelled = false;
     (async () => {
       try {
@@ -244,7 +244,7 @@ function VideoPlane({ position, rotation, scale, url }: { position: [number, num
       video.loop = true;
       video.playsInline = true;
       video.preload = "metadata";
-      const onReady = async () => {
+      const createTexture = async () => {
         try { await video.play(); } catch {}
         if (disposed) return;
         const tex = new THREE.VideoTexture(video);
@@ -257,11 +257,19 @@ function VideoPlane({ position, rotation, scale, url }: { position: [number, num
         setVideoTexture(tex);
         videoRef.current = video;
       };
-      // Align with editor behavior: create texture after loadeddata to avoid black frame
-      video.addEventListener("loadeddata", onReady);
+      // Be aggressive: create texture on any ready event
+      const onLoadedData = () => { createTexture(); };
+      const onCanPlay = () => { createTexture(); };
+      const onLoadedMeta = () => { createTexture(); };
+      video.addEventListener("loadeddata", onLoadedData);
+      video.addEventListener("canplay", onCanPlay);
+      video.addEventListener("loadedmetadata", onLoadedMeta);
+      video.addEventListener("error", () => { console.error('[PublicSpaceViewer] Video error', proxy(url)); });
       return () => {
         disposed = true;
-        video.removeEventListener("loadeddata", onReady);
+        video.removeEventListener("loadeddata", onLoadedData);
+        video.removeEventListener("canplay", onCanPlay);
+        video.removeEventListener("loadedmetadata", onLoadedMeta);
         try { video.pause(); video.src = ""; video.load(); } catch {}
         try { videoTexture?.dispose?.(); } catch {}
       };
@@ -269,6 +277,11 @@ function VideoPlane({ position, rotation, scale, url }: { position: [number, num
     const cleanupPromise = setup();
     return () => { cleanupPromise && (cleanupPromise as any)(); };
   }, [url]);
+
+  // Drive frame updates
+  useFrame(() => {
+    if (videoTexture) videoTexture.needsUpdate = true;
+  });
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
