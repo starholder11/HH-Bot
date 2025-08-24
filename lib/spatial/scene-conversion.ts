@@ -81,39 +81,39 @@ interface SpaceItem {
 export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
   // Handle different possible data structures
   const itemsAll = space.space?.items || space.items || [];
-  
+
   console.log('[Scene Conversion] Converting space with items:', itemsAll);
-  
+
   // Filter out items that create unwanted empty planes
   const items = itemsAll.filter((item: any) => {
     const t = (item?.assetType || '').toString().toLowerCase();
     const hasMedia = Boolean((item as any).mediaUrl);
     const hasAssetId = Boolean(item?.assetId);
-    
+
     console.log(`[Scene Conversion] Filtering item ${item.id}: assetType=${t}, hasMedia=${hasMedia}, hasAssetId=${hasAssetId}, assetId=${item?.assetId}`);
-    
+
     // Keep items with media content
     if (hasMedia) return true;
-    
+
     // Keep text/layout items (these are placeholders we want)
     if (['text', 'layout'].includes(t)) return true;
-    
+
     // Keep object_collection types with media
     if (t === 'object_collection' && hasMedia) return true;
-    
+
     // Skip object types without media - these create empty backing planes
     if (t === 'object' && !hasMedia) {
       console.log(`[Scene Conversion] Skipping object without media: ${item.id}`);
       return false;
     }
-    
+
     // Skip items with no assetType, no media, and no assetId
     if (!t && !hasMedia && !hasAssetId) return false;
-    
+
     // Default: keep everything else
     return true;
   });
-  
+
   return {
     metadata: {
       version: 4.5,
@@ -133,9 +133,9 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
         const x = item.position?.[0] ?? (item.x || 0);
         const y = item.position?.[1] ?? 0.5; // Keep objects slightly above ground
         const z = item.position?.[2] ?? (item.y || 0);
-        
+
         console.log(`[Scene Conversion] Item ${item.id}: position [${x}, ${y}, ${z}], mediaUrl: ${item.mediaUrl}`);
-        
+
         return {
           uuid: item.id, // Use item.id as UUID for consistency
           type: "Mesh",
@@ -175,7 +175,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   console.log('[Scene Conversion] Scene keys:', Object.keys(scene));
   console.log('[Scene Conversion] Scene.object:', scene.object);
   console.log('[Scene Conversion] Existing space:', existingSpace);
-  
+
   // Helpers to robustly extract transforms from various shapes (array/object/matrix)
   const extractPosition = (child: any): [number, number, number] => {
     let px = 0, py = 0.5, pz = 0;
@@ -197,7 +197,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     } catch {}
     return [px, py, pz];
   };
-  
+
   const extractRotation = (child: any): [number, number, number] => {
     try {
       if (Array.isArray(child.rotation)) {
@@ -235,7 +235,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     } catch {}
     return [0, 0, 0];
   };
-  
+
   const extractScale = (child: any): [number, number, number] => {
     try {
       if (Array.isArray(child.scale)) {
@@ -255,7 +255,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     } catch {}
     return [1, 1, 1];
   };
-  
+
   // Collect Mesh nodes recursively and accumulate parent scale so group scaling is preserved
   type Accumulated = {
     node: any;
@@ -306,16 +306,16 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     console.log('[Scene Conversion] Processing child:', child);
     console.log('[Scene Conversion] Child UUID:', child.uuid, 'Child name:', child.name);
     console.log('[Scene Conversion] Child userData:', child.userData);
-    
+
     // Skip empty groups/placeholders with no userData
     // Note: we only process Mesh nodes; Groups are handled by recursive collection above
-    
+
     // Extract transforms from Three.js object (supports array/object/matrix)
     const [x, y, z] = extractPosition(child);
     const rot = extractRotation(child);
     const localScale = extractScale(child);
     const scl = entry.worldScale || localScale;
-    
+
     // Extract mediaUrl from material texture or userData
     let mediaUrl = child.userData?.mediaUrl || '';
     if (!mediaUrl && child.material) {
@@ -331,14 +331,14 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
         }
       }
     }
-    
+
     // If absolutely no identifying data (no userData.type and no media), skip
     if ((!child.userData || (!child.userData.assetType && !child.userData.sourceType)) && !mediaUrl) {
       return null;
     }
-    
+
     console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], rotation [${rot[0]}, ${rot[1]}, ${rot[2]}], localScale [${localScale[0]}, ${localScale[1]}, ${localScale[2]}], worldScale [${scl[0]}, ${scl[1]}, ${scl[2]}], mediaUrl: ${mediaUrl}`);
-    
+
     // If added from layout import, preserve the declared media type/content type
     const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
     const normalizeType = (t?: string): string | undefined => {
@@ -392,7 +392,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
         importMetadata: child.userData.importMetadata
       };
     }
-    
+
     // Handle regular assets - use mesh UUID as item ID for consistency
     return {
       id: child.uuid, // Use the actual mesh UUID from Three.js for consistency

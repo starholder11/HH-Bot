@@ -32,7 +32,7 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
 
     useEffect(() => {
     if (!meshRef.current) return;
-    
+
     const mesh = meshRef.current;
     mesh.name = child.name || `mesh_${child.uuid}`;
     mesh.uuid = child.uuid;
@@ -41,11 +41,11 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
     if (!(mesh as any).raycast) {
       (mesh as any).raycast = (THREE.Mesh as any).prototype.raycast;
     }
-    
+
     // Log asset ID for debugging
     console.log(`Mesh ${child.name} userData:`, userData);
     console.log(`Mesh ${child.name} assetId:`, userData?.assetId);
-    
+
     // Position, rotation, scale are now handled declaratively by R3F props
     console.log(`Applied direct positioning to mesh ${child.name}: position [${position[0]}, ${position[1]}, ${position[2]}]`);
 
@@ -59,8 +59,8 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
 
       if (isVideo) {
         applyMediaToMesh(mesh, proxy(mediaUrl), assetType, null);
-      } else if (assetType === 'text' && !mediaUrl.startsWith('data:image')) {
-        // Pure text - fetch content and use text rendering
+      } else if (assetType === 'text') {
+        // Text asset - fetch content and use dynamic text rendering with scrolling
         const fetchTextContent = async () => {
           try {
             if (userData?.assetId) {
@@ -106,12 +106,12 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
             applyTextToMesh(mesh, 'Error loading text content', null);
           }
         };
-        
+
         // Start with loading message, then fetch actual content
         applyTextToMesh(mesh, userData?.fullTextContent || 'Loading...', null);
         fetchTextContent();
       } else {
-        // Image or pre-rendered text canvas
+        // Image or other media types
         applyMediaToMesh(mesh, mediaUrl.startsWith('data:') ? mediaUrl : proxy(mediaUrl), assetType, null);
       }
     }
@@ -179,7 +179,7 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
       // Fallback to scene-level intersection if group misses
       intersects = raycaster.intersectObjects(scene.children, true);
     }
-    
+
     console.log('[Raycast] Intersects found:', intersects.length);
     if (intersects.length > 0) {
       console.log('[Raycast] First intersect:', intersects[0].object.name, intersects[0].object.userData);
@@ -199,7 +199,7 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
         }
       });
     }
-    
+
     return intersects.length > 0 ? intersects[0].object : null;
   };
 
@@ -210,23 +210,23 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     const handleMouseMove = (event: MouseEvent) => {
       console.log('[MouseMove] Event triggered');
       const intersectedObject = getIntersectedObject(event);
-      
+
       if (intersectedObject !== hoveredObject) {
         console.log('[MouseMove] Object changed, old:', hoveredObject?.name, 'new:', intersectedObject?.name);
-        
+
         // Reset previous hover
         if (hoveredObject) {
           gl.domElement.style.cursor = 'default';
           console.log('[MouseMove] Reset cursor to default');
         }
-        
+
         // Set new hover
         if (intersectedObject) {
           const mesh = intersectedObject as THREE.Mesh;
           const userData = mesh.userData;
-          
+
           console.log('[MouseMove] Intersected object userData:', userData);
-          
+
           // Only show hover cursor if object has an assetId (clickable)
           if (userData?.assetId) {
             gl.domElement.style.cursor = 'pointer';
@@ -235,7 +235,7 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
             console.log('[MouseMove] No assetId found in userData');
           }
         }
-        
+
         setHoveredObject(intersectedObject);
       }
     };
@@ -243,13 +243,13 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     const handleDoubleClick = (event: MouseEvent) => {
       console.log('[DoubleClick] Event triggered');
       const intersectedObject = getIntersectedObject(event);
-      
+
       if (intersectedObject) {
         const mesh = intersectedObject as THREE.Mesh;
         const userData = mesh.userData;
-        
+
         console.log('[DoubleClick] Intersected object userData:', userData);
-        
+
         // Only trigger modal if object has an assetId
         if (userData?.assetId && onObjectSelect) {
           console.log(`[DoubleClick] Double-clicked object with assetId: ${userData.assetId}, assetType: ${userData.assetType}`);
@@ -265,7 +265,7 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     const handleWheel = (event: WheelEvent) => {
       // Check if we're hovering over a text mesh for scrolling
       const intersectedObject = getIntersectedObject(event as any);
-      
+
       if (intersectedObject) {
         const mesh = intersectedObject as THREE.Mesh;
         if (isTextMesh(mesh)) {
@@ -277,13 +277,13 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     };
 
     console.log('[EventListeners] Attaching mouse event listeners to:', gl.domElement);
-    
+
     gl.domElement.addEventListener('mousemove', handleMouseMove);
     gl.domElement.addEventListener('dblclick', handleDoubleClick);
     gl.domElement.addEventListener('wheel', handleWheel, { passive: false });
-    
+
     console.log('[EventListeners] Event listeners attached successfully');
-    
+
     return () => {
       console.log('[EventListeners] Removing event listeners');
       gl.domElement.removeEventListener('mousemove', handleMouseMove);

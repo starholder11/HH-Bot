@@ -20,7 +20,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   const [cameraFov, setCameraFov] = useState<number>(60);
   const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null);
   const [cameraQuaternion, setCameraQuaternion] = useState<[number, number, number, number] | null>(null);
-  
+
   // Modal state for asset details
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [isLoadingAsset, setIsLoadingAsset] = useState(false);
@@ -32,7 +32,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       const threeJSScene = convertSpaceToThreeJSScene(spaceData);
       const children = threeJSScene?.object?.children || [];
       setSceneChildren(children);
-      
+
       // Set camera pose from saved scene data
       console.log('[Public Viewer] threeJSScene.userData:', threeJSScene?.userData);
       const savedCameraPos = threeJSScene?.userData?.camera?.position;
@@ -159,11 +159,11 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   return (
     <div className="relative w-full h-screen bg-neutral-900 overflow-hidden">
       {/* R3F canvas rendering the same converted scene */}
-      <Canvas 
-        style={{ width: '100%', height: '100%' }} 
-        camera={{ 
-          position: cameraPosition, 
-          fov: cameraFov 
+      <Canvas
+        style={{ width: '100%', height: '100%' }}
+        camera={{
+          position: cameraPosition,
+          fov: cameraFov
         }}
       >
         <ambientLight intensity={0.5} />
@@ -172,16 +172,16 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
 
         <ThreeSceneR3F children={sceneChildren} onObjectSelect={handleObjectSelect} />
 
-        <OrbitControls 
-          enablePan 
-          enableZoom 
-          enableRotate 
+        <OrbitControls
+          enablePan
+          enableZoom
+          enableRotate
           target={cameraTarget || undefined}
           makeDefault
         />
 
         {/* Apply saved camera pose exactly like the editor */}
-        <CameraPoseApplier 
+        <CameraPoseApplier
           position={cameraPosition}
           quaternion={cameraQuaternion}
           target={cameraTarget}
