@@ -70,14 +70,14 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
     >
       <planeGeometry
         args={[
-          Math.max(0.001, child.geometry?.width || 2),
-          Math.max(0.001, child.geometry?.height || 2)
+          1,
+          1
         ]}
       />
       <meshBasicMaterial
         side={THREE.DoubleSide}
         toneMapped={false}
-        color="#444"
+        color="#ffffff"
       />
     </mesh>
   );
