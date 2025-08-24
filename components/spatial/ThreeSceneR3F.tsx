@@ -61,6 +61,9 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
         applyMediaToMesh(mesh, proxy(mediaUrl), assetType, null);
         // Ensure userData is preserved after media application
         console.log(`[Video] After applyMediaToMesh, userData:`, mesh.userData);
+        console.log(`[Video] After applyMediaToMesh, geometry:`, mesh.geometry);
+        console.log(`[Video] After applyMediaToMesh, material:`, mesh.material);
+        console.log(`[Video] After applyMediaToMesh, visible:`, mesh.visible);
         if (!mesh.userData.assetId && userData?.assetId) {
           console.log(`[Video] Restoring assetId to userData:`, userData.assetId);
           mesh.userData = { ...mesh.userData, ...userData };
@@ -121,6 +124,9 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
         applyMediaToMesh(mesh, mediaUrl.startsWith('data:') ? mediaUrl : proxy(mediaUrl), assetType, null);
         // Ensure userData is preserved after media application
         console.log(`[${assetType}] After applyMediaToMesh, userData:`, mesh.userData);
+        console.log(`[${assetType}] After applyMediaToMesh, geometry:`, mesh.geometry);
+        console.log(`[${assetType}] After applyMediaToMesh, material:`, mesh.material);
+        console.log(`[${assetType}] After applyMediaToMesh, visible:`, mesh.visible);
         if (!mesh.userData.assetId && userData?.assetId) {
           console.log(`[${assetType}] Restoring assetId to userData:`, userData.assetId);
           mesh.userData = { ...mesh.userData, ...userData };
@@ -137,15 +143,13 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
       scale={scale}
     >
       <planeGeometry
-        args={[
-          1,
-          1
-        ]}
+        args={[1, 1]}
       />
       <meshBasicMaterial
         side={THREE.DoubleSide}
         toneMapped={false}
         color="#ffffff"
+        transparent={true}
       />
     </mesh>
   );
@@ -196,17 +200,22 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     if (intersects.length > 0) {
       console.log('[Raycast] First intersect:', intersects[0].object.name, intersects[0].object.userData);
     } else {
-      // Debug: log info about the first few meshes
-      groupRef.current.children.slice(0, 2).forEach((child, i) => {
+      // Debug: log info about ALL meshes
+      console.log('[Raycast] No intersections found. Debugging all meshes:');
+      groupRef.current.children.forEach((child, i) => {
         if (child instanceof THREE.Mesh) {
           console.log(`[Raycast] Mesh ${i}:`, {
             name: child.name,
+            uuid: child.uuid,
             visible: child.visible,
-            position: child.position,
-            scale: child.scale,
+            position: child.position.toArray(),
+            scale: child.scale.toArray(),
             hasGeometry: !!child.geometry,
             geometryType: child.geometry?.type,
-            hasMaterial: !!child.material
+            hasMaterial: !!child.material,
+            materialType: child.material?.type,
+            hasUserData: !!child.userData,
+            assetId: child.userData?.assetId
           });
         }
       });
