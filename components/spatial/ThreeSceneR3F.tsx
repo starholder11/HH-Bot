@@ -37,6 +37,10 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
     mesh.name = child.name || `mesh_${child.uuid}`;
     mesh.uuid = child.uuid;
     mesh.userData = { ...userData };
+    // Ensure raycasting uses default Mesh.raycast
+    if (!(mesh as any).raycast) {
+      (mesh as any).raycast = (THREE.Mesh as any).prototype.raycast;
+    }
     
     // Log asset ID for debugging
     console.log(`Mesh ${child.name} userData:`, userData);
@@ -126,7 +130,7 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
 }
 
 export default function ThreeSceneR3F({ children, onObjectSelect }: { children: ThreeChild[]; onObjectSelect?: (assetId: string, assetType: string) => void }) {
-  const { gl, camera } = useThree();
+  const { gl, camera, scene } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const [hoveredObject, setHoveredObject] = useState<THREE.Object3D | null>(null);
 
@@ -155,8 +159,16 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     console.log('[Raycast] Camera type:', camera.type);
     console.log('[Raycast] Camera position:', camera.position);
 
+    // Ensure transforms are up-to-date before raycasting
+    scene.updateMatrixWorld(true);
+    groupRef.current.updateMatrixWorld(true);
+
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(groupRef.current.children, true);
+    let intersects = raycaster.intersectObjects(groupRef.current.children, true);
+    if (intersects.length === 0) {
+      // Fallback to scene-level intersection if group misses
+      intersects = raycaster.intersectObjects(scene.children, true);
+    }
     
     console.log('[Raycast] Intersects found:', intersects.length);
     if (intersects.length > 0) {
