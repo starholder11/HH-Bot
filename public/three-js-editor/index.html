@@ -889,8 +889,7 @@
 							if (editor.signals && editor.signals.sceneGraphChanged) {
 								editor.signals.sceneGraphChanged.dispatch();
 							}
-							ensureFrameForMesh(mesh, editor);
-							forceRenderTicks(mesh, editor); // Force render ticks for video
+							// Do not create helper frame for images (keep scene clean)
 						});
 
 					// Handle video load errors
