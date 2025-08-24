@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from 'three';
 import { applyMediaToMesh, applyTextToMesh, handleTextScroll, isTextMesh, cleanupMediaResources } from '@/lib/spatial/media-utils';
@@ -37,6 +37,10 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
     mesh.name = child.name || `mesh_${child.uuid}`;
     mesh.uuid = child.uuid;
     mesh.userData = { ...userData };
+    
+    // Log asset ID for debugging
+    console.log(`Mesh ${child.name} userData:`, userData);
+    console.log(`Mesh ${child.name} assetId:`, userData?.assetId);
     
     // Position, rotation, scale are now handled declaratively by R3F props
     console.log(`Applied direct positioning to mesh ${child.name}: position [${position[0]}, ${position[1]}, ${position[2]}]`);
@@ -83,48 +87,103 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
   );
 }
 
-export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) {
+export default function ThreeSceneR3F({ children, onObjectSelect }: { children: ThreeChild[]; onObjectSelect?: (assetId: string, assetType: string) => void }) {
   const { gl } = useThree();
   const groupRef = useRef<THREE.Group>(null);
+  const [hoveredObject, setHoveredObject] = useState<THREE.Object3D | null>(null);
 
-  // Handle text scrolling
+  // Helper function to get intersected objects
+  const getIntersectedObject = (event: MouseEvent) => {
+    if (!gl?.domElement || !groupRef.current) return null;
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const rect = gl.domElement.getBoundingClientRect();
+
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Get camera from Three.js context
+    const camera = gl.getContext().scene?.userData?.camera ||
+                  (gl as any).camera ||
+                  new THREE.PerspectiveCamera();
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(groupRef.current.children, true);
+    
+    return intersects.length > 0 ? intersects[0].object : null;
+  };
+
+  // Handle mouse interactions (hover, click)
   useEffect(() => {
     if (!gl?.domElement) return;
 
-    const handleWheel = (event: WheelEvent) => {
-      // Check if we're hovering over a text mesh
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-      const rect = gl.domElement.getBoundingClientRect();
-
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      // Get camera from Three.js context
-      const camera = gl.getContext().scene?.userData?.camera ||
-                    (gl as any).camera ||
-                    new THREE.PerspectiveCamera();
-
-      raycaster.setFromCamera(mouse, camera);
-
-      if (groupRef.current) {
-        const intersects = raycaster.intersectObjects(groupRef.current.children, true);
-        if (intersects.length > 0) {
-          const mesh = intersects[0].object as THREE.Mesh;
-          if (isTextMesh(mesh)) {
-            event.preventDefault();
-            event.stopPropagation();
-            handleTextScroll(mesh, event.deltaY);
+    const handleMouseMove = (event: MouseEvent) => {
+      const intersectedObject = getIntersectedObject(event);
+      
+      if (intersectedObject !== hoveredObject) {
+        // Reset previous hover
+        if (hoveredObject) {
+          gl.domElement.style.cursor = 'default';
+        }
+        
+        // Set new hover
+        if (intersectedObject) {
+          const mesh = intersectedObject as THREE.Mesh;
+          const userData = mesh.userData;
+          
+          // Only show hover cursor if object has an assetId (clickable)
+          if (userData?.assetId) {
+            gl.domElement.style.cursor = 'pointer';
+            console.log(`Hovering over object with assetId: ${userData.assetId}`);
           }
+        }
+        
+        setHoveredObject(intersectedObject);
+      }
+    };
+
+    const handleDoubleClick = (event: MouseEvent) => {
+      const intersectedObject = getIntersectedObject(event);
+      
+      if (intersectedObject) {
+        const mesh = intersectedObject as THREE.Mesh;
+        const userData = mesh.userData;
+        
+        // Only trigger modal if object has an assetId
+        if (userData?.assetId && onObjectSelect) {
+          console.log(`Double-clicked object with assetId: ${userData.assetId}, assetType: ${userData.assetType}`);
+          onObjectSelect(userData.assetId, userData.assetType || 'unknown');
         }
       }
     };
 
-    gl.domElement.addEventListener('wheel', handleWheel, { passive: false });
-    return () => {
-      gl.domElement.removeEventListener('wheel', handleWheel);
+    const handleWheel = (event: WheelEvent) => {
+      // Check if we're hovering over a text mesh for scrolling
+      const intersectedObject = getIntersectedObject(event as any);
+      
+      if (intersectedObject) {
+        const mesh = intersectedObject as THREE.Mesh;
+        if (isTextMesh(mesh)) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleTextScroll(mesh, event.deltaY);
+        }
+      }
     };
-  }, [gl]);
+
+    gl.domElement.addEventListener('mousemove', handleMouseMove);
+    gl.domElement.addEventListener('dblclick', handleDoubleClick);
+    gl.domElement.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      gl.domElement.removeEventListener('mousemove', handleMouseMove);
+      gl.domElement.removeEventListener('dblclick', handleDoubleClick);
+      gl.domElement.removeEventListener('wheel', handleWheel);
+      // Reset cursor on cleanup
+      gl.domElement.style.cursor = 'default';
+    };
+  }, [gl, hoveredObject, onObjectSelect]);
 
   // Cleanup on unmount
   useEffect(() => {

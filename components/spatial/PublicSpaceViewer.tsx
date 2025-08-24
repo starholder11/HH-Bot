@@ -5,6 +5,7 @@ import { OrbitControls, Environment, StatsGl } from '@react-three/drei';
 import * as THREE from 'three';
 import { convertSpaceToThreeJSScene } from '@/lib/spatial/scene-conversion';
 import ThreeSceneR3F from './ThreeSceneR3F';
+import DetailsOverlay from '@/app/visual-search/components/DetailsOverlay';
 
 export interface PublicSpaceViewerProps {
   spaceData: any;
@@ -19,6 +20,10 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   const [cameraFov, setCameraFov] = useState<number>(60);
   const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null);
   const [cameraQuaternion, setCameraQuaternion] = useState<[number, number, number, number] | null>(null);
+  
+  // Modal state for asset details
+  const [selectedAsset, setSelectedAsset] = useState<any>(null);
+  const [isLoadingAsset, setIsLoadingAsset] = useState(false);
 
   // Build scene JSON using the EXACT same conversion as SpaceEditor, then render via R3F
   useEffect(() => {
@@ -93,6 +98,51 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Handle object selection for modal
+  const handleObjectSelect = async (assetId: string, assetType: string) => {
+    console.log(`[PublicSpaceViewer] Object selected: ${assetId} (${assetType})`);
+    
+    setIsLoadingAsset(true);
+    try {
+      // Use the same API pattern as DetailsOverlay
+      const apiEndpoint = assetType === 'audio' 
+        ? `/api/audio-labeling/songs/${assetId}`
+        : `/api/media-assets/${assetId}`;
+      
+      const response = await fetch(apiEndpoint);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch asset: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Handle different response formats (same as DetailsOverlay)
+      let asset;
+      if (assetType === 'audio') {
+        asset = data; // Audio API returns song data directly
+      } else {
+        asset = data?.asset || data; // Media assets API returns { success, asset }
+      }
+      
+      // Convert to UnifiedSearchResult format expected by DetailsOverlay
+      const unifiedResult = {
+        id: asset.id,
+        title: asset.title || asset.filename,
+        content_type: assetType,
+        url: asset.cloudflare_url || asset.s3_url || asset.url,
+        ...asset // Include all other properties
+      };
+      
+      setSelectedAsset(unifiedResult);
+    } catch (error) {
+      console.error('[PublicSpaceViewer] Failed to fetch asset:', error);
+      // Could show an error toast here
+    } finally {
+      setIsLoadingAsset(false);
+    }
+  };
+
   return (
     <div className="relative w-full h-screen bg-neutral-900 overflow-hidden">
       {/* R3F canvas rendering the same converted scene */}
@@ -107,7 +157,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
 
-        <ThreeSceneR3F children={sceneChildren} />
+        <ThreeSceneR3F children={sceneChildren} onObjectSelect={handleObjectSelect} />
 
         <OrbitControls 
           enablePan 
@@ -191,6 +241,15 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
             <div className="text-sm text-neutral-300">Preparing 3D scene</div>
           </div>
         </div>
+      )}
+
+      {/* Asset Details Modal */}
+      {selectedAsset && (
+        <DetailsOverlay
+          r={selectedAsset}
+          onClose={() => setSelectedAsset(null)}
+          onSearch={() => {}} // No search functionality needed in published view
+        />
       )}
     </div>
   );
