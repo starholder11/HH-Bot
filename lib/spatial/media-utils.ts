@@ -133,14 +133,22 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
 
       console.log('VideoTexture created with ready video');
 
-      // Apply to material
-      const videoMaterial = new THREE.MeshBasicMaterial({
-        map: videoTexture,
-        side: THREE.DoubleSide,
-        toneMapped: false
-      });
-      mesh.material = videoMaterial;
-      mesh.material.needsUpdate = true;
+      // Update existing material instead of replacing it
+      if (mesh.material && mesh.material instanceof THREE.MeshBasicMaterial) {
+        mesh.material.map = videoTexture;
+        mesh.material.side = THREE.DoubleSide;
+        mesh.material.toneMapped = false;
+        mesh.material.needsUpdate = true;
+      } else {
+        // Fallback: create new material if existing one is incompatible
+        const videoMaterial = new THREE.MeshBasicMaterial({
+          map: videoTexture,
+          side: THREE.DoubleSide,
+          toneMapped: false
+        });
+        mesh.material = videoMaterial;
+        mesh.material.needsUpdate = true;
+      }
 
       console.log('Material applied to mesh');
 
@@ -199,14 +207,22 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
         texture.wrapT = THREE.ClampToEdgeWrapping;
         texture.flipY = true;
 
-        // Apply to material
-        const imageMaterial = new THREE.MeshBasicMaterial({
-          map: texture,
-          side: THREE.DoubleSide,
-          toneMapped: false
-        });
-        mesh.material = imageMaterial;
-        mesh.material.needsUpdate = true;
+        // Update existing material instead of replacing it
+        if (mesh.material && mesh.material instanceof THREE.MeshBasicMaterial) {
+          mesh.material.map = texture;
+          mesh.material.side = THREE.DoubleSide;
+          mesh.material.toneMapped = false;
+          mesh.material.needsUpdate = true;
+        } else {
+          // Fallback: create new material if existing one is incompatible
+          const imageMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            toneMapped: false
+          });
+          mesh.material = imageMaterial;
+          mesh.material.needsUpdate = true;
+        }
 
         console.log('Image material applied to mesh');
       },
