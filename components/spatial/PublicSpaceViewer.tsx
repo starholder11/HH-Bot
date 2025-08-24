@@ -129,14 +129,33 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       }
 
       // Default handling for other asset types
+      // Note: published space item IDs may be compound (e.g., uuid-timestamp-suffix). Try primary lookup; on 404, fall back to mediaUrl-only modal.
       const apiEndpoint = assetType === 'audio'
         ? `/api/audio-labeling/songs/${assetId}`
         : `/api/media-assets/${assetId}`;
 
-      const response = await fetch(apiEndpoint);
-      if (!response.ok) throw new Error(`Failed to fetch asset: ${response.statusText}`);
-      const data = await response.json();
+      let response: Response | null = null;
+      try {
+        response = await fetch(apiEndpoint);
+      } catch (e) {
+        response = null;
+      }
 
+      if (!response || !response.ok) {
+        console.warn('[PublicSpaceViewer] Primary asset fetch failed; falling back to lightweight modal from userData');
+        // Build a minimal result using available info so the modal still opens
+        const lightweightResult = {
+          id: assetId,
+          title: String(assetId),
+          content_type: assetType,
+          // Let DetailsOverlay render media via URL directly if present in userData lookups downstream
+          // We set url to undefined here; DetailsOverlay can derive previews from metadata if available
+        } as any;
+        setSelectedAsset(lightweightResult);
+        return;
+      }
+
+      const data = await response.json();
       const asset = assetType === 'audio' ? data : (data?.asset || data);
 
       const unifiedResult = {
