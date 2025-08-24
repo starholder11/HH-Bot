@@ -33,7 +33,7 @@ function ItemMesh({ child }: { child: ThreeChild }) {
     return <VideoPlane position={position} rotation={rotation} scale={scale} url={mediaUrl} />;
   }
 
-  if ((assetType === "image" && mediaUrl) || userData?.canvasDataUrl || userData?.fullTextContent) {
+  if ((assetType === "image" && mediaUrl) || userData?.canvasDataUrl || userData?.fullTextContent || assetType === "text") {
     return <ImageOrTextPlane child={child} />;
   }
 
@@ -50,6 +50,32 @@ function ItemMesh({ child }: { child: ThreeChild }) {
 
 function ImageOrTextPlane({ child }: { child: ThreeChild }) {
   const { position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], userData } = child;
+  const assetType: string = String(userData?.assetType || userData?.contentType || "").toLowerCase();
+  const [textContent, setTextContent] = useState<string | null>(null);
+
+  // Fetch full text content when not present
+  useEffect(() => {
+    if (assetType !== "text") return;
+    if (userData?.fullTextContent) {
+      setTextContent(String(userData.fullTextContent));
+      return;
+    }
+    // Try to infer slug from import metadata or assetId
+    const slug: string | undefined = userData?.importMetadata?.textSlug || userData?.assetId;
+    if (!slug) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled && json?.success && json?.content) {
+          setTextContent(String(json.content));
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [assetType, userData]);
 
   // For images, use mediaUrl directly
   // For text, generate a canvas and use its data URL
@@ -57,11 +83,12 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
     const url = userData?.mediaUrl;
     if (url) return proxy(url);
     if (userData?.canvasDataUrl) return userData.canvasDataUrl;
-    if (userData?.fullTextContent) {
-      return createTextCanvasDataUrl(String(userData.fullTextContent));
+    if (assetType === "text") {
+      const content = userData?.fullTextContent || textContent || userData?.text || userData?.name;
+      if (content) return createTextCanvasDataUrl(String(content));
     }
     return null;
-  }, [userData]);
+  }, [userData, assetType, textContent]);
 
   let texture: any = null;
   try {
