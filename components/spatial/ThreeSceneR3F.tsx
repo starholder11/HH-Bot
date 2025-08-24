@@ -14,6 +14,12 @@ type ThreeChild = {
   geometry?: { type?: string; width?: number; height?: number };
 };
 
+function isTextImageUserData(userData: any, assetType: string): boolean {
+  try {
+    return assetType === "text" && typeof userData?.mediaUrl === "string" && userData.mediaUrl.startsWith("data:image");
+  } catch { return false; }
+}
+
 export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) {
   return (
     <group>
@@ -27,7 +33,7 @@ export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) 
 function ItemMesh({ child }: { child: ThreeChild }) {
   const { position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], userData } = child;
   const assetType: string = String(userData?.assetType || userData?.contentType || "").toLowerCase();
-  const isTextImage = assetType === "text" && typeof userData?.mediaUrl === 'string' && userData.mediaUrl.startsWith('data:image');
+  const isTextImage = isTextImageUserData(userData, assetType);
   const mediaUrl: string | undefined = userData?.mediaUrl;
 
   if (assetType === "video" && mediaUrl) {
@@ -118,12 +124,12 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
   // For images or text-with-canvas-image, use mediaUrl directly
   // For pure text, we'll use CanvasTexture below
   const effectiveUrl = useMemo(() => {
-    if (assetType === "text" && !isTextImage) return null; // Canvas path
+    if (assetType === "text" && !isTextImageUserData(userData, assetType)) return null; // Canvas path
     const url = userData?.mediaUrl;
     if (url) return proxy(url);
     if (userData?.canvasDataUrl) return userData.canvasDataUrl;
     return null;
-  }, [userData, assetType, isTextImage]);
+  }, [userData, assetType]);
 
   // If this is text, build a live CanvasTexture that supports wheel scrolling
   useEffect(() => {
@@ -187,7 +193,7 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
 
   // Non-text path: regular texture load
   let texture: any = null;
-  if (assetType !== "text" || isTextImage) {
+  if (assetType !== "text" || isTextImageUserData(userData, assetType)) {
     try {
       texture = useLoader(TextureLoader, effectiveUrl || "");
       if (texture) {
@@ -204,7 +210,7 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
 
   // Intercept wheel while hovered to scroll text and block OrbitControls
   useEffect(() => {
-    if (assetType !== "text" || isTextImage) return;
+    if (assetType !== "text" || isTextImageUserData(userData, assetType)) return;
     const handler = (e: WheelEvent) => {
       if (!hoveredRef.current) return;
       e.preventDefault();
