@@ -28,15 +28,22 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       setSceneChildren(children);
       
       // Set camera pose from saved scene data
+      console.log('[Public Viewer] threeJSScene.userData:', threeJSScene?.userData);
       const savedCameraPos = threeJSScene?.userData?.camera?.position;
+      console.log('[Public Viewer] savedCameraPos:', savedCameraPos);
       if (savedCameraPos && Array.isArray(savedCameraPos) && savedCameraPos.length === 3) {
+        console.log('[Public Viewer] Setting camera position to:', savedCameraPos);
         setCameraPosition([savedCameraPos[0], savedCameraPos[1], savedCameraPos[2]]);
+      } else {
+        console.log('[Public Viewer] No saved camera position found, using default [10, 10, 10]');
       }
       const savedTarget = threeJSScene?.userData?.camera?.target;
+      console.log('[Public Viewer] savedTarget:', savedTarget);
       if (savedTarget && Array.isArray(savedTarget) && savedTarget.length === 3) {
         setCameraTarget([savedTarget[0], savedTarget[1], savedTarget[2]]);
       }
       const savedQuat = threeJSScene?.userData?.camera?.quaternion;
+      console.log('[Public Viewer] savedQuat:', savedQuat);
       if (savedQuat && Array.isArray(savedQuat) && savedQuat.length === 4) {
         setCameraQuaternion([savedQuat[0], savedQuat[1], savedQuat[2], savedQuat[3]]);
       }
