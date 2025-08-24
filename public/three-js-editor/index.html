@@ -759,22 +759,35 @@
 				case 'export_scene':
 					try {
 						console.log('Exporting scene...');
-						// Temporarily remove helper frames (ignoreSave) from the live scene, then restore
-						const removed = [];
-						editor.scene.traverse((obj) => {
-							if (obj.userData && obj.userData.ignoreSave && obj.parent) {
-								removed.push({ obj, parent: obj.parent });
-							}
-						});
-						removed.forEach(({ obj, parent }) => { try { parent.remove(obj); } catch {} });
-						const sceneJSON = editor.scene.toJSON();
-						removed.forEach(({ obj, parent }) => { try { parent.add(obj); } catch {} });
+						// Use safe serialization that strips video maps and helpers
+						const sceneJSON = (function safeSerialize(editor){
+							const removedHelpers = [] as any[];
+							const removedVideoMaps = [] as any[];
+							try {
+								// Remove helper objects
+								editor.scene.traverse((obj)=>{
+									try {
+										if (obj.userData && obj.userData.ignoreSave && obj.parent) {
+											removedHelpers.push({ obj, parent: obj.parent });
+										}
+										// Temporarily clear video maps so three can serialize
+										if (obj.isMesh && obj.material && obj.material.map && obj.userData?.assetType === 'video') {
+											removedVideoMaps.push({ material: obj.material, map: obj.material.map });
+											obj.material.map = null;
+											obj.material.needsUpdate = true;
+										}
+									} catch {}
+								});
+								removedHelpers.forEach(({ obj, parent }) => { try { parent.remove(obj); } catch {} });
+								const json = editor.scene.toJSON();
+								// Restore
+								removedHelpers.forEach(({ obj, parent }) => { try { parent.add(obj); } catch {} });
+								for (const { material, map } of removedVideoMaps) { try { material.map = map; material.needsUpdate = true; } catch {} }
+								return json;
+							} finally {}
+						})(editor);
 						console.log('Scene JSON:', sceneJSON);
-						send({
-							type: 'scene_exported',
-							data: sceneJSON,
-							commandId: command.id
-						});
+						send({ type: 'scene_exported', data: sceneJSON, commandId: command.id });
 						console.log('Scene exported successfully');
 					} catch (error) {
 						console.error('Failed to export scene:', error);

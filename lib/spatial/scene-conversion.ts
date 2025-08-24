@@ -174,28 +174,38 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   console.log('[Scene Conversion] Scene.object:', scene.object);
   console.log('[Scene Conversion] Existing space:', existingSpace);
   
-  // Handle different scene structures - sometimes children are directly on scene, sometimes nested under object
-  let children = [];
-  if (scene.object && scene.object.children) {
-    children = scene.object.children;
-  } else if ((scene as any).children) {
-    children = (scene as any).children;
-  } else {
-    console.error('[Scene Conversion] No children found in scene structure:', scene);
-    throw new Error('Invalid scene structure for conversion - no children found');
-  }
-  
-  console.log('[Scene Conversion] Found children:', children.length);
+  // Collect Mesh nodes recursively (children may be nested inside Groups)
+  const collectMeshes = (node: any): any[] => {
+    if (!node) return [];
+    const out: any[] = [];
+    const process = (n: any) => {
+      try {
+        if (!n) return;
+        if (n.type === 'Mesh') out.push(n);
+        const kids = (n.children || []);
+        for (const k of kids) process(k);
+      } catch {}
+    };
+    process(node);
+    return out;
+  };
 
-  const items = children.map(child => {
+  let meshChildren: any[] = [];
+  if (scene.object) {
+    meshChildren = collectMeshes(scene.object);
+  } else if ((scene as any).children) {
+    meshChildren = collectMeshes({ children: (scene as any).children });
+  }
+
+  console.log('[Scene Conversion] Found mesh children:', meshChildren.length);
+
+  const items = meshChildren.map(child => {
     console.log('[Scene Conversion] Processing child:', child);
     console.log('[Scene Conversion] Child UUID:', child.uuid, 'Child name:', child.name);
     console.log('[Scene Conversion] Child userData:', child.userData);
     
     // Skip empty groups/placeholders with no userData
-    if ((child.type === 'Group' || child.type === 'Object3D') && (!child.userData || Object.keys(child.userData).length === 0)) {
-      return null;
-    }
+    // Note: we only process Mesh nodes; Groups are handled by recursive collection above
     
     // Extract position from Three.js object (could be array or matrix)
     let x = 0, y = 0.5, z = 0;
