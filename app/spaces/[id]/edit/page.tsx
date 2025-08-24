@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import SpaceEditor from "@/components/spatial/SpaceEditor";
 import AssetImportModal from "@/components/spatial/AssetImportModal";
 import LayoutImportModal from "@/components/spatial/LayoutImportModal";
+import ShareSpaceModal from "@/components/spatial/ShareSpaceModal";
 import Link from "next/link";
 
 export default function SpaceEditPage() {
@@ -27,6 +28,7 @@ export default function SpaceEditPage() {
   // Import modal states
   const [showImportAsset, setShowImportAsset] = useState(false);
   const [showImportLayout, setShowImportLayout] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   // Load space data on mount
   useEffect(() => {
@@ -247,6 +249,14 @@ export default function SpaceEditPage() {
             Delete
           </button>
 
+          {/* Share button */}
+          <button
+            className="px-3 py-1.5 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => setShowShare(true)}
+          >
+            🚀 Share
+          </button>
+
           {/* Save Status */}
           {saveStatus === 'saving' && (
             <span className="text-blue-400 text-sm">Saving...</span>
@@ -314,6 +324,13 @@ export default function SpaceEditPage() {
           }}
         />
       )}
+
+      <ShareSpaceModal
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        spaceId={spaceId}
+        spaceTitle={spaceName}
+      />
       </div>
     </div>
   );
