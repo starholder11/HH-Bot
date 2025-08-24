@@ -14,6 +14,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sceneChildren, setSceneChildren] = useState<any[]>([]);
+  const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([10, 10, 10]);
 
   // Build scene JSON using the EXACT same conversion as SpaceEditor, then render via R3F
   useEffect(() => {
@@ -22,6 +23,12 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       const threeJSScene = convertSpaceToThreeJSScene(spaceData);
       const children = threeJSScene?.object?.children || [];
       setSceneChildren(children);
+      
+      // Set camera position from saved scene data
+      const savedCameraPos = threeJSScene?.userData?.camera?.position;
+      if (savedCameraPos && Array.isArray(savedCameraPos) && savedCameraPos.length === 3) {
+        setCameraPosition([savedCameraPos[0], savedCameraPos[1], savedCameraPos[2]]);
+      }
     } catch (e) {
       console.error('[PublicSpaceViewer] Failed to convert space:', e);
     }
@@ -69,7 +76,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       <Canvas 
         style={{ width: '100%', height: '100%' }} 
         camera={{ 
-          position: threeJSScene?.userData?.camera?.position || [10, 10, 10], 
+          position: cameraPosition, 
           fov: 60 
         }}
       >
