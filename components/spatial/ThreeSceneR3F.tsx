@@ -23,99 +23,66 @@ type ThreeChild = {
   geometry?: { type?: string; width?: number; height?: number };
 };
 
+// Individual mesh component that handles media loading
+function SpaceMesh({ child }: { child: ThreeChild }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const { position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], userData } = child;
+  
+  console.log(`Rendering mesh ${child.name} at position:`, position, 'scale:', scale);
+  
+  useEffect(() => {
+    if (!meshRef.current) return;
+    
+    const mesh = meshRef.current;
+    mesh.name = child.name || `mesh_${child.uuid}`;
+    mesh.uuid = child.uuid;
+    mesh.userData = { ...userData };
+    
+    // Apply media using editor functions
+    const mediaUrl = userData?.mediaUrl;
+    if (mediaUrl) {
+      console.log(`Applying media to mesh: ${child.name} mediaUrl: ${mediaUrl} assetType: ${userData?.assetType}`);
+      
+      const assetType = String(userData?.assetType || userData?.contentType || "").toLowerCase();
+      const isVideo = assetType === 'video' || mediaUrl.includes('.mp4') || mediaUrl.includes('.webm');
+      
+      if (isVideo) {
+        applyMediaToMesh(mesh, proxy(mediaUrl), assetType, null);
+      } else if (assetType === 'text' && !mediaUrl.startsWith('data:image')) {
+        // Pure text - use text rendering
+        applyTextToMesh(mesh, userData?.fullTextContent || 'Loading...', null);
+      } else {
+        // Image or pre-rendered text canvas
+        applyMediaToMesh(mesh, mediaUrl.startsWith('data:') ? mediaUrl : proxy(mediaUrl), assetType, null);
+      }
+    }
+  }, [child, userData]);
+  
+  return (
+    <mesh
+      ref={meshRef}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+    >
+      <planeGeometry 
+        args={[
+          Math.max(0.001, child.geometry?.width || 2), 
+          Math.max(0.001, child.geometry?.height || 2)
+        ]} 
+      />
+      <meshBasicMaterial 
+        side={THREE.DoubleSide}
+        toneMapped={false}
+        color="#444"
+      />
+    </mesh>
+  );
+}
+
 export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) {
   const { gl } = useThree();
   const groupRef = useRef<THREE.Group>(null);
-  const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
-
-  // Create meshes and apply media using editor functions
-  useEffect(() => {
-    if (!groupRef.current || !children?.length) return;
-
-    // Clear existing meshes
-    meshRefs.current.forEach((mesh) => {
-      if (mesh.parent) mesh.parent.remove(mesh);
-    });
-    meshRefs.current.clear();
-
-    // Create new meshes for each child
-    children.forEach((child) => {
-      const { position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], userData } = child;
-      const assetType = String(userData?.assetType || userData?.contentType || "").toLowerCase();
-
-      // Create mesh with plane geometry (matching editor's approach)
-      const geometry = new THREE.PlaneGeometry(
-        Math.max(0.001, child.geometry?.width || 2), 
-        Math.max(0.001, child.geometry?.height || 2)
-      );
-      const material = new THREE.MeshBasicMaterial({
-        side: THREE.DoubleSide,
-        toneMapped: false,
-        color: '#444' // Default color until media loads
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-
-      // Set transform
-      mesh.position.set(...position);
-      mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
-      mesh.scale.set(...scale);
-      mesh.name = child.name || `mesh_${child.uuid}`;
-      mesh.uuid = child.uuid;
-      mesh.userData = { ...userData };
-
-      // Add to scene
-      groupRef.current!.add(mesh);
-      meshRefs.current.set(child.uuid, mesh);
-
-      // Apply media using editor functions
-      const mediaUrl = userData?.mediaUrl;
-      if (mediaUrl) {
-        console.log('Applying media to mesh:', mesh.name, 'mediaUrl:', mediaUrl, 'assetType:', assetType);
-        applyMediaToMesh(mesh, proxy(mediaUrl), assetType);
-      } else if (assetType === 'text' || userData?.contentType === 'text') {
-        // For text without mediaUrl, we need to fetch content or use fallback
-        const handleTextContent = async () => {
-          let textContent = userData?.fullTextContent || userData?.text || mesh.name;
-
-          // Try to fetch full content if we have an assetId
-          if (userData?.assetId && typeof userData.assetId === 'string') {
-            const match = userData.assetId.match(/text_timeline\/([^#]+)/);
-            if (match) {
-              const slug = match[1];
-              try {
-                const res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
-                if (res.ok) {
-                  const json = await res.json();
-                  if (json?.success && json?.content) {
-                    textContent = json.content;
-                  }
-                }
-              } catch (e) {
-                console.warn('Failed to fetch text content for', slug, e);
-              }
-            }
-          }
-
-          console.log('Applying text to mesh:', mesh.name, 'Content length:', String(textContent).length);
-          applyTextToMesh(mesh, String(textContent));
-        };
-
-        handleTextContent();
-      }
-    });
-
-    // Cleanup function
-    return () => {
-      meshRefs.current.forEach((mesh) => {
-        if (mesh.parent) mesh.parent.remove(mesh);
-        mesh.geometry?.dispose();
-        if (mesh.material instanceof THREE.Material) {
-          mesh.material.dispose();
-        }
-      });
-      meshRefs.current.clear();
-    };
-  }, [children]);
 
   // Handle text scrolling
   useEffect(() => {
@@ -163,5 +130,11 @@ export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) 
     };
   }, []);
 
-  return <group ref={groupRef} />;
+  return (
+    <group ref={groupRef}>
+      {children.map((child) => (
+        <SpaceMesh key={child.uuid} child={child} />
+      ))}
+    </group>
+  );
 }
