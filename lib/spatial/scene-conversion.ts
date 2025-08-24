@@ -84,12 +84,17 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
   
   console.log('[Scene Conversion] Converting space with items:', itemsAll);
   
-  // Filter out placeholder items with no media/type
+  // Filter out placeholder items with no media/type - be more aggressive
   const items = itemsAll.filter((item: any) => {
     const t = (item?.assetType || '').toString().toLowerCase();
     const hasMedia = Boolean((item as any).mediaUrl);
-    const validType = ['image','video','text','layout','object','object_collection'].includes(t);
-    return hasMedia || validType;
+    
+    // Only allow items that have actual media content OR are explicitly object/collection types
+    if (hasMedia) return true;
+    if (['object', 'object_collection'].includes(t)) return true;
+    
+    // Skip text/layout items without media - they create empty planes
+    return false;
   });
   
   return {
