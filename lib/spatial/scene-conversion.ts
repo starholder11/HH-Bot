@@ -84,17 +84,28 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
   
   console.log('[Scene Conversion] Converting space with items:', itemsAll);
   
-  // Filter out placeholder items with no media/type - be more aggressive
+  // Filter out items that create unwanted empty planes
   const items = itemsAll.filter((item: any) => {
     const t = (item?.assetType || '').toString().toLowerCase();
     const hasMedia = Boolean((item as any).mediaUrl);
+    const hasAssetId = Boolean(item?.assetId);
     
-    // Only allow items that have actual media content OR are explicitly object/collection types
+    console.log(`[Scene Conversion] Filtering item ${item.id}: assetType=${t}, hasMedia=${hasMedia}, hasAssetId=${hasAssetId}, assetId=${item?.assetId}`);
+    
+    // Keep items with media content
     if (hasMedia) return true;
+    
+    // Keep text/layout items that have proper assetId (these are placeholders we want)
+    if (['text', 'layout'].includes(t) && hasAssetId) return true;
+    
+    // Keep object/collection types
     if (['object', 'object_collection'].includes(t)) return true;
     
-    // Skip text/layout items without media - they create empty planes
-    return false;
+    // Skip items with no assetType, no media, and no assetId - these create empty backing planes
+    if (!t && !hasMedia && !hasAssetId) return false;
+    
+    // Default: keep everything else for now
+    return true;
   });
   
   return {
