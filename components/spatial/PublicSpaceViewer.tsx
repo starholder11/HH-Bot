@@ -66,7 +66,13 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   return (
     <div className="relative w-full h-screen bg-neutral-900 overflow-hidden">
       {/* R3F canvas rendering the same converted scene */}
-      <Canvas style={{ width: '100%', height: '100%' }} camera={{ position: [4, 3, 6], fov: 60 }}>
+      <Canvas 
+        style={{ width: '100%', height: '100%' }} 
+        camera={{ 
+          position: threeJSScene?.userData?.camera?.position || [10, 10, 10], 
+          fov: 60 
+        }}
+      >
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />

@@ -42,19 +42,19 @@ export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) 
     children.forEach((child) => {
       const { position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], userData } = child;
       const assetType = String(userData?.assetType || userData?.contentType || "").toLowerCase();
-      
+
       // Create mesh with plane geometry (matching editor's approach)
       const geometry = new THREE.PlaneGeometry(
-        child.geometry?.width || 2, 
+        child.geometry?.width || 2,
         child.geometry?.height || 2
       );
-      const material = new THREE.MeshBasicMaterial({ 
-        side: THREE.DoubleSide, 
+      const material = new THREE.MeshBasicMaterial({
+        side: THREE.DoubleSide,
         toneMapped: false,
         color: '#444' // Default color until media loads
       });
       const mesh = new THREE.Mesh(geometry, material);
-      
+
       // Set transform
       mesh.position.set(...position);
       mesh.rotation.set(...rotation);
@@ -76,7 +76,7 @@ export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) 
         // For text without mediaUrl, we need to fetch content or use fallback
         const handleTextContent = async () => {
           let textContent = userData?.fullTextContent || userData?.text || mesh.name;
-          
+
           // Try to fetch full content if we have an assetId
           if (userData?.assetId && typeof userData.assetId === 'string') {
             const match = userData.assetId.match(/text_timeline\/([^#]+)/);
@@ -95,11 +95,11 @@ export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) 
               }
             }
           }
-          
+
           console.log('Applying text to mesh:', mesh.name, 'Content length:', String(textContent).length);
           applyTextToMesh(mesh, String(textContent));
         };
-        
+
         handleTextContent();
       }
     });
@@ -126,17 +126,17 @@ export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) 
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
       const rect = gl.domElement.getBoundingClientRect();
-      
+
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      
+
       // Get camera from Three.js context
-      const camera = gl.getContext().scene?.userData?.camera || 
-                    (gl as any).camera || 
+      const camera = gl.getContext().scene?.userData?.camera ||
+                    (gl as any).camera ||
                     new THREE.PerspectiveCamera();
-      
+
       raycaster.setFromCamera(mouse, camera);
-      
+
       if (groupRef.current) {
         const intersects = raycaster.intersectObjects(groupRef.current.children, true);
         if (intersects.length > 0) {

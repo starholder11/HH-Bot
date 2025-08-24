@@ -93,10 +93,10 @@ function renderTextMesh(mesh: THREE.Mesh) {
 // Extracted applyMediaToMesh function (from editor)
 export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: string, editor?: any) {
   if (!url) return;
-  
+
   const isVideo = (assetType === 'video') || /\.mp4(\?|$)/i.test(url);
   console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
-  
+
   if (isVideo) {
     console.log('Creating video texture for:', mesh.name);
 
@@ -127,15 +127,17 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
       videoTexture.generateMipmaps = false;
       videoTexture.wrapS = THREE.ClampToEdgeWrapping;
       videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-      videoTexture.flipY = true;
+      // VideoTexture defaults to flipY = true, but videos appear upside down
+      // Set to false to match expected orientation
+      videoTexture.flipY = false;
 
       console.log('VideoTexture created with ready video');
 
       // Apply to material
-      const videoMaterial = new THREE.MeshBasicMaterial({ 
-        map: videoTexture, 
-        side: THREE.DoubleSide, 
-        toneMapped: false 
+      const videoMaterial = new THREE.MeshBasicMaterial({
+        map: videoTexture,
+        side: THREE.DoubleSide,
+        toneMapped: false
       });
       mesh.material = videoMaterial;
       mesh.material.needsUpdate = true;
@@ -150,21 +152,21 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
         forceRenderTicks(mesh, editor, 4);
       }).catch(err => {
         console.log('Video autoplay failed, will play on user interaction:', err);
-        const showFirstFrame = () => { 
-          try { 
-            videoTexture.needsUpdate = true; 
-            forceRenderTicks(mesh, editor, 4); 
-          } catch {} 
+        const showFirstFrame = () => {
+          try {
+            videoTexture.needsUpdate = true;
+            forceRenderTicks(mesh, editor, 4);
+          } catch {}
         };
         video.addEventListener('canplay', showFirstFrame, { once: true });
         video.addEventListener('loadedmetadata', showFirstFrame, { once: true });
       });
 
       // Also nudge updates when player becomes ready
-      const bumpUpdate = () => { 
-        try { 
-          videoTexture.needsUpdate = true; 
-        } catch {} 
+      const bumpUpdate = () => {
+        try {
+          videoTexture.needsUpdate = true;
+        } catch {}
       };
       video.addEventListener('canplay', bumpUpdate, { once: true });
       video.addEventListener('loadedmetadata', bumpUpdate, { once: true });
@@ -198,10 +200,10 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
         texture.flipY = true;
 
         // Apply to material
-        const imageMaterial = new THREE.MeshBasicMaterial({ 
-          map: texture, 
-          side: THREE.DoubleSide, 
-          toneMapped: false 
+        const imageMaterial = new THREE.MeshBasicMaterial({
+          map: texture,
+          side: THREE.DoubleSide,
+          toneMapped: false
         });
         mesh.material = imageMaterial;
         mesh.material.needsUpdate = true;
@@ -228,7 +230,7 @@ export function applyTextToMesh(mesh: THREE.Mesh, text: string, editor?: any) {
     canvas.height = baseHeight;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     const padding = Math.round(canvas.width * 0.06);
     const maxWidth = canvas.width - padding * 2 - Math.round(canvas.width * 0.04); // reserve for scrollbar
     const lineHeight = 60;
@@ -240,14 +242,14 @@ export function applyTextToMesh(mesh: THREE.Mesh, text: string, editor?: any) {
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
     texture.flipY = true;
-    
+
     if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
       mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
     }
     mesh.material.color && mesh.material.color.set(0xffffff);
     mesh.material.map = texture;
     mesh.material.needsUpdate = true;
-    
+
     textCanvasMap.set(mesh, { canvas, ctx, padding, maxWidth, lineHeight, textContent: safeText, texture });
     textScrollState.set(mesh.uuid, { scrollY: 0, totalHeight: 0 });
     renderTextMesh(mesh);
@@ -260,7 +262,7 @@ export function applyTextToMesh(mesh: THREE.Mesh, text: string, editor?: any) {
 export function handleTextScroll(mesh: THREE.Mesh, deltaY: number) {
   const state = textScrollState.get(mesh.uuid);
   if (!state) return;
-  
+
   state.scrollY += Math.sign(deltaY) * 40; // scroll step
   textScrollState.set(mesh.uuid, state);
   renderTextMesh(mesh);
@@ -289,7 +291,7 @@ export function cleanupMediaResources() {
     } catch (e) {}
   });
   videoMap.clear();
-  
+
   // Clean up text resources
   textCanvasMap.clear();
   textScrollState.clear();
