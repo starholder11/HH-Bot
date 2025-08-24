@@ -761,8 +761,8 @@
 						console.log('Exporting scene...');
 						// Use safe serialization that strips video maps and helpers
 						const sceneJSON = (function safeSerialize(editor){
-							const removedHelpers = [] as any[];
-							const removedVideoMaps = [] as any[];
+							const removedHelpers = [];
+							const removedVideoMaps = [];
 							try {
 								// Remove helper objects
 								editor.scene.traverse((obj)=>{
