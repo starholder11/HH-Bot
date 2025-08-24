@@ -516,6 +516,9 @@
 										applyMediaToMesh(mesh, url, mesh.userData.assetType, editor);
 									} else {
 										console.log('Mesh has no mediaUrl:', mesh.name);
+										if (mesh.userData && (mesh.userData.assetType === 'text' || mesh.userData.contentType === 'text')) {
+											applyTextToMesh(mesh, mesh.name, editor);
+										}
 									}
 								}
 							});
@@ -644,6 +647,9 @@
 									applyMediaToMesh(mesh, url, mesh.userData.assetType, editor);
 								} else {
 									console.log('Mesh has no mediaUrl:', mesh.name);
+									if (mesh.userData && (mesh.userData.assetType === 'text' || mesh.userData.contentType === 'text')) {
+										applyTextToMesh(mesh, mesh.name, editor);
+									}
 								}
 							}
 						});
@@ -732,6 +738,9 @@
 						if (objData.userData && objData.userData.mediaUrl) {
 							console.log('Loading media for add_object:', objData.userData.mediaUrl);
 							applyMediaToMesh(mesh, objData.userData.mediaUrl, objData.userData.assetType, editor);
+						} else if (assetType === 'text' || (objData.userData && objData.userData.contentType === 'text')) {
+							// Render text placeholders immediately
+							applyTextToMesh(mesh, objData.userData?.text || objData.text || mesh.name, editor);
 						}
 
 						console.log('Added object:', mesh.name);
@@ -950,6 +959,64 @@
 						}
 					);
 				}
+			}
+
+			// Render text to a canvas and apply as a texture to the mesh
+			function applyTextToMesh(mesh, text, editor) {
+				try {
+					const safeText = (text || '').toString();
+					const desiredAspect = (mesh && mesh.scale) ? Math.max(0.1, mesh.scale.y / Math.max(mesh.scale.x, 0.001)) : 0.5;
+					const baseWidth = 1024;
+					const baseHeight = Math.max(256, Math.round(baseWidth * desiredAspect));
+					const canvas = document.createElement('canvas');
+					canvas.width = baseWidth;
+					canvas.height = baseHeight;
+					const ctx = canvas.getContext('2d');
+					if (!ctx) return;
+					// Background
+					ctx.fillStyle = '#ffffff';
+					ctx.fillRect(0, 0, canvas.width, canvas.height);
+					// Text styling
+					const padding = Math.round(canvas.width * 0.06);
+					const maxWidth = canvas.width - padding * 2;
+					ctx.fillStyle = '#111111';
+					ctx.textBaseline = 'top';
+					ctx.font = 'bold 48px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+					// Word wrap
+					const words = safeText.replace(/\s+/g, ' ').trim().split(' ');
+					let line = '';
+					let y = padding;
+					for (let i = 0; i < words.length; i++) {
+						const test = line ? line + ' ' + words[i] : words[i];
+						const m = ctx.measureText(test);
+						if (m.width > maxWidth && i > 0) {
+							ctx.fillText(line, padding, y, maxWidth);
+							y += 60; // line height
+							line = words[i];
+						} else {
+							line = test;
+						}
+					}
+					if (line) ctx.fillText(line, padding, y, maxWidth);
+
+					const texture = new THREE.CanvasTexture(canvas);
+					texture.colorSpace = THREE.SRGBColorSpace;
+					texture.generateMipmaps = false;
+					texture.minFilter = THREE.LinearFilter;
+					texture.magFilter = THREE.LinearFilter;
+					texture.wrapS = THREE.ClampToEdgeWrapping;
+					texture.wrapT = THREE.ClampToEdgeWrapping;
+					texture.flipY = true;
+
+					if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
+						mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
+					}
+					mesh.material.color && mesh.material.color.set(0xffffff);
+					mesh.material.map = texture;
+					mesh.material.needsUpdate = true;
+					texture.needsUpdate = true;
+					forceRenderTicks(mesh, editor, 2);
+				} catch {}
 			}
 
 			function onWindowResize() {
