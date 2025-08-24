@@ -143,13 +143,15 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
 
       if (!response || !response.ok) {
         console.warn('[PublicSpaceViewer] Primary asset fetch failed; falling back to lightweight modal from userData');
-        // Build a minimal result using available info so the modal still opens
+        // Try to find the clicked child in the current scene to extract mediaUrl
+        const child = (sceneChildren || []).find((c: any) => c?.userData?.assetId === assetId);
+        const childMediaUrl: string | undefined = child?.userData?.mediaUrl;
         const lightweightResult = {
           id: assetId,
           title: String(assetId),
           content_type: assetType,
-          // Let DetailsOverlay render media via URL directly if present in userData lookups downstream
-          // We set url to undefined here; DetailsOverlay can derive previews from metadata if available
+          url: childMediaUrl, // DetailsOverlay will display image/video/audio directly with this
+          metadata: child?.userData || {}
         } as any;
         setSelectedAsset(lightweightResult);
         return;
