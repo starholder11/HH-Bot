@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, StatsGl } from '@react-three/drei';
+import * as THREE from 'three';
 import { convertSpaceToThreeJSScene } from '@/lib/spatial/scene-conversion';
 import ThreeSceneR3F from './ThreeSceneR3F';
 
@@ -15,6 +16,8 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sceneChildren, setSceneChildren] = useState<any[]>([]);
   const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([10, 10, 10]);
+  const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null);
+  const [cameraQuaternion, setCameraQuaternion] = useState<[number, number, number, number] | null>(null);
 
   // Build scene JSON using the EXACT same conversion as SpaceEditor, then render via R3F
   useEffect(() => {
@@ -24,10 +27,18 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       const children = threeJSScene?.object?.children || [];
       setSceneChildren(children);
       
-      // Set camera position from saved scene data
+      // Set camera pose from saved scene data
       const savedCameraPos = threeJSScene?.userData?.camera?.position;
       if (savedCameraPos && Array.isArray(savedCameraPos) && savedCameraPos.length === 3) {
         setCameraPosition([savedCameraPos[0], savedCameraPos[1], savedCameraPos[2]]);
+      }
+      const savedTarget = threeJSScene?.userData?.camera?.target;
+      if (savedTarget && Array.isArray(savedTarget) && savedTarget.length === 3) {
+        setCameraTarget([savedTarget[0], savedTarget[1], savedTarget[2]]);
+      }
+      const savedQuat = threeJSScene?.userData?.camera?.quaternion;
+      if (savedQuat && Array.isArray(savedQuat) && savedQuat.length === 4) {
+        setCameraQuaternion([savedQuat[0], savedQuat[1], savedQuat[2], savedQuat[3]]);
       }
     } catch (e) {
       console.error('[PublicSpaceViewer] Failed to convert space:', e);
@@ -86,7 +97,13 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
 
         <ThreeSceneR3F children={sceneChildren} />
 
-        <OrbitControls enablePan enableZoom enableRotate />
+        <OrbitControls 
+          enablePan 
+          enableZoom 
+          enableRotate 
+          target={cameraTarget || undefined}
+          makeDefault
+        />
         {process.env.NODE_ENV === 'development' && <StatsGl />}
       </Canvas>
 

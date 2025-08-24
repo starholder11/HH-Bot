@@ -45,8 +45,8 @@ export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) 
 
       // Create mesh with plane geometry (matching editor's approach)
       const geometry = new THREE.PlaneGeometry(
-        child.geometry?.width || 2,
-        child.geometry?.height || 2
+        Math.max(0.001, child.geometry?.width || 2), 
+        Math.max(0.001, child.geometry?.height || 2)
       );
       const material = new THREE.MeshBasicMaterial({
         side: THREE.DoubleSide,
@@ -57,7 +57,7 @@ export default function ThreeSceneR3F({ children }: { children: ThreeChild[] }) 
 
       // Set transform
       mesh.position.set(...position);
-      mesh.rotation.set(...rotation);
+      mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
       mesh.scale.set(...scale);
       mesh.name = child.name || `mesh_${child.uuid}`;
       mesh.uuid = child.uuid;
