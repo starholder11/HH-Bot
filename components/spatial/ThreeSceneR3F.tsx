@@ -109,10 +109,10 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     console.log('[Raycast] Mouse coords:', mouse.x, mouse.y);
     console.log('[Raycast] Group children count:', groupRef.current.children.length);
 
-    // Get camera from Three.js context
-    const camera = gl.getContext().scene?.userData?.camera ||
-                  (gl as any).camera ||
-                  new THREE.PerspectiveCamera();
+    // Get camera from R3F context - use gl.camera directly
+    const camera = gl.camera;
+    console.log('[Raycast] Camera type:', camera.type);
+    console.log('[Raycast] Camera position:', camera.position);
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(groupRef.current.children, true);
@@ -120,6 +120,21 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     console.log('[Raycast] Intersects found:', intersects.length);
     if (intersects.length > 0) {
       console.log('[Raycast] First intersect:', intersects[0].object.name, intersects[0].object.userData);
+    } else {
+      // Debug: log info about the first few meshes
+      groupRef.current.children.slice(0, 2).forEach((child, i) => {
+        if (child instanceof THREE.Mesh) {
+          console.log(`[Raycast] Mesh ${i}:`, {
+            name: child.name,
+            visible: child.visible,
+            position: child.position,
+            scale: child.scale,
+            hasGeometry: !!child.geometry,
+            geometryType: child.geometry?.type,
+            hasMaterial: !!child.material
+          });
+        }
+      });
     }
     
     return intersects.length > 0 ? intersects[0].object : null;
