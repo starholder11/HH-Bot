@@ -126,7 +126,7 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
 }
 
 export default function ThreeSceneR3F({ children, onObjectSelect }: { children: ThreeChild[]; onObjectSelect?: (assetId: string, assetType: string) => void }) {
-  const { gl } = useThree();
+  const { gl, camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const [hoveredObject, setHoveredObject] = useState<THREE.Object3D | null>(null);
 
@@ -147,8 +147,7 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     console.log('[Raycast] Mouse coords:', mouse.x, mouse.y);
     console.log('[Raycast] Group children count:', groupRef.current.children.length);
 
-    // Get camera from R3F context - use gl.camera directly
-    const camera = gl.camera;
+    // Use R3F camera from context
     if (!camera) {
       console.log('[Raycast] Camera is undefined, skipping raycast.');
       return null;
