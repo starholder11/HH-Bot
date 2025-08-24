@@ -98,11 +98,16 @@ export default function SpaceEditPage() {
   const saveSpaceName = async () => {
     if (!spaceData || !spaceName.trim()) return;
 
+    console.log('[SpaceEditor] Saving space name:', spaceName.trim());
+    console.log('[SpaceEditor] Current spaceData:', spaceData);
+
     const updatedSpace = {
       ...spaceData,
       title: spaceName.trim(),
       updated_at: new Date().toISOString()
     };
+
+    console.log('[SpaceEditor] Updated space data:', updatedSpace);
 
     const response = await fetch(`/api/spaces/${spaceId}`, {
       method: 'PUT',
@@ -110,11 +115,16 @@ export default function SpaceEditPage() {
       body: JSON.stringify(updatedSpace)
     });
 
+    console.log('[SpaceEditor] API response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`Failed to save space name: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('[SpaceEditor] API error response:', errorText);
+      throw new Error(`Failed to save space name: ${response.statusText} - ${errorText}`);
     }
 
     const savedSpace = await response.json();
+    console.log('[SpaceEditor] Saved space data:', savedSpace);
     setSpaceData(savedSpace);
   };
 
