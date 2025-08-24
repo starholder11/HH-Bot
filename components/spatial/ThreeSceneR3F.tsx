@@ -38,10 +38,7 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
     mesh.uuid = child.uuid;
     mesh.userData = { ...userData };
     
-    // Apply position, rotation, scale directly like the editor does
-    mesh.position.set(position[0], position[1], position[2]);
-    mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
-    mesh.scale.set(scale[0], scale[1], scale[2]);
+    // Position, rotation, scale are now handled declaratively by R3F props
     console.log(`Applied direct positioning to mesh ${child.name}: position [${position[0]}, ${position[1]}, ${position[2]}]`);
 
     // Apply media using editor functions
@@ -67,6 +64,9 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
   return (
     <mesh
       ref={meshRef}
+      position={position}
+      rotation={rotation}
+      scale={scale}
     >
       <planeGeometry
         args={[
