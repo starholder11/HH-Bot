@@ -129,7 +129,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       }
 
       // Default handling for other asset types
-      // Note: published space item IDs may be compound (e.g., uuid-timestamp-suffix). Try primary lookup; on 404, fall back to mediaUrl-only modal.
+      // Note: published space item IDs may be compound (e.g., uuid-timestamp-suffix). Try primary lookup; on 404, normalize ID and retry before falling back.
       const apiEndpoint = assetType === 'audio'
         ? `/api/audio-labeling/songs/${assetId}`
         : `/api/media-assets/${assetId}`;
@@ -141,8 +141,38 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
         response = null;
       }
 
+      // If primary lookup failed, attempt with normalized base UUID (strip suffixes like -timestamp-random)
+      const extractBaseUuid = (id: string): string => {
+        const match = id.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+        return match ? match[0] : id;
+      };
+
       if (!response || !response.ok) {
-        console.warn('[PublicSpaceViewer] Primary asset fetch failed; falling back to lightweight modal from userData');
+        const baseId = extractBaseUuid(assetId);
+        if (baseId && baseId !== assetId) {
+          try {
+            const normalizedEndpoint = assetType === 'audio'
+              ? `/api/audio-labeling/songs/${baseId}`
+              : `/api/media-assets/${baseId}`;
+            console.warn('[PublicSpaceViewer] Primary fetch failed. Retrying with normalized id:', baseId);
+            const normRes = await fetch(normalizedEndpoint);
+            if (normRes.ok) {
+              const normData = await normRes.json();
+              const normAsset = assetType === 'audio' ? normData : (normData?.asset || normData);
+              const unifiedNorm = {
+                id: normAsset.id || baseId,
+                title: normAsset.title || normAsset.filename || String(baseId),
+                content_type: assetType,
+                url: normAsset.cloudflare_url || normAsset.s3_url || normAsset.url,
+                ...normAsset
+              } as any;
+              setSelectedAsset(unifiedNorm);
+              return;
+            }
+          } catch {}
+        }
+
+        console.warn('[PublicSpaceViewer] Primary/normalized asset fetch failed; falling back to lightweight modal from userData');
         // Try to find the clicked child in the current scene to extract mediaUrl
         const child = (sceneChildren || []).find((c: any) => c?.userData?.assetId === assetId);
         const childMediaUrl: string | undefined = child?.userData?.mediaUrl;
