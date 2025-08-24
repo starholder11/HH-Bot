@@ -59,6 +59,12 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
 
       if (isVideo) {
         applyMediaToMesh(mesh, proxy(mediaUrl), assetType, null);
+        // Ensure userData is preserved after media application
+        console.log(`[Video] After applyMediaToMesh, userData:`, mesh.userData);
+        if (!mesh.userData.assetId && userData?.assetId) {
+          console.log(`[Video] Restoring assetId to userData:`, userData.assetId);
+          mesh.userData = { ...mesh.userData, ...userData };
+        }
       } else if (assetType === 'text') {
         // Text asset - fetch content and use dynamic text rendering with scrolling
         const fetchTextContent = async () => {
@@ -113,6 +119,12 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
       } else {
         // Image or other media types
         applyMediaToMesh(mesh, mediaUrl.startsWith('data:') ? mediaUrl : proxy(mediaUrl), assetType, null);
+        // Ensure userData is preserved after media application
+        console.log(`[${assetType}] After applyMediaToMesh, userData:`, mesh.userData);
+        if (!mesh.userData.assetId && userData?.assetId) {
+          console.log(`[${assetType}] Restoring assetId to userData:`, userData.assetId);
+          mesh.userData = { ...mesh.userData, ...userData };
+        }
       }
     }
   }, [child, userData]);
@@ -205,10 +217,19 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
 
   // Handle mouse interactions (hover, click)
   useEffect(() => {
-    if (!gl?.domElement) return;
+    if (!gl?.domElement) {
+      console.log('[EventListeners] No domElement available');
+      return;
+    }
+
+    console.log('[EventListeners] Setting up event listeners on:', gl.domElement);
 
     const handleMouseMove = (event: MouseEvent) => {
-      console.log('[MouseMove] Event triggered');
+      // Throttle mouse move events to avoid spam
+      if (Date.now() - (handleMouseMove as any).lastCall < 50) return;
+      (handleMouseMove as any).lastCall = Date.now();
+
+      console.log('[MouseMove] Event triggered at:', event.clientX, event.clientY);
       const intersectedObject = getIntersectedObject(event);
 
       if (intersectedObject !== hoveredObject) {
@@ -241,24 +262,32 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     };
 
     const handleDoubleClick = (event: MouseEvent) => {
-      console.log('[DoubleClick] Event triggered');
+      console.log('[DoubleClick] Event triggered at:', event.clientX, event.clientY);
+      console.log('[DoubleClick] onObjectSelect callback available:', !!onObjectSelect);
+
       const intersectedObject = getIntersectedObject(event);
 
       if (intersectedObject) {
         const mesh = intersectedObject as THREE.Mesh;
         const userData = mesh.userData;
 
+        console.log('[DoubleClick] Intersected object:', mesh.name);
         console.log('[DoubleClick] Intersected object userData:', userData);
 
         // Only trigger modal if object has an assetId
         if (userData?.assetId && onObjectSelect) {
-          console.log(`[DoubleClick] Double-clicked object with assetId: ${userData.assetId}, assetType: ${userData.assetType}`);
+          console.log(`[DoubleClick] Calling onObjectSelect with assetId: ${userData.assetId}, assetType: ${userData.assetType}`);
           onObjectSelect(userData.assetId, userData.assetType || 'unknown');
         } else {
-          console.log('[DoubleClick] No assetId or onObjectSelect callback');
+          if (!userData?.assetId) {
+            console.log('[DoubleClick] No assetId found in userData');
+          }
+          if (!onObjectSelect) {
+            console.log('[DoubleClick] No onObjectSelect callback provided');
+          }
         }
       } else {
-        console.log('[DoubleClick] No intersected object');
+        console.log('[DoubleClick] No intersected object found');
       }
     };
 
