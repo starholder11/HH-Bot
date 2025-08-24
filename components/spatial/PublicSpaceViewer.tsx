@@ -122,6 +122,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
           position={cameraPosition}
           quaternion={cameraQuaternion}
           target={cameraTarget}
+          pullBackFactor={1.25}
         />
         {process.env.NODE_ENV === 'development' && <StatsGl />}
       </Canvas>
@@ -195,12 +196,22 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   );
 }
 
-function CameraPoseApplier({ position, quaternion, target }: { position: [number, number, number]; quaternion: [number, number, number, number] | null; target: [number, number, number] | null; }){
+function CameraPoseApplier({ position, quaternion, target, pullBackFactor = 1 }: { position: [number, number, number]; quaternion: [number, number, number, number] | null; target: [number, number, number] | null; pullBackFactor?: number; }){
   const { camera, controls } = useThree() as any;
   useEffect(() => {
     try {
       if (position) {
-        camera.position.set(position[0], position[1], position[2]);
+        // Optionally pull the camera back slightly along its vector to match editor POV on publish
+        const px = position[0];
+        const py = position[1];
+        const pz = position[2];
+        if (pullBackFactor !== 1 && target) {
+          const dir = new THREE.Vector3(px - target[0], py - target[1], pz - target[2]);
+          dir.multiplyScalar(pullBackFactor);
+          camera.position.set(target[0] + dir.x, target[1] + dir.y, target[2] + dir.z);
+        } else {
+          camera.position.set(px, py, pz);
+        }
       }
       if (quaternion) {
         camera.quaternion.set(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
@@ -210,6 +221,6 @@ function CameraPoseApplier({ position, quaternion, target }: { position: [number
         controls.update();
       }
     } catch {}
-  }, [position, quaternion, target, camera, controls]);
+  }, [position, quaternion, target, camera, controls, pullBackFactor]);
   return null;
 }
