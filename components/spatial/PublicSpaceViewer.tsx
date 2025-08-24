@@ -1,61 +1,71 @@
 "use client";
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, StatsGl, PointerLockControls, FlyControls } from '@react-three/drei';
-import SpaceScene from './SpaceScene';
+import { useState, useEffect, useRef } from 'react';
 import { convertSpaceToThreeJSScene } from '@/lib/spatial/scene-conversion';
-import { SpaceAssetData } from '@/lib/spatial/types';
-import { LODManager } from '@/lib/spatial/lod-manager';
-import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
-import PerformanceMonitor from './PerformanceMonitor';
 
 export interface PublicSpaceViewerProps {
   spaceData: any;
   spaceId: string;
 }
 
-type CameraMode = 'orbit' | 'first-person' | 'fly';
-
 export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceViewerProps) {
-  const [cameraMode, setCameraMode] = useState<CameraMode>('orbit');
-  const [spaceItems, setSpaceItems] = useState<SpaceAssetData[]>([]);
-  const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([4, 3, 6]);
-  const [selectedItem, setSelectedItem] = useState<SpaceAssetData | null>(null);
-  const [hoveredItem, setHoveredItem] = useState<SpaceAssetData | null>(null);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [editorReady, setEditorReady] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const cameraRef = useRef<any>(null);
-  const rendererRef = useRef<any>(null);
-  const lodManagerRef = useRef<LODManager>(new LODManager());
-  
-  const { metrics, isPerformanceAcceptable } = usePerformanceMonitor(rendererRef.current);
-
-  // Convert space data to items and set camera from saved space
+  // Load space data into editor using the EXACT same method as SpaceEditor
   useEffect(() => {
-    if (!spaceData) return;
+    if (!spaceData || !editorReady) return;
 
-    try {
-      const items = Array.isArray(spaceData?.space?.items) ? spaceData.space.items : [];
-      console.log('[PublicSpaceViewer] Loaded space items:', items.length);
-      setSpaceItems(items);
+    const loadSpaceData = async () => {
+      try {
+        console.log('[PublicSpaceViewer] Loading space data:', spaceData);
+        
+        // Convert to Three.js format using the same conversion as the editor
+        const threeJSScene = convertSpaceToThreeJSScene(spaceData);
+        console.log('[PublicSpaceViewer] Converted to Three.js scene:', threeJSScene);
 
-      // Apply saved camera pose if available
-      const cam = spaceData?.space?.camera;
-      if (cam && Array.isArray(cam.position) && cam.position.length === 3) {
-        setCameraPosition([cam.position[0], cam.position[1], cam.position[2]]);
+        // Send load command to editor iframe
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.postMessage({
+            type: 'load_scene',
+            data: threeJSScene,
+          }, '*');
+          console.log('[PublicSpaceViewer] Scene loaded into editor');
+        }
+      } catch (err) {
+        console.error('[PublicSpaceViewer] Load error:', err);
       }
-    } catch (error) {
-      console.error('[PublicSpaceViewer] Error processing space data:', error);
-    }
-  }, [spaceData]);
+    };
 
-  // Camera mode descriptions
-  const cameraDescriptions = {
-    orbit: 'Click and drag to orbit around the space. Scroll to zoom.',
-    'first-person': 'Click to lock cursor, then use WASD to move and mouse to look around. Press ESC to unlock.',
-    fly: 'Use WASD to fly around. Hold right mouse button and move to look around.'
-  };
+    loadSpaceData();
+  }, [spaceData, editorReady]);
+
+  // Handle messages from editor iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+
+      const { type, data } = event.data;
+      console.log('[PublicSpaceViewer] Received message:', type, data);
+
+      switch (type) {
+        case 'editor_ready':
+          console.log('[PublicSpaceViewer] Editor is ready');
+          setEditorReady(true);
+          break;
+        case 'scene_changed':
+          // Ignore scene changes in public viewer
+          break;
+        case 'selection_changed':
+          // Ignore selection changes in public viewer
+          break;
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // Handle fullscreen toggle
   const toggleFullscreen = () => {
@@ -68,7 +78,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
     }
   };
 
-  // Handle escape key for controls
+  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'h' || e.key === 'H') {
@@ -76,10 +86,6 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       }
       if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
-      }
-      if (e.key >= '1' && e.key <= '3') {
-        const modes: CameraMode[] = ['orbit', 'first-person', 'fly'];
-        setCameraMode(modes[parseInt(e.key) - 1]);
       }
     };
 
@@ -97,98 +103,22 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  const handleSelectItem = (item: SpaceAssetData) => {
-    setSelectedItem(item);
-    console.log('[PublicSpaceViewer] Selected item:', item.title || item.assetType);
-  };
-
-  const handleHoverItem = (item: SpaceAssetData | null) => {
-    setHoveredItem(item);
-  };
-
   return (
     <div className="relative w-full h-screen bg-neutral-900 overflow-hidden">
-      {/* Main 3D Canvas */}
-      <Canvas
-        ref={cameraRef}
-        style={{ width: "100%", height: "100%" }}
-        camera={{ position: cameraPosition, fov: 60 }}
-        onCreated={({ gl }) => {
-          rendererRef.current = gl;
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = gl.PCFSoftShadowMap;
-        }}
-      >
-        {/* Lighting */}
-        <ambientLight intensity={0.4} />
-        <directionalLight 
-          position={[10, 10, 5]} 
-          intensity={1} 
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-        />
-        <pointLight position={[-10, -10, -10]} intensity={0.3} />
-
-        {/* Environment */}
-        <Environment preset="city" />
-
-        {/* Floor */}
-        <mesh 
-          rotation={[-Math.PI / 2, 0, 0]} 
-          position={[0, -0.01, 0]} 
-          receiveShadow
-        >
-          <planeGeometry args={[200, 200]} />
-          <meshStandardMaterial color="#1a1a1a" />
-        </mesh>
-
-        {/* Space Scene */}
-        <SpaceScene 
-          items={spaceItems}
-          cameraPosition={cameraPosition}
-          lodManager={lodManagerRef.current}
-          onSelectItem={handleSelectItem}
-          onHoverItem={handleHoverItem}
-          debug={false}
-        />
-
-        {/* Camera Controls */}
-        {cameraMode === 'orbit' && (
-          <OrbitControls 
-            enablePan 
-            enableZoom 
-            enableRotate 
-            maxDistance={100}
-            minDistance={1}
-            onChange={(e) => {
-              if (e?.target?.object?.position) {
-                const pos = e.target.object.position;
-                setCameraPosition([pos.x, pos.y, pos.z]);
-              }
-            }}
-          />
-        )}
-        {cameraMode === 'first-person' && <PointerLockControls />}
-        {cameraMode === 'fly' && (
-          <FlyControls 
-            movementSpeed={10} 
-            rollSpeed={0.5} 
-            dragToLook 
-            autoForward={false}
-          />
-        )}
-
-        {/* Performance Stats (only in dev) */}
-        {process.env.NODE_ENV === 'development' && <StatsGl />}
-      </Canvas>
+      {/* Three.js Editor iframe - same as SpaceEditor but read-only */}
+      <iframe
+        ref={iframeRef}
+        src="/three-js-editor/index.html"
+        className="w-full h-full border-none"
+        style={{ width: '100%', height: '100%', border: 'none' }}
+      />
 
       {/* UI Overlays */}
       {showControls && (
         <>
           {/* Top Bar */}
-          <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white">
+          <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10 pointer-events-none">
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white pointer-events-auto">
               <h1 className="text-lg font-semibold">
                 {spaceData?.title || `Space ${spaceId}`}
               </h1>
@@ -199,7 +129,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
               )}
             </div>
 
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white">
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white pointer-events-auto">
               <button
                 onClick={toggleFullscreen}
                 className="text-sm hover:text-blue-400 transition-colors"
@@ -209,53 +139,20 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
             </div>
           </div>
 
-          {/* Camera Mode Selector */}
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white">
-              <div className="flex gap-2">
-                {(['orbit', 'first-person', 'fly'] as CameraMode[]).map((mode, index) => (
-                  <button
-                    key={mode}
-                    onClick={() => setCameraMode(mode)}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                      cameraMode === mode 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
-                    }`}
-                  >
-                    {index + 1}. {mode.charAt(0).toUpperCase() + mode.slice(1).replace('-', ' ')}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Bottom Info Bar */}
-          <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end z-10">
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white max-w-md">
+          <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end z-10 pointer-events-none">
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white max-w-md pointer-events-auto">
               <div className="text-sm text-neutral-300">
-                {cameraDescriptions[cameraMode]}
+                Use mouse to orbit around the space. Scroll to zoom.
               </div>
-              {selectedItem && (
-                <div className="mt-2 pt-2 border-t border-neutral-600">
-                  <div className="text-sm font-medium">
-                    {selectedItem.title || selectedItem.assetType}
-                  </div>
-                  {selectedItem.description && (
-                    <div className="text-xs text-neutral-400 mt-1">
-                      {selectedItem.description}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white">
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white pointer-events-auto">
               <div className="text-xs text-neutral-300">
                 Press H to {showControls ? 'hide' : 'show'} controls
               </div>
               <div className="text-xs text-neutral-400">
-                {spaceItems.length} objects • {metrics.fps.toFixed(1)} FPS
+                {editorReady ? 'Ready' : 'Loading...'}
               </div>
             </div>
           </div>
@@ -274,19 +171,12 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
         </div>
       )}
 
-      {/* Performance Warning */}
-      {!isPerformanceAcceptable() && (
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-red-600/90 text-white px-4 py-2 rounded-lg text-sm z-10">
-          ⚠ Performance Warning: {metrics.fps.toFixed(1)} FPS
-        </div>
-      )}
-
-      {/* Loading indicator for items */}
-      {spaceItems.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
+      {/* Loading indicator */}
+      {!editorReady && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="bg-black/70 backdrop-blur-sm rounded-lg px-6 py-4 text-white text-center">
-            <div className="text-lg mb-2">Loading Space Content...</div>
-            <div className="text-sm text-neutral-300">Preparing 3D objects</div>
+            <div className="text-lg mb-2">Loading Space...</div>
+            <div className="text-sm text-neutral-300">Preparing 3D editor</div>
           </div>
         </div>
       )}
