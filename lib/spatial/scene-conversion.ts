@@ -471,11 +471,14 @@ function generateGeometryForItem(item: SpaceItem): any {
   switch (item.assetType) {
     case 'image':
     case 'video':
+    case 'text':
+    case 'canvas':
+      // Use 1x1 plane; real size comes from mesh.scale like the editor
       return {
         uuid: `geom-${item.id}`,
         type: 'PlaneGeometry',
-        width: 2,
-        height: 2
+        width: 1,
+        height: 1
       };
     case 'layout':
     case 'object':

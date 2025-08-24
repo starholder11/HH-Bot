@@ -64,29 +64,39 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
         const fetchTextContent = async () => {
           try {
             if (userData?.assetId) {
-              const response = await fetch(`/api/media-assets/${userData.assetId}`);
-              if (response.ok) {
-                const data = await response.json();
-                const asset = data.asset;
-                // Extract text content from various possible fields
-                let textContent = '';
-                if (asset.lyrics) {
-                  textContent = asset.lyrics;
-                } else if (asset.prompt) {
-                  textContent = asset.prompt;
-                } else if (asset.description) {
-                  textContent = asset.description;
-                } else if (asset.title) {
-                  textContent = asset.title;
+              const idStr = String(userData.assetId);
+              if (idStr.startsWith('text_timeline/')) {
+                const afterPrefix = idStr.split('text_timeline/')[1] || '';
+                const slug = afterPrefix.split('#')[0];
+                if (slug) {
+                  const res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+                  if (res.ok) {
+                    const json = await res.json();
+                    const textContent = (json?.content as string) || '';
+                    userData.fullTextContent = textContent;
+                    applyTextToMesh(mesh, textContent, null);
+                  } else {
+                    applyTextToMesh(mesh, 'Failed to load text content', null);
+                  }
                 } else {
-                  textContent = 'No text content available';
+                  applyTextToMesh(mesh, 'Invalid text asset id', null);
                 }
-                
-                // Update userData with the fetched content
-                userData.fullTextContent = textContent;
-                applyTextToMesh(mesh, textContent, null);
               } else {
-                applyTextToMesh(mesh, 'Failed to load text content', null);
+                const response = await fetch(`/api/media-assets/${encodeURIComponent(idStr)}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  const asset = data.asset;
+                  let textContent = '';
+                  if (asset.lyrics) textContent = asset.lyrics;
+                  else if (asset.prompt) textContent = asset.prompt;
+                  else if (asset.description) textContent = asset.description;
+                  else if (asset.title) textContent = asset.title;
+                  else textContent = 'No text content available';
+                  userData.fullTextContent = textContent;
+                  applyTextToMesh(mesh, textContent, null);
+                } else {
+                  applyTextToMesh(mesh, 'Failed to load text content', null);
+                }
               }
             } else {
               applyTextToMesh(mesh, 'No asset ID available', null);

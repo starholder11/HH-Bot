@@ -101,43 +101,56 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   // Handle object selection for modal
   const handleObjectSelect = async (assetId: string, assetType: string) => {
     console.log(`[PublicSpaceViewer] Object selected: ${assetId} (${assetType})`);
-    
+
     setIsLoadingAsset(true);
     try {
-      // Use the same API pattern as DetailsOverlay
-      const apiEndpoint = assetType === 'audio' 
+      // Special handling for timeline-based text assets
+      if (assetType === 'text' && typeof assetId === 'string' && assetId.startsWith('text_timeline/')) {
+        const afterPrefix = assetId.split('text_timeline/')[1] || '';
+        const slug = afterPrefix.split('#')[0];
+        if (!slug) throw new Error('Invalid timeline text asset id (missing slug)');
+
+        const res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+        if (!res.ok) throw new Error(`Failed to fetch text asset content for slug ${slug}`);
+        const json = await res.json();
+
+        // Shape as UnifiedSearchResult for DetailsOverlay
+        const unifiedResult = {
+          id: assetId,
+          title: json?.title || slug,
+          content_type: 'text',
+          preview: (json?.content as string) || '',
+          description: (json?.content as string) || '',
+          metadata: { parent_slug: slug }
+        } as any;
+
+        setSelectedAsset(unifiedResult);
+        return;
+      }
+
+      // Default handling for other asset types
+      const apiEndpoint = assetType === 'audio'
         ? `/api/audio-labeling/songs/${assetId}`
         : `/api/media-assets/${assetId}`;
-      
+
       const response = await fetch(apiEndpoint);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch asset: ${response.statusText}`);
-      }
-      
+      if (!response.ok) throw new Error(`Failed to fetch asset: ${response.statusText}`);
       const data = await response.json();
-      
-      // Handle different response formats (same as DetailsOverlay)
-      let asset;
-      if (assetType === 'audio') {
-        asset = data; // Audio API returns song data directly
-      } else {
-        asset = data?.asset || data; // Media assets API returns { success, asset }
-      }
-      
-      // Convert to UnifiedSearchResult format expected by DetailsOverlay
+
+      const asset = assetType === 'audio' ? data : (data?.asset || data);
+
       const unifiedResult = {
-        id: asset.id,
-        title: asset.title || asset.filename,
+        id: asset.id || assetId,
+        title: asset.title || asset.filename || String(assetId),
         content_type: assetType,
         url: asset.cloudflare_url || asset.s3_url || asset.url,
-        ...asset // Include all other properties
-      };
-      
+        ...asset
+      } as any;
+
       setSelectedAsset(unifiedResult);
     } catch (error) {
       console.error('[PublicSpaceViewer] Failed to fetch asset:', error);
-      // Could show an error toast here
+      setSelectedAsset(null);
     } finally {
       setIsLoadingAsset(false);
     }
