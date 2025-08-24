@@ -16,6 +16,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sceneChildren, setSceneChildren] = useState<any[]>([]);
   const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([10, 10, 10]);
+  const [cameraFov, setCameraFov] = useState<number>(60);
   const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null);
   const [cameraQuaternion, setCameraQuaternion] = useState<[number, number, number, number] | null>(null);
 
@@ -46,6 +47,10 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       console.log('[Public Viewer] savedQuat:', savedQuat);
       if (savedQuat && Array.isArray(savedQuat) && savedQuat.length === 4) {
         setCameraQuaternion([savedQuat[0], savedQuat[1], savedQuat[2], savedQuat[3]]);
+      }
+      const savedFov = threeJSScene?.userData?.camera?.fov;
+      if (typeof savedFov === 'number' && !Number.isNaN(savedFov)) {
+        setCameraFov(savedFov);
       }
     } catch (e) {
       console.error('[PublicSpaceViewer] Failed to convert space:', e);
@@ -95,7 +100,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
         style={{ width: '100%', height: '100%' }} 
         camera={{ 
           position: cameraPosition, 
-          fov: 60 
+          fov: cameraFov 
         }}
       >
         <ambientLight intensity={0.5} />
