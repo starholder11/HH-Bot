@@ -335,7 +335,6 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       return null;
     }
     
-    const rot = extractRotation(child);
     console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], rotation [${rot[0]}, ${rot[1]}, ${rot[2]}], localScale [${localScale[0]}, ${localScale[1]}, ${localScale[2]}], worldScale [${scl[0]}, ${scl[1]}, ${scl[2]}], mediaUrl: ${mediaUrl}`);
     
     // If added from layout import, preserve the declared media type/content type
