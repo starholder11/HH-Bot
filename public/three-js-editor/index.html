@@ -502,7 +502,7 @@
 										mesh.name = childData.name || childData.uuid;
 									}
 									mesh.uuid = childData.uuid;
-									
+
 									// Debug: Log UUID assignment
 									console.log('Mesh created:', mesh.name, 'UUID:', mesh.uuid);
 
@@ -534,7 +534,7 @@
 						editor.signals.objectSelected.dispatch(null);
 
 						console.log(`Scene loaded successfully with ${sceneGroup.children.length} objects`);
-						
+
 						// Debug: List all objects and their video mapping status
 						sceneGroup.children.forEach((child, index) => {
 							console.log(`Object ${index}: name="${child.name}", uuid="${child.uuid}", hasVideo=${videoMap.has(child.uuid)}`);
@@ -544,7 +544,7 @@
 						try {
 							// Clear any existing handlers first
 							editor.signals.objectSelected.dispatch = editor.signals.objectSelected.dispatch || function() {};
-							
+
 							editor.signals.objectSelected.add(function(object){
 								console.log('Object selected:', object?.name, object?.uuid);
 								// If a helper frame was selected, resolve to the parent mesh
@@ -852,7 +852,7 @@
 					// Wait for video to be ready before creating texture
 					video.addEventListener('loadeddata', () => {
 						console.log('Video loaded data, ready state:', video.readyState);
-							
+
 							// Create VideoTexture only when video is ready
 							const videoTexture = new THREE.VideoTexture(video);
 							videoTexture.minFilter = THREE.LinearFilter;
@@ -864,16 +864,16 @@
 							videoTexture.wrapS = THREE.ClampToEdgeWrapping;
 							videoTexture.wrapT = THREE.ClampToEdgeWrapping;
 							videoTexture.flipY = true;
-							
+
 							console.log('VideoTexture created with ready video');
-							
+
 							// Apply to material
 							const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.DoubleSide, toneMapped: false });
 							mesh.material = videoMaterial;
 							mesh.material.needsUpdate = true;
-							
+
 							console.log('Material applied to mesh');
-							
+
 							// Start video
 							// Try to start; if blocked, ensure first frame shows
 							video.play().then(() => {
@@ -892,17 +892,17 @@
 								video.addEventListener('canplay', showFirstFrame, { once: true });
 								video.addEventListener('loadedmetadata', showFirstFrame, { once: true });
 							});
-							
+
 							// Also nudge updates when player becomes ready
 							const bumpUpdate = () => { try { videoTexture.needsUpdate = true; } catch {} };
 							video.addEventListener('canplay', bumpUpdate, { once: true });
 							video.addEventListener('loadedmetadata', bumpUpdate, { once: true });
-							
+
 							// Track video element
 							videoMap.set(mesh.uuid, video);
 							console.log('Video mapped for mesh:', mesh.uuid, 'mesh.name:', mesh.name);
 							console.log('VideoMap now has:', Array.from(videoMap.keys()));
-							
+
 							// Notify editor
 							if (editor.signals && editor.signals.materialChanged) {
 								editor.signals.materialChanged.dispatch(mesh.material);
@@ -940,7 +940,7 @@
 							const applyTextureWhenReady = () => {
 								if (texture.image && texture.image.complete && texture.image.naturalWidth > 0) {
 									console.log('Image ready, applying texture to:', mesh.name);
-									
+
 									if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 										mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
 									}
@@ -963,8 +963,8 @@
 							console.error('Error loading texture for mesh:', mesh.name, error);
 							// Create a fallback material for failed textures
 							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
-								mesh.material = new THREE.MeshBasicMaterial({ 
-									side: THREE.DoubleSide, 
+								mesh.material = new THREE.MeshBasicMaterial({
+									side: THREE.DoubleSide,
 									toneMapped: false,
 									color: 0xff0000 // Red color to indicate error
 								});
@@ -1079,20 +1079,31 @@
 						renderTextMesh(mesh);
 					}catch{}
 				}
-				// Selection + wheel scrolling
+				// Selection + wheel scrolling (robust)
+				function isTextMesh(obj){
+					if(!obj) return false;
+					const t1 = (obj.userData?.assetType||'').toString().toLowerCase();
+					const t2 = (obj.userData?.contentType||'').toString().toLowerCase();
+					const looksLikeCanvas = !!(obj.material && obj.material.map && obj.material.map.isCanvasTexture);
+					return t1 === 'text' || t2 === 'text' || looksLikeCanvas;
+				}
 				signals.objectSelected.add(function(object){
-					if(object && (object.userData?.assetType === 'text' || object.userData?.contentType === 'text')){
+					if(isTextMesh(object)){
 						selectedTextMesh = object;
+						console.log('[TextScroll] selected text mesh:', object.name);
 					}else{
 						selectedTextMesh = null;
 					}
 				});
-				viewport.dom.addEventListener('wheel', function(e){
+				function onWheelScroll(e){
 					if(selectedTextMesh){
-						e.preventDefault();
+						try{ e.preventDefault(); }catch{}
 						scrollText(selectedTextMesh, e.deltaY);
 					}
-				},{ passive: false });
+				}
+				// Attach both to viewport and document to catch wheel consistently
+				viewport.dom.addEventListener('wheel', onWheelScroll, { passive: false });
+				document.addEventListener('wheel', onWheelScroll, { passive: false });
 			})();
 
 			function onWindowResize() {
