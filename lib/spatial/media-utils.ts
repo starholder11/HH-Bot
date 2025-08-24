@@ -141,6 +141,7 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
         mesh.material.needsUpdate = true;
       } else {
         // Fallback: create new material if existing one is incompatible
+        console.log('Creating new material for video (fallback)');
         const videoMaterial = new THREE.MeshBasicMaterial({
           map: videoTexture,
           side: THREE.DoubleSide,
@@ -151,6 +152,12 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
       }
 
       console.log('Material applied to mesh');
+      
+      // Force geometry and material update for raycasting
+      if (mesh.geometry) {
+        mesh.geometry.computeBoundingBox();
+        mesh.geometry.computeBoundingSphere();
+      }
 
       // Start video
       video.play().then(() => {
@@ -215,6 +222,7 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
           mesh.material.needsUpdate = true;
         } else {
           // Fallback: create new material if existing one is incompatible
+          console.log('Creating new material for image (fallback)');
           const imageMaterial = new THREE.MeshBasicMaterial({
             map: texture,
             side: THREE.DoubleSide,
@@ -225,6 +233,12 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
         }
 
         console.log('Image material applied to mesh');
+        
+        // Force geometry and material update for raycasting
+        if (mesh.geometry) {
+          mesh.geometry.computeBoundingBox();
+          mesh.geometry.computeBoundingSphere();
+        }
       },
       undefined,
       (error) => {
