@@ -204,6 +204,32 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       if (child.rotation && typeof child.rotation === 'object') {
         return [child.rotation.x ?? 0, child.rotation.y ?? 0, child.rotation.z ?? 0];
       }
+      // Derive rotation (Euler XYZ, radians) from transformation matrix if available
+      if (child.matrix && Array.isArray(child.matrix) && child.matrix.length === 16) {
+        const m = child.matrix as number[];
+        // Remove scale by normalizing basis vectors (columns)
+        const sx = Math.hypot(m[0], m[1], m[2]) || 1;
+        const sy = Math.hypot(m[4], m[5], m[6]) || 1;
+        const sz = Math.hypot(m[8], m[9], m[10]) || 1;
+
+        const r00 = m[0] / sx, r01 = m[4] / sy, r02 = m[8] / sz;
+        const r10 = m[1] / sx, r11 = m[5] / sy, r12 = m[9] / sz;
+        const r20 = m[2] / sx, r21 = m[6] / sy, r22 = m[10] / sz;
+
+        const syHyp = Math.sqrt(r00 * r00 + r10 * r10);
+        let x = 0, y = 0, z = 0;
+        if (syHyp > 1e-6) {
+          x = Math.atan2(r21, r22);
+          y = Math.atan2(-r20, syHyp);
+          z = Math.atan2(r10, r00);
+        } else {
+          // Gimbal lock
+          x = Math.atan2(-r12, r11);
+          y = Math.atan2(-r20, syHyp);
+          z = 0;
+        }
+        return [x, y, z];
+      }
     } catch {}
     return [0, 0, 0];
   };
@@ -309,7 +335,8 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       return null;
     }
     
-    console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], localScale [${localScale[0]}, ${localScale[1]}, ${localScale[2]}], worldScale [${scl[0]}, ${scl[1]}, ${scl[2]}], mediaUrl: ${mediaUrl}`);
+    const rot = extractRotation(child);
+    console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], rotation [${rot[0]}, ${rot[1]}, ${rot[2]}], localScale [${localScale[0]}, ${localScale[1]}, ${localScale[2]}], worldScale [${scl[0]}, ${scl[1]}, ${scl[2]}], mediaUrl: ${mediaUrl}`);
     
     // If added from layout import, preserve the declared media type/content type
     const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
