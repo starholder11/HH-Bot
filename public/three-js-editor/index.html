@@ -825,11 +825,13 @@
 						console.error('Video load error:', e);
 					});
 				} else {
+					console.log('Loading image texture for:', mesh.name, 'URL:', url);
 					const textureLoader = new THREE.TextureLoader();
 					textureLoader.crossOrigin = 'anonymous';
 					textureLoader.load(
 						url,
 						(texture) => {
+							console.log('Image texture loaded successfully for:', mesh.name);
 							// Configure texture properties
 							texture.colorSpace = THREE.SRGBColorSpace;
 							texture.format = THREE.RGBAFormat;
@@ -873,6 +875,14 @@
 						undefined,
 						(error) => {
 							console.error('Error loading texture for mesh:', mesh.name, error);
+							// Create a fallback material for failed textures
+							if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
+								mesh.material = new THREE.MeshBasicMaterial({ 
+									side: THREE.DoubleSide, 
+									toneMapped: false,
+									color: 0xff0000 // Red color to indicate error
+								});
+							}
 						}
 					);
 				}

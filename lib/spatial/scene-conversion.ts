@@ -233,8 +233,10 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     };
     const normalizedType = normalizeType(declaredType);
     if (child.userData?.sourceType === 'layout' && normalizedType) {
+      // Use the mesh UUID as the item ID to maintain consistency
+      const itemId = child.uuid; // Use the actual mesh UUID from Three.js
       return {
-        id: child.userData.spaceItemId || child.uuid,
+        id: itemId,
         assetId: child.userData.layoutItemId || child.uuid,
         assetType: normalizedType,
         position: [x, y, z],
@@ -252,9 +254,9 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       };
     }
 
-    // Handle regular assets
+    // Handle regular assets - use mesh UUID as item ID for consistency
     return {
-      id: child.userData?.spaceItemId || child.uuid, // Preserve original space item ID
+      id: child.uuid, // Use the actual mesh UUID from Three.js for consistency
       assetId: child.userData?.assetId || child.uuid, // Fallback to uuid if no assetId
       assetType: normalizeType(child.userData?.assetType) || 'object', // Default to object instead of unknown
       position: [x, y, z],
