@@ -254,7 +254,7 @@ export default function SpaceEditPage() {
             className="px-3 py-1.5 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white"
             onClick={() => setShowShare(true)}
           >
-            🚀 Share
+            Share
           </button>
 
           {/* Save Status */}
