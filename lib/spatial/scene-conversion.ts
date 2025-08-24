@@ -80,20 +80,28 @@ interface SpaceItem {
  */
 export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
   // Handle different possible data structures
-  const items = space.space?.items || space.items || [];
-
-  console.log('[Scene Conversion] Converting space with items:', items);
-
+  const itemsAll = space.space?.items || space.items || [];
+  
+  console.log('[Scene Conversion] Converting space with items:', itemsAll);
+  
+  // Filter out placeholder items with no media/type
+  const items = itemsAll.filter((item: any) => {
+    const t = (item?.assetType || '').toString().toLowerCase();
+    const hasMedia = Boolean((item as any).mediaUrl);
+    const validType = ['image','video','text','layout','object','object_collection'].includes(t);
+    return hasMedia || validType;
+  });
+  
   return {
     metadata: {
       version: 4.5,
       type: "Object",
       generator: "HH-Bot Spatial CMS"
     },
-    geometries: (space.space?.items || space.items || []).map((item: any) => generateGeometryForItem(item)),
-    materials: generateMaterialsFromSpace(space),
-    textures: generateTexturesFromSpace(space),
-    images: generateImagesFromSpace(space),
+    geometries: items.map((item: any) => generateGeometryForItem(item)),
+    materials: generateMaterialsFromSpace({ ...space, space: { ...(space.space||{}), items } } as any),
+    textures: generateTexturesFromSpace({ ...space, space: { ...(space.space||{}), items } } as any),
+    images: generateImagesFromSpace({ ...space, space: { ...(space.space||{}), items } } as any),
     object: {
       uuid: space.id,
       type: "Scene",
@@ -103,9 +111,9 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
         const x = item.position?.[0] ?? (item.x || 0);
         const y = item.position?.[1] ?? 0.5; // Keep objects slightly above ground
         const z = item.position?.[2] ?? (item.y || 0);
-
+        
         console.log(`[Scene Conversion] Item ${item.id}: position [${x}, ${y}, ${z}], mediaUrl: ${item.mediaUrl}`);
-
+        
         return {
           uuid: item.id, // Use item.id as UUID for consistency
           type: "Mesh",
@@ -143,7 +151,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   console.log('[Scene Conversion] Scene keys:', Object.keys(scene));
   console.log('[Scene Conversion] Scene.object:', scene.object);
   console.log('[Scene Conversion] Existing space:', existingSpace);
-
+  
   // Handle different scene structures - sometimes children are directly on scene, sometimes nested under object
   let children = [];
   if (scene.object && scene.object.children) {
@@ -154,17 +162,22 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     console.error('[Scene Conversion] No children found in scene structure:', scene);
     throw new Error('Invalid scene structure for conversion - no children found');
   }
-
+  
   console.log('[Scene Conversion] Found children:', children.length);
 
   const items = children.map(child => {
     console.log('[Scene Conversion] Processing child:', child);
     console.log('[Scene Conversion] Child UUID:', child.uuid, 'Child name:', child.name);
     console.log('[Scene Conversion] Child userData:', child.userData);
-
+    
+    // Skip empty groups/placeholders with no userData
+    if ((child.type === 'Group' || child.type === 'Object3D') && (!child.userData || Object.keys(child.userData).length === 0)) {
+      return null;
+    }
+    
     // Extract position from Three.js object (could be array or matrix)
     let x = 0, y = 0.5, z = 0;
-
+    
     if (child.position && Array.isArray(child.position)) {
       // Direct position array
       x = child.position[0] || 0;
@@ -181,7 +194,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       y = child.position.y || 0.5;
       z = child.position.z || 0;
     }
-
+    
     // Extract mediaUrl from material texture or userData
     let mediaUrl = child.userData?.mediaUrl || '';
     if (!mediaUrl && child.material) {
@@ -197,9 +210,14 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
         }
       }
     }
-
+    
+    // If absolutely no identifying data (no userData.type and no media), skip
+    if ((!child.userData || (!child.userData.assetType && !child.userData.sourceType)) && !mediaUrl) {
+      return null;
+    }
+    
     console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], mediaUrl: ${mediaUrl}`);
-
+    
     // If added from layout import, preserve the declared media type/content type
     const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
     const normalizeType = (t?: string): string | undefined => {
@@ -253,7 +271,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
         importMetadata: child.userData.importMetadata
       };
     }
-
+    
     // Handle regular assets - use mesh UUID as item ID for consistency
     return {
       id: child.uuid, // Use the actual mesh UUID from Three.js for consistency
@@ -270,7 +288,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       mediaUrl,
       importMetadata: child.userData?.importMetadata
     };
-  });
+  }).filter(Boolean);
 
   console.log('[Scene Conversion] Converted items:', items);
 
