@@ -417,6 +417,12 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       // Resolve media URL and canonical asset id for proper rendering
       const resolved = await resolveLayoutMedia(item, type);
 
+      // Skip non-media layout objects that would create empty white boxes
+      if (type === 'object' && !resolved.mediaUrl) {
+        console.log('[SpaceEditor] Skipping layout object without media:', item.id || item.contentId || item.refId);
+        continue;
+      }
+
       // Fit media into layout box while preserving aspect ratio when we know intrinsic size
       const mediaW = resolved.extraUserData?.mediaWidth as number | undefined;
       const mediaH = resolved.extraUserData?.mediaHeight as number | undefined;
