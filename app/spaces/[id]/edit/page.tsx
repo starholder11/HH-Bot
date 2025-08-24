@@ -126,6 +126,8 @@ export default function SpaceEditPage() {
     const savedSpace = await response.json();
     console.log('[SpaceEditor] Saved space data:', savedSpace);
     setSpaceData(savedSpace);
+    // Ensure the spaceName state is updated to match the saved data
+    setSpaceName(savedSpace.title);
   };
 
   const handleNameSave = async () => {
@@ -133,8 +135,12 @@ export default function SpaceEditPage() {
       try {
         await saveSpaceName();
         setHasUnsavedChanges(false);
+        // Force UI update by ensuring spaceName matches the saved data
+        setSpaceName(spaceName.trim());
       } catch (error) {
         console.error('Name save failed:', error);
+        // Revert to original name on error
+        setSpaceName(spaceData?.title || '');
       }
     }
     setIsEditingName(false);
