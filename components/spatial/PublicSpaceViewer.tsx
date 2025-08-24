@@ -150,6 +150,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
           lodManager={lodManagerRef.current}
           onSelectItem={handleSelectItem}
           onHoverItem={handleHoverItem}
+          debug={false}
         />
 
         {/* Camera Controls */}

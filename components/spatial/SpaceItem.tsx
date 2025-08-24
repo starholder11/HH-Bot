@@ -11,9 +11,10 @@ type SpaceItemProps = {
   lodManager?: LODManager;
   onSelect?: (item: SpaceAssetData) => void;
   onHover?: (item: SpaceAssetData | null) => void;
+  debug?: boolean;
 };
 
-export default function SpaceItem({ item, cameraPosition = [0, 0, 0], lodManager, onSelect, onHover }: SpaceItemProps) {
+export default function SpaceItem({ item, cameraPosition = [0, 0, 0], lodManager, onSelect, onHover, debug = false }: SpaceItemProps) {
   const meshRef = useRef<any>(null);
   const [hovered, setHovered] = useState(false);
   const [selected, setSelected] = useState(false);
@@ -174,8 +175,8 @@ export default function SpaceItem({ item, cameraPosition = [0, 0, 0], lodManager
         </mesh>
       )}
 
-      {/* Debug label */}
-      {distance < 15 && (
+      {/* Debug label (disabled by default) */}
+      {debug && distance < 15 && (
         <Html position={[0, 1, 0]} center>
           <div className="bg-black/60 text-white text-xs px-1 py-0.5 rounded pointer-events-none">
             {item.assetType} | {lodQuality} | {distance.toFixed(1)}m

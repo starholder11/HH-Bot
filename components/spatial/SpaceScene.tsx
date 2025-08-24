@@ -10,6 +10,7 @@ export type SpaceSceneProps = {
   lodManager?: LODManager;
   onSelectItem?: (item: SpaceAssetData) => void;
   onHoverItem?: (item: SpaceAssetData | null) => void;
+  debug?: boolean;
 };
 
 export default function SpaceScene({ 
@@ -17,7 +18,8 @@ export default function SpaceScene({
   cameraPosition = [0, 0, 0], 
   lodManager,
   onSelectItem, 
-  onHoverItem 
+  onHoverItem,
+  debug = false,
 }: SpaceSceneProps) {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [hoveredItem, setHoveredItem] = useState<SpaceAssetData | null>(null);
@@ -78,6 +80,7 @@ export default function SpaceScene({
           lodManager={lodManager}
           onSelect={handleSelectItem}
           onHover={handleHoverItem}
+          debug={debug}
         />
       ))}
       
