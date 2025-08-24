@@ -63,37 +63,66 @@ function ImageOrTextPlane({ child }: { child: ThreeChild }) {
   useEffect(() => {
     if (assetType !== "text") return;
     if (userData?.fullTextContent) { setTextContent(String(userData.fullTextContent)); return; }
-    // Infer slug like SpaceEditor: text_timeline/<slug>#...
-    let slug: string | undefined = userData?.importMetadata?.textSlug || userData?.assetId;
+    
+    // For text items, if we already have a canvas data URL, decode it and use fallback text
+    if (userData?.mediaUrl && String(userData.mediaUrl).startsWith('data:image/png;base64,')) {
+      // We have a rendered canvas from the editor, use fallback text or asset name
+      const fallback = userData?.text || userData?.name || userData?.assetId || "Text Content";
+      setTextContent(String(fallback));
+      return;
+    }
+    
+    // Try to extract slug from assetId for API fetch
+    let slug: string | undefined = userData?.assetId;
     if (slug) {
       const match = String(slug).match(/text_timeline\/([^#]+)/);
       if (match) slug = match[1];
       else if (String(slug).startsWith('content_ref_')) slug = String(slug).replace('content_ref_', '');
+      else slug = undefined; // Don't try to fetch if format is unknown
     }
-    if (!slug) return;
+    if (!slug) {
+      // Use fallback text
+      const fallback = userData?.text || userData?.name || userData?.assetId || "Text Content";
+      setTextContent(String(fallback));
+      return;
+    }
+    
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          // Fallback on API failure
+          const fallback = userData?.text || userData?.name || userData?.assetId || "Text Content";
+          if (!cancelled) setTextContent(String(fallback));
+          return;
+        }
         const json = await res.json();
         if (!cancelled && json?.success && json?.content) {
           setTextContent(String(json.content));
+        } else if (!cancelled) {
+          // Fallback if API doesn't return content
+          const fallback = userData?.text || userData?.name || userData?.assetId || "Text Content";
+          setTextContent(String(fallback));
         }
-      } catch {}
+      } catch {
+        // Fallback on fetch error
+        const fallback = userData?.text || userData?.name || userData?.assetId || "Text Content";
+        if (!cancelled) setTextContent(String(fallback));
+      }
     })();
     return () => { cancelled = true; };
   }, [assetType, userData]);
 
   // For images, use mediaUrl directly
-  // For text, generate a canvas and use its data URL
+  // For text, we'll use CanvasTexture below, not TextureLoader
   const effectiveUrl = useMemo(() => {
+    if (assetType === "text") return null; // Always use CanvasTexture for text
     const url = userData?.mediaUrl;
     if (url) return proxy(url);
     if (userData?.canvasDataUrl) return userData.canvasDataUrl;
-    // For text with dynamic canvas we will bypass TextureLoader and use CanvasTexture below
     return null;
-  }, [userData, assetType, textContent]);
+  }, [userData, assetType]);
 
   // If this is text, build a live CanvasTexture that supports wheel scrolling
   useEffect(() => {
