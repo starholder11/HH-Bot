@@ -282,7 +282,22 @@
 				} catch {}
 			}
 
-			//
+			// Helper: force a few render ticks so new textures (image/video) present immediately
+			function forceRenderTicks(mesh, editor, frames = 3) {
+				let remaining = Math.max(1, frames);
+				const tick = () => {
+					try {
+						if (mesh && mesh.material && mesh.material.map) {
+							mesh.material.map.needsUpdate = true;
+							mesh.material.needsUpdate = true;
+						}
+						if (editor.signals && editor.signals.objectChanged) editor.signals.objectChanged.dispatch(mesh);
+						if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
+					} catch {}
+					if (--remaining > 0) requestAnimationFrame(tick);
+				};
+				requestAnimationFrame(tick);
+			}
 
 		// Add timeout and error handling for storage initialization
 		let initTimeout = setTimeout(() => {
@@ -848,10 +863,11 @@
 								if (editor.signals && editor.signals.sceneGraphChanged) {
 									editor.signals.sceneGraphChanged.dispatch();
 								}
+								forceRenderTicks(mesh, editor, 4);
 							}).catch(err => {
 								console.log('Video autoplay failed, will play on user interaction:', err);
 								// Even if play fails, draw the first frame as soon as it can play
-								const showFirstFrame = () => { try { videoTexture.needsUpdate = true; if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch(); } catch {} }
+								const showFirstFrame = () => { try { videoTexture.needsUpdate = true; forceRenderTicks(mesh, editor, 4); if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch(); } catch {} }
 								video.addEventListener('canplay', showFirstFrame, { once: true });
 								video.addEventListener('loadedmetadata', showFirstFrame, { once: true });
 							});
@@ -874,6 +890,7 @@
 								editor.signals.sceneGraphChanged.dispatch();
 							}
 							ensureFrameForMesh(mesh, editor);
+							forceRenderTicks(mesh, editor); // Force render ticks for video
 						});
 
 					// Handle video load errors
@@ -897,13 +914,13 @@
 							texture.magFilter = THREE.LinearFilter;
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
-							texture.flipY = false;
+							texture.flipY = true;
 
 							// Wait for image to be fully loaded before applying texture
 							const applyTextureWhenReady = () => {
 								if (texture.image && texture.image.complete && texture.image.naturalWidth > 0) {
 									console.log('Image ready, applying texture to:', mesh.name);
-
+									
 									if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 										mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
 									}
@@ -911,15 +928,8 @@
 									mesh.material.map = texture;
 									mesh.material.needsUpdate = true;
 									texture.needsUpdate = true;
+									forceRenderTicks(mesh, editor, 2);
 
-									// Notify editor
-									if (editor.signals && editor.signals.materialChanged) {
-										editor.signals.materialChanged.dispatch(mesh.material);
-									}
-									if (editor.signals && editor.signals.sceneGraphChanged) {
-										editor.signals.sceneGraphChanged.dispatch();
-									}
-									ensureFrameForMesh(mesh, editor);
 								} else {
 									console.log('Image not ready yet, waiting...', mesh.name);
 									requestAnimationFrame(applyTextureWhenReady);
