@@ -151,7 +151,9 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
             assetId: item.assetId,
             assetType: item.assetType,
             mediaUrl: (item as any).mediaUrl,
-            importMetadata: item.importMetadata
+            importMetadata: item.importMetadata,
+            // For text assets, we'll need to fetch the content separately
+            fullTextContent: item.assetType === 'text' ? 'Loading...' : undefined
           }
         };
       })

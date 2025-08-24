@@ -56,8 +56,46 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
       if (isVideo) {
         applyMediaToMesh(mesh, proxy(mediaUrl), assetType, null);
       } else if (assetType === 'text' && !mediaUrl.startsWith('data:image')) {
-        // Pure text - use text rendering
+        // Pure text - fetch content and use text rendering
+        const fetchTextContent = async () => {
+          try {
+            if (userData?.assetId) {
+              const response = await fetch(`/api/media-assets/${userData.assetId}`);
+              if (response.ok) {
+                const data = await response.json();
+                const asset = data.asset;
+                // Extract text content from various possible fields
+                let textContent = '';
+                if (asset.lyrics) {
+                  textContent = asset.lyrics;
+                } else if (asset.prompt) {
+                  textContent = asset.prompt;
+                } else if (asset.description) {
+                  textContent = asset.description;
+                } else if (asset.title) {
+                  textContent = asset.title;
+                } else {
+                  textContent = 'No text content available';
+                }
+                
+                // Update userData with the fetched content
+                userData.fullTextContent = textContent;
+                applyTextToMesh(mesh, textContent, null);
+              } else {
+                applyTextToMesh(mesh, 'Failed to load text content', null);
+              }
+            } else {
+              applyTextToMesh(mesh, 'No asset ID available', null);
+            }
+          } catch (error) {
+            console.error('Error fetching text content:', error);
+            applyTextToMesh(mesh, 'Error loading text content', null);
+          }
+        };
+        
+        // Start with loading message, then fetch actual content
         applyTextToMesh(mesh, userData?.fullTextContent || 'Loading...', null);
+        fetchTextContent();
       } else {
         // Image or pre-rendered text canvas
         applyMediaToMesh(mesh, mediaUrl.startsWith('data:') ? mediaUrl : proxy(mediaUrl), assetType, null);
