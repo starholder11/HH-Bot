@@ -239,25 +239,45 @@
 			requestAnimationFrame(tick);
 			window.addEventListener('resize', updateControlsPosition);
 
-			// Helper: create/update a simple frame behind a mesh; marked to ignore save
+			// Helper: create/update a simple frame behind a mesh; non-selectable and marked to ignore save
 			function ensureFrameForMesh(mesh, editor, pad = 0.06) {
 				try {
 					// Try to find an existing frame linked to this mesh
 					let frame = null;
 					if (editor.scene) {
 						editor.scene.traverse(obj => {
-							if (obj !== mesh && obj.isMesh && obj.userData && obj.userData.ignoreSave && obj.userData.parentUuid === mesh.uuid) frame = obj;
+							if (
+								obj !== mesh &&
+								obj.isMesh &&
+								obj.userData &&
+								obj.userData.ignoreSave &&
+								obj.userData.parentUuid === mesh.uuid
+							) frame = obj;
 						});
 					}
 					if (!frame) {
-						frame = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.DoubleSide }));
-						frame.name = 'VideoFrame';
-						frame.userData = { ignoreSave: true, parentUuid: mesh.uuid };
-						editor.addObject(frame);
+						const mat = new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.DoubleSide });
+						// Ensure the frame never occludes the media (no depth test/write; polygon offset)
+						mat.depthTest = false;
+						mat.depthWrite = false;
+						mat.polygonOffset = true;
+						mat.polygonOffsetFactor = 1;
+						mat.polygonOffsetUnits = 1;
+
+						frame = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+						frame.name = '_helper:VideoFrame';
+						frame.userData = { ignoreSave: true, parentUuid: mesh.uuid, isHelper: true };
+						// Make helper non-selectable by raycaster
+						frame.raycast = function(){};
+						// Add directly to scene so it doesn't pollute history/selection signals
+						editor.scene.add(frame);
 					}
+					// Match transform and add slight backward offset along mesh normal to avoid coplanar z-fight
 					frame.position.copy(mesh.position);
 					frame.rotation.copy(mesh.rotation);
 					frame.scale.set(Math.max(mesh.scale.x + pad, 0.01), Math.max(mesh.scale.y + pad, 0.01), 1);
+					const offset = new THREE.Vector3(0, 0, -0.001).applyQuaternion(mesh.quaternion);
+					frame.position.add(offset);
 					frame.renderOrder = (mesh.renderOrder || 0) - 1;
 				} catch {}
 			}
@@ -509,6 +529,12 @@
 							
 							editor.signals.objectSelected.add(function(object){
 								console.log('Object selected:', object?.name, object?.uuid);
+								// If a helper frame was selected, resolve to the parent mesh
+								if (object && object.userData && object.userData.isHelper && object.userData.parentUuid) {
+									let parentMesh = null;
+									editor.scene.traverse((o)=>{ if (o.uuid === object.userData.parentUuid) parentMesh = o; });
+									if (parentMesh) object = parentMesh;
+								}
 								console.log('VideoMap has keys:', Array.from(videoMap.keys()));
 								console.log('VideoMap has selected UUID?', object ? videoMap.has(object.uuid) : 'no object');
 								if (object && videoMap.has(object.uuid)) {
