@@ -53,7 +53,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       setEditorReady(true);
       setLoading(false);
       console.log('Three.js Editor is ready');
-      
+
       // Force dark theme by injecting CSS
       try {
         const iframeDoc = iframeRef.current?.contentDocument;
@@ -84,7 +84,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       } catch (e) {
         console.warn('Could not inject dark theme CSS:', e);
       }
-      
+
       // Load space data when editor is ready (guard against double-load)
       if (spaceId && lastLoadedIdRef.current !== spaceId) {
         loadSpaceData();
@@ -187,13 +187,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       console.log('[SpaceEditor] Converted to Three.js scene:', threeJSScene);
       console.log('[SpaceEditor] Scene children count:', threeJSScene.object.children.length);
       console.log('[SpaceEditor] Space items:', space.space?.items || 'No items found');
-      
+
       await sendCommand({
         type: 'load_scene',
         data: threeJSScene,
       });
       console.log('[SpaceEditor] Scene loaded into editor');
-      
+
       // If space is empty, add some sample objects for testing
       if ((!space.space?.items || space.space.items.length === 0) && editorReady) {
         console.log('[SpaceEditor] Space is empty, adding sample objects for testing...');
@@ -221,7 +221,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         }
       },
       {
-        type: 'add_object', 
+        type: 'add_object',
         data: {
           type: 'Mesh',
           geometry: { type: 'SphereGeometry', radius: 0.5 },
@@ -233,7 +233,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       {
         type: 'add_object',
         data: {
-          type: 'Mesh', 
+          type: 'Mesh',
           geometry: { type: 'PlaneGeometry', width: 2, height: 2 },
           material: { type: 'MeshBasicMaterial', color: 0x0000ff },
           position: [-2, 1, 0],
@@ -263,9 +263,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     const id = asset.id || `asset-${Date.now()}`;
     const color = assetType.includes('image') ? 0x3b82f6 : assetType.includes('video') ? 0xef4444 : 0x6b7280;
     const originalMediaUrl = asset.cloudflare_url || asset.url || asset.s3_url || null;
-    
+
     // Use proxy for images to avoid CORS issues
-    const mediaUrl = originalMediaUrl && (assetType.includes('image') || assetType.includes('video')) 
+    const mediaUrl = originalMediaUrl && (assetType.includes('image') || assetType.includes('video'))
       ? `/api/proxy?url=${encodeURIComponent(originalMediaUrl)}`
       : originalMediaUrl;
 
@@ -301,9 +301,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         if (match) slug = match[1];
         else if (raw.startsWith('content_ref_')) slug = raw.replace('content_ref_', '');
         else slug = raw;
-        
+
         extra.textSlug = slug;
-        
+
         // Fetch full text content
         try {
           const contentResponse = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
@@ -319,7 +319,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         } catch (error) {
           console.error(`[SpaceEditor] Error fetching text content for slug '${slug}':`, error);
         }
-        
+
         return { mediaUrl: null, assetId: null, extraUserData: extra };
       }
 
@@ -385,7 +385,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     const items = layout?.layout_data?.items || [];
     const scale = 0.1; // Increased scale for better visibility
     const spacing = 3; // Space between items
-    
+
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       // Prefer contentType; fallback to type; then normalize to our schema union
@@ -423,13 +423,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         ? { type: 'PlaneGeometry', width: 1, height: 1 }
         : { type: 'BoxGeometry', width: 1, height: 1, depth: 1 };
       const color = type === 'image' ? 0x3b82f6 : type === 'video' ? 0xef4444 : 0x8b5cf6;
-      
+
       // Use layout coordinates if available, otherwise space them out
       const x = item.x !== undefined ? (item.x * scale) : (i * spacing);
       const z = item.y !== undefined ? (item.y * scale) : 0;
       const boxW = item.w ? Math.max(item.w * scale, 0.5) : 1;
       const boxH = item.h ? Math.max(item.h * scale, 0.5) : 1;
-      
+
       console.log(`[SpaceEditor] Layout item ${i}: x=${x}, z=${z}, width=${boxW}, height=${boxH}`);
 
       // Resolve media URL and canonical asset id for proper rendering
@@ -465,7 +465,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           position: [x, 0.5, z],
           scale: [fitted.w, fitted.h, 1],
           name: item.snippet || `Layout Item ${i + 1}`,
-          userData: { 
+          userData: {
             // Persist normalized media type from the layout so save/load can render correctly
             assetType: type,
             sourceType: 'layout',
@@ -491,7 +491,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   // Save current scene
   const saveScene = async () => {
     console.log('[SpaceEditor] Save requested, spaceData:', spaceData);
-    
+
     if (!spaceData) {
       const errorMsg = 'No space data loaded';
       console.error('[SpaceEditor]', errorMsg);
@@ -531,7 +531,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   // Handle scene export response and save to API
   const handleSceneExport = async (exportedScene: any) => {
     console.log('[SpaceEditor] handleSceneExport called, spaceData:', spaceData);
-    
+
     if (!spaceData) {
       console.error('[SpaceEditor] No spaceData available for save');
       setError('No space data available for save');
@@ -562,7 +562,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
       const savedSpace = await response.json();
       console.log('[SpaceEditor] API response:', savedSpace);
-      
+
       setSpaceData(savedSpace);
       onSceneChange?.(savedSpace);
 

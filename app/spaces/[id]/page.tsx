@@ -5,6 +5,7 @@ import SpaceViewer from "@/components/spatial/SpaceViewer";
 import SpaceControls from "@/components/spatial/SpaceControls";
 import ImportDialog from "@/components/spatial/ImportDialog";
 import ExportDialog from "@/components/spatial/ExportDialog";
+import ShareSpaceModal from "@/components/spatial/ShareSpaceModal";
 
 export default function SpacePage() {
   const params = useParams();
@@ -14,6 +15,8 @@ export default function SpacePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [spaceTitle, setSpaceTitle] = useState<string>("");
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white p-6">
@@ -44,6 +47,7 @@ export default function SpacePage() {
           </button>
           <button className="px-3 py-1.5 text-sm rounded bg-neutral-700 hover:bg-neutral-600" onClick={() => setShowImport(true)}>Import…</button>
           <button className="px-3 py-1.5 text-sm rounded bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowExport(true)}>Export…</button>
+          <button className="px-3 py-1.5 text-sm rounded bg-purple-600 hover:bg-purple-700" onClick={() => setShowShare(true)}>Share</button>
         </div>
       </div>
 
@@ -81,6 +85,13 @@ export default function SpacePage() {
           // Placeholder: wire to export-to-layout when implemented
           setMessage(overwrite ? 'Export with overwrite requested (placeholder)' : 'Export requested (placeholder)');
         }}
+      />
+
+      <ShareSpaceModal
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        spaceId={spaceId}
+        spaceTitle={spaceTitle}
       />
     </div>
   );
