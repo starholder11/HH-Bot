@@ -975,62 +975,123 @@
 			}
 
 			// Render text to a canvas and apply as a texture to the mesh
-			function applyTextToMesh(mesh, text, editor) {
-				try {
-					const safeText = (text || '').toString();
-					const desiredAspect = (mesh && mesh.scale) ? Math.max(0.1, mesh.scale.y / Math.max(mesh.scale.x, 0.001)) : 0.5;
-					const baseWidth = 1024;
-					const baseHeight = Math.max(256, Math.round(baseWidth * desiredAspect));
-					const canvas = document.createElement('canvas');
-					canvas.width = baseWidth;
-					canvas.height = baseHeight;
-					const ctx = canvas.getContext('2d');
-					if (!ctx) return;
-					// Background
-					ctx.fillStyle = '#ffffff';
-					ctx.fillRect(0, 0, canvas.width, canvas.height);
-					// Text styling
-					const padding = Math.round(canvas.width * 0.06);
-					const maxWidth = canvas.width - padding * 2;
-					ctx.fillStyle = '#111111';
-					ctx.textBaseline = 'top';
-					ctx.font = 'bold 48px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-					// Word wrap
-					const words = safeText.replace(/\s+/g, ' ').trim().split(' ');
+			(function(){
+				const textScrollState = new Map(); // uuid -> { scrollY, totalHeight }
+				let selectedTextMesh = null;
+				function wrapLines(ctx, text, maxWidth){
+					const words = (text || '').toString().replace(/\s+/g, ' ').trim().split(' ');
+					const lines = [];
 					let line = '';
-					let y = padding;
-					for (let i = 0; i < words.length; i++) {
+					for(let i=0;i<words.length;i++){
 						const test = line ? line + ' ' + words[i] : words[i];
-						const m = ctx.measureText(test);
-						if (m.width > maxWidth && i > 0) {
-							ctx.fillText(line, padding, y, maxWidth);
-							y += 60; // line height
+						if(ctx.measureText(test).width > maxWidth && i>0){
+							lines.push(line);
 							line = words[i];
-						} else {
+						}else{
 							line = test;
 						}
 					}
-					if (line) ctx.fillText(line, padding, y, maxWidth);
-
-					const texture = new THREE.CanvasTexture(canvas);
-					texture.colorSpace = THREE.SRGBColorSpace;
-					texture.generateMipmaps = false;
-					texture.minFilter = THREE.LinearFilter;
-					texture.magFilter = THREE.LinearFilter;
-					texture.wrapS = THREE.ClampToEdgeWrapping;
-					texture.wrapT = THREE.ClampToEdgeWrapping;
-					texture.flipY = true;
-
-					if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
-						mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
+					if(line) lines.push(line);
+					return lines;
+				}
+				function renderTextMesh(mesh){
+					try{
+						const state = textScrollState.get(mesh.uuid) || { scrollY:0, totalHeight:0 };
+						const { canvas, ctx, padding, maxWidth, lineHeight, textContent, texture } = mesh.userData.__textCanvas || {};
+						if(!canvas || !ctx) return;
+						// background
+						ctx.fillStyle = '#ffffff';
+						ctx.fillRect(0,0,canvas.width,canvas.height);
+						ctx.fillStyle = '#111111';
+						ctx.textBaseline = 'top';
+						ctx.font = 'bold 48px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+						const lines = wrapLines(ctx, textContent, maxWidth);
+						const contentHeight = lines.length * lineHeight + padding * 2;
+						state.totalHeight = contentHeight;
+						// clamp scroll
+						const maxScroll = Math.max(0, contentHeight - canvas.height);
+						state.scrollY = Math.max(0, Math.min(state.scrollY, maxScroll));
+						// draw visible lines
+						let y = padding - state.scrollY;
+						for(const ln of lines){
+							if(y > canvas.height - padding) break;
+							if(y + lineHeight >= padding) ctx.fillText(ln, padding, y, maxWidth);
+							y += lineHeight;
+						}
+						// scrollbar
+						if(maxScroll > 1){
+							const barW = Math.max(8, Math.round(canvas.width * 0.012));
+							const trackX = canvas.width - padding/2 - barW;
+							const trackY = padding;
+							const trackH = canvas.height - padding*2;
+							ctx.fillStyle = '#e5e7eb';
+							ctx.fillRect(trackX, trackY, barW, trackH);
+							const thumbH = Math.max(20, trackH * (canvas.height / contentHeight));
+							const thumbY = trackY + (trackH - thumbH) * (state.scrollY / maxScroll);
+							ctx.fillStyle = '#9ca3af';
+							ctx.fillRect(trackX, Math.round(thumbY), barW, Math.round(thumbH));
+						}
+						texture.needsUpdate = true;
+						if (mesh.material) mesh.material.needsUpdate = true;
+						forceRenderTicks(mesh, editor, 2);
+						textScrollState.set(mesh.uuid, state);
+					}catch{}
+				}
+				function scrollText(mesh, deltaY){
+					const state = textScrollState.get(mesh.uuid) || { scrollY:0, totalHeight:0 };
+					state.scrollY += Math.sign(deltaY) * 40; // scroll step
+					textScrollState.set(mesh.uuid, state);
+					renderTextMesh(mesh);
+				}
+				// Public API used above
+				window.applyTextToMesh = function(mesh, text, editor){
+					try{
+						const safeText = (text || '').toString();
+						const desiredAspect = (mesh && mesh.scale) ? Math.max(0.1, mesh.scale.y / Math.max(mesh.scale.x, 0.001)) : 0.5;
+						const baseWidth = 1024;
+						const baseHeight = Math.max(512, Math.round(baseWidth * desiredAspect));
+						const canvas = document.createElement('canvas');
+						canvas.width = baseWidth;
+						canvas.height = baseHeight;
+						const ctx = canvas.getContext('2d');
+						if(!ctx) return;
+						const padding = Math.round(canvas.width * 0.06);
+						const maxWidth = canvas.width - padding*2 - Math.round(canvas.width*0.04); // reserve for scrollbar
+						const lineHeight = 60;
+						const texture = new THREE.CanvasTexture(canvas);
+						texture.colorSpace = THREE.SRGBColorSpace;
+						texture.generateMipmaps = false;
+						texture.minFilter = THREE.LinearFilter;
+						texture.magFilter = THREE.LinearFilter;
+						texture.wrapS = THREE.ClampToEdgeWrapping;
+						texture.wrapT = THREE.ClampToEdgeWrapping;
+						texture.flipY = true;
+						if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
+							mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
+						}
+						mesh.material.color && mesh.material.color.set(0xffffff);
+						mesh.material.map = texture;
+						mesh.material.needsUpdate = true;
+						mesh.userData.__textCanvas = { canvas, ctx, padding, maxWidth, lineHeight, textContent: safeText, texture };
+						textScrollState.set(mesh.uuid, { scrollY: 0, totalHeight: 0 });
+						renderTextMesh(mesh);
+					}catch{}
+				}
+				// Selection + wheel scrolling
+				signals.objectSelected.add(function(object){
+					if(object && (object.userData?.assetType === 'text' || object.userData?.contentType === 'text')){
+						selectedTextMesh = object;
+					}else{
+						selectedTextMesh = null;
 					}
-					mesh.material.color && mesh.material.color.set(0xffffff);
-					mesh.material.map = texture;
-					mesh.material.needsUpdate = true;
-					texture.needsUpdate = true;
-					forceRenderTicks(mesh, editor, 2);
-				} catch {}
-			}
+				});
+				viewport.dom.addEventListener('wheel', function(e){
+					if(selectedTextMesh){
+						e.preventDefault();
+						scrollText(selectedTextMesh, e.deltaY);
+					}
+				},{ passive: false });
+			})();
 
 			function onWindowResize() {
 
