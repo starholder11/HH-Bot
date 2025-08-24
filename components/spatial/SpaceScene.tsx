@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import SpaceItem from "./SpaceItem";
+import PublicSpaceItem from "./PublicSpaceItem";
 import { type SpaceAssetData } from "@/hooks/useSpaceAsset";
 import { type LODManager } from "@/utils/spatial/lod";
 
@@ -73,14 +74,10 @@ export default function SpaceScene({
   return (
     <group>
       {visibleItems.map((item) => (
-        <SpaceItem
+        <PublicSpaceItem
           key={item.id}
           item={item}
-          cameraPosition={cameraPosition}
-          lodManager={lodManager}
-          onSelect={handleSelectItem}
-          onHover={handleHoverItem}
-          debug={debug}
+          
         />
       ))}
       
