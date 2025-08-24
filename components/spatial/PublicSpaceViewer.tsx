@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Environment, StatsGl } from '@react-three/drei';
 import { convertSpaceToThreeJSScene } from '@/lib/spatial/scene-conversion';
+import ThreeSceneR3F from './ThreeSceneR3F';
 
 export interface PublicSpaceViewerProps {
   spaceData: any;
@@ -10,62 +13,19 @@ export interface PublicSpaceViewerProps {
 export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceViewerProps) {
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [editorReady, setEditorReady] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [sceneChildren, setSceneChildren] = useState<any[]>([]);
 
-  // Load space data into editor using the EXACT same method as SpaceEditor
+  // Build scene JSON using the EXACT same conversion as SpaceEditor, then render via R3F
   useEffect(() => {
-    if (!spaceData || !editorReady) return;
-
-    const loadSpaceData = async () => {
-      try {
-        console.log('[PublicSpaceViewer] Loading space data:', spaceData);
-        
-        // Convert to Three.js format using the same conversion as the editor
-        const threeJSScene = convertSpaceToThreeJSScene(spaceData);
-        console.log('[PublicSpaceViewer] Converted to Three.js scene:', threeJSScene);
-
-        // Send load command to editor iframe
-        if (iframeRef.current?.contentWindow) {
-          iframeRef.current.contentWindow.postMessage({
-            type: 'load_scene',
-            data: threeJSScene,
-          }, '*');
-          console.log('[PublicSpaceViewer] Scene loaded into editor');
-        }
-      } catch (err) {
-        console.error('[PublicSpaceViewer] Load error:', err);
-      }
-    };
-
-    loadSpaceData();
-  }, [spaceData, editorReady]);
-
-  // Handle messages from editor iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-
-      const { type, data } = event.data;
-      console.log('[PublicSpaceViewer] Received message:', type, data);
-
-      switch (type) {
-        case 'editor_ready':
-          console.log('[PublicSpaceViewer] Editor is ready');
-          setEditorReady(true);
-          break;
-        case 'scene_changed':
-          // Ignore scene changes in public viewer
-          break;
-        case 'selection_changed':
-          // Ignore selection changes in public viewer
-          break;
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+    if (!spaceData) return;
+    try {
+      const threeJSScene = convertSpaceToThreeJSScene(spaceData);
+      const children = threeJSScene?.object?.children || [];
+      setSceneChildren(children);
+    } catch (e) {
+      console.error('[PublicSpaceViewer] Failed to convert space:', e);
+    }
+  }, [spaceData]);
 
   // Handle fullscreen toggle
   const toggleFullscreen = () => {
@@ -105,13 +65,17 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
 
   return (
     <div className="relative w-full h-screen bg-neutral-900 overflow-hidden">
-      {/* Three.js Editor iframe - same as SpaceEditor but read-only */}
-      <iframe
-        ref={iframeRef}
-        src="/three-js-editor/index.html"
-        className="w-full h-full border-none"
-        style={{ width: '100%', height: '100%', border: 'none' }}
-      />
+      {/* R3F canvas rendering the same converted scene */}
+      <Canvas style={{ width: '100%', height: '100%' }} camera={{ position: [4, 3, 6], fov: 60 }}>
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <Environment preset="city" />
+
+        <ThreeSceneR3F children={sceneChildren} />
+
+        <OrbitControls enablePan enableZoom enableRotate />
+        {process.env.NODE_ENV === 'development' && <StatsGl />}
+      </Canvas>
 
       {/* UI Overlays */}
       {showControls && (
@@ -151,9 +115,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
               <div className="text-xs text-neutral-300">
                 Press H to {showControls ? 'hide' : 'show'} controls
               </div>
-              <div className="text-xs text-neutral-400">
-                {editorReady ? 'Ready' : 'Loading...'}
-              </div>
+              <div className="text-xs text-neutral-400">{sceneChildren.length} objects</div>
             </div>
           </div>
         </>
@@ -172,11 +134,11 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       )}
 
       {/* Loading indicator */}
-      {!editorReady && (
+      {sceneChildren.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="bg-black/70 backdrop-blur-sm rounded-lg px-6 py-4 text-white text-center">
             <div className="text-lg mb-2">Loading Space...</div>
-            <div className="text-sm text-neutral-300">Preparing 3D editor</div>
+            <div className="text-sm text-neutral-300">Preparing 3D scene</div>
           </div>
         </div>
       )}
