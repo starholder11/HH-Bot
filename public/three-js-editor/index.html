@@ -126,24 +126,24 @@
 			playBtn.style.cssText = 'background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:6px 12px;cursor:pointer;transition:all 0.2s;font-size:14px';
 			playBtn.addEventListener('mouseenter', () => playBtn.style.background = '#1f2937');
 			playBtn.addEventListener('mouseleave', () => playBtn.style.background = '#111827');
-			
+
 			const muteBtn = document.createElement('button');
 			muteBtn.textContent = '🔊';
 			muteBtn.style.cssText = playBtn.style.cssText;
 			muteBtn.addEventListener('mouseenter', () => muteBtn.style.background = '#1f2937');
 			muteBtn.addEventListener('mouseleave', () => muteBtn.style.background = '#111827');
-			
+
 			const timeLabel = document.createElement('span');
 			timeLabel.textContent = '0:00 / 0:00';
 			timeLabel.style.cssText = 'min-width:80px;text-align:center;font-family:monospace';
-			
+
 			const seek = document.createElement('input');
 			seek.type = 'range';
 			seek.min = '0';
 			seek.max = '0';
 			seek.step = '0.01';
 			seek.style.cssText = 'width:280px;height:6px;background:#374151;border-radius:3px;outline:none;cursor:pointer';
-			
+
 			controls.appendChild(playBtn);
 			controls.appendChild(muteBtn);
 			controls.appendChild(seek);
@@ -157,22 +157,22 @@
 			function bindVideoForControls(mesh){
 				boundMesh = null;
 				boundVideo = null;
-				if(!mesh){ 
-					controls.style.display='none'; 
+				if(!mesh){
+					controls.style.display='none';
 					console.log('No mesh selected, hiding controls');
-					return; 
+					return;
 				}
 				const v = videoMap.get(mesh.uuid);
-				if(!v){ 
-					controls.style.display='none'; 
+				if(!v){
+					controls.style.display='none';
 					console.log('No video found for mesh:', mesh.uuid);
-					return; 
+					return;
 				}
-				boundMesh = mesh; 
-				boundVideo = v; 
+				boundMesh = mesh;
+				boundVideo = v;
 				controls.style.display='flex';
 				console.log('Video controls bound to:', mesh.name, 'playing:', !v.paused);
-				
+
 				seek.max = isFinite(boundVideo.duration) ? String(boundVideo.duration) : '0';
 				seek.value = String(boundVideo.currentTime || 0);
 				timeLabel.textContent = `${fmtTime(boundVideo.currentTime||0)} / ${fmtTime(boundVideo.duration||0)}`;
@@ -196,36 +196,36 @@
 					controls.style.top = Math.round(y + 8) + 'px';
 				}catch{}
 			}
-			playBtn.onclick = ()=>{ 
-				if(!boundVideo) return; 
+			playBtn.onclick = ()=>{
+				if(!boundVideo) return;
 				console.log('Play button clicked, video paused:', boundVideo.paused);
-				if(boundVideo.paused){ 
+				if(boundVideo.paused){
 					boundVideo.play().then(() => {
 						console.log('Video play succeeded');
 						playBtn.textContent = '⏸️';
 					}).catch((error) => {
 						console.error('Video play failed:', error);
-					}); 
-				} else { 
-					boundVideo.pause(); 
+					});
+				} else {
+					boundVideo.pause();
 					console.log('Video paused');
 					playBtn.textContent = '▶️';
-				} 
+				}
 			};
-			muteBtn.onclick = ()=>{ 
-				if(!boundVideo) return; 
-				boundVideo.muted = !boundVideo.muted; 
-				muteBtn.textContent = boundVideo.muted ? '🔇' : '🔊'; 
+			muteBtn.onclick = ()=>{
+				if(!boundVideo) return;
+				boundVideo.muted = !boundVideo.muted;
+				muteBtn.textContent = boundVideo.muted ? '🔇' : '🔊';
 			};
-			seek.oninput = ()=>{ 
-				if(!boundVideo) return; 
-				try{ 
+			seek.oninput = ()=>{
+				if(!boundVideo) return;
+				try{
 					const newTime = parseFloat(seek.value);
 					console.log('Seeking to:', newTime);
-					boundVideo.currentTime = newTime; 
+					boundVideo.currentTime = newTime;
 				}catch(error) {
 					console.error('Seek failed:', error);
-				} 
+				}
 			};
 			function tick(){
 				if(boundVideo){
@@ -413,10 +413,10 @@
 				if (command.data && command.data.metadata && command.data.object) {
 					try {
 						console.log('Loading scene manually to avoid ObjectLoader texture issues');
-						
+
 						// Create a new group to hold all objects
 						const sceneGroup = new THREE.Group();
-						
+
 						// Process each object manually
 						if (command.data.object.children) {
 							command.data.object.children.forEach((childData) => {
@@ -428,44 +428,47 @@
 									} else {
 										geometry = new THREE.PlaneGeometry(1, 1); // Default to plane
 									}
-									
+
 									// Create material
-									const material = new THREE.MeshBasicMaterial({ 
-										side: THREE.DoubleSide, 
+									const material = new THREE.MeshBasicMaterial({
+										side: THREE.DoubleSide,
 										toneMapped: false,
 										color: 0xffffff
 									});
-									
+
 									// Create mesh
 									const mesh = new THREE.Mesh(geometry, material);
-									
+
 									// Set position
 									if (childData.position) {
 										mesh.position.set(childData.position[0], childData.position[1], childData.position[2]);
 									}
-									
+
 									// Set rotation
 									if (childData.rotation) {
 										mesh.rotation.set(childData.rotation[0], childData.rotation[1], childData.rotation[2]);
 									}
-									
+
 									// Set scale
 									if (childData.scale) {
 										mesh.scale.set(childData.scale[0], childData.scale[1], childData.scale[2]);
 									}
-									
+
 									// Copy userData
 									if (childData.userData) {
 										mesh.userData = { ...childData.userData };
 									}
-									
-									// Set name
+
+									// Set name and UUID consistently
 									mesh.name = childData.name || childData.uuid;
 									mesh.uuid = childData.uuid;
-									
+
+									// Debug: Log UUID assignment
+									console.log('Mesh created:', mesh.name, 'UUID:', mesh.uuid);
+
 									// Add to scene group
 									sceneGroup.add(mesh);
-									
+
 									// Apply media if it has a mediaUrl
 									const url = mesh.userData && mesh.userData.mediaUrl;
 									if (url) {
@@ -477,40 +480,43 @@
 								}
 							});
 						}
-						
+
 						editor.scene.add(sceneGroup);
 						frameScene(editor, sceneGroup);
 						// Reframe after first render tick to ensure bounds are final
 						requestAnimationFrame(()=> frameScene(editor, sceneGroup));
-						
+
 						// Update the editor
 						editor.signals.sceneGraphChanged.dispatch();
 						editor.signals.objectSelected.dispatch(null);
-						
+
 						console.log(`Scene loaded successfully with ${sceneGroup.children.length} objects`);
-						
+
 						// Hook selection to show controls for videos
 						try {
 							editor.signals.objectSelected.add(function(object){
 								console.log('Object selected:', object?.name, object?.uuid);
+								console.log('VideoMap has keys:', Array.from(videoMap.keys()));
+								console.log('VideoMap has selected UUID?', object ? videoMap.has(object.uuid) : 'no object');
 								if (object && videoMap.has(object.uuid)) {
 									console.log('Binding video controls for:', object.name);
 									bindVideoForControls(object);
 								} else {
+									console.log('No video found for selected object or no object selected');
 									bindVideoForControls(null);
 								}
 							});
 						} catch (error) {
 							console.error('Failed to bind video controls:', error);
 						}
-						
+
 						// Send success response
 						send({
 							type: 'scene_loaded',
 							data: { success: true, objectCount: sceneGroup.children.length },
 							commandId: command.id
 						});
-						
+
 					} catch (error) {
 						console.error('Manual scene loading failed:', error);
 						// Send error response
@@ -524,10 +530,10 @@
 					// Use the same manual loading approach for simpler scene data
 					try {
 						console.log('Loading simpler scene data manually');
-						
+
 						// Create a new group to hold all objects
 						const sceneGroup = new THREE.Group();
-						
+
 						// Process each object manually
 						command.data.object.children.forEach((childData) => {
 							if (childData.type === 'Mesh') {
@@ -538,44 +544,44 @@
 								} else {
 									geometry = new THREE.PlaneGeometry(1, 1); // Default to plane
 								}
-								
+
 								// Create material
-								const material = new THREE.MeshBasicMaterial({ 
-									side: THREE.DoubleSide, 
+								const material = new THREE.MeshBasicMaterial({
+									side: THREE.DoubleSide,
 									toneMapped: false,
 									color: 0xffffff
 								});
-								
+
 								// Create mesh
 								const mesh = new THREE.Mesh(geometry, material);
-								
+
 								// Set position
 								if (childData.position) {
 									mesh.position.set(childData.position[0], childData.position[1], childData.position[2]);
 								}
-								
+
 								// Set rotation
 								if (childData.rotation) {
 									mesh.rotation.set(childData.rotation[0], childData.rotation[1], childData.rotation[2]);
 								}
-								
+
 								// Set scale
 								if (childData.scale) {
 									mesh.scale.set(childData.scale[0], childData.scale[1], childData.scale[2]);
 								}
-								
+
 								// Copy userData
 								if (childData.userData) {
 									mesh.userData = { ...childData.userData };
 								}
-								
+
 								// Set name
 								mesh.name = childData.name || childData.uuid;
 								mesh.uuid = childData.uuid;
-								
+
 								// Add to scene group
 								sceneGroup.add(mesh);
-								
+
 								// Apply media if it has a mediaUrl
 								const url = mesh.userData && mesh.userData.mediaUrl;
 								if (url) {
@@ -586,25 +592,25 @@
 								}
 							}
 						});
-						
+
 						editor.scene.add(sceneGroup);
 						frameScene(editor, sceneGroup);
 						// Reframe after first render tick to ensure bounds are final
 						requestAnimationFrame(()=> frameScene(editor, sceneGroup));
-						
+
 						// Update the editor
 						editor.signals.sceneGraphChanged.dispatch();
 						editor.signals.objectSelected.dispatch(null);
-						
+
 						console.log(`Scene loaded successfully with ${sceneGroup.children.length} objects`);
-						
+
 						// Send success response
 						send({
 							type: 'scene_loaded',
 							data: { success: true, objectCount: sceneGroup.children.length },
 							commandId: command.id
 						});
-						
+
 					} catch (error) {
 						console.error('Simpler scene loading failed:', error);
 						send({
@@ -676,10 +682,10 @@
 
 						console.log('Added object:', mesh.name);
 						// Send success response
-						send({ 
-							type: 'object_added_success', 
+						send({
+							type: 'object_added_success',
 							data: { success: true, uuid: mesh.uuid, name: mesh.name },
-							commandId: command.id 
+							commandId: command.id
 						});
 					} catch (error) {
 						console.error('Failed to add object:', error);
@@ -753,7 +759,7 @@
 				console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
 				if (isVideo) {
 					console.log('Creating video texture for:', mesh.name);
-					
+
 					// Create video element
 					const video = document.createElement('video');
 					video.src = url;
@@ -764,41 +770,46 @@
 					video.autoplay = false;
 					video.style.display = 'none';
 					document.body.appendChild(video);
-					
+
 					console.log('Video element created, src:', video.src);
-					
+
 					// Wait for video to be ready before creating texture
 					video.addEventListener('loadeddata', () => {
 						console.log('Video loaded data, ready state:', video.readyState);
-						
+
 						// Create VideoTexture only when video is ready
 						const videoTexture = new THREE.VideoTexture(video);
 						videoTexture.minFilter = THREE.LinearFilter;
 						videoTexture.magFilter = THREE.LinearFilter;
 						videoTexture.format = THREE.RGBAFormat;
 						videoTexture.type = THREE.UnsignedByteType;
-						
+
 						console.log('VideoTexture created with ready video');
-						
+
 						// Apply to material
 						const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
 						mesh.material = videoMaterial;
-						
+
 						console.log('Material applied to mesh');
-						
+
 						// Start video
 						video.play().then(() => {
 							console.log('Video playing successfully');
 							videoTexture.needsUpdate = true;
 							console.log('Forced initial texture update');
+							// Force a render update to ensure video appears
+							if (editor.signals && editor.signals.sceneGraphChanged) {
+								editor.signals.sceneGraphChanged.dispatch();
+							}
 						}).catch(err => {
 							console.log('Video autoplay failed, will play on user interaction:', err);
 						});
-						
+
 						// Track video element
 						videoMap.set(mesh.uuid, video);
-						console.log('Video mapped for mesh:', mesh.uuid);
-						
+						console.log('Video mapped for mesh:', mesh.uuid, 'mesh.name:', mesh.name);
+						console.log('VideoMap now has:', Array.from(videoMap.keys()));
+
 						// Notify editor
 						if (editor.signals && editor.signals.materialChanged) {
 							editor.signals.materialChanged.dispatch(mesh.material);
@@ -808,7 +819,7 @@
 						}
 						ensureFrameForMesh(mesh, editor);
 					});
-					
+
 					// Handle video load errors
 					video.addEventListener('error', (e) => {
 						console.error('Video load error:', e);
@@ -829,12 +840,12 @@
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
 							texture.flipY = false;
-							
+
 							// Wait for image to be fully loaded before applying texture
 							const applyTextureWhenReady = () => {
 								if (texture.image && texture.image.complete && texture.image.naturalWidth > 0) {
 									console.log('Image ready, applying texture to:', mesh.name);
-									
+
 									if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 										mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
 									}
@@ -842,7 +853,7 @@
 									mesh.material.map = texture;
 									mesh.material.needsUpdate = true;
 									texture.needsUpdate = true;
-									
+
 									// Notify editor
 									if (editor.signals && editor.signals.materialChanged) {
 										editor.signals.materialChanged.dispatch(mesh.material);
@@ -856,7 +867,7 @@
 									requestAnimationFrame(applyTextureWhenReady);
 								}
 							};
-							
+
 							applyTextureWhenReady();
 						},
 						undefined,

@@ -81,9 +81,9 @@ interface SpaceItem {
 export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
   // Handle different possible data structures
   const items = space.space?.items || space.items || [];
-  
+
   console.log('[Scene Conversion] Converting space with items:', items);
-  
+
   return {
     metadata: {
       version: 4.5,
@@ -103,11 +103,11 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
         const x = item.position?.[0] ?? (item.x || 0);
         const y = item.position?.[1] ?? 0.5; // Keep objects slightly above ground
         const z = item.position?.[2] ?? (item.y || 0);
-        
+
         console.log(`[Scene Conversion] Item ${item.id}: position [${x}, ${y}, ${z}], mediaUrl: ${item.mediaUrl}`);
-        
+
         return {
-          uuid: item.id,
+          uuid: item.id, // Use item.id as UUID for consistency
           type: "Mesh",
           name: item.assetId || item.title || item.id,
           position: [x, y, z],
@@ -143,7 +143,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
   console.log('[Scene Conversion] Scene keys:', Object.keys(scene));
   console.log('[Scene Conversion] Scene.object:', scene.object);
   console.log('[Scene Conversion] Existing space:', existingSpace);
-  
+
   // Handle different scene structures - sometimes children are directly on scene, sometimes nested under object
   let children = [];
   if (scene.object && scene.object.children) {
@@ -154,15 +154,17 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     console.error('[Scene Conversion] No children found in scene structure:', scene);
     throw new Error('Invalid scene structure for conversion - no children found');
   }
-  
+
   console.log('[Scene Conversion] Found children:', children.length);
 
   const items = children.map(child => {
     console.log('[Scene Conversion] Processing child:', child);
-    
+    console.log('[Scene Conversion] Child UUID:', child.uuid, 'Child name:', child.name);
+    console.log('[Scene Conversion] Child userData:', child.userData);
+
     // Extract position from Three.js object (could be array or matrix)
     let x = 0, y = 0.5, z = 0;
-    
+
     if (child.position && Array.isArray(child.position)) {
       // Direct position array
       x = child.position[0] || 0;
@@ -179,7 +181,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       y = child.position.y || 0.5;
       z = child.position.z || 0;
     }
-    
+
     // Extract mediaUrl from material texture or userData
     let mediaUrl = child.userData?.mediaUrl || '';
     if (!mediaUrl && child.material) {
@@ -195,9 +197,9 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
         }
       }
     }
-    
+
     console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], mediaUrl: ${mediaUrl}`);
-    
+
     // If added from layout import, preserve the declared media type/content type
     const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
     const normalizeType = (t?: string): string | undefined => {
@@ -249,10 +251,10 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
         importMetadata: child.userData.importMetadata
       };
     }
-    
+
     // Handle regular assets
     return {
-      id: child.userData?.spaceItemId || child.uuid,
+      id: child.userData?.spaceItemId || child.uuid, // Preserve original space item ID
       assetId: child.userData?.assetId || child.uuid, // Fallback to uuid if no assetId
       assetType: normalizeType(child.userData?.assetType) || 'object', // Default to object instead of unknown
       position: [x, y, z],
@@ -363,10 +365,10 @@ function generateGeometryForItem(item: SpaceItem): any {
 
 function generateMaterialForItem(item: SpaceItem): any {
   // Generate actual Three.js material objects
-  const baseColor = item.assetType === 'image' ? 0x3b82f6 : 
-                   item.assetType === 'video' ? 0xef4444 : 
+  const baseColor = item.assetType === 'image' ? 0x3b82f6 :
+                   item.assetType === 'video' ? 0xef4444 :
                    item.assetType === 'layout' ? 0x8b5cf6 : 0x666666;
-                   
+
   const material: any = {
     uuid: `mat-${item.id}`,
     type: 'MeshBasicMaterial',
