@@ -94,7 +94,10 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
 
   // Helper function to get intersected objects
   const getIntersectedObject = (event: MouseEvent) => {
-    if (!gl?.domElement || !groupRef.current) return null;
+    if (!gl?.domElement || !groupRef.current) {
+      console.log('[Raycast] Missing domElement or groupRef');
+      return null;
+    }
 
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -102,6 +105,9 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
 
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    console.log('[Raycast] Mouse coords:', mouse.x, mouse.y);
+    console.log('[Raycast] Group children count:', groupRef.current.children.length);
 
     // Get camera from Three.js context
     const camera = gl.getContext().scene?.userData?.camera ||
@@ -111,6 +117,11 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(groupRef.current.children, true);
     
+    console.log('[Raycast] Intersects found:', intersects.length);
+    if (intersects.length > 0) {
+      console.log('[Raycast] First intersect:', intersects[0].object.name, intersects[0].object.userData);
+    }
+    
     return intersects.length > 0 ? intersects[0].object : null;
   };
 
@@ -119,12 +130,16 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     if (!gl?.domElement) return;
 
     const handleMouseMove = (event: MouseEvent) => {
+      console.log('[MouseMove] Event triggered');
       const intersectedObject = getIntersectedObject(event);
       
       if (intersectedObject !== hoveredObject) {
+        console.log('[MouseMove] Object changed, old:', hoveredObject?.name, 'new:', intersectedObject?.name);
+        
         // Reset previous hover
         if (hoveredObject) {
           gl.domElement.style.cursor = 'default';
+          console.log('[MouseMove] Reset cursor to default');
         }
         
         // Set new hover
@@ -132,10 +147,14 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
           const mesh = intersectedObject as THREE.Mesh;
           const userData = mesh.userData;
           
+          console.log('[MouseMove] Intersected object userData:', userData);
+          
           // Only show hover cursor if object has an assetId (clickable)
           if (userData?.assetId) {
             gl.domElement.style.cursor = 'pointer';
-            console.log(`Hovering over object with assetId: ${userData.assetId}`);
+            console.log(`[MouseMove] Hovering over object with assetId: ${userData.assetId}`);
+          } else {
+            console.log('[MouseMove] No assetId found in userData');
           }
         }
         
@@ -144,17 +163,24 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
     };
 
     const handleDoubleClick = (event: MouseEvent) => {
+      console.log('[DoubleClick] Event triggered');
       const intersectedObject = getIntersectedObject(event);
       
       if (intersectedObject) {
         const mesh = intersectedObject as THREE.Mesh;
         const userData = mesh.userData;
         
+        console.log('[DoubleClick] Intersected object userData:', userData);
+        
         // Only trigger modal if object has an assetId
         if (userData?.assetId && onObjectSelect) {
-          console.log(`Double-clicked object with assetId: ${userData.assetId}, assetType: ${userData.assetType}`);
+          console.log(`[DoubleClick] Double-clicked object with assetId: ${userData.assetId}, assetType: ${userData.assetType}`);
           onObjectSelect(userData.assetId, userData.assetType || 'unknown');
+        } else {
+          console.log('[DoubleClick] No assetId or onObjectSelect callback');
         }
+      } else {
+        console.log('[DoubleClick] No intersected object');
       }
     };
 
@@ -172,11 +198,16 @@ export default function ThreeSceneR3F({ children, onObjectSelect }: { children: 
       }
     };
 
+    console.log('[EventListeners] Attaching mouse event listeners to:', gl.domElement);
+    
     gl.domElement.addEventListener('mousemove', handleMouseMove);
     gl.domElement.addEventListener('dblclick', handleDoubleClick);
     gl.domElement.addEventListener('wheel', handleWheel, { passive: false });
     
+    console.log('[EventListeners] Event listeners attached successfully');
+    
     return () => {
+      console.log('[EventListeners] Removing event listeners');
       gl.domElement.removeEventListener('mousemove', handleMouseMove);
       gl.domElement.removeEventListener('dblclick', handleDoubleClick);
       gl.domElement.removeEventListener('wheel', handleWheel);
