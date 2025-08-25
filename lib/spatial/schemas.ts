@@ -160,6 +160,13 @@ export const SpaceItemZ = z.object({
       importTimestamp: z.string().optional(),
       originalTransform: TransformZ.optional()
     })
+    .optional(),
+  // Custom geometry from mesh wrapping
+  customGeometry: z
+    .object({
+      type: z.string(),
+      parameters: z.record(z.any()).optional()
+    })
     .optional()
 });
 
