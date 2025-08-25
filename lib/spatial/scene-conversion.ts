@@ -133,7 +133,7 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
       uuid: space.id,
       type: "Scene",
       name: space.title,
-      children: items.map((item: any) => {
+      children: items.map((item: any, index: number) => {
         // Use stored position or calculate from layout coordinates
         const x = item.position?.[0] ?? (item.x || 0);
         const y = item.position?.[1] ?? 0.5; // Keep objects slightly above ground
@@ -148,7 +148,8 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
           position: [x, y, z],
           rotation: item.rotation || [0, 0, 0],
           scale: item.scale || [1, 1, 1],
-          geometry: `geom-${item.id}`, // Reference to geometry in geometries array
+          // Inline geometry object for easier rendering in the public viewer
+          geometry: generateGeometryForItem(item),
           material: `mat-${item.id}`, // Reference to material in materials array
           visible: item.visible !== false,
           userData: {
