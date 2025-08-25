@@ -15,10 +15,10 @@ function Sidebar( editor ) {
 	// Add collapse/expand toggle button
 	const toggleButton = document.createElement( 'div' );
 	toggleButton.id = 'sidebar-toggle';
-	toggleButton.innerHTML = '‹';
-	toggleButton.title = 'Collapse sidebar';
+	toggleButton.innerHTML = '›';
+	toggleButton.title = 'Expand sidebar';
 	
-	let isCollapsed = false;
+	let isCollapsed = true;
 	
 	toggleButton.addEventListener( 'click', function () {
 		
@@ -56,6 +56,29 @@ function Sidebar( editor ) {
 	} );
 	
 	container.dom.appendChild( toggleButton );
+
+	// Initialize sidebar in collapsed state
+	setTimeout( function () {
+		const sidebar = document.getElementById( 'sidebar' );
+		const resizer = document.getElementById( 'resizer' );
+		
+		if ( sidebar && resizer ) {
+			sidebar.classList.add( 'collapsed' );
+			resizer.classList.add( 'sidebar-collapsed' );
+			
+			// Set viewport/script/player to use collapsed sidebar width
+			const targetRight = '40px';
+			const viewport = document.getElementById( 'viewport' );
+			const player = document.getElementById( 'player' );
+			const script = document.getElementById( 'script' );
+			
+			if ( viewport ) viewport.style.right = targetRight;
+			if ( player ) player.style.right = targetRight;
+			if ( script ) script.style.right = targetRight;
+			
+			editor.signals.windowResize.dispatch();
+		}
+	}, 100 );
 
 	const sidebarProperties = new SidebarProperties( editor );
 
