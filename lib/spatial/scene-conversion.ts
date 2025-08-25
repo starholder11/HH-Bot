@@ -73,6 +73,11 @@ interface SpaceItem {
   x?: number;
   y?: number;
   mediaUrl?: string;
+  // Store custom geometry information from mesh wrapping
+  customGeometry?: {
+    type: string;
+    parameters?: any;
+  };
 }
 
 /**
@@ -339,6 +344,23 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
 
     console.log(`[Scene Conversion] Item ${child.name}: position [${x}, ${y}, ${z}], rotation [${rot[0]}, ${rot[1]}, ${rot[2]}], localScale [${localScale[0]}, ${localScale[1]}, ${localScale[2]}], worldScale [${scl[0]}, ${scl[1]}, ${scl[2]}], mediaUrl: ${mediaUrl}`);
 
+    // Extract custom geometry information from the scene
+    let customGeometry = undefined;
+    if (child.geometry) {
+      const geometry = scene.geometries?.find((g: any) => g.uuid === child.geometry);
+      if (geometry && geometry.type) {
+        // Only store custom geometry if it's different from the default for this asset type
+        const defaultGeometryType = getDefaultGeometryType(child.userData?.assetType);
+        if (geometry.type !== defaultGeometryType) {
+          customGeometry = {
+            type: geometry.type,
+            parameters: geometry.parameters || extractGeometryParameters(geometry)
+          };
+          console.log(`[Scene Conversion] Custom geometry detected for ${child.name}: ${geometry.type}`);
+        }
+      }
+    }
+
     // If added from layout import, preserve the declared media type/content type
     const declaredType = (child.userData?.assetType || child.userData?.contentType) as string | undefined;
     const normalizeType = (t?: string): string | undefined => {
@@ -407,7 +429,8 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       opacity: 1, // TODO: Extract from material
       visible: child.visible !== false,
       mediaUrl,
-      importMetadata: child.userData?.importMetadata
+      importMetadata: child.userData?.importMetadata,
+      customGeometry
     };
   }).filter(Boolean);
 
@@ -465,7 +488,17 @@ function generateImagesFromSpace(space: SpaceAsset): any[] {
 }
 
 function generateGeometryForItem(item: SpaceItem): any {
-  // Generate actual Three.js geometry objects
+  // If custom geometry exists from mesh wrapping, use it
+  if (item.customGeometry) {
+    console.log(`[Scene Conversion] Using custom geometry for ${item.id}: ${item.customGeometry.type}`);
+    return {
+      uuid: `geom-${item.id}`,
+      type: item.customGeometry.type,
+      ...item.customGeometry.parameters
+    };
+  }
+
+  // Generate default Three.js geometry objects
   // Match the logic from SpaceEditor.tsx import: only image and video are flat planes
   switch (item.assetType) {
     case 'image':
@@ -528,4 +561,67 @@ function generateMaterialForItem(item: SpaceItem): any {
   }
 
   return material;
+}
+
+// Helper function to get the default geometry type for an asset type
+function getDefaultGeometryType(assetType?: string): string {
+  switch (assetType) {
+    case 'image':
+    case 'video':
+    case 'text':
+    case 'canvas':
+      return 'PlaneGeometry';
+    case 'layout':
+    case 'object':
+    case 'object_collection':
+      return 'BoxGeometry';
+    default:
+      return 'BoxGeometry';
+  }
+}
+
+// Helper function to extract geometry parameters from geometry object
+function extractGeometryParameters(geometry: any): any {
+  const params: any = {};
+  
+  // Extract common parameters based on geometry type
+  switch (geometry.type) {
+    case 'PlaneGeometry':
+      params.width = geometry.width || 1;
+      params.height = geometry.height || 1;
+      params.widthSegments = geometry.widthSegments || 1;
+      params.heightSegments = geometry.heightSegments || 1;
+      break;
+    case 'BoxGeometry':
+      params.width = geometry.width || 1;
+      params.height = geometry.height || 1;
+      params.depth = geometry.depth || 1;
+      break;
+    case 'SphereGeometry':
+      params.radius = geometry.radius || 1;
+      params.widthSegments = geometry.widthSegments || 32;
+      params.heightSegments = geometry.heightSegments || 16;
+      break;
+    case 'CylinderGeometry':
+      params.radiusTop = geometry.radiusTop || 1;
+      params.radiusBottom = geometry.radiusBottom || 1;
+      params.height = geometry.height || 1;
+      params.radialSegments = geometry.radialSegments || 32;
+      break;
+    case 'TorusGeometry':
+      params.radius = geometry.radius || 1;
+      params.tube = geometry.tube || 0.4;
+      params.radialSegments = geometry.radialSegments || 16;
+      params.tubularSegments = geometry.tubularSegments || 100;
+      break;
+    case 'TetrahedronGeometry':
+    case 'OctahedronGeometry':
+    case 'IcosahedronGeometry':
+    case 'DodecahedronGeometry':
+      params.radius = geometry.radius || 1;
+      params.detail = geometry.detail || 0;
+      break;
+  }
+  
+  return params;
 }
