@@ -306,7 +306,7 @@ export default function SpaceEditPage() {
         </div>
       </div>
 
-      <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
+      <div className="bg-neutral-800">
         <SpaceEditor
           ref={spaceEditorRef}
           spaceId={spaceId}
