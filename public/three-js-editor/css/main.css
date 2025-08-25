@@ -487,6 +487,7 @@ select {
 	top: 32px;
 	bottom: 0;
 	width: 350px;
+	min-width: 350px;
 	background: #eee;
 	overflow: auto;
 	overflow-x: hidden;
@@ -495,7 +496,13 @@ select {
 
 #sidebar.collapsed {
 	width: 40px;
+	min-width: 40px !important; /* override TabbedPanel min-width */
 	overflow: hidden;
+}
+
+#sidebar.collapsed .Tabs,
+#sidebar.collapsed .Panels {
+	display: none;
 }
 
 #sidebar-toggle {

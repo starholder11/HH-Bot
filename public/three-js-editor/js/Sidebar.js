@@ -44,7 +44,11 @@ function Sidebar( editor ) {
 		
 		// Trigger viewport resize after animation completes
 		setTimeout( function () {
-			
+			// When collapsed, stretch viewport/script/player fully to the right edge
+			const targetRight = isCollapsed ? '40px' : ( getComputedStyle( document.getElementById( 'sidebar' ) ).width );
+			document.getElementById( 'viewport' ).style.right = targetRight;
+			document.getElementById( 'player' ).style.right = targetRight;
+			document.getElementById( 'script' ).style.right = targetRight;
 			editor.signals.windowResize.dispatch();
 			
 		}, 300 );
