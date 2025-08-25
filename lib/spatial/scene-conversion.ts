@@ -496,6 +496,7 @@ function generateImagesFromSpace(space: SpaceAsset): any[] {
 function generateGeometryForItem(item: SpaceItem): any {
   // If custom geometry exists from mesh wrapping, use it
   const cg = item.customGeometry || (item as any)?.importMetadata?.customGeometry;
+  console.log(`[Scene Conversion] generateGeometryForItem for ${item.id}: customGeometry=${!!item.customGeometry}, importMetadata.customGeometry=${!!(item as any)?.importMetadata?.customGeometry}, final cg=${!!cg}`);
   if (cg) {
     console.log(`[Scene Conversion] Using custom geometry for ${item.id}: ${cg.type}`);
     return {
