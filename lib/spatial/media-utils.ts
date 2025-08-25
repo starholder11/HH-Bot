@@ -273,7 +273,7 @@ export function applyTextToMesh(mesh: THREE.Mesh, text: string, editor?: any) {
     texture.magFilter = THREE.LinearFilter;
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.flipY = false; // Canvas textures should not be flipped
+    texture.flipY = true; // Align with editor/image/video orientation to avoid upside-down on import
 
     if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
       mesh.material = new THREE.MeshBasicMaterial({ side: THREE.FrontSide, toneMapped: false });
