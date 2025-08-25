@@ -12,6 +12,7 @@ import { ViewportInfo } from './Viewport.Info.js';
 import { ViewHelper } from './Viewport.ViewHelper.js';
 import { XR } from './Viewport.XR.js';
 
+import { Command } from './Command.js';
 import { SetPositionCommand } from './commands/SetPositionCommand.js';
 import { SetRotationCommand } from './commands/SetRotationCommand.js';
 import { SetScaleCommand } from './commands/SetScaleCommand.js';
@@ -333,33 +334,90 @@ function Viewport( editor ) {
 
 		if ( !object || !object.isMesh ) return;
 
-		// Store current properties
-		const currentMaterial = object.material;
-		const currentPosition = object.position.clone();
-		const currentRotation = object.rotation.clone();
-		const currentScale = object.scale.clone();
-		const currentUserData = { ...object.userData };
-		const currentName = object.name;
+		// Use the editor's command system for proper undo/redo and auto-save
+		const WrapToMeshCommand = class extends Command {
 
-		// Replace geometry
-		if ( object.geometry ) object.geometry.dispose();
-		object.geometry = newGeometry;
+			constructor( editor, object, newGeometry ) {
 
-		// Preserve material and properties
-		object.material = currentMaterial;
-		object.position.copy( currentPosition );
-		object.rotation.copy( currentRotation );
-		object.scale.copy( currentScale );
-		object.userData = currentUserData;
-		object.name = currentName;
+				super( editor );
 
-		// Update bounding box/sphere for raycasting
-		object.geometry.computeBoundingBox();
-		object.geometry.computeBoundingSphere();
+				this.type = 'WrapToMeshCommand';
+				this.name = 'Wrap to Mesh';
 
-		// Trigger editor updates
-		editor.signals.objectChanged.dispatch( object );
-		editor.signals.sceneGraphChanged.dispatch();
+				this.object = object;
+				this.oldGeometry = object.geometry;
+				this.newGeometry = newGeometry;
+
+			}
+
+			execute() {
+
+				// Store current properties
+				const currentMaterial = this.object.material;
+				const currentPosition = this.object.position.clone();
+				const currentRotation = this.object.rotation.clone();
+				const currentScale = this.object.scale.clone();
+				const currentUserData = { ...this.object.userData };
+				const currentName = this.object.name;
+
+				// Replace geometry
+				if ( this.object.geometry ) this.object.geometry.dispose();
+				this.object.geometry = this.newGeometry;
+
+				// Preserve material and properties
+				this.object.material = currentMaterial;
+				this.object.position.copy( currentPosition );
+				this.object.rotation.copy( currentRotation );
+				this.object.scale.copy( currentScale );
+				this.object.userData = currentUserData;
+				this.object.name = currentName;
+
+				// Update bounding box/sphere for raycasting
+				this.object.geometry.computeBoundingBox();
+				this.object.geometry.computeBoundingSphere();
+
+				// Trigger editor updates
+				this.editor.signals.objectChanged.dispatch( this.object );
+				this.editor.signals.sceneGraphChanged.dispatch();
+
+			}
+
+			undo() {
+
+				// Store current properties
+				const currentMaterial = this.object.material;
+				const currentPosition = this.object.position.clone();
+				const currentRotation = this.object.rotation.clone();
+				const currentScale = this.object.scale.clone();
+				const currentUserData = { ...this.object.userData };
+				const currentName = this.object.name;
+
+				// Restore old geometry
+				if ( this.object.geometry ) this.object.geometry.dispose();
+				this.object.geometry = this.oldGeometry;
+
+				// Preserve material and properties
+				this.object.material = currentMaterial;
+				this.object.position.copy( currentPosition );
+				this.object.rotation.copy( currentRotation );
+				this.object.scale.copy( currentScale );
+				this.object.userData = currentUserData;
+				this.object.name = currentName;
+
+				// Update bounding box/sphere for raycasting
+				this.object.geometry.computeBoundingBox();
+				this.object.geometry.computeBoundingSphere();
+
+				// Trigger editor updates
+				this.editor.signals.objectChanged.dispatch( this.object );
+				this.editor.signals.sceneGraphChanged.dispatch();
+
+			}
+
+		};
+
+		// Execute the command through the editor's command system
+		editor.execute( new WrapToMeshCommand( editor, object, newGeometry ) );
 
 		render();
 
