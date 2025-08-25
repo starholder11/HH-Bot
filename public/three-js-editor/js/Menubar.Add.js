@@ -448,60 +448,7 @@ function MenubarAdd( editor ) {
 	} );
 	lightSubmenu.add( option );
 
-	// Camera
-
-	const cameraSubmenuTitle = new UIRow().setTextContent( strings.getKey( 'menubar/add/camera' ) ).addClass( 'option' ).addClass( 'submenu-title' );
-	cameraSubmenuTitle.onMouseOver( function () {
-
-		const { top, right } = cameraSubmenuTitle.dom.getBoundingClientRect();
-		const { paddingTop } = getComputedStyle( this.dom );
-
-		cameraSubmenu.setLeft( right + 'px' );
-		cameraSubmenu.setTop( top - parseFloat( paddingTop ) + 'px' );
-		cameraSubmenu.setStyle( 'max-height', [ `calc( 100vh - ${top}px )` ] );
-		cameraSubmenu.setDisplay( 'block' );
-
-	} );
-	cameraSubmenuTitle.onMouseOut( function () {
-
-		cameraSubmenu.setDisplay( 'none' );
-
-	} );
-	options.add( cameraSubmenuTitle );
-
-	const cameraSubmenu = new UIPanel().setPosition( 'fixed' ).addClass( 'options' ).setDisplay( 'none' );
-	cameraSubmenuTitle.add( cameraSubmenu );
-
-	// Camera / Orthographic
-
-	option = new UIRow();
-	option.setClass( 'option' );
-	option.setTextContent( strings.getKey( 'menubar/add/camera/orthographic' ) );
-	option.onClick( function () {
-
-		const aspect = editor.camera.aspect;
-		const camera = new THREE.OrthographicCamera( - aspect, aspect );
-		camera.name = 'OrthographicCamera';
-
-		editor.execute( new AddObjectCommand( editor, camera ) );
-
-	} );
-	cameraSubmenu.add( option );
-
-	// Camera / Perspective
-
-	option = new UIRow();
-	option.setClass( 'option' );
-	option.setTextContent( strings.getKey( 'menubar/add/camera/perspective' ) );
-	option.onClick( function () {
-
-		const camera = new THREE.PerspectiveCamera();
-		camera.name = 'PerspectiveCamera';
-
-		editor.execute( new AddObjectCommand( editor, camera ) );
-
-	} );
-	cameraSubmenu.add( option );
+	// Camera menu removed - not used in spatial CMS workflow
 
 	return container;
 
