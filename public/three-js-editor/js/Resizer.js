@@ -11,6 +11,10 @@ function Resizer( editor ) {
 
 		if ( event.isPrimary === false ) return;
 
+		// Don't allow resizing when sidebar is collapsed
+		const sidebar = document.getElementById( 'sidebar' );
+		if ( sidebar && sidebar.classList.contains( 'collapsed' ) ) return;
+
 		dom.ownerDocument.addEventListener( 'pointermove', onPointerMove );
 		dom.ownerDocument.addEventListener( 'pointerup', onPointerUp );
 
