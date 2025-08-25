@@ -431,7 +431,11 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       opacity: 1, // TODO: Extract from material
       visible: child.visible !== false,
       mediaUrl,
-      importMetadata: child.userData?.importMetadata,
+      importMetadata: {
+        ...(child.userData?.importMetadata || {}),
+        // Persist customGeometry inside importMetadata to survive API schema stripping
+        ...(customGeometry ? { customGeometry } : {})
+      },
       customGeometry
     };
   }).filter(Boolean);
@@ -491,12 +495,13 @@ function generateImagesFromSpace(space: SpaceAsset): any[] {
 
 function generateGeometryForItem(item: SpaceItem): any {
   // If custom geometry exists from mesh wrapping, use it
-  if (item.customGeometry) {
-    console.log(`[Scene Conversion] Using custom geometry for ${item.id}: ${item.customGeometry.type}`);
+  const cg = item.customGeometry || (item as any)?.importMetadata?.customGeometry;
+  if (cg) {
+    console.log(`[Scene Conversion] Using custom geometry for ${item.id}: ${cg.type}`);
     return {
       uuid: `geom-${item.id}`,
-      type: item.customGeometry.type,
-      ...item.customGeometry.parameters
+      type: cg.type,
+      ...(cg.parameters || {})
     };
   }
 
