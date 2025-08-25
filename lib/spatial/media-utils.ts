@@ -90,6 +90,34 @@ function renderTextMesh(mesh: THREE.Mesh) {
   texture.needsUpdate = true;
 }
 
+// Decide if a texture should be flipped vertically based on mesh orientation
+function needsTextureFlip(mesh: THREE.Mesh): boolean {
+  try {
+    // If scale Y is negative, invert
+    if (mesh.scale && mesh.scale.y < 0) return true;
+
+    const normalize = (a: number) => {
+      const twoPi = Math.PI * 2;
+      let v = a % twoPi;
+      if (v < 0) v += twoPi;
+      return v;
+    };
+    const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) < eps;
+
+    const rx = normalize(mesh.rotation.x);
+    const ry = normalize(mesh.rotation.y);
+    const rz = normalize(mesh.rotation.z);
+
+    // 180° around X or Y will invert vertical orientation
+    if (near(rx, Math.PI) || near(ry, Math.PI)) return true;
+
+    // If the world matrix has a negative determinant (mirrored), flip
+    const m = mesh.matrixWorld;
+    if (m && m.determinant && m.determinant() < 0) return true;
+  } catch {}
+  return false;
+}
+
 // Extracted applyMediaToMesh function (from editor)
 export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: string, editor?: any) {
   if (!url) return;
@@ -127,9 +155,8 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
       videoTexture.generateMipmaps = false;
       videoTexture.wrapS = THREE.ClampToEdgeWrapping;
       videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-      // VideoTexture defaults to flipY = true, but videos appear upside down
-      // Set to false to match expected orientation
-      videoTexture.flipY = false;
+      // Default orientation for video
+      videoTexture.flipY = needsTextureFlip(mesh) ? true : false;
 
       console.log('VideoTexture created with ready video');
 
@@ -212,7 +239,8 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
         texture.magFilter = THREE.LinearFilter;
         texture.wrapS = THREE.ClampToEdgeWrapping;
         texture.wrapT = THREE.ClampToEdgeWrapping;
-        texture.flipY = true;
+        // Default orientation for images
+        texture.flipY = needsTextureFlip(mesh) ? false : true;
 
         // Update existing material instead of replacing it
         if (mesh.material && mesh.material instanceof THREE.MeshBasicMaterial) {
