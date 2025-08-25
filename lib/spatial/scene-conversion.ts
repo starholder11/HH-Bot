@@ -88,6 +88,13 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
   const itemsAll = space.space?.items || space.items || [];
 
   console.log('[Scene Conversion] Converting space with items:', itemsAll);
+  
+  // Debug: Check for customGeometry in items
+  itemsAll.forEach((item: any) => {
+    if (item.customGeometry || item.importMetadata?.customGeometry) {
+      console.log(`[Scene Conversion] Found customGeometry in item ${item.id}:`, item.customGeometry || item.importMetadata?.customGeometry);
+    }
+  });
 
   // Filter out items that create unwanted empty planes
   const items = itemsAll.filter((item: any) => {
