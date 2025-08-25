@@ -1117,7 +1117,7 @@
 						texture.magFilter = THREE.LinearFilter;
 						texture.wrapS = THREE.ClampToEdgeWrapping;
 						texture.wrapT = THREE.ClampToEdgeWrapping;
-						texture.flipY = true;
+						texture.flipY = false; // Canvas textures should not be flipped
 						if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 							mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
 						}
