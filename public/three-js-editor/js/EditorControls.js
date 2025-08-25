@@ -267,7 +267,8 @@ class EditorControls extends THREE.EventDispatcher {
 
 		function contextmenu( event ) {
 
-			event.preventDefault();
+			// Allow context menu for viewport mesh wrapping
+			// event.preventDefault();
 
 		}
 

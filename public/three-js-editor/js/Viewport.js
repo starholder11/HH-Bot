@@ -226,6 +226,145 @@ function Viewport( editor ) {
 
 	}
 
+	function onContextMenu( event ) {
+
+		event.preventDefault();
+
+		if ( event.target !== renderer.domElement ) return;
+
+		// Only show context menu if an object is selected
+		if ( editor.selected && editor.selected !== editor.scene && editor.selected !== editor.camera ) {
+
+			showMeshWrapContextMenu( event.clientX, event.clientY );
+
+		}
+
+	}
+
+	// Context menu for mesh wrapping
+	function showMeshWrapContextMenu( x, y ) {
+
+		// Remove any existing context menu
+		const existingMenu = document.getElementById( 'mesh-wrap-context-menu' );
+		if ( existingMenu ) existingMenu.remove();
+
+		// Create context menu
+		const menu = document.createElement( 'div' );
+		menu.id = 'mesh-wrap-context-menu';
+		menu.style.position = 'fixed';
+		menu.style.left = x + 'px';
+		menu.style.top = y + 'px';
+		menu.style.backgroundColor = '#333';
+		menu.style.border = '1px solid #555';
+		menu.style.borderRadius = '4px';
+		menu.style.padding = '4px 0';
+		menu.style.zIndex = '10000';
+		menu.style.minWidth = '150px';
+		menu.style.boxShadow = '0 2px 10px rgba(0,0,0,0.5)';
+		menu.style.fontFamily = 'Arial, sans-serif';
+		menu.style.fontSize = '12px';
+
+		// Menu title
+		const title = document.createElement( 'div' );
+		title.textContent = 'Wrap to Mesh';
+		title.style.padding = '6px 12px';
+		title.style.color = '#ccc';
+		title.style.fontWeight = 'bold';
+		title.style.borderBottom = '1px solid #555';
+		menu.appendChild( title );
+
+		// Mesh options
+		const meshOptions = [
+			{ name: 'Plane', geometry: () => new THREE.PlaneGeometry( 1, 1 ) },
+			{ name: 'Box', geometry: () => new THREE.BoxGeometry( 1, 1, 1 ) },
+			{ name: 'Sphere', geometry: () => new THREE.SphereGeometry( 0.5, 32, 16 ) },
+			{ name: 'Cylinder', geometry: () => new THREE.CylinderGeometry( 0.5, 0.5, 1, 32 ) },
+			{ name: 'Torus', geometry: () => new THREE.TorusGeometry( 0.5, 0.2, 16, 100 ) },
+			{ name: 'Tetrahedron', geometry: () => new THREE.TetrahedronGeometry( 1 ) },
+			{ name: 'Octahedron', geometry: () => new THREE.OctahedronGeometry( 1 ) },
+			{ name: 'Icosahedron', geometry: () => new THREE.IcosahedronGeometry( 1 ) },
+			{ name: 'Dodecahedron', geometry: () => new THREE.DodecahedronGeometry( 1 ) }
+		];
+
+		meshOptions.forEach( option => {
+
+			const item = document.createElement( 'div' );
+			item.textContent = option.name;
+			item.style.padding = '6px 12px';
+			item.style.color = '#fff';
+			item.style.cursor = 'pointer';
+			item.style.transition = 'background-color 0.2s';
+
+			item.addEventListener( 'mouseenter', () => {
+				item.style.backgroundColor = '#555';
+			} );
+
+			item.addEventListener( 'mouseleave', () => {
+				item.style.backgroundColor = 'transparent';
+			} );
+
+			item.addEventListener( 'click', () => {
+				wrapObjectToMesh( editor.selected, option.geometry() );
+				menu.remove();
+			} );
+
+			menu.appendChild( item );
+
+		} );
+
+		document.body.appendChild( menu );
+
+		// Remove menu when clicking elsewhere
+		const removeMenu = ( event ) => {
+			if ( !menu.contains( event.target ) ) {
+				menu.remove();
+				document.removeEventListener( 'click', removeMenu );
+			}
+		};
+
+		setTimeout( () => {
+			document.addEventListener( 'click', removeMenu );
+		}, 100 );
+
+	}
+
+	// Wrap object to new mesh geometry
+	function wrapObjectToMesh( object, newGeometry ) {
+
+		if ( !object || !object.isMesh ) return;
+
+		// Store current properties
+		const currentMaterial = object.material;
+		const currentPosition = object.position.clone();
+		const currentRotation = object.rotation.clone();
+		const currentScale = object.scale.clone();
+		const currentUserData = { ...object.userData };
+		const currentName = object.name;
+
+		// Replace geometry
+		if ( object.geometry ) object.geometry.dispose();
+		object.geometry = newGeometry;
+
+		// Preserve material and properties
+		object.material = currentMaterial;
+		object.position.copy( currentPosition );
+		object.rotation.copy( currentRotation );
+		object.scale.copy( currentScale );
+		object.userData = currentUserData;
+		object.name = currentName;
+
+		// Update bounding box/sphere for raycasting
+		object.geometry.computeBoundingBox();
+		object.geometry.computeBoundingSphere();
+
+		// Trigger editor updates
+		editor.signals.objectChanged.dispatch( object );
+		editor.signals.sceneGraphChanged.dispatch();
+
+		render();
+
+	}
+
 	function onTouchStart( event ) {
 
 		const touch = event.changedTouches[ 0 ];
@@ -270,6 +409,7 @@ function Viewport( editor ) {
 	container.dom.addEventListener( 'mousedown', onMouseDown );
 	container.dom.addEventListener( 'touchstart', onTouchStart, { passive: false } );
 	container.dom.addEventListener( 'dblclick', onDoubleClick );
+	container.dom.addEventListener( 'contextmenu', onContextMenu );
 
 	// controls need to be added *after* main logic,
 	// otherwise controls.enabled doesn't work.
