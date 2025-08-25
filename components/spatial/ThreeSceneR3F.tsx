@@ -20,7 +20,20 @@ type ThreeChild = {
   rotation?: [number, number, number];
   scale?: [number, number, number];
   userData?: any;
-  geometry?: { type?: string; width?: number; height?: number };
+  geometry?: {
+    type?: string;
+    // Plane/Box
+    width?: number; height?: number; depth?: number;
+    widthSegments?: number; heightSegments?: number;
+    // Sphere
+    radius?: number;
+    // Cylinder
+    radiusTop?: number; radiusBottom?: number; radialSegments?: number;
+    // Torus
+    tube?: number; tubularSegments?: number;
+    // Polyhedra
+    detail?: number;
+  };
 };
 
 // Individual mesh component that handles media loading
@@ -135,6 +148,67 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
     }
   }, [child, userData]);
 
+  // Render geometry based on scene child geometry (fallback to Plane)
+  const renderGeometry = () => {
+    const g = child.geometry || {};
+    const t = (g.type || 'PlaneGeometry').toString();
+    console.log(`[Geometry] Rendering ${child.name} with geometry:`, t, g);
+    switch (t) {
+      case 'SphereGeometry': {
+        const radius = g.radius ?? 1;
+        const widthSegments = g.widthSegments ?? 32;
+        const heightSegments = g.heightSegments ?? 16;
+        return <sphereGeometry args={[radius, widthSegments, heightSegments]} />;
+      }
+      case 'BoxGeometry': {
+        const width = g.width ?? 1;
+        const height = g.height ?? 1;
+        const depth = g.depth ?? 1;
+        return <boxGeometry args={[width, height, depth]} />;
+      }
+      case 'CylinderGeometry': {
+        const radiusTop = g.radiusTop ?? 1;
+        const radiusBottom = g.radiusBottom ?? 1;
+        const height = g.height ?? 1;
+        const radialSegments = g.radialSegments ?? 32;
+        return <cylinderGeometry args={[radiusTop, radiusBottom, height, radialSegments]} />;
+      }
+      case 'TorusGeometry': {
+        const radius = g.radius ?? 1;
+        const tube = g.tube ?? 0.4;
+        const radialSegments = g.radialSegments ?? 16;
+        const tubularSegments = g.tubularSegments ?? 100;
+        return <torusGeometry args={[radius, tube, radialSegments, tubularSegments]} />;
+      }
+      case 'TetrahedronGeometry': {
+        const radius = g.radius ?? 1;
+        const detail = g.detail ?? 0;
+        return <tetrahedronGeometry args={[radius, detail]} />;
+      }
+      case 'OctahedronGeometry': {
+        const radius = g.radius ?? 1;
+        const detail = g.detail ?? 0;
+        return <octahedronGeometry args={[radius, detail]} />;
+      }
+      case 'IcosahedronGeometry': {
+        const radius = g.radius ?? 1;
+        const detail = g.detail ?? 0;
+        return <icosahedronGeometry args={[radius, detail]} />;
+      }
+      case 'DodecahedronGeometry': {
+        const radius = g.radius ?? 1;
+        const detail = g.detail ?? 0;
+        return <dodecahedronGeometry args={[radius, detail]} />;
+      }
+      case 'PlaneGeometry':
+      default: {
+        const width = g.width ?? 1;
+        const height = g.height ?? 1;
+        return <planeGeometry args={[width, height]} />;
+      }
+    }
+  };
+
   return (
     <mesh
       ref={meshRef}
@@ -142,9 +216,7 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
       rotation={rotation}
       scale={scale}
     >
-      <planeGeometry
-        args={[1, 1]}
-      />
+      {renderGeometry()}
       <meshBasicMaterial
         side={THREE.DoubleSide}
         toneMapped={false}
