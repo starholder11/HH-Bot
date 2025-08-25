@@ -262,7 +262,15 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     const assetType = (asset.content_type || asset.type || 'unknown').toLowerCase();
     const id = asset.id || `asset-${Date.now()}`;
     const color = assetType.includes('image') ? 0x3b82f6 : assetType.includes('video') ? 0xef4444 : 0x6b7280;
-    const originalMediaUrl = asset.cloudflare_url || asset.url || asset.s3_url || null;
+    
+    // Use the same logic as visual search to extract media URL
+    const originalMediaUrl = (
+      (asset.metadata?.cloudflare_url as string | undefined) ||
+      (asset.metadata?.s3_url as string | undefined) ||
+      (asset.url as string | undefined) ||
+      (asset.s3_url as string | undefined) ||
+      (asset.cloudflare_url as string | undefined)
+    ) || null;
 
     // Use proxy for images to avoid CORS issues
     const mediaUrl = originalMediaUrl && (assetType.includes('image') || assetType.includes('video'))
