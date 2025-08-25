@@ -276,8 +276,11 @@ export function applyTextToMesh(mesh: THREE.Mesh, text: string, editor?: any) {
     texture.flipY = false; // Canvas textures should not be flipped
 
     if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
-      mesh.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
+      mesh.material = new THREE.MeshBasicMaterial({ side: THREE.FrontSide, toneMapped: false });
     }
+    // Ensure correct material settings for readable text
+    mesh.material.side = THREE.FrontSide;
+    mesh.material.toneMapped = false;
     mesh.material.color && mesh.material.color.set(0xffffff);
     mesh.material.map = texture;
     mesh.material.needsUpdate = true;
