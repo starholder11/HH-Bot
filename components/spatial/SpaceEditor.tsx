@@ -594,7 +594,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
   if (error) {
     return (
-      <div className="h-[600px] bg-red-900/20 border border-red-700 rounded-lg flex items-center justify-center">
+      <div className="h-[calc(100vh-200px)] bg-red-900/20 border border-red-700 rounded-lg flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-400 text-lg mb-2">Editor Error</div>
           <div className="text-red-300 text-sm">{error}</div>
@@ -623,7 +623,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       <iframe
         ref={iframeRef}
         src="/three-js-editor/index.html"
-        className="w-full h-[600px]"
+        className="w-full h-[calc(100vh-200px)]"
         title="Three.js Editor"
         sandbox="allow-scripts allow-same-origin allow-forms"
         style={{

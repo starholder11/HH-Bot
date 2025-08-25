@@ -306,7 +306,7 @@ export default function SpaceEditPage() {
         </div>
       </div>
 
-      <div className="bg-neutral-800">
+      <div className="bg-neutral-800" style={{ marginTop: '-5px', paddingBottom: '5px' }}>
         <SpaceEditor
           ref={spaceEditorRef}
           spaceId={spaceId}
@@ -314,11 +314,6 @@ export default function SpaceEditPage() {
           onSelectionChange={handleSelectionChange}
           onError={handleError}
         />
-      </div>
-
-      <div className="mt-4 text-xs text-neutral-400">
-        <p>Use the Three.js Editor above to manipulate 3D objects directly.</p>
-        <p>Changes are automatically synced back to the space asset.</p>
       </div>
 
       {/* Import Modals */}
