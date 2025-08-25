@@ -597,12 +597,42 @@
 						// Process each object manually
 						command.data.object.children.forEach((childData) => {
 							if (childData.type === 'Mesh') {
-								// Create geometry
+								// Create geometry (support custom shapes)
 								let geometry;
-								if (childData.geometry && childData.geometry.type === 'PlaneGeometry') {
-									geometry = new THREE.PlaneGeometry(1, 1);
-								} else {
-									geometry = new THREE.PlaneGeometry(1, 1); // Default to plane
+								const g = childData.geometry || {};
+								switch (g.type) {
+									case 'SphereGeometry': {
+										const radius = g.radius ?? 1; const w = g.widthSegments ?? 32; const h = g.heightSegments ?? 16;
+										geometry = new THREE.SphereGeometry(radius, w, h); break;
+									}
+									case 'BoxGeometry': {
+										const w = g.width ?? 1; const h = g.height ?? 1; const d = g.depth ?? 1;
+										geometry = new THREE.BoxGeometry(w, h, d); break;
+									}
+									case 'CylinderGeometry': {
+										const rt = g.radiusTop ?? 1; const rb = g.radiusBottom ?? 1; const hh = g.height ?? 1; const seg = g.radialSegments ?? 32;
+										geometry = new THREE.CylinderGeometry(rt, rb, hh, seg); break;
+									}
+									case 'TorusGeometry': {
+										const r = g.radius ?? 1; const tube = g.tube ?? 0.4; const rs = g.radialSegments ?? 16; const ts = g.tubularSegments ?? 100;
+										geometry = new THREE.TorusGeometry(r, tube, rs, ts); break;
+									}
+									case 'TetrahedronGeometry': {
+										const r = g.radius ?? 1; const detail = g.detail ?? 0; geometry = new THREE.TetrahedronGeometry(r, detail); break;
+									}
+									case 'OctahedronGeometry': {
+										const r = g.radius ?? 1; const detail = g.detail ?? 0; geometry = new THREE.OctahedronGeometry(r, detail); break;
+									}
+									case 'IcosahedronGeometry': {
+										const r = g.radius ?? 1; const detail = g.detail ?? 0; geometry = new THREE.IcosahedronGeometry(r, detail); break;
+									}
+									case 'DodecahedronGeometry': {
+										const r = g.radius ?? 1; const detail = g.detail ?? 0; geometry = new THREE.DodecahedronGeometry(r, detail); break;
+									}
+									case 'PlaneGeometry':
+									default: {
+										const ww = g.width ?? 1; const hh = g.height ?? 1; geometry = new THREE.PlaneGeometry(ww, hh); break;
+									}
 								}
 
 								// Create material

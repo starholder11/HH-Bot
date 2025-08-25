@@ -158,6 +158,7 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
             assetType: item.assetType,
             mediaUrl: (item as any).mediaUrl,
             importMetadata: item.importMetadata,
+            customGeometry: (item as any).customGeometry,
             // For text assets, we'll need to fetch the content separately
             fullTextContent: item.assetType === 'text' ? 'Loading...' : undefined
           }
