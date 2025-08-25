@@ -114,6 +114,13 @@ function needsTextureFlip(mesh: THREE.Mesh): boolean {
     // If the world matrix has a negative determinant (mirrored), flip
     const m = mesh.matrixWorld;
     if (m && m.determinant && m.determinant() < 0) return true;
+
+    // If the mesh's local up (0,1,0) points downward in world space, flip
+    if (m) {
+      const rot = new THREE.Matrix3().setFromMatrix4(m);
+      const localUp = new THREE.Vector3(0, 1, 0).applyMatrix3(rot).normalize();
+      if (localUp.y < 0) return true;
+    }
   } catch {}
   return false;
 }
