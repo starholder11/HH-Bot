@@ -153,7 +153,7 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
       }
 
       console.log('Material applied to mesh');
-      
+
       // Force geometry and material update for raycasting
       if (mesh.geometry) {
         mesh.geometry.computeBoundingBox();
@@ -235,7 +235,7 @@ export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: strin
         }
 
         console.log('Image material applied to mesh');
-        
+
         // Force geometry and material update for raycasting
         if (mesh.geometry) {
           mesh.geometry.computeBoundingBox();

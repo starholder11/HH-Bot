@@ -8,6 +8,9 @@ export interface SpaceEditorProps {
   onSceneChange?: (sceneData: any) => void;
   onSelectionChange?: (selectedObjects: string[]) => void;
   onError?: (error: string) => void;
+  bullseyeMode?: boolean;
+  onBullseyePlacement?: (position: [number, number]) => void;
+  onBullseyeCancel?: () => void;
 }
 
 export interface SpaceEditorRef {
@@ -15,20 +18,29 @@ export interface SpaceEditorRef {
   loadSpace: (spaceData: any) => Promise<void>;
   addAsset: (asset: any) => Promise<void>;
   addLayout: (layout: any) => Promise<void>;
+  addLayoutAtPosition: (layout: any, position: [number, number]) => Promise<void>;
   sendCommand: (command: any) => Promise<void>;
+  enterBullseyeMode: () => Promise<void>;
+  exitBullseyeMode: () => Promise<void>;
 }
 
 const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   spaceId,
   onSceneChange,
   onSelectionChange,
-  onError
+  onError,
+  bullseyeMode = false,
+  onBullseyePlacement,
+  onBullseyeCancel
 }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [editorReady, setEditorReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [spaceData, setSpaceData] = useState<any>(null);
+  const [bullseyeMode, setBullseyeMode] = useState(false);
+  const [bullseyePosition, setBullseyePosition] = useState<[number, number]>([0, 0]);
+  const [pendingLayout, setPendingLayout] = useState<any>(null);
   const bridgeRef = useRef<EditorBridge | null>(null);
   const callbacksRef = useRef<{ onSceneChange?: (d:any)=>void; onSelectionChange?: (s:string[])=>void; onError?: (e:string)=>void }>({ onSceneChange, onSelectionChange, onError });
   const lastLoadedIdRef = useRef<string | null>(null);
@@ -134,6 +146,11 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           console.log('[SpaceEditor] Received scene export:', message.data);
           pendingSaveRef.current = false;
           handleSceneExport(message.data);
+          break;
+        case 'bullseye_placement':
+          // Handle bullseye placement from editor
+          console.log('[SpaceEditor] Bullseye placement at:', message.data.position);
+          onBullseyePlacement?.(message.data.position);
           break;
         default:
           console.log('Unknown editor message:', message);
@@ -583,14 +600,137 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     }
   };
 
+  // Bullseye placement methods
+  const addLayoutAtPosition = async (layout: any, position: [number, number]) => {
+    const items = layout?.layout_data?.items || [];
+    const scale = 0.1;
+    const [offsetX, offsetZ] = position;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const rawType: string = (item.contentType || item.type || 'unknown').toLowerCase();
+      const normalizeType = (t: string): string => {
+        if (!t) return 'object';
+        switch (t) {
+          case 'image':
+          case 'image_ref':
+            return 'image';
+          case 'video':
+          case 'video_ref':
+            return 'video';
+          case 'audio':
+          case 'music':
+          case 'audio_ref':
+          case 'music_ref':
+            return 'audio';
+          case 'text':
+          case 'text_ref':
+          case 'content_ref':
+            return 'text';
+          case 'canvas':
+            return 'canvas';
+          case 'layout':
+          case 'layout_reference':
+            return 'layout';
+          default:
+            return 'object';
+        }
+      };
+      const type = normalizeType(rawType);
+      const isPlane = type === 'image' || type === 'video';
+      const geometry = isPlane
+        ? { type: 'PlaneGeometry', width: 1, height: 1 }
+        : { type: 'BoxGeometry', width: 1, height: 1, depth: 1 };
+      const color = type === 'image' ? 0x3b82f6 : type === 'video' ? 0xef4444 : 0x8b5cf6;
+
+      // Apply offset to layout coordinates
+      const x = offsetX + (item.x !== undefined ? (item.x * scale) : 0);
+      const z = offsetZ + (item.y !== undefined ? (item.y * scale) : 0);
+      const boxW = item.w ? Math.max(item.w * scale, 0.5) : 1;
+      const boxH = item.h ? Math.max(item.h * scale, 0.5) : 1;
+
+      console.log(`[SpaceEditor] Layout item ${i} at bullseye position: x=${x}, z=${z}, width=${boxW}, height=${boxH}`);
+
+      // Resolve media URL and canonical asset id for proper rendering
+      const resolved = await resolveLayoutMedia(item, type);
+
+      // Skip non-media layout objects that would create empty white boxes
+      if (type === 'object' && !resolved.mediaUrl) {
+        console.log('[SpaceEditor] Skipping layout object without media:', item.id || item.contentId || item.refId);
+        continue;
+      }
+
+      // Fit media into layout box while preserving aspect ratio when we know intrinsic size
+      const mediaW = resolved.extraUserData?.mediaWidth as number | undefined;
+      const mediaH = resolved.extraUserData?.mediaHeight as number | undefined;
+      const fitWithin = (mw?: number, mh?: number, bw: number = 1, bh: number = 1) => {
+        if (!mw || !mh || mw <= 0 || mh <= 0) return { w: bw, h: bh };
+        const mediaAR = mw / mh;
+        const boxAR = bw / bh;
+        if (mediaAR >= boxAR) {
+          return { w: bw, h: bw / mediaAR };
+        } else {
+          return { w: bh * mediaAR, h: bh };
+        }
+      };
+      const fitted = isPlane ? fitWithin(mediaW, mediaH, boxW, boxH) : { w: boxW, h: boxH };
+
+      await sendCommand({
+        type: 'add_object',
+        data: {
+          type: 'Mesh',
+          geometry,
+          material: { type: 'MeshBasicMaterial', color },
+          position: [x, 0.5, z],
+          scale: [fitted.w, fitted.h, 1],
+          name: item.snippet || `Layout Item ${i + 1}`,
+          userData: {
+            assetType: type,
+            sourceType: 'layout',
+            layoutId: layout.id,
+            layoutItemId: item.id,
+            contentType: type,
+            mediaUrl: resolved.mediaUrl,
+            assetId: resolved.assetId || undefined,
+            mediaWidth: mediaW,
+            mediaHeight: mediaH,
+            ...resolved.extraUserData,
+            importMetadata: {
+              sourceType: 'layout',
+              sourceId: layout.id,
+              originalLayoutItem: item
+            }
+          }
+        }
+      });
+    }
+  };
+
+  const enterBullseyeMode = async () => {
+    await sendCommand({
+      type: 'enter_bullseye_mode',
+      data: {}
+    });
+  };
+
+  const exitBullseyeMode = async () => {
+    await sendCommand({
+      type: 'exit_bullseye_mode',
+      data: {}
+    });
+  };
+
   // Expose methods to parent component (placed after function declarations)
   useImperativeHandle(ref, () => ({
     saveScene: async () => { await saveScene(); },
     loadSpace: async (sd: any) => { await loadSpace(sd); },
     addAsset: async (asset: any) => { await addAssetToEditor(asset); },
     addLayout: async (layout: any) => { await addLayoutToEditor(layout); },
-    sendCommand: async (command: any) => { await sendCommand(command); }
-  }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor, sendCommand]);
+    addLayoutAtPosition: async (layout: any, position: [number, number]) => { await addLayoutAtPosition(layout, position); },
+    sendCommand: async (command: any) => { await sendCommand(command); },
+    enterBullseyeMode: async () => { await enterBullseyeMode(); },
+    exitBullseyeMode: async () => { await exitBullseyeMode(); }
+  }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor, addLayoutAtPosition, sendCommand, enterBullseyeMode, exitBullseyeMode]);
 
   if (error) {
     return (

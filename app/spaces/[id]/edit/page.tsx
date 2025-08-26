@@ -27,6 +27,10 @@ export default function SpaceEditPage() {
   // Import modal states
   const [showImportAsset, setShowImportAsset] = useState(false);
   const [showImportLayout, setShowImportLayout] = useState(false);
+  
+  // Bullseye placement states
+  const [bullseyeMode, setBullseyeMode] = useState(false);
+  const [pendingLayout, setPendingLayout] = useState<any>(null);
 
   // Load space data on mount
   useEffect(() => {
@@ -146,6 +150,21 @@ export default function SpaceEditPage() {
     setIsEditingName(false);
   };
 
+  const handleBullseyePlacement = async (position: [number, number]) => {
+    if (pendingLayout) {
+      setBullseyeMode(false);
+      await spaceEditorRef.current?.addLayoutAtPosition?.(pendingLayout, position);
+      setPendingLayout(null);
+      setHasUnsavedChanges(true);
+    }
+  };
+
+  const handleBullseyeCancel = () => {
+    setBullseyeMode(false);
+    setPendingLayout(null);
+    spaceEditorRef.current?.exitBullseyeMode?.();
+  };
+
   // Removed editor switching - using only Three.js Editor
 
   if (loading) {
@@ -217,16 +236,32 @@ export default function SpaceEditPage() {
           </div>
 
           <div className="flex items-center gap-3">
+          {/* Bullseye mode indicator */}
+          {bullseyeMode && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-white text-xs">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              <span>Position layout on grid, then double-click</span>
+              <button
+                onClick={handleBullseyeCancel}
+                className="ml-2 text-blue-200 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          
           {/* Actions */}
           <button
             className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
             onClick={() => setShowImportAsset(true)}
+            disabled={bullseyeMode}
           >
             Import Asset
           </button>
           <button
             className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
             onClick={() => setShowImportLayout(true)}
+            disabled={bullseyeMode}
           >
             Import Layout
           </button>
@@ -313,6 +348,9 @@ export default function SpaceEditPage() {
           onSceneChange={handleSceneChange}
           onSelectionChange={handleSelectionChange}
           onError={handleError}
+          bullseyeMode={bullseyeMode}
+          onBullseyePlacement={handleBullseyePlacement}
+          onBullseyeCancel={handleBullseyeCancel}
         />
       </div>
 
@@ -333,8 +371,10 @@ export default function SpaceEditPage() {
           onClose={() => setShowImportLayout(false)}
           onSelect={async (layout: any) => {
             setShowImportLayout(false);
-            await spaceEditorRef.current?.addLayout?.(layout);
-            setHasUnsavedChanges(true);
+            setPendingLayout(layout);
+            setBullseyeMode(true);
+            // Tell the editor to enter bullseye placement mode
+            await spaceEditorRef.current?.enterBullseyeMode?.();
           }}
         />
       )}
