@@ -155,11 +155,18 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
             if (pendingLayoutRef?.current && addLayoutAtPosition) {
               console.log('[SpaceEditor] Importing pending layout at position', message.data.position);
               addLayoutAtPosition(pendingLayoutRef.current, message.data.position)
-                .then(() => { pendingLayoutRef.current = null; })
-                .catch((e) => console.error('[SpaceEditor] Layout import on bullseye placement failed:', e));
+                .then(() => { 
+                  console.log('[SpaceEditor] Layout import complete, clearing pending layout');
+                  pendingLayoutRef.current = null; 
+                })
+                .catch((e) => {
+                  console.error('[SpaceEditor] Layout import on bullseye placement failed:', e);
+                  pendingLayoutRef.current = null; // Clear even on failure
+                });
             }
           } catch (e) {
             console.error('[SpaceEditor] Layout import on bullseye placement failed (sync):', e);
+            pendingLayoutRef.current = null; // Clear even on failure
           }
           onBullseyePlacement?.(message.data.position);
           break;
@@ -168,9 +175,13 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           break;
         case 'bullseye_mode_exited':
           console.log('[SpaceEditor] Bullseye mode exited successfully');
-          try {
-            callbacksRef.current.onBullseyeCancel?.();
-          } catch {}
+          // Don't automatically call onBullseyeCancel here - let the parent handle cleanup
+          // after successful placement. Only call it if there was no pending layout.
+          if (!pendingLayoutRef.current) {
+            try {
+              callbacksRef.current.onBullseyeCancel?.();
+            } catch {}
+          }
           break;
         default:
           console.log('Unknown editor message:', message);

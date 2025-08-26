@@ -184,12 +184,17 @@ export default function SpaceEditPage() {
   const handleBullseyePlacement = async (position: [number, number]) => {
     console.log('[UI] handleBullseyePlacement called, bullseyeMode:', bullseyeMode, 'pendingLayout:', !!pendingLayout);
     if (pendingLayout) {
-      setBullseyeMode(false);
-      console.log('[UI] Set bullseyeMode to false');
+      console.log('[UI] Processing layout placement at', position);
       try {
         console.log('[UI] addLayoutAtPosition via bullseye at', position);
         await spaceEditorRef.current?.addLayoutAtPosition?.(pendingLayout, position);
-        console.log('[UI] Layout import complete');
+        console.log('[UI] Layout import complete - resetting state');
+        
+        // Reset state after successful import
+        setBullseyeMode(false);
+        setPendingLayout(null);
+        setHasUnsavedChanges(true);
+        
         // Force exit bullseye mode in editor to ensure cleanup
         try {
           await spaceEditorRef.current?.exitBullseyeMode?.();
@@ -197,9 +202,12 @@ export default function SpaceEditPage() {
         } catch {}
       } catch (e) {
         console.error('[UI] Layout import failed:', e);
+        // Reset state even on failure
+        setBullseyeMode(false);
+        setPendingLayout(null);
       }
-      setPendingLayout(null);
-      setHasUnsavedChanges(true);
+    } else {
+      console.log('[UI] No pending layout to place');
     }
   };
 
