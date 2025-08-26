@@ -126,6 +126,7 @@ class EditorControls extends THREE.EventDispatcher {
 		function onPointerDown( event ) {
 
 			if ( scope.enabled === false ) return;
+			try { if (typeof window !== 'undefined' && window.bullseyeMode) { return; } } catch {}
 
 			if ( pointers.length === 0 ) {
 
@@ -205,6 +206,8 @@ class EditorControls extends THREE.EventDispatcher {
 
 		function onMouseDown( event ) {
 
+			try { if (typeof window !== 'undefined' && window.bullseyeMode) { state = STATE.NONE; return; } } catch {}
+
 			if ( event.button === 0 ) {
 
 				state = STATE.ROTATE;
@@ -224,6 +227,8 @@ class EditorControls extends THREE.EventDispatcher {
 		}
 
 		function onMouseMove( event ) {
+
+			try { if (typeof window !== 'undefined' && window.bullseyeMode) { pointerOld.set( event.clientX, event.clientY ); return; } } catch {}
 
 			pointer.set( event.clientX, event.clientY );
 
@@ -307,6 +312,8 @@ class EditorControls extends THREE.EventDispatcher {
 
 		function onTouchStart( event ) {
 
+			try { if (typeof window !== 'undefined' && window.bullseyeMode) { return; } } catch {}
+
 			trackPointer( event );
 
 			switch ( pointers.length ) {
@@ -334,6 +341,8 @@ class EditorControls extends THREE.EventDispatcher {
 
 
 		function onTouchMove( event ) {
+
+			try { if (typeof window !== 'undefined' && window.bullseyeMode) { return; } } catch {}
 
 			trackPointer( event );
 
