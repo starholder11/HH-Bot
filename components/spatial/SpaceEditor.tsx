@@ -164,6 +164,12 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
                 .catch((e) => {
                   console.error('[SpaceEditor] Layout import on bullseye placement failed:', e);
                   pendingLayoutRef.current = null; // Clear even on failure
+                })
+                .finally(() => {
+                  // Ensure parent UI (bullseye state) resets immediately after internal import
+                  try {
+                    callbacksRef.current.onBullseyeCancel?.();
+                  } catch {}
                 });
             }
           } catch (e) {
