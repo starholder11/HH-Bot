@@ -41,15 +41,15 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   const [spaceData, setSpaceData] = useState<any>(null);
   const [bullseyePosition, setBullseyePosition] = useState<[number, number]>([0, 0]);
   const bridgeRef = useRef<EditorBridge | null>(null);
-  const callbacksRef = useRef<{ onSceneChange?: (d:any)=>void; onSelectionChange?: (s:string[])=>void; onError?: (e:string)=>void }>({ onSceneChange, onSelectionChange, onError });
+  const callbacksRef = useRef<{ onSceneChange?: (d:any)=>void; onSelectionChange?: (s:string[])=>void; onError?: (e:string)=>void; onBullseyeCancel?: () => void }>({ onSceneChange, onSelectionChange, onError, onBullseyeCancel });
   const lastLoadedIdRef = useRef<string | null>(null);
   const pendingSaveRef = useRef<boolean>(false);
   const pendingLayoutRef = useRef<any>(null);
 
   // Keep latest callbacks without re-initializing the bridge
   useEffect(() => {
-    callbacksRef.current = { onSceneChange, onSelectionChange, onError };
-  }, [onSceneChange, onSelectionChange, onError]);
+    callbacksRef.current = { onSceneChange, onSelectionChange, onError, onBullseyeCancel };
+  }, [onSceneChange, onSelectionChange, onError, onBullseyeCancel]);
 
   // Expose methods to parent component will be set after function declarations
 
