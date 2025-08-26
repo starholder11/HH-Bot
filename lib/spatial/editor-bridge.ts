@@ -6,13 +6,13 @@
  */
 
 export interface EditorCommand {
-  type: 'load_scene' | 'export_scene' | 'clear_scene' | 'select_object' | 'transform_object';
+  type: 'load_scene' | 'export_scene' | 'clear_scene' | 'select_object' | 'transform_object' | 'enter_bullseye_mode' | 'exit_bullseye_mode';
   data: any;
   id?: string; // For tracking responses
 }
 
 export interface EditorMessage {
-  type: 'ready' | 'error' | 'scene_changed' | 'selection_changed' | 'object_added' | 'object_removed' | 'object_transformed' | 'scene_exported';
+  type: 'ready' | 'error' | 'scene_changed' | 'selection_changed' | 'object_added' | 'object_removed' | 'object_transformed' | 'scene_exported' | 'bullseye_placement' | 'bullseye_mode_entered' | 'bullseye_mode_exited';
   data: any;
   commandId?: string; // For correlating with commands
 }

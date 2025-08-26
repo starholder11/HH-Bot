@@ -299,6 +299,47 @@
 				requestAnimationFrame(tick);
 			}
 
+		// Bullseye mouse interaction functions (defined before initialization)
+		let bullseyeRaycaster = new THREE.Raycaster();
+		let bullseyeMouse = new THREE.Vector2();
+		let bullseyeGroundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+		function onBullseyeMouseMove(event) {
+			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
+
+			const rect = editor.renderer.domElement.getBoundingClientRect();
+			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
+			
+			const intersectPoint = new THREE.Vector3();
+			bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
+			
+			if (intersectPoint) {
+				window.bullseyeIndicator.position.x = intersectPoint.x;
+				window.bullseyeIndicator.position.z = intersectPoint.z;
+			}
+		}
+
+		function onBullseyeDoubleClick(event) {
+			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
+
+			const position = [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z];
+			console.log('Bullseye placement at:', position);
+			
+			// Send placement event to parent
+			send({ 
+				type: 'bullseye_placement', 
+				data: { position: position }
+			});
+			
+			// Exit bullseye mode
+			editor.scene.remove(window.bullseyeIndicator);
+			window.bullseyeIndicator = null;
+			window.bullseyeMode = false;
+		}
+
 		// Add timeout and error handling for storage initialization
 		let initTimeout = setTimeout(() => {
 			console.error('Editor storage initialization timed out, proceeding anyway');
@@ -900,48 +941,7 @@
 			}
 		});
 
-		// Bullseye mouse interaction
-		let bullseyeRaycaster = new THREE.Raycaster();
-		let bullseyeMouse = new THREE.Vector2();
-		let bullseyeGroundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-
-		function onBullseyeMouseMove(event) {
-			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
-
-			const rect = editor.renderer.domElement.getBoundingClientRect();
-			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
-
-			const intersectPoint = new THREE.Vector3();
-			bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
-
-			if (intersectPoint) {
-				window.bullseyeIndicator.position.x = intersectPoint.x;
-				window.bullseyeIndicator.position.z = intersectPoint.z;
-			}
-		}
-
-		function onBullseyeDoubleClick(event) {
-			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
-
-			const position = [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z];
-			console.log('Bullseye placement at:', position);
-
-			// Send placement event to parent
-			send({
-				type: 'bullseye_placement',
-				data: { position: position }
-			});
-
-			// Exit bullseye mode
-			editor.scene.remove(window.bullseyeIndicator);
-			window.bullseyeIndicator = null;
-			window.bullseyeMode = false;
-		}
-
-		// Event listeners will be added after editor initialization
+				// Event listeners will be added after editor initialization
 
 			//
 
