@@ -299,10 +299,29 @@
 				requestAnimationFrame(tick);
 			}
 
-		// Bullseye mouse interaction functions (defined before initialization)
+		// Bullseye drag interaction functions (defined before initialization)
 		let bullseyeRaycaster = new THREE.Raycaster();
 		let bullseyeMouse = new THREE.Vector2();
 		let bullseyeGroundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+		let isDraggingBullseye = false;
+
+		function onBullseyeMouseDown(event) {
+			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
+
+			// Check if we clicked on the bullseye
+			const rect = editor.renderer.domElement.getBoundingClientRect();
+			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
+			const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator);
+
+			if (intersects.length > 0) {
+				isDraggingBullseye = true;
+				editor.renderer.domElement.style.cursor = 'grabbing';
+				event.preventDefault();
+			}
+		}
 
 		function onBullseyeMouseMove(event) {
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
@@ -311,33 +330,67 @@
 			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
 			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
-			
-			const intersectPoint = new THREE.Vector3();
-			bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
-			
-			if (intersectPoint) {
-				window.bullseyeIndicator.position.x = intersectPoint.x;
-				window.bullseyeIndicator.position.z = intersectPoint.z;
+			if (isDraggingBullseye) {
+				// Drag the bullseye
+				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
+				
+				const intersectPoint = new THREE.Vector3();
+				bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
+				
+				if (intersectPoint) {
+					window.bullseyeIndicator.position.x = intersectPoint.x;
+					window.bullseyeIndicator.position.z = intersectPoint.z;
+				}
+			} else {
+				// Check if hovering over bullseye for cursor change
+				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
+				const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator);
+				
+				if (intersects.length > 0) {
+					editor.renderer.domElement.style.cursor = 'grab';
+				} else {
+					editor.renderer.domElement.style.cursor = 'default';
+				}
+			}
+		}
+
+		function onBullseyeMouseUp(event) {
+			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
+
+			if (isDraggingBullseye) {
+				isDraggingBullseye = false;
+				editor.renderer.domElement.style.cursor = 'default';
+				console.log('Bullseye positioned at:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z]);
 			}
 		}
 
 		function onBullseyeDoubleClick(event) {
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 
-			const position = [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z];
-			console.log('Bullseye placement at:', position);
-			
-			// Send placement event to parent
-			send({ 
-				type: 'bullseye_placement', 
-				data: { position: position }
-			});
-			
-			// Exit bullseye mode
-			editor.scene.remove(window.bullseyeIndicator);
-			window.bullseyeIndicator = null;
-			window.bullseyeMode = false;
+			// Check if we double-clicked on the bullseye
+			const rect = editor.renderer.domElement.getBoundingClientRect();
+			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
+			const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator);
+
+			if (intersects.length > 0) {
+				const position = [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z];
+				console.log('Bullseye placement at:', position);
+				
+				// Send placement event to parent
+				send({ 
+					type: 'bullseye_placement', 
+					data: { position: position }
+				});
+				
+				// Exit bullseye mode
+				editor.scene.remove(window.bullseyeIndicator);
+				window.bullseyeIndicator = null;
+				window.bullseyeMode = false;
+				editor.renderer.domElement.style.cursor = 'default';
+			}
 		}
 
 		// Add timeout and error handling for storage initialization
@@ -357,7 +410,9 @@
 
 			// Add bullseye event listeners after editor is ready
 			if (editor.renderer && editor.renderer.domElement) {
+				editor.renderer.domElement.addEventListener('mousedown', onBullseyeMouseDown);
 				editor.renderer.domElement.addEventListener('mousemove', onBullseyeMouseMove);
+				editor.renderer.domElement.addEventListener('mouseup', onBullseyeMouseUp);
 				editor.renderer.domElement.addEventListener('dblclick', onBullseyeDoubleClick);
 				console.log('Bullseye event listeners added');
 			}
@@ -913,7 +968,8 @@
 
 						// Enable bullseye mode
 						window.bullseyeMode = true;
-						console.log('Entered bullseye placement mode');
+						isDraggingBullseye = false; // Reset drag state
+						console.log('Entered bullseye placement mode at (0,0)');
 						send({ type: 'bullseye_mode_entered', data: { success: true }, commandId: command.id });
 					} catch (error) {
 						console.error('Failed to enter bullseye mode:', error);
