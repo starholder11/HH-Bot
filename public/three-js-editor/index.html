@@ -305,6 +305,19 @@
 		let bullseyeGroundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 		let isDraggingBullseye = false;
 
+		// Function to keep bullseye scale consistent regardless of camera distance
+		function updateBullseyeScale() {
+			if (!window.bullseyeIndicator || !editor.camera) return;
+			
+			// Calculate distance from camera to bullseye
+			const distance = editor.camera.position.distanceTo(window.bullseyeIndicator.position);
+			
+			// Scale the bullseye based on distance to maintain consistent screen size
+			const baseScale = 1.0;
+			const scaleFactor = Math.max(0.1, distance * 0.02); // Adjust multiplier as needed
+			window.bullseyeIndicator.scale.setScalar(scaleFactor);
+		}
+
 		function onBullseyeMouseDown(event) {
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 			try { event.preventDefault(); event.stopPropagation(); } catch {}
@@ -335,9 +348,18 @@
 				if (intersectPoint) {
 					window.bullseyeIndicator.position.x = intersectPoint.x;
 					window.bullseyeIndicator.position.z = intersectPoint.z;
+					updateBullseyeScale(); // Update scale after position change
+					console.log('Bullseye positioned at:', [intersectPoint.x, intersectPoint.z]);
 				}
 			} else {
-				viewport.dom.style.cursor = 'grab';
+				// Check if hovering over bullseye for cursor change
+				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
+				const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator, true);
+				if (intersects.length > 0) {
+					viewport.dom.style.cursor = 'grab';
+				} else {
+					viewport.dom.style.cursor = 'default';
+				}
 			}
 		}
 
@@ -382,7 +404,8 @@
 				viewport.dom.addEventListener('pointermove', onBullseyeMouseMove, { capture: true });
 				viewport.dom.addEventListener('pointerup', onBullseyeMouseUp, { capture: true });
 				viewport.dom.addEventListener('dblclick', onBullseyeDoubleClick, { capture: true });
-				// allow wheel zoom to pass through; do not capture wheel
+				// Listen for wheel events to update bullseye scale on zoom
+				viewport.dom.addEventListener('wheel', updateBullseyeScale, { passive: true });
 				bullseyeListenersAttached = true;
 				console.log('Bullseye listeners attached to viewport');
 			}
@@ -394,6 +417,7 @@
 				viewport.dom.removeEventListener('pointermove', onBullseyeMouseMove, { capture: true });
 				viewport.dom.removeEventListener('pointerup', onBullseyeMouseUp, { capture: true });
 				viewport.dom.removeEventListener('dblclick', onBullseyeDoubleClick, { capture: true });
+				viewport.dom.removeEventListener('wheel', updateBullseyeScale, { passive: true });
 				bullseyeListenersAttached = false;
 				console.log('Bullseye listeners detached from viewport');
 			}
@@ -986,6 +1010,7 @@
 
 							window.bullseyeIndicator = group;
 							editor.scene.add(window.bullseyeIndicator);
+							updateBullseyeScale(); // Set initial scale
 						}
 
 						// Enable bullseye mode
