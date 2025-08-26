@@ -22,6 +22,7 @@ export interface SpaceEditorRef {
   sendCommand: (command: any) => Promise<void>;
   enterBullseyeMode: () => Promise<void>;
   exitBullseyeMode: () => Promise<void>;
+  setPendingLayout: (layout: any) => void;
 }
 
 const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
@@ -745,7 +746,8 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     addLayoutAtPosition: async (layout: any, position: [number, number]) => { await addLayoutAtPosition(layout, position); },
     sendCommand: async (command: any) => { await sendCommand(command); },
     enterBullseyeMode: async () => { await enterBullseyeMode(); },
-    exitBullseyeMode: async () => { await exitBullseyeMode(); }
+    exitBullseyeMode: async () => { await exitBullseyeMode(); },
+    setPendingLayout: (layout: any) => { pendingLayoutRef.current = layout; }
   }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor, addLayoutAtPosition, sendCommand, enterBullseyeMode, exitBullseyeMode]);
 
   if (error) {

@@ -378,6 +378,8 @@ export default function SpaceEditPage() {
           onSelect={async (layout: any) => {
             setShowImportLayout(false);
             setPendingLayout(layout);
+            // Prime the editor with the layout so double-click imports immediately
+            try { spaceEditorRef.current?.setPendingLayout?.(layout); } catch {}
             setBullseyeMode(true);
             // Tell the editor to enter bullseye placement mode
             await spaceEditorRef.current?.enterBullseyeMode?.();
