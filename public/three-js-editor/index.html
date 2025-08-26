@@ -321,39 +321,65 @@
 		}
 
 		function onBullseyeMouseDown(event) {
-			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
+			if (!window.bullseyeMode || !window.bullseyeIndicator) {
+				console.log('Bullseye mousedown ignored: mode =', window.bullseyeMode, 'indicator =', !!window.bullseyeIndicator);
+				return;
+			}
 			try { event.preventDefault(); event.stopPropagation(); } catch {}
 
-			console.log('Bullseye mousedown event triggered');
+			console.log('Bullseye mousedown event triggered, pointerId:', event.pointerId);
 
-			// Only begin drag if pointer is on the bullseye
+			// Calculate mouse position in normalized device coordinates
 			const rect = viewport.dom.getBoundingClientRect();
 			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
 			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+			console.log('Mouse NDC:', bullseyeMouse.x, bullseyeMouse.y);
+
+			// In bullseye mode, any click should allow dragging the bullseye
+			// First check if we're clicking on the bullseye itself
 			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
 			const hit = bullseyeRaycaster.intersectObject(window.bullseyeIndicator, true);
+			console.log('Bullseye hit test:', hit.length > 0 ? 'HIT' : 'MISS', hit.length, 'intersections');
+			
+			// If not clicking on bullseye, move it to the click location first
 			if (!hit || hit.length === 0) {
-				return;
+				console.log('Click missed bullseye, moving bullseye to click location');
+				const planePoint = new THREE.Vector3();
+				const planeHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, planePoint);
+				if (planeHit && planePoint) {
+					window.bullseyeIndicator.position.x = planePoint.x;
+					window.bullseyeIndicator.position.z = planePoint.z;
+					updateBullseyeScale();
+					console.log('Moved bullseye to click location:', [planePoint.x, planePoint.z]);
+				}
 			}
 
 			// Compute ground-plane intersection to establish drag offset
 			const planePoint = new THREE.Vector3();
-			bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, planePoint);
+			const planeHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, planePoint);
+			console.log('Ground plane intersection:', planeHit, planePoint ? [planePoint.x, planePoint.z] : 'none');
+			
 			if (planePoint) {
 				bullseyeDragOffset.set(
 					window.bullseyeIndicator.position.x - planePoint.x,
 					0,
 					window.bullseyeIndicator.position.z - planePoint.z
 				);
+				console.log('Drag offset calculated:', [bullseyeDragOffset.x, bullseyeDragOffset.z]);
+			} else {
+				bullseyeDragOffset.set(0, 0, 0);
+				console.log('No plane intersection, using zero offset');
 			}
 
 			// Start drag
 			isDraggingBullseye = true;
 			bullseyeActivePointerId = event.pointerId ?? null;
+			console.log('Starting drag with pointerId:', bullseyeActivePointerId);
+			
 			try { if (viewport && viewport.dom && event.pointerId != null) viewport.dom.setPointerCapture(event.pointerId); } catch {}
 			try { if (editor && editor.controls) editor.controls.enabled = false; } catch {}
 			viewport.dom.style.cursor = 'grabbing';
-			console.log('Started dragging bullseye');
+			console.log('Bullseye drag started successfully');
 		}
 
 		function onBullseyeMouseMove(event) {
@@ -366,16 +392,21 @@
 
 			// Drag the bullseye if dragging
 			if (isDraggingBullseye && (bullseyeActivePointerId === null || bullseyeActivePointerId === event.pointerId)) {
+				console.log('Dragging bullseye, pointerId:', event.pointerId, 'active:', bullseyeActivePointerId);
 				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
 				const intersectPoint = new THREE.Vector3();
-				bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
-				if (intersectPoint) {
-					window.bullseyeIndicator.position.x = intersectPoint.x + bullseyeDragOffset.x;
-					window.bullseyeIndicator.position.z = intersectPoint.z + bullseyeDragOffset.z;
+				const planeHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
+				if (planeHit && intersectPoint) {
+					const newX = intersectPoint.x + bullseyeDragOffset.x;
+					const newZ = intersectPoint.z + bullseyeDragOffset.z;
+					window.bullseyeIndicator.position.x = newX;
+					window.bullseyeIndicator.position.z = newZ;
 					updateBullseyeScale(); // Update scale after position change
-					console.log('Bullseye positioned at:', [intersectPoint.x, intersectPoint.z]);
+					console.log('Bullseye moved to:', [newX, newZ], 'raw intersection:', [intersectPoint.x, intersectPoint.z]);
+				} else {
+					console.log('No ground plane intersection during drag');
 				}
-			} else {
+			} else if (!isDraggingBullseye) {
 				// Check if hovering over bullseye for cursor change
 				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
 				const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator, true);
@@ -391,13 +422,17 @@
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 			try { event.preventDefault(); event.stopPropagation(); } catch {}
 
+			console.log('Bullseye mouseup, isDragging:', isDraggingBullseye, 'pointerId:', event.pointerId, 'active:', bullseyeActivePointerId);
+
 			if (isDraggingBullseye && (bullseyeActivePointerId === null || bullseyeActivePointerId === event.pointerId)) {
 				isDraggingBullseye = false;
 				bullseyeActivePointerId = null;
 				viewport.dom.style.cursor = 'grab';
-				console.log('Bullseye positioned at:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z]);
+				console.log('Drag ended. Bullseye final position:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z]);
 				try { if (viewport && viewport.dom && event.pointerId != null) viewport.dom.releasePointerCapture(event.pointerId); } catch {}
 				try { if (editor && editor.controls) editor.controls.enabled = true; } catch {}
+			} else {
+				console.log('Mouseup ignored - not dragging or wrong pointer');
 			}
 		}
 
@@ -999,49 +1034,65 @@
 
 				case 'enter_bullseye_mode':
 					try {
+						console.log('Creating bullseye indicator...');
 						// Create bullseye indicator
 						if (!window.bullseyeIndicator) {
 							// Create a more visible bullseye with both ring and center
 							const group = new THREE.Group();
 
-							// Outer ring
-							const ringGeometry = new THREE.RingGeometry(0.8, 1.0, 16);
+							// Outer ring - make it bigger and more visible
+							const ringGeometry = new THREE.RingGeometry(1.2, 1.5, 32);
 							const ringMaterial = new THREE.MeshBasicMaterial({
-								color: 0xff4444,
+								color: 0xff0000,
 								side: THREE.DoubleSide,
 								transparent: true,
-								opacity: 0.8,
+								opacity: 0.9,
 								depthTest: false
 							});
+							ringMaterial.renderOrder = 10;
 							const ring = new THREE.Mesh(ringGeometry, ringMaterial);
 
-							// Inner circle for easier clicking
-							const circleGeometry = new THREE.CircleGeometry(0.8, 16);
+							// Inner circle for easier clicking - make it bigger
+							const circleGeometry = new THREE.CircleGeometry(1.2, 32);
 							const circleMaterial = new THREE.MeshBasicMaterial({
-								color: 0xff4444,
+								color: 0xff0000,
 								side: THREE.DoubleSide,
 								transparent: true,
-								opacity: 0.3,
+								opacity: 0.4,
 								depthTest: false
 							});
+							circleMaterial.renderOrder = 10;
 							const circle = new THREE.Mesh(circleGeometry, circleMaterial);
 
 							group.add(ring);
 							group.add(circle);
 							group.rotation.x = -Math.PI / 2; // Lay flat on ground
-							group.position.set(0, 0.05, 0); // Slightly above ground
+							group.position.set(0, 0.1, 0); // Higher above ground for visibility
 							group.renderOrder = 10;
 							group.userData.ignoreSave = true; // Don't save with scene
+
+							console.log('Bullseye group created with', group.children.length, 'children');
+							console.log('Ring geometry:', ringGeometry);
+							console.log('Circle geometry:', circleGeometry);
 
 							window.bullseyeIndicator = group;
 							editor.scene.add(window.bullseyeIndicator);
 							updateBullseyeScale(); // Set initial scale
+							
+							console.log('Bullseye added to scene at position:', group.position);
+							console.log('Bullseye scale:', group.scale);
+						} else {
+							console.log('Bullseye indicator already exists');
 						}
 
 						// Enable bullseye mode
 						window.bullseyeMode = true;
 						isDraggingBullseye = false; // Reset drag state
+						bullseyeActivePointerId = null; // Reset pointer tracking
 						console.log('Entered bullseye placement mode at (0,0)');
+						console.log('Bullseye mode enabled:', window.bullseyeMode);
+						console.log('Bullseye indicator exists:', !!window.bullseyeIndicator);
+						
 						attachBullseyeListeners();
 						try { if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch(); } catch {}
 						send({ type: 'bullseye_mode_entered', data: { success: true }, commandId: command.id });
