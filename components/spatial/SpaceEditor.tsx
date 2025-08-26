@@ -425,7 +425,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
 
   const addLayoutToEditor = async (layout: any) => {
     const items = layout?.layout_data?.items || [];
-    const scale = 0.1; // Increased scale for better visibility
+    const scale = 0.5; // Larger scale so imported layouts match prior sizing
     const spacing = 3; // Space between items
 
     for (let i = 0; i < items.length; i++) {
@@ -620,7 +620,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   // Bullseye placement methods
   const addLayoutAtPosition = async (layout: any, position: [number, number]) => {
     const items = layout?.layout_data?.items || [];
-    const scale = 0.1;
+    const scale = 0.5; // Match addLayoutToEditor sizing
     const [offsetX, offsetZ] = position;
 
     for (let i = 0; i < items.length; i++) {
