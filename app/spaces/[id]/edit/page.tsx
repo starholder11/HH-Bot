@@ -27,7 +27,7 @@ export default function SpaceEditPage() {
   // Import modal states
   const [showImportAsset, setShowImportAsset] = useState(false);
   const [showImportLayout, setShowImportLayout] = useState(false);
-  
+
   // Bullseye placement states
   const [bullseyeMode, setBullseyeMode] = useState(false);
   const [pendingLayout, setPendingLayout] = useState<any>(null);
@@ -249,7 +249,7 @@ export default function SpaceEditPage() {
               </button>
             </div>
           )}
-          
+
           {/* Actions */}
           <button
             className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
@@ -379,7 +379,7 @@ export default function SpaceEditPage() {
         />
       )}
 
-      
+
       </div>
     </div>
   );

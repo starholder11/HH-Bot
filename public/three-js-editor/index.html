@@ -850,8 +850,8 @@
 						// Create bullseye indicator
 						if (!window.bullseyeIndicator) {
 							const geometry = new THREE.RingGeometry(0.8, 1.0, 16);
-							const material = new THREE.MeshBasicMaterial({ 
-								color: 0xff4444, 
+							const material = new THREE.MeshBasicMaterial({
+								color: 0xff4444,
 								side: THREE.DoubleSide,
 								transparent: true,
 								opacity: 0.8
@@ -862,7 +862,7 @@
 							window.bullseyeIndicator.userData.ignoreSave = true; // Don't save with scene
 							editor.scene.add(window.bullseyeIndicator);
 						}
-						
+
 						// Enable bullseye mode
 						window.bullseyeMode = true;
 						console.log('Entered bullseye placement mode');
@@ -880,7 +880,7 @@
 							editor.scene.remove(window.bullseyeIndicator);
 							window.bullseyeIndicator = null;
 						}
-						
+
 						// Disable bullseye mode
 						window.bullseyeMode = false;
 						console.log('Exited bullseye placement mode');
@@ -906,10 +906,10 @@
 			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
 			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
-			
+
 			const intersectPoint = new THREE.Vector3();
 			bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
-			
+
 			if (intersectPoint) {
 				window.bullseyeIndicator.position.x = intersectPoint.x;
 				window.bullseyeIndicator.position.z = intersectPoint.z;
@@ -921,13 +921,13 @@
 
 			const position = [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z];
 			console.log('Bullseye placement at:', position);
-			
+
 			// Send placement event to parent
-			send({ 
-				type: 'bullseye_placement', 
+			send({
+				type: 'bullseye_placement',
 				data: { position: position }
 			});
-			
+
 			// Exit bullseye mode
 			editor.scene.remove(window.bullseyeIndicator);
 			window.bullseyeIndicator = null;

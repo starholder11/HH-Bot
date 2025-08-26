@@ -38,9 +38,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [spaceData, setSpaceData] = useState<any>(null);
-  const [bullseyeMode, setBullseyeMode] = useState(false);
   const [bullseyePosition, setBullseyePosition] = useState<[number, number]>([0, 0]);
-  const [pendingLayout, setPendingLayout] = useState<any>(null);
   const bridgeRef = useRef<EditorBridge | null>(null);
   const callbacksRef = useRef<{ onSceneChange?: (d:any)=>void; onSelectionChange?: (s:string[])=>void; onError?: (e:string)=>void }>({ onSceneChange, onSelectionChange, onError });
   const lastLoadedIdRef = useRef<string | null>(null);
@@ -279,7 +277,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     const assetType = (asset.content_type || asset.type || 'unknown').toLowerCase();
     const id = asset.id || `asset-${Date.now()}`;
     const color = assetType.includes('image') ? 0x3b82f6 : assetType.includes('video') ? 0xef4444 : 0x6b7280;
-    
+
     // Use the same logic as visual search to extract media URL
     const originalMediaUrl = (
       (asset.metadata?.cloudflare_url as string | undefined) ||
