@@ -407,7 +407,7 @@
 				const deltaScreenY = event.clientY - bullseyeLastScreenPos.y;
 
 				// Convert screen movement to world movement (much smaller scaling)
-				const sensitivity = 0.01; // Much smaller sensitivity for controlled movement
+				const sensitivity = 0.05; // 5x faster movement
 				const worldDeltaX = deltaScreenX * sensitivity;
 				const worldDeltaZ = deltaScreenY * sensitivity; // Y screen movement affects Z world movement
 
