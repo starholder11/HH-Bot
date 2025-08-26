@@ -308,17 +308,22 @@
 		function onBullseyeMouseDown(event) {
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 
+			console.log('Bullseye mousedown event triggered');
+
 			// Check if we clicked on the bullseye
 			const rect = editor.renderer.domElement.getBoundingClientRect();
 			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
 			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
 			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
-			const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator);
+			const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator, true);
+
+			console.log('Bullseye intersects:', intersects.length);
 
 			if (intersects.length > 0) {
 				isDraggingBullseye = true;
 				editor.renderer.domElement.style.cursor = 'grabbing';
+				console.log('Started dragging bullseye');
 				event.preventDefault();
 			}
 		}
@@ -344,7 +349,7 @@
 			} else {
 				// Check if hovering over bullseye for cursor change
 				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
-				const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator);
+				const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator, true);
 				
 				if (intersects.length > 0) {
 					editor.renderer.domElement.style.cursor = 'grab';
@@ -367,13 +372,17 @@
 		function onBullseyeDoubleClick(event) {
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 
+			console.log('Bullseye double-click event triggered');
+
 			// Check if we double-clicked on the bullseye
 			const rect = editor.renderer.domElement.getBoundingClientRect();
 			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
 			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
 			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
-			const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator);
+			const intersects = bullseyeRaycaster.intersectObject(window.bullseyeIndicator, true);
+
+			console.log('Bullseye double-click intersects:', intersects.length);
 
 			if (intersects.length > 0) {
 				const position = [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z];
@@ -952,17 +961,36 @@
 					try {
 						// Create bullseye indicator
 						if (!window.bullseyeIndicator) {
-							const geometry = new THREE.RingGeometry(0.8, 1.0, 16);
-							const material = new THREE.MeshBasicMaterial({
+							// Create a more visible bullseye with both ring and center
+							const group = new THREE.Group();
+							
+							// Outer ring
+							const ringGeometry = new THREE.RingGeometry(0.8, 1.0, 16);
+							const ringMaterial = new THREE.MeshBasicMaterial({
 								color: 0xff4444,
 								side: THREE.DoubleSide,
 								transparent: true,
 								opacity: 0.8
 							});
-							window.bullseyeIndicator = new THREE.Mesh(geometry, material);
-							window.bullseyeIndicator.rotation.x = -Math.PI / 2; // Lay flat on ground
-							window.bullseyeIndicator.position.set(0, 0.01, 0); // Slightly above ground
-							window.bullseyeIndicator.userData.ignoreSave = true; // Don't save with scene
+							const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+							
+							// Inner circle for easier clicking
+							const circleGeometry = new THREE.CircleGeometry(0.8, 16);
+							const circleMaterial = new THREE.MeshBasicMaterial({
+								color: 0xff4444,
+								side: THREE.DoubleSide,
+								transparent: true,
+								opacity: 0.3
+							});
+							const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+							
+							group.add(ring);
+							group.add(circle);
+							group.rotation.x = -Math.PI / 2; // Lay flat on ground
+							group.position.set(0, 0.01, 0); // Slightly above ground
+							group.userData.ignoreSave = true; // Don't save with scene
+							
+							window.bullseyeIndicator = group;
 							editor.scene.add(window.bullseyeIndicator);
 						}
 

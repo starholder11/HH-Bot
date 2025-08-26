@@ -150,6 +150,12 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           console.log('[SpaceEditor] Bullseye placement at:', message.data.position);
           onBullseyePlacement?.(message.data.position);
           break;
+        case 'bullseye_mode_entered':
+          console.log('[SpaceEditor] Bullseye mode entered successfully');
+          break;
+        case 'bullseye_mode_exited':
+          console.log('[SpaceEditor] Bullseye mode exited successfully');
+          break;
         default:
           console.log('Unknown editor message:', message);
       }
