@@ -314,6 +314,13 @@
 			// Clear any cached scene data
 			editor.clear();
 
+			// Add bullseye event listeners after editor is ready
+			if (editor.renderer && editor.renderer.domElement) {
+				editor.renderer.domElement.addEventListener('mousemove', onBullseyeMouseMove);
+				editor.renderer.domElement.addEventListener('dblclick', onBullseyeDoubleClick);
+				console.log('Bullseye event listeners added');
+			}
+
 			console.log('Three.js Editor initialized successfully');
 			try { window.parent.postMessage({ type: 'ready' }, '*'); } catch (e) {}
 		}
@@ -934,9 +941,7 @@
 			window.bullseyeMode = false;
 		}
 
-		// Add event listeners
-		editor.renderer.domElement.addEventListener('mousemove', onBullseyeMouseMove);
-		editor.renderer.domElement.addEventListener('dblclick', onBullseyeDoubleClick);
+		// Event listeners will be added after editor initialization
 
 			//
 
