@@ -365,9 +365,9 @@
 				const planePoint = new THREE.Vector3();
 				const planeHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, planePoint);
 				if (planeHit && planePoint) {
-					// Constrain bullseye to reasonable grid area (within -100 to +100)
-					const constrainedX = Math.max(-100, Math.min(100, planePoint.x));
-					const constrainedZ = Math.max(-100, Math.min(100, planePoint.z));
+					// Constrain bullseye to visible grid area (within -50 to +50)
+					const constrainedX = Math.max(-50, Math.min(50, planePoint.x));
+					const constrainedZ = Math.max(-50, Math.min(50, planePoint.z));
 					
 					window.bullseyeIndicator.position.x = constrainedX;
 					window.bullseyeIndicator.position.z = constrainedZ;
@@ -420,17 +420,22 @@
 				const intersectPoint = new THREE.Vector3();
 				const planeHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
 				if (planeHit && intersectPoint) {
-					const newX = intersectPoint.x + bullseyeDragOffset.x;
-					const newZ = intersectPoint.z + bullseyeDragOffset.z;
+					// Apply sensitivity multiplier to reduce movement speed
+					const sensitivity = 0.1; // Reduce movement to 10% of raw intersection
+					const deltaX = (intersectPoint.x + bullseyeDragOffset.x - window.bullseyeIndicator.position.x) * sensitivity;
+					const deltaZ = (intersectPoint.z + bullseyeDragOffset.z - window.bullseyeIndicator.position.z) * sensitivity;
 					
-					// Constrain bullseye to reasonable grid area (within -100 to +100)
-					const constrainedX = Math.max(-100, Math.min(100, newX));
-					const constrainedZ = Math.max(-100, Math.min(100, newZ));
+					const newX = window.bullseyeIndicator.position.x + deltaX;
+					const newZ = window.bullseyeIndicator.position.z + deltaZ;
+					
+					// Constrain bullseye to visible grid area (within -50 to +50)
+					const constrainedX = Math.max(-50, Math.min(50, newX));
+					const constrainedZ = Math.max(-50, Math.min(50, newZ));
 					
 					window.bullseyeIndicator.position.x = constrainedX;
 					window.bullseyeIndicator.position.z = constrainedZ;
 					updateBullseyeScale(); // Update scale after position change (includes render)
-					console.log('Bullseye moved to:', [constrainedX, constrainedZ], 'raw intersection:', [intersectPoint.x, intersectPoint.z], 'unconstrained:', [newX, newZ]);
+					console.log('Bullseye moved to:', [constrainedX, constrainedZ], 'delta:', [deltaX, deltaZ], 'raw intersection:', [intersectPoint.x, intersectPoint.z]);
 				} else {
 					console.log('No ground plane intersection during drag');
 				}
