@@ -308,6 +308,7 @@
 		function onBullseyeMouseDown(event) {
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 			try { event.preventDefault(); event.stopPropagation(); } catch {}
+			try { if (editor && editor.controls) editor.controls.enabled = false; } catch {}
 
 			console.log('Bullseye mousedown event triggered');
 
@@ -359,6 +360,7 @@
 				isDraggingBullseye = false;
 				viewport.dom.style.cursor = 'grab';
 				console.log('Bullseye positioned at:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z]);
+				try { if (editor && editor.controls) editor.controls.enabled = false; } catch {}
 			}
 		}
 
@@ -376,6 +378,7 @@
 			window.bullseyeIndicator = null;
 			window.bullseyeMode = false;
 			viewport.dom.style.cursor = 'default';
+			try { if (editor && editor.controls) editor.controls.enabled = true; } catch {}
 			// Detach listeners after placement
 			try { detachBullseyeListeners(); } catch {}
 		}
@@ -389,6 +392,7 @@
 				viewport.dom.addEventListener('mousemove', onBullseyeMouseMove, { capture: true });
 				viewport.dom.addEventListener('mouseup', onBullseyeMouseUp, { capture: true });
 				viewport.dom.addEventListener('dblclick', onBullseyeDoubleClick, { capture: true });
+				// allow wheel zoom to pass through; do not capture wheel
 				bullseyeListenersAttached = true;
 				console.log('Bullseye listeners attached to viewport');
 			}

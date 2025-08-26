@@ -103,6 +103,8 @@ export class EditorBridge {
       case 'scene_exported':
       case 'scene_loaded':
       case 'object_added_success':
+      case 'bullseye_mode_entered':
+      case 'bullseye_mode_exited':
         // Handle command response
         if (message.commandId) {
           this.resolveCommand(message.commandId, message.data);
