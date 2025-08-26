@@ -207,7 +207,9 @@ export default function SpaceEditPage() {
         setPendingLayout(null);
       }
     } else {
-      console.log('[UI] No pending layout to place');
+      console.log('[UI] No pending layout to place (likely handled by SpaceEditor)');
+      // Still reset bullseye mode even if no pending layout
+      setBullseyeMode(false);
     }
   };
 

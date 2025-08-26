@@ -150,10 +150,12 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         case 'bullseye_placement':
           // Handle bullseye placement from editor
           console.log('[SpaceEditor] Bullseye placement at:', message.data.position);
+          let importHandled = false;
           try {
             // Opportunistically import layout here if pending, in addition to notifying parent
             if (pendingLayoutRef?.current && addLayoutAtPosition) {
               console.log('[SpaceEditor] Importing pending layout at position', message.data.position);
+              importHandled = true;
               addLayoutAtPosition(pendingLayoutRef.current, message.data.position)
                 .then(() => { 
                   console.log('[SpaceEditor] Layout import complete, clearing pending layout');
@@ -168,7 +170,12 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
             console.error('[SpaceEditor] Layout import on bullseye placement failed (sync):', e);
             pendingLayoutRef.current = null; // Clear even on failure
           }
-          onBullseyePlacement?.(message.data.position);
+          // Only notify parent if we didn't handle the import ourselves
+          if (!importHandled) {
+            onBullseyePlacement?.(message.data.position);
+          } else {
+            console.log('[SpaceEditor] Skipping parent notification since import was handled internally');
+          }
           break;
         case 'bullseye_mode_entered':
           console.log('[SpaceEditor] Bullseye mode entered successfully');
