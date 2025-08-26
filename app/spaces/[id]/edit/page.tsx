@@ -166,9 +166,13 @@ export default function SpaceEditPage() {
   };
 
   const handleBullseyeCancel = () => {
-    setBullseyeMode(false);
+    // Idempotent cancel: if we're not in bullseye mode, do nothing
+    setBullseyeMode((prev) => {
+      if (!prev) return prev;
+      try { spaceEditorRef.current?.exitBullseyeMode?.(); } catch {}
+      return false;
+    });
     setPendingLayout(null);
-    spaceEditorRef.current?.exitBullseyeMode?.();
   };
 
   // Removed editor switching - using only Three.js Editor

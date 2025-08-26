@@ -23,7 +23,7 @@ export default function LayoutImportModal({ onClose, onSelect }: LayoutImportMod
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch('/api/layouts');
+      const response = await fetch('/api/layouts', { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch layouts');
 
       const data = await response.json();

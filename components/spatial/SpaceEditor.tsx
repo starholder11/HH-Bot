@@ -168,6 +168,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           break;
         case 'bullseye_mode_exited':
           console.log('[SpaceEditor] Bullseye mode exited successfully');
+          try {
+            callbacksRef.current.onBullseyeCancel?.();
+          } catch {}
           break;
         default:
           console.log('Unknown editor message:', message);
