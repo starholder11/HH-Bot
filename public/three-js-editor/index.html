@@ -304,8 +304,8 @@
 		let bullseyeMouse = new THREE.Vector2();
 		let bullseyeGroundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 		let isDraggingBullseye = false;
-		let bullseyeDragOffset = new THREE.Vector3(0, 0, 0);
 		let bullseyeActivePointerId = null;
+		let bullseyeLastScreenPos = { x: 0, y: 0 };
 
 		// Function to keep bullseye scale consistent regardless of camera distance
 		function updateBullseyeScale() {
@@ -377,22 +377,9 @@
 				}
 			}
 
-			// Compute ground-plane intersection to establish drag offset
-			const planePoint = new THREE.Vector3();
-			const planeHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, planePoint);
-			console.log('Ground plane intersection:', planeHit, planePoint ? [planePoint.x, planePoint.z] : 'none');
-			
-			if (planePoint) {
-				bullseyeDragOffset.set(
-					window.bullseyeIndicator.position.x - planePoint.x,
-					0,
-					window.bullseyeIndicator.position.z - planePoint.z
-				);
-				console.log('Drag offset calculated:', [bullseyeDragOffset.x, bullseyeDragOffset.z]);
-			} else {
-				bullseyeDragOffset.set(0, 0, 0);
-				console.log('No plane intersection, using zero offset');
-			}
+			// Store screen position for drag calculation
+			bullseyeLastScreenPos.x = event.clientX;
+			bullseyeLastScreenPos.y = event.clientY;
 
 			// Start drag
 			isDraggingBullseye = true;
@@ -416,29 +403,33 @@
 			// Drag the bullseye if dragging
 			if (isDraggingBullseye && (bullseyeActivePointerId === null || bullseyeActivePointerId === event.pointerId)) {
 				console.log('Dragging bullseye, pointerId:', event.pointerId, 'active:', bullseyeActivePointerId);
-				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
-				const intersectPoint = new THREE.Vector3();
-				const planeHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
-				if (planeHit && intersectPoint) {
-					// Apply sensitivity multiplier to reduce movement speed
-					const sensitivity = 0.1; // Reduce movement to 10% of raw intersection
-					const deltaX = (intersectPoint.x + bullseyeDragOffset.x - window.bullseyeIndicator.position.x) * sensitivity;
-					const deltaZ = (intersectPoint.z + bullseyeDragOffset.z - window.bullseyeIndicator.position.z) * sensitivity;
-					
-					const newX = window.bullseyeIndicator.position.x + deltaX;
-					const newZ = window.bullseyeIndicator.position.z + deltaZ;
-					
-					// Constrain bullseye to visible grid area (within -50 to +50)
-					const constrainedX = Math.max(-50, Math.min(50, newX));
-					const constrainedZ = Math.max(-50, Math.min(50, newZ));
-					
-					window.bullseyeIndicator.position.x = constrainedX;
-					window.bullseyeIndicator.position.z = constrainedZ;
-					updateBullseyeScale(); // Update scale after position change (includes render)
-					console.log('Bullseye moved to:', [constrainedX, constrainedZ], 'delta:', [deltaX, deltaZ], 'raw intersection:', [intersectPoint.x, intersectPoint.z]);
-				} else {
-					console.log('No ground plane intersection during drag');
-				}
+				
+				// Calculate screen-space movement
+				const deltaScreenX = event.clientX - bullseyeLastScreenPos.x;
+				const deltaScreenY = event.clientY - bullseyeLastScreenPos.y;
+				
+				// Convert screen movement to world movement (simple scaling)
+				const sensitivity = 0.05; // Adjust this to control drag sensitivity
+				const worldDeltaX = deltaScreenX * sensitivity;
+				const worldDeltaZ = deltaScreenY * sensitivity; // Y screen movement affects Z world movement
+				
+				// Update bullseye position
+				const newX = window.bullseyeIndicator.position.x + worldDeltaX;
+				const newZ = window.bullseyeIndicator.position.z + worldDeltaZ;
+				
+				// Constrain bullseye to visible grid area (within -50 to +50)
+				const constrainedX = Math.max(-50, Math.min(50, newX));
+				const constrainedZ = Math.max(-50, Math.min(50, newZ));
+				
+				window.bullseyeIndicator.position.x = constrainedX;
+				window.bullseyeIndicator.position.z = constrainedZ;
+				
+				// Update last screen position
+				bullseyeLastScreenPos.x = event.clientX;
+				bullseyeLastScreenPos.y = event.clientY;
+				
+				updateBullseyeScale(); // Update scale after position change (includes render)
+				console.log('Bullseye moved to:', [constrainedX, constrainedZ], 'screen delta:', [deltaScreenX, deltaScreenY], 'world delta:', [worldDeltaX, worldDeltaZ]);
 			} else if (!isDraggingBullseye) {
 				// Check if hovering over bullseye for cursor change
 				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
