@@ -305,7 +305,9 @@
 		let bullseyeGroundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 		let isDraggingBullseye = false;
 		let bullseyeActivePointerId = null;
-		let bullseyeLastScreenPos = { x: 0, y: 0 };
+		let bullseyeDragStartWorld = new THREE.Vector3();
+		let bullseyeStartPosWorld = new THREE.Vector3();
+		let bullseyeDragOffsetWorld = new THREE.Vector3();
 
 		// Function to keep bullseye scale consistent regardless of camera distance
 		function updateBullseyeScale() {
@@ -373,9 +375,18 @@
 				}
 			}
 
-			// Store screen position for drag calculation
-			bullseyeLastScreenPos.x = event.clientX;
-			bullseyeLastScreenPos.y = event.clientY;
+			// Establish world anchors for stable drag
+			const startIntersect = new THREE.Vector3();
+			const startHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, startIntersect);
+			if (startHit) {
+				bullseyeDragStartWorld.copy(startIntersect);
+				bullseyeStartPosWorld.copy(window.bullseyeIndicator.position);
+				bullseyeDragOffsetWorld.set(
+					window.bullseyeIndicator.position.x - startIntersect.x,
+					0,
+					window.bullseyeIndicator.position.z - startIntersect.z
+				);
+			}
 
 			// Start drag
 			isDraggingBullseye = true;
@@ -400,23 +411,15 @@
 			if (isDraggingBullseye && (bullseyeActivePointerId === null || bullseyeActivePointerId === event.pointerId)) {
 				console.log('Dragging bullseye, pointerId:', event.pointerId, 'active:', bullseyeActivePointerId);
 
-				// Calculate screen-space movement
-				const deltaScreenX = event.clientX - bullseyeLastScreenPos.x;
-				const deltaScreenY = event.clientY - bullseyeLastScreenPos.y;
+				// Raycast to ground plane to get current cursor world point
+				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
+				const currentIntersect = new THREE.Vector3();
+				const currentHit = bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, currentIntersect);
+				if (!currentHit) return;
 
-				// Convert screen movement to world movement (much smaller scaling)
-				// Scale movement by camera distance so drag speed stays consistent across zoom levels
-				const baseSensitivity = 0.15; // tuned for comfortable speed at default zoom
-				const distance = editor.camera.position.distanceTo(window.bullseyeIndicator.position);
-				const distanceScale = Math.max(0.5, distance * 0.1); // clamp a bit to avoid tiny movement up close
-				const worldDeltaX = deltaScreenX * baseSensitivity * distanceScale;
-				const worldDeltaZ = deltaScreenY * baseSensitivity * distanceScale; // Y screen movement affects Z world movement
-
-				// Update bullseye position
-				const newX = window.bullseyeIndicator.position.x + worldDeltaX;
-				const newZ = window.bullseyeIndicator.position.z + worldDeltaZ;
-
-				// Move freely across the grid without clamping
+				// Stable drag: position = startPos + (currentWorld - startWorld), with initial offset preserved
+				const newX = bullseyeStartPosWorld.x + (currentIntersect.x - bullseyeDragStartWorld.x) + bullseyeDragOffsetWorld.x;
+				const newZ = bullseyeStartPosWorld.z + (currentIntersect.z - bullseyeDragStartWorld.z) + bullseyeDragOffsetWorld.z;
 				window.bullseyeIndicator.position.x = newX;
 				window.bullseyeIndicator.position.z = newZ;
 				
@@ -424,12 +427,8 @@
 				try { if (editor && editor.signals && editor.signals.objectChanged) editor.signals.objectChanged.dispatch(window.bullseyeIndicator); } catch {}
 				try { forceRender(); } catch {}
 				
-				// Update last screen position
-				bullseyeLastScreenPos.x = event.clientX;
-				bullseyeLastScreenPos.y = event.clientY;
-
 				updateBullseyeScale(); // Update scale after position change (includes render)
-				console.log('Bullseye moved to:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z], 'screen delta:', [deltaScreenX, deltaScreenY], 'world delta:', [worldDeltaX, worldDeltaZ]);
+				console.log('Bullseye moved to:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z]);
 			} else if (!isDraggingBullseye) {
 				// Check if hovering over bullseye for cursor change
 				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
