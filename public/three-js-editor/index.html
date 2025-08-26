@@ -973,7 +973,8 @@
 								color: 0xff4444,
 								side: THREE.DoubleSide,
 								transparent: true,
-								opacity: 0.8
+								opacity: 0.8,
+								depthTest: false
 							});
 							const ring = new THREE.Mesh(ringGeometry, ringMaterial);
 
@@ -983,14 +984,16 @@
 								color: 0xff4444,
 								side: THREE.DoubleSide,
 								transparent: true,
-								opacity: 0.3
+								opacity: 0.3,
+								depthTest: false
 							});
 							const circle = new THREE.Mesh(circleGeometry, circleMaterial);
 
 							group.add(ring);
 							group.add(circle);
 							group.rotation.x = -Math.PI / 2; // Lay flat on ground
-							group.position.set(0, 0.01, 0); // Slightly above ground
+							group.position.set(0, 0.05, 0); // Slightly above ground
+							group.renderOrder = 10;
 							group.userData.ignoreSave = true; // Don't save with scene
 
 							window.bullseyeIndicator = group;
@@ -1002,6 +1005,7 @@
 						isDraggingBullseye = false; // Reset drag state
 						console.log('Entered bullseye placement mode at (0,0)');
 						attachBullseyeListeners();
+						try { if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch(); } catch {}
 						send({ type: 'bullseye_mode_entered', data: { success: true }, commandId: command.id });
 					} catch (error) {
 						console.error('Failed to enter bullseye mode:', error);
