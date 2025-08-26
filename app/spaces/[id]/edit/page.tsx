@@ -32,6 +32,37 @@ export default function SpaceEditPage() {
   const [bullseyeMode, setBullseyeMode] = useState(false);
   const [pendingLayout, setPendingLayout] = useState<any>(null);
 
+  // Debug: Track bullseye mode changes
+  useEffect(() => {
+    console.log('[UI] bullseyeMode changed to:', bullseyeMode);
+  }, [bullseyeMode]);
+
+  // Fallback: Reset bullseye mode if it gets stuck
+  const forceResetBullseyeMode = () => {
+    console.log('[UI] Force resetting bullseye mode');
+    setBullseyeMode(false);
+    setPendingLayout(null);
+    try {
+      spaceEditorRef.current?.exitBullseyeMode?.();
+    } catch {}
+  };
+
+  // Auto-reset bullseye mode after timeout to prevent getting stuck
+  useEffect(() => {
+    if (bullseyeMode) {
+      console.log('[UI] Starting bullseye mode timeout (30s)');
+      const timeout = setTimeout(() => {
+        console.log('[UI] Bullseye mode timeout reached, auto-resetting');
+        forceResetBullseyeMode();
+      }, 30000); // 30 second timeout
+
+      return () => {
+        console.log('[UI] Clearing bullseye mode timeout');
+        clearTimeout(timeout);
+      };
+    }
+  }, [bullseyeMode]);
+
   // Load space data on mount
   useEffect(() => {
     loadSpaceData();
@@ -151,12 +182,19 @@ export default function SpaceEditPage() {
   };
 
   const handleBullseyePlacement = async (position: [number, number]) => {
+    console.log('[UI] handleBullseyePlacement called, bullseyeMode:', bullseyeMode, 'pendingLayout:', !!pendingLayout);
     if (pendingLayout) {
       setBullseyeMode(false);
+      console.log('[UI] Set bullseyeMode to false');
       try {
         console.log('[UI] addLayoutAtPosition via bullseye at', position);
         await spaceEditorRef.current?.addLayoutAtPosition?.(pendingLayout, position);
         console.log('[UI] Layout import complete');
+        // Force exit bullseye mode in editor to ensure cleanup
+        try {
+          await spaceEditorRef.current?.exitBullseyeMode?.();
+          console.log('[UI] Forced editor bullseye mode exit');
+        } catch {}
       } catch (e) {
         console.error('[UI] Layout import failed:', e);
       }
@@ -166,9 +204,14 @@ export default function SpaceEditPage() {
   };
 
   const handleBullseyeCancel = () => {
+    console.log('[UI] handleBullseyeCancel called, current bullseyeMode:', bullseyeMode);
     // Idempotent cancel: if we're not in bullseye mode, do nothing
     setBullseyeMode((prev) => {
-      if (!prev) return prev;
+      if (!prev) {
+        console.log('[UI] Already not in bullseye mode, no action needed');
+        return prev;
+      }
+      console.log('[UI] Exiting bullseye mode');
       try { spaceEditorRef.current?.exitBullseyeMode?.(); } catch {}
       return false;
     });
@@ -257,6 +300,13 @@ export default function SpaceEditPage() {
               >
                 Cancel
               </button>
+              <button
+                onClick={forceResetBullseyeMode}
+                className="ml-1 px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
+                title="Force reset if stuck"
+              >
+                Reset
+              </button>
             </div>
           )}
 
@@ -270,7 +320,15 @@ export default function SpaceEditPage() {
           </button>
           <button
             className="px-3 py-1.5 text-xs rounded bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
-            onClick={() => setShowImportLayout(true)}
+            onClick={() => {
+              console.log('[UI] Import Layout clicked, bullseyeMode:', bullseyeMode);
+              if (!bullseyeMode) {
+                setShowImportLayout(true);
+                console.log('[UI] Opening layout import modal');
+              } else {
+                console.log('[UI] Import Layout blocked by bullseyeMode');
+              }
+            }}
             disabled={bullseyeMode}
           >
             Import Layout
