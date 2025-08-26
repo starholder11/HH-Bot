@@ -369,7 +369,7 @@
 					window.bullseyeIndicator.position.z = planePoint.z;
 					updateBullseyeScale();
 					forceRender();
-					console.log('Moved bullseye to click location:', [constrainedX, constrainedZ], 'unconstrained:', [planePoint.x, planePoint.z]);
+					console.log('Moved bullseye to click location:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z], 'raw:', [planePoint.x, planePoint.z]);
 				}
 			}
 
@@ -405,9 +405,12 @@
 				const deltaScreenY = event.clientY - bullseyeLastScreenPos.y;
 
 				// Convert screen movement to world movement (much smaller scaling)
-				const sensitivity = 0.15; // 3x faster than previous (total 15x from 0.01)
-				const worldDeltaX = deltaScreenX * sensitivity;
-				const worldDeltaZ = deltaScreenY * sensitivity; // Y screen movement affects Z world movement
+				// Scale movement by camera distance so drag speed stays consistent across zoom levels
+				const baseSensitivity = 0.15; // tuned for comfortable speed at default zoom
+				const distance = editor.camera.position.distanceTo(window.bullseyeIndicator.position);
+				const distanceScale = Math.max(0.5, distance * 0.1); // clamp a bit to avoid tiny movement up close
+				const worldDeltaX = deltaScreenX * baseSensitivity * distanceScale;
+				const worldDeltaZ = deltaScreenY * baseSensitivity * distanceScale; // Y screen movement affects Z world movement
 
 				// Update bullseye position
 				const newX = window.bullseyeIndicator.position.x + worldDeltaX;
@@ -426,7 +429,7 @@
 				bullseyeLastScreenPos.y = event.clientY;
 
 				updateBullseyeScale(); // Update scale after position change (includes render)
-				console.log('Bullseye moved to:', [constrainedX, constrainedZ], 'screen delta:', [deltaScreenX, deltaScreenY], 'world delta:', [worldDeltaX, worldDeltaZ]);
+				console.log('Bullseye moved to:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z], 'screen delta:', [deltaScreenX, deltaScreenY], 'world delta:', [worldDeltaX, worldDeltaZ]);
 			} else if (!isDraggingBullseye) {
 				// Check if hovering over bullseye for cursor change
 				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
