@@ -313,19 +313,7 @@
 
 			console.log('Bullseye mousedown event triggered');
 
-			// Begin dragging immediately, position from ground plane under cursor
-			const rect = viewport.dom.getBoundingClientRect();
-			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
-			const intersectPoint = new THREE.Vector3();
-			bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
-			if (intersectPoint) {
-				window.bullseyeIndicator.position.x = intersectPoint.x;
-				window.bullseyeIndicator.position.z = intersectPoint.z;
-			}
-
+			// Only start dragging, don't move the bullseye yet
 			isDraggingBullseye = true;
 			viewport.dom.style.cursor = 'grabbing';
 			console.log('Started dragging bullseye');
