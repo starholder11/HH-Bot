@@ -304,6 +304,8 @@
 		let bullseyeMouse = new THREE.Vector2();
 		let bullseyeGroundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 		let isDraggingBullseye = false;
+		let bullseyeDragOffset = new THREE.Vector3(0, 0, 0);
+		let bullseyeActivePointerId = null;
 
 		// Function to keep bullseye scale consistent regardless of camera distance
 		function updateBullseyeScale() {
@@ -321,13 +323,35 @@
 		function onBullseyeMouseDown(event) {
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 			try { event.preventDefault(); event.stopPropagation(); } catch {}
-			try { if (editor && editor.controls) editor.controls.enabled = false; } catch {}
-			try { if (viewport && viewport.dom && event.pointerId != null) viewport.dom.setPointerCapture(event.pointerId); } catch {}
 
 			console.log('Bullseye mousedown event triggered');
 
-			// Only start dragging, don't move the bullseye yet
+			// Only begin drag if pointer is on the bullseye
+			const rect = viewport.dom.getBoundingClientRect();
+			bullseyeMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+			bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
+			const hit = bullseyeRaycaster.intersectObject(window.bullseyeIndicator, true);
+			if (!hit || hit.length === 0) {
+				return;
+			}
+
+			// Compute ground-plane intersection to establish drag offset
+			const planePoint = new THREE.Vector3();
+			bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, planePoint);
+			if (planePoint) {
+				bullseyeDragOffset.set(
+					window.bullseyeIndicator.position.x - planePoint.x,
+					0,
+					window.bullseyeIndicator.position.z - planePoint.z
+				);
+			}
+
+			// Start drag
 			isDraggingBullseye = true;
+			bullseyeActivePointerId = event.pointerId ?? null;
+			try { if (viewport && viewport.dom && event.pointerId != null) viewport.dom.setPointerCapture(event.pointerId); } catch {}
+			try { if (editor && editor.controls) editor.controls.enabled = false; } catch {}
 			viewport.dom.style.cursor = 'grabbing';
 			console.log('Started dragging bullseye');
 		}
@@ -341,13 +365,13 @@
 			bullseyeMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
 			// Drag the bullseye if dragging
-			if (isDraggingBullseye) {
+			if (isDraggingBullseye && (bullseyeActivePointerId === null || bullseyeActivePointerId === event.pointerId)) {
 				bullseyeRaycaster.setFromCamera(bullseyeMouse, editor.camera);
 				const intersectPoint = new THREE.Vector3();
 				bullseyeRaycaster.ray.intersectPlane(bullseyeGroundPlane, intersectPoint);
 				if (intersectPoint) {
-					window.bullseyeIndicator.position.x = intersectPoint.x;
-					window.bullseyeIndicator.position.z = intersectPoint.z;
+					window.bullseyeIndicator.position.x = intersectPoint.x + bullseyeDragOffset.x;
+					window.bullseyeIndicator.position.z = intersectPoint.z + bullseyeDragOffset.z;
 					updateBullseyeScale(); // Update scale after position change
 					console.log('Bullseye positioned at:', [intersectPoint.x, intersectPoint.z]);
 				}
@@ -367,8 +391,9 @@
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 			try { event.preventDefault(); event.stopPropagation(); } catch {}
 
-			if (isDraggingBullseye) {
+			if (isDraggingBullseye && (bullseyeActivePointerId === null || bullseyeActivePointerId === event.pointerId)) {
 				isDraggingBullseye = false;
+				bullseyeActivePointerId = null;
 				viewport.dom.style.cursor = 'grab';
 				console.log('Bullseye positioned at:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z]);
 				try { if (viewport && viewport.dom && event.pointerId != null) viewport.dom.releasePointerCapture(event.pointerId); } catch {}
