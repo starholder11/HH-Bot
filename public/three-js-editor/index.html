@@ -388,9 +388,9 @@
 		function attachBullseyeListeners(){
 			if (bullseyeListenersAttached) return;
 			if (viewport && viewport.dom) {
-				viewport.dom.addEventListener('mousedown', onBullseyeMouseDown, { capture: true });
-				viewport.dom.addEventListener('mousemove', onBullseyeMouseMove, { capture: true });
-				viewport.dom.addEventListener('mouseup', onBullseyeMouseUp, { capture: true });
+				viewport.dom.addEventListener('pointerdown', onBullseyeMouseDown, { capture: true });
+				viewport.dom.addEventListener('pointermove', onBullseyeMouseMove, { capture: true });
+				viewport.dom.addEventListener('pointerup', onBullseyeMouseUp, { capture: true });
 				viewport.dom.addEventListener('dblclick', onBullseyeDoubleClick, { capture: true });
 				// allow wheel zoom to pass through; do not capture wheel
 				bullseyeListenersAttached = true;
@@ -400,9 +400,9 @@
 		function detachBullseyeListeners(){
 			if (!bullseyeListenersAttached) return;
 			if (viewport && viewport.dom) {
-				viewport.dom.removeEventListener('mousedown', onBullseyeMouseDown, { capture: true });
-				viewport.dom.removeEventListener('mousemove', onBullseyeMouseMove, { capture: true });
-				viewport.dom.removeEventListener('mouseup', onBullseyeMouseUp, { capture: true });
+				viewport.dom.removeEventListener('pointerdown', onBullseyeMouseDown, { capture: true });
+				viewport.dom.removeEventListener('pointermove', onBullseyeMouseMove, { capture: true });
+				viewport.dom.removeEventListener('pointerup', onBullseyeMouseUp, { capture: true });
 				viewport.dom.removeEventListener('dblclick', onBullseyeDoubleClick, { capture: true });
 				bullseyeListenersAttached = false;
 				console.log('Bullseye listeners detached from viewport');

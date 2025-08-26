@@ -43,6 +43,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   const callbacksRef = useRef<{ onSceneChange?: (d:any)=>void; onSelectionChange?: (s:string[])=>void; onError?: (e:string)=>void }>({ onSceneChange, onSelectionChange, onError });
   const lastLoadedIdRef = useRef<string | null>(null);
   const pendingSaveRef = useRef<boolean>(false);
+  const pendingLayoutRef = useRef<any>(null);
 
   // Keep latest callbacks without re-initializing the bridge
   useEffect(() => {
@@ -148,6 +149,16 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         case 'bullseye_placement':
           // Handle bullseye placement from editor
           console.log('[SpaceEditor] Bullseye placement at:', message.data.position);
+          try {
+            // Opportunistically import layout here if pending, in addition to notifying parent
+            if (pendingLayoutRef?.current && addLayoutAtPosition) {
+              console.log('[SpaceEditor] Importing pending layout at position', message.data.position);
+              await addLayoutAtPosition(pendingLayoutRef.current, message.data.position);
+              pendingLayoutRef.current = null;
+            }
+          } catch (e) {
+            console.error('[SpaceEditor] Layout import on bullseye placement failed:', e);
+          }
           onBullseyePlacement?.(message.data.position);
           break;
         case 'bullseye_mode_entered':

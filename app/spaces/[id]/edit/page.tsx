@@ -153,7 +153,13 @@ export default function SpaceEditPage() {
   const handleBullseyePlacement = async (position: [number, number]) => {
     if (pendingLayout) {
       setBullseyeMode(false);
-      await spaceEditorRef.current?.addLayoutAtPosition?.(pendingLayout, position);
+      try {
+        console.log('[UI] addLayoutAtPosition via bullseye at', position);
+        await spaceEditorRef.current?.addLayoutAtPosition?.(pendingLayout, position);
+        console.log('[UI] Layout import complete');
+      } catch (e) {
+        console.error('[UI] Layout import failed:', e);
+      }
       setPendingLayout(null);
       setHasUnsavedChanges(true);
     }
