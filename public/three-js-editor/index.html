@@ -309,6 +309,7 @@
 			if (!window.bullseyeMode || !window.bullseyeIndicator) return;
 			try { event.preventDefault(); event.stopPropagation(); } catch {}
 			try { if (editor && editor.controls) editor.controls.enabled = false; } catch {}
+			try { if (viewport && viewport.dom && event.pointerId != null) viewport.dom.setPointerCapture(event.pointerId); } catch {}
 
 			console.log('Bullseye mousedown event triggered');
 
@@ -360,7 +361,8 @@
 				isDraggingBullseye = false;
 				viewport.dom.style.cursor = 'grab';
 				console.log('Bullseye positioned at:', [window.bullseyeIndicator.position.x, window.bullseyeIndicator.position.z]);
-				try { if (editor && editor.controls) editor.controls.enabled = false; } catch {}
+				try { if (viewport && viewport.dom && event.pointerId != null) viewport.dom.releasePointerCapture(event.pointerId); } catch {}
+				try { if (editor && editor.controls) editor.controls.enabled = true; } catch {}
 			}
 		}
 
