@@ -153,11 +153,12 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
             // Opportunistically import layout here if pending, in addition to notifying parent
             if (pendingLayoutRef?.current && addLayoutAtPosition) {
               console.log('[SpaceEditor] Importing pending layout at position', message.data.position);
-              await addLayoutAtPosition(pendingLayoutRef.current, message.data.position);
-              pendingLayoutRef.current = null;
+              addLayoutAtPosition(pendingLayoutRef.current, message.data.position)
+                .then(() => { pendingLayoutRef.current = null; })
+                .catch((e) => console.error('[SpaceEditor] Layout import on bullseye placement failed:', e));
             }
           } catch (e) {
-            console.error('[SpaceEditor] Layout import on bullseye placement failed:', e);
+            console.error('[SpaceEditor] Layout import on bullseye placement failed (sync):', e);
           }
           onBullseyePlacement?.(message.data.position);
           break;

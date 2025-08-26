@@ -964,7 +964,7 @@
 						if (!window.bullseyeIndicator) {
 							// Create a more visible bullseye with both ring and center
 							const group = new THREE.Group();
-							
+
 							// Outer ring
 							const ringGeometry = new THREE.RingGeometry(0.8, 1.0, 16);
 							const ringMaterial = new THREE.MeshBasicMaterial({
@@ -974,7 +974,7 @@
 								opacity: 0.8
 							});
 							const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-							
+
 							// Inner circle for easier clicking
 							const circleGeometry = new THREE.CircleGeometry(0.8, 16);
 							const circleMaterial = new THREE.MeshBasicMaterial({
@@ -984,13 +984,13 @@
 								opacity: 0.3
 							});
 							const circle = new THREE.Mesh(circleGeometry, circleMaterial);
-							
+
 							group.add(ring);
 							group.add(circle);
 							group.rotation.x = -Math.PI / 2; // Lay flat on ground
 							group.position.set(0, 0.01, 0); // Slightly above ground
 							group.userData.ignoreSave = true; // Don't save with scene
-							
+
 							window.bullseyeIndicator = group;
 							editor.scene.add(window.bullseyeIndicator);
 						}
