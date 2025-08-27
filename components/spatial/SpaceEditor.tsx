@@ -339,9 +339,43 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       : originalMediaUrl;
 
     // plane for image/video, box otherwise
-    const geometry = assetType.includes('image') || assetType.includes('video')
+    const isMediaPlane = assetType.includes('image') || assetType.includes('video');
+    const geometry = isMediaPlane
       ? { type: 'PlaneGeometry', width: 1, height: 1 }
       : { type: 'BoxGeometry', width: 1, height: 1, depth: 1 };
+
+    // Match layout import sizing: scale media to a reasonable box while preserving aspect ratio
+    // We fit to a target box similar to common layout scales seen in scenes (e.g., ~14x10.5)
+    const TARGET_BOX_W = 14; // chosen to align visually with layout imports
+    const TARGET_BOX_H = 10.5;
+    const fitWithin = (mw?: number, mh?: number, bw: number = TARGET_BOX_W, bh: number = TARGET_BOX_H) => {
+      if (!mw || !mh || mw <= 0 || mh <= 0) return { w: bw, h: bh };
+      const mediaAR = mw / mh;
+      const boxAR = bw / bh;
+      if (mediaAR >= boxAR) {
+        return { w: bw, h: bw / mediaAR };
+      } else {
+        return { w: bh * mediaAR, h: bh };
+      }
+    };
+
+    // Try to get intrinsic media dimensions for better scaling
+    let mediaW: number | undefined = (asset.metadata?.width as number | undefined) || (asset.width as number | undefined);
+    let mediaH: number | undefined = (asset.metadata?.height as number | undefined) || (asset.height as number | undefined);
+    if ((!mediaW || !mediaH) && id) {
+      try {
+        const resp = await fetch(`/api/media-assets/${encodeURIComponent(id)}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          const a = data?.asset || data;
+          const meta = a?.metadata || {};
+          if (typeof meta.width === 'number' && typeof meta.height === 'number') {
+            mediaW = meta.width; mediaH = meta.height;
+          }
+        }
+      } catch {}
+    }
+    const fitted = isMediaPlane ? fitWithin(mediaW, mediaH) : { w: TARGET_BOX_W, h: TARGET_BOX_H };
 
     await sendCommand({
       type: 'add_object',
@@ -350,8 +384,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         geometry,
         material: { type: 'MeshBasicMaterial', color },
         position: [Math.random() * 4 - 2, 0.5, Math.random() * 4 - 2],
+        scale: [fitted.w, fitted.h, 1],
         name: asset.title || asset.filename || id,
-        userData: { assetType, assetId: id, mediaUrl }
+        userData: { assetType, assetId: id, mediaUrl, mediaWidth: mediaW, mediaHeight: mediaH, importMetadata: { sourceType: 'asset' } }
       }
     });
   };
