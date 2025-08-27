@@ -269,11 +269,12 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
             enableRotate
             target={cameraTarget || undefined}
             makeDefault
-            minDistance={0.1}
+            minDistance={0.01}
             maxDistance={2000}
             enableDamping
             dampingFactor={0.05}
             zoomSpeed={1.2}
+            zoomToCursor
           />
         )}
 
