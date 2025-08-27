@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, StatsGl } from '@react-three/drei';
+import { OrbitControls, Environment, StatsGl, PerspectiveCamera, OrthographicCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { convertSpaceToThreeJSScene } from '@/lib/spatial/scene-conversion';
 import ThreeSceneR3F from './ThreeSceneR3F';
@@ -20,6 +20,9 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   const [cameraFov, setCameraFov] = useState<number>(60);
   const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null);
   const [cameraQuaternion, setCameraQuaternion] = useState<[number, number, number, number] | null>(null);
+  const [cameraMode, setCameraMode] = useState<'perspective' | 'orthographic'>('perspective');
+  const [zoomTick, setZoomTick] = useState(0);
+  const [zoomDirection, setZoomDirection] = useState<'in' | 'out'>('in');
 
   // Modal state for asset details
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
@@ -217,6 +220,13 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
           fov: cameraFov
         }}
       >
+        {/* Switchable cameras */}
+        {cameraMode === 'perspective' ? (
+          <PerspectiveCamera makeDefault fov={cameraFov} position={cameraPosition} />
+        ) : (
+          <OrthographicCamera makeDefault position={cameraPosition} zoom={1.5} />
+        )}
+
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
@@ -227,6 +237,9 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
           enablePan
           enableZoom
           enableRotate
+          zoomSpeed={0.9}
+          minDistance={0.1}
+          maxDistance={5000}
           target={cameraTarget || undefined}
           makeDefault
         />
@@ -238,6 +251,9 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
           target={cameraTarget}
           pullBackFactor={1.25}
         />
+
+        {/* Bridge to trigger zoom from UI buttons */}
+        <ZoomController tick={zoomTick} direction={zoomDirection} />
         {process.env.NODE_ENV === 'development' && <StatsGl />}
       </Canvas>
 
@@ -257,13 +273,54 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
               )}
             </div>
 
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white pointer-events-auto">
-              <button
-                onClick={toggleFullscreen}
-                className="text-sm hover:text-blue-400 transition-colors"
-              >
-                {isFullscreen ? '⊡ Exit Fullscreen (F)' : '⊞ Fullscreen (F)'}
-              </button>
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-white pointer-events-auto flex items-center gap-3">
+              {/* Camera mode toggle */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-neutral-300">Camera</span>
+                <div className="flex rounded overflow-hidden border border-neutral-700">
+                  <button
+                    onClick={() => setCameraMode('perspective')}
+                    className={`px-2 py-1 text-xs ${cameraMode === 'perspective' ? 'bg-neutral-700' : 'bg-transparent hover:bg-neutral-800'}`}
+                    title="Perspective"
+                  >
+                    Persp
+                  </button>
+                  <button
+                    onClick={() => setCameraMode('orthographic')}
+                    className={`px-2 py-1 text-xs ${cameraMode === 'orthographic' ? 'bg-neutral-700' : 'bg-transparent hover:bg-neutral-800'}`}
+                    title="Orthographic"
+                  >
+                    Ortho
+                  </button>
+                </div>
+              </div>
+
+              {/* Zoom controls */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => { setZoomDirection('in'); setZoomTick((t) => t + 1); }}
+                  className="px-2 py-1 text-sm bg-neutral-800 hover:bg-neutral-700 rounded"
+                  title="Zoom In"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => { setZoomDirection('out'); setZoomTick((t) => t + 1); }}
+                  className="px-2 py-1 text-sm bg-neutral-800 hover:bg-neutral-700 rounded"
+                  title="Zoom Out"
+                >
+                  −
+                </button>
+              </div>
+
+              <div className="pl-2 ml-2 border-l border-neutral-700">
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-sm hover:text-blue-400 transition-colors"
+                >
+                  {isFullscreen ? '⊡ Exit Fullscreen (F)' : '⊞ Fullscreen (F)'}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -345,5 +402,28 @@ function CameraPoseApplier({ position, quaternion, target, pullBackFactor = 1 }:
       }
     } catch {}
   }, [position, quaternion, target, camera, controls, pullBackFactor]);
+  return null;
+}
+
+// Imperative zoom controller to nudge controls/camera from UI buttons
+function ZoomController({ tick, direction }: { tick: number; direction: 'in' | 'out' }) {
+  const { camera, controls } = useThree() as any;
+  useEffect(() => {
+    if (!tick) return;
+    try {
+      const factor = direction === 'in' ? 0.9 : 1.111111; // ~10% steps
+      if (controls && typeof controls.dollyIn === 'function' && typeof controls.dollyOut === 'function') {
+        // OrbitControls for Perspective has dollyIn/Out; for Ortho it adjusts zoom
+        if (direction === 'in') controls.dollyIn(1 / factor); else controls.dollyOut(1 / factor);
+        controls.update?.();
+      } else if (camera?.isPerspectiveCamera) {
+        camera.fov = Math.max(10, Math.min(100, camera.fov * (direction === 'in' ? 0.95 : 1.05)));
+        camera.updateProjectionMatrix();
+      } else if (camera?.isOrthographicCamera) {
+        camera.zoom = Math.max(0.1, Math.min(10, camera.zoom * (direction === 'in' ? 1.1 : 0.9)));
+        camera.updateProjectionMatrix();
+      }
+    } catch {}
+  }, [tick, direction, camera, controls]);
   return null;
 }
