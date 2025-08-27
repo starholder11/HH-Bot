@@ -51,7 +51,37 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
       }
       const savedTarget = threeJSScene?.userData?.camera?.target;
       console.log('[Public Viewer] savedTarget:', savedTarget);
-      if (savedTarget && Array.isArray(savedTarget) && savedTarget.length === 3) {
+      // Compute a robust scene center from children positions
+      const childPositions: [number, number, number][] = (children || [])
+        .map((c: any) => Array.isArray(c?.position) ? c.position as [number, number, number]
+          : (Array.isArray(c?.userData?.position) ? (c.userData.position as [number, number, number]) : null))
+        .filter(Boolean) as [number, number, number][];
+      const sceneCenter: [number, number, number] | null = childPositions.length > 0
+        ? [
+            childPositions.reduce((s, p) => s + (p?.[0] ?? 0), 0) / childPositions.length,
+            childPositions.reduce((s, p) => s + (p?.[1] ?? 0), 0) / childPositions.length,
+            childPositions.reduce((s, p) => s + (p?.[2] ?? 0), 0) / childPositions.length,
+          ] as [number, number, number]
+        : null;
+
+      const majorityZNegative = childPositions.length > 0
+        ? (childPositions.filter((p) => (p?.[2] ?? 0) < 0).length / childPositions.length) > 0.6
+        : false;
+
+      const shouldOverrideTarget = () => {
+        if (!sceneCenter) return false;
+        if (!savedTarget || !Array.isArray(savedTarget) || savedTarget.length !== 3) return true;
+        const dz = Math.abs(sceneCenter[2] - savedTarget[2]);
+        // If target is far away from scene center or on opposite side of the scene depth, override
+        if (dz > 100) return true;
+        if (majorityZNegative && savedTarget[2] > 0) return true;
+        return false;
+      };
+
+      if (shouldOverrideTarget() && sceneCenter) {
+        console.log('[Public Viewer] Overriding camera target to scene center:', sceneCenter);
+        setCameraTarget(sceneCenter);
+      } else if (savedTarget && Array.isArray(savedTarget) && savedTarget.length === 3) {
         setCameraTarget([savedTarget[0], savedTarget[1], savedTarget[2]]);
       }
       const savedQuat = threeJSScene?.userData?.camera?.quaternion;
@@ -293,6 +323,9 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
 
         {/* Camera distance tracker */}
         <CameraDistanceTracker onDistanceChange={setCameraDistance} />
+
+        {/* Double-click to focus target under cursor for strong zooming */}
+        <FocusToCursor />
         {process.env.NODE_ENV === 'development' && <StatsGl />}
       </Canvas>
 
@@ -482,5 +515,37 @@ function CameraDistanceTracker({ onDistanceChange }: { onDistanceChange: (distan
     }
   });
   
+  return null;
+}
+
+// Double-click to set orbit target to the object under cursor
+function FocusToCursor() {
+  const { gl, scene, camera, controls } = useThree() as any;
+
+  useEffect(() => {
+    if (!gl?.domElement) return;
+    const canvas = gl.domElement as HTMLCanvasElement;
+
+    const handleDblClick = (e: MouseEvent) => {
+      try {
+        const rect = canvas.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+        const mouse = new THREE.Vector2(x, y);
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        const first = intersects?.[0];
+        if (first && controls && controls.target) {
+          controls.target.copy(first.point);
+          controls.update();
+        }
+      } catch {}
+    };
+
+    canvas.addEventListener('dblclick', handleDblClick);
+    return () => canvas.removeEventListener('dblclick', handleDblClick);
+  }, [gl, scene, camera, controls]);
+
   return null;
 }
