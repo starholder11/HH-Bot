@@ -386,7 +386,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         position: [Math.random() * 4 - 2, 0.5, Math.random() * 4 - 2],
         scale: [fitted.w, fitted.h, 1],
         name: asset.title || asset.filename || id,
-        userData: { assetType, assetId: id, mediaUrl, mediaWidth: mediaW, mediaHeight: mediaH, importMetadata: { sourceType: 'asset' } }
+        userData: { assetType, assetId: id, mediaUrl, mediaWidth: mediaW, mediaHeight: mediaH, importMetadata: { sourceType: 'manual' } }
       }
     });
   };
