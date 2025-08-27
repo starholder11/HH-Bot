@@ -25,6 +25,7 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   // Camera control mode
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit');
   const [pointerLocked, setPointerLocked] = useState(false);
+  const [cameraDistance, setCameraDistance] = useState<number>(0);
 
   // Modal state for asset details
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
@@ -268,10 +269,11 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
             enableRotate
             target={cameraTarget || undefined}
             makeDefault
-            minDistance={1}
-            maxDistance={1000}
+            minDistance={0.1}
+            maxDistance={2000}
             enableDamping
             dampingFactor={0.05}
+            zoomSpeed={1.2}
           />
         )}
 
@@ -287,6 +289,9 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
             pullBackFactor={1.25}
           />
         )}
+
+        {/* Camera distance tracker */}
+        <CameraDistanceTracker onDistanceChange={setCameraDistance} />
         {process.env.NODE_ENV === 'development' && <StatsGl />}
       </Canvas>
 
@@ -394,7 +399,10 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
               <div className="text-xs text-neutral-300">
                 Press H to {showControls ? 'hide' : 'show'} controls • 1-4 for camera modes
               </div>
-              <div className="text-xs text-neutral-400">{sceneChildren.length} objects • {cameraMode} mode</div>
+              <div className="text-xs text-neutral-400">
+                {sceneChildren.length} objects • {cameraMode} mode
+                {cameraMode === 'orbit' && ` • Zoom: ${cameraDistance.toFixed(1)}u`}
+              </div>
             </div>
           </div>
         </>
@@ -460,5 +468,18 @@ function CameraPoseApplier({ position, quaternion, target, pullBackFactor = 1 }:
       }
     } catch {}
   }, [position, quaternion, target, camera, controls, pullBackFactor]);
+  return null;
+}
+
+function CameraDistanceTracker({ onDistanceChange }: { onDistanceChange: (distance: number) => void }) {
+  const { camera, controls } = useThree() as any;
+  
+  useFrame(() => {
+    if (controls && controls.target) {
+      const distance = camera.position.distanceTo(controls.target);
+      onDistanceChange(distance);
+    }
+  });
+  
   return null;
 }
