@@ -438,8 +438,11 @@ export default function SpaceEditPage() {
           onClose={() => setShowImportAsset(false)}
           onSelect={async (asset: any) => {
             setShowImportAsset(false);
-            await spaceEditorRef.current?.addAsset?.(asset);
-            setHasUnsavedChanges(true);
+            // Enter bullseye placement flow for assets (mirrors layout flow)
+            console.log('[UI] Import Asset selected, entering bullseye placement');
+            try { spaceEditorRef.current?.setPendingAsset?.(asset); } catch {}
+            setBullseyeMode(true);
+            await spaceEditorRef.current?.enterBullseyeMode?.();
           }}
         />
       )}

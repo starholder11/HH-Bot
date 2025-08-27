@@ -45,6 +45,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
   const lastLoadedIdRef = useRef<string | null>(null);
   const pendingSaveRef = useRef<boolean>(false);
   const pendingLayoutRef = useRef<any>(null);
+  const pendingAssetRef = useRef<any>(null);
 
   // Keep latest callbacks without re-initializing the bridge
   useEffect(() => {
@@ -171,6 +172,21 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
                     callbacksRef.current.onBullseyeCancel?.();
                   } catch {}
                 });
+            } else if (pendingAssetRef?.current) {
+              console.log('[SpaceEditor] Importing pending asset at position', message.data.position);
+              importHandled = true;
+              addAssetToEditorAt?.(pendingAssetRef.current, message.data.position)
+                .then(() => {
+                  console.log('[SpaceEditor] Asset import complete, clearing pending asset');
+                  pendingAssetRef.current = null;
+                })
+                .catch((e) => {
+                  console.error('[SpaceEditor] Asset import on bullseye placement failed:', e);
+                  pendingAssetRef.current = null;
+                })
+                .finally(() => {
+                  try { callbacksRef.current.onBullseyeCancel?.(); } catch {}
+                });
             }
           } catch (e) {
             console.error('[SpaceEditor] Layout import on bullseye placement failed (sync):', e);
@@ -190,7 +206,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           console.log('[SpaceEditor] Bullseye mode exited successfully');
           // Don't automatically call onBullseyeCancel here - let the parent handle cleanup
           // after successful placement. Only call it if there was no pending layout.
-          if (!pendingLayoutRef.current) {
+          if (!pendingLayoutRef.current && !pendingAssetRef.current) {
             try {
               callbacksRef.current.onBullseyeCancel?.();
             } catch {}
@@ -384,6 +400,70 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
         geometry,
         material: { type: 'MeshBasicMaterial', color },
         position: [Math.random() * 4 - 2, 0.5, Math.random() * 4 - 2],
+        scale: [fitted.w, fitted.h, 1],
+        name: asset.title || asset.filename || id,
+        userData: { assetType, assetId: id, mediaUrl, mediaWidth: mediaW, mediaHeight: mediaH, importMetadata: { sourceType: 'manual' } }
+      }
+    });
+  };
+
+  // Internal helper used by bullseye placement to position an asset at grid coords
+  const addAssetToEditorAt = async (asset: any, position: [number, number]) => {
+    const assetType = (asset.content_type || asset.type || 'unknown').toLowerCase();
+    const id = asset.id || `asset-${Date.now()}`;
+    const color = assetType.includes('image') ? 0x3b82f6 : assetType.includes('video') ? 0xef4444 : 0x6b7280;
+
+    const originalMediaUrl = (
+      (asset.metadata?.cloudflare_url as string | undefined) ||
+      (asset.metadata?.s3_url as string | undefined) ||
+      (asset.url as string | undefined) ||
+      (asset.s3_url as string | undefined) ||
+      (asset.cloudflare_url as string | undefined)
+    ) || null;
+    const mediaUrl = originalMediaUrl && (assetType.includes('image') || assetType.includes('video'))
+      ? `/api/proxy?url=${encodeURIComponent(originalMediaUrl)}`
+      : originalMediaUrl;
+
+    const isMediaPlane = assetType.includes('image') || assetType.includes('video');
+    const geometry = isMediaPlane
+      ? { type: 'PlaneGeometry', width: 1, height: 1 }
+      : { type: 'BoxGeometry', width: 1, height: 1, depth: 1 };
+
+    const TARGET_BOX_W = 14;
+    const TARGET_BOX_H = 10.5;
+    const fitWithin = (mw?: number, mh?: number, bw: number = TARGET_BOX_W, bh: number = TARGET_BOX_H) => {
+      if (!mw || !mh || mw <= 0 || mh <= 0) return { w: bw, h: bh };
+      const mediaAR = mw / mh;
+      const boxAR = bw / bh;
+      if (mediaAR >= boxAR) return { w: bw, h: bw / mediaAR };
+      return { w: bh * mediaAR, h: bh };
+    };
+
+    let mediaW: number | undefined = (asset.metadata?.width as number | undefined) || (asset.width as number | undefined);
+    let mediaH: number | undefined = (asset.metadata?.height as number | undefined) || (asset.height as number | undefined);
+    if ((!mediaW || !mediaH) && id) {
+      try {
+        const resp = await fetch(`/api/media-assets/${encodeURIComponent(id)}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          const a = data?.asset || data;
+          const meta = a?.metadata || {};
+          if (typeof meta.width === 'number' && typeof meta.height === 'number') {
+            mediaW = meta.width; mediaH = meta.height;
+          }
+        }
+      } catch {}
+    }
+    const fitted = isMediaPlane ? fitWithin(mediaW, mediaH) : { w: TARGET_BOX_W, h: TARGET_BOX_H };
+
+    const [x, z] = position;
+    await sendCommand({
+      type: 'add_object',
+      data: {
+        type: 'Mesh',
+        geometry,
+        material: { type: 'MeshBasicMaterial', color },
+        position: [x, 0.5, z],
         scale: [fitted.w, fitted.h, 1],
         name: asset.title || asset.filename || id,
         userData: { assetType, assetId: id, mediaUrl, mediaWidth: mediaW, mediaHeight: mediaH, importMetadata: { sourceType: 'manual' } }
@@ -809,7 +889,8 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     sendCommand: async (command: any) => { await sendCommand(command); },
     enterBullseyeMode: async () => { await enterBullseyeMode(); },
     exitBullseyeMode: async () => { await exitBullseyeMode(); },
-    setPendingLayout: (layout: any) => { pendingLayoutRef.current = layout; }
+    setPendingLayout: (layout: any) => { pendingLayoutRef.current = layout; },
+    setPendingAsset: (asset: any) => { pendingAssetRef.current = asset; }
   }), [saveScene, loadSpace, addAssetToEditor, addLayoutToEditor, addLayoutAtPosition, sendCommand, enterBullseyeMode, exitBullseyeMode]);
 
   if (error) {
