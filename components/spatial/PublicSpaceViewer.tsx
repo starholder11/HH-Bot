@@ -1,11 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, StatsGl, PerspectiveCamera, OrthographicCamera } from '@react-three/drei';
+import { OrbitControls, Environment, StatsGl } from '@react-three/drei';
 import * as THREE from 'three';
 import { convertSpaceToThreeJSScene } from '@/lib/spatial/scene-conversion';
 import ThreeSceneR3F from './ThreeSceneR3F';
 import DetailsOverlay from '@/app/visual-search/components/DetailsOverlay';
+import { CameraControlsManager, type CameraMode } from './CameraControls';
 
 export interface PublicSpaceViewerProps {
   spaceData: any;
@@ -20,9 +21,10 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
   const [cameraFov, setCameraFov] = useState<number>(60);
   const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null);
   const [cameraQuaternion, setCameraQuaternion] = useState<[number, number, number, number] | null>(null);
-  const [cameraMode, setCameraMode] = useState<'perspective' | 'orthographic'>('perspective');
-  const [zoomTick, setZoomTick] = useState(0);
-  const [zoomDirection, setZoomDirection] = useState<'in' | 'out'>('in');
+
+  // Camera control mode
+  const [cameraMode, setCameraMode] = useState<CameraMode>('orbit');
+  const [pointerLocked, setPointerLocked] = useState(false);
 
   // Modal state for asset details
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
@@ -76,20 +78,52 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
     }
   };
 
+  // Handle pointer lock for first-person mode
+  const handlePointerLock = () => {
+    if (cameraMode === 'pointerLock') {
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        canvas.requestPointerLock();
+      }
+    }
+  };
+
+  // Handle camera mode switching
+  const switchCameraMode = (mode: CameraMode) => {
+    setCameraMode(mode);
+    if (mode === 'pointerLock') {
+      setPointerLocked(false);
+    }
+  };
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle shortcuts if pointer is locked (for first-person controls)
+      if (document.pointerLockElement) return;
+
       if (e.key === 'h' || e.key === 'H') {
         setShowControls(!showControls);
       }
       if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
       }
+      // Camera mode shortcuts
+      if (e.key === '1') switchCameraMode('orbit');
+      if (e.key === '2') switchCameraMode('fly');
+      if (e.key === '3') switchCameraMode('firstPerson');
+      if (e.key === '4') switchCameraMode('pointerLock');
+      // Enter pointer lock mode
+      if (e.key === 'l' || e.key === 'L') {
+        if (cameraMode === 'pointerLock') {
+          handlePointerLock();
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showControls]);
+  }, [showControls, cameraMode]);
 
   // Handle fullscreen change
   useEffect(() => {
@@ -220,40 +254,39 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
           fov: cameraFov
         }}
       >
-        {/* Switchable cameras */}
-        {cameraMode === 'perspective' ? (
-          <PerspectiveCamera makeDefault fov={cameraFov} position={cameraPosition} />
-        ) : (
-          <OrthographicCamera makeDefault position={cameraPosition} zoom={1.5} />
-        )}
-
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
 
         <ThreeSceneR3F children={sceneChildren} onObjectSelect={handleObjectSelect} />
 
-        <OrbitControls
-          enablePan
-          enableZoom
-          enableRotate
-          zoomSpeed={0.9}
-          minDistance={0.1}
-          maxDistance={5000}
-          target={cameraTarget || undefined}
-          makeDefault
-        />
+        {/* Conditional camera controls based on mode */}
+        {cameraMode === 'orbit' && (
+          <OrbitControls
+            enablePan
+            enableZoom
+            enableRotate
+            target={cameraTarget || undefined}
+            makeDefault
+            minDistance={1}
+            maxDistance={1000}
+            enableDamping
+            dampingFactor={0.05}
+          />
+        )}
 
-        {/* Apply saved camera pose exactly like the editor */}
-        <CameraPoseApplier
-          position={cameraPosition}
-          quaternion={cameraQuaternion}
-          target={cameraTarget}
-          pullBackFactor={1.25}
-        />
+        {/* Custom camera controls for other modes */}
+        <CameraControlsManager mode={cameraMode} enabled={cameraMode !== 'orbit'} />
 
-        {/* Bridge to trigger zoom from UI buttons */}
-        <ZoomController tick={zoomTick} direction={zoomDirection} />
+        {/* Apply saved camera pose exactly like the editor (only for orbit mode) */}
+        {cameraMode === 'orbit' && (
+          <CameraPoseApplier
+            position={cameraPosition}
+            quaternion={cameraQuaternion}
+            target={cameraTarget}
+            pullBackFactor={1.25}
+          />
+        )}
         {process.env.NODE_ENV === 'development' && <StatsGl />}
       </Canvas>
 
@@ -273,47 +306,69 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
               )}
             </div>
 
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-white pointer-events-auto flex items-center gap-3">
-              {/* Camera mode toggle */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-neutral-300">Camera</span>
-                <div className="flex rounded overflow-hidden border border-neutral-700">
+            <div className="flex gap-2">
+              {/* Camera Mode Controls */}
+              <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white pointer-events-auto">
+                <div className="text-xs text-neutral-300 mb-2">Camera Mode</div>
+                <div className="flex gap-1">
                   <button
-                    onClick={() => setCameraMode('perspective')}
-                    className={`px-2 py-1 text-xs ${cameraMode === 'perspective' ? 'bg-neutral-700' : 'bg-transparent hover:bg-neutral-800'}`}
-                    title="Perspective"
+                    onClick={() => switchCameraMode('orbit')}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      cameraMode === 'orbit' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                    }`}
+                    title="Orbit Camera (1)"
                   >
-                    Persp
+                    Orbit
                   </button>
                   <button
-                    onClick={() => setCameraMode('orthographic')}
-                    className={`px-2 py-1 text-xs ${cameraMode === 'orthographic' ? 'bg-neutral-700' : 'bg-transparent hover:bg-neutral-800'}`}
-                    title="Orthographic"
+                    onClick={() => switchCameraMode('fly')}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      cameraMode === 'fly' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                    }`}
+                    title="Fly Camera (2)"
                   >
-                    Ortho
+                    Fly
+                  </button>
+                  <button
+                    onClick={() => switchCameraMode('firstPerson')}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      cameraMode === 'firstPerson' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                    }`}
+                    title="First Person (3)"
+                  >
+                    FPS
+                  </button>
+                  <button
+                    onClick={() => switchCameraMode('pointerLock')}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      cameraMode === 'pointerLock' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                    }`}
+                    title="Pointer Lock (4)"
+                  >
+                    Lock
                   </button>
                 </div>
+                {cameraMode === 'pointerLock' && (
+                  <button
+                    onClick={handlePointerLock}
+                    className="mt-2 px-2 py-1 text-xs bg-green-600 hover:bg-green-700 rounded transition-colors"
+                    title="Click to lock pointer (L)"
+                  >
+                    Lock Pointer (L)
+                  </button>
+                )}
               </div>
 
-              {/* Zoom controls */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => { setZoomDirection('in'); setZoomTick((t) => t + 1); }}
-                  className="px-2 py-1 text-sm bg-neutral-800 hover:bg-neutral-700 rounded"
-                  title="Zoom In"
-                >
-                  +
-                </button>
-                <button
-                  onClick={() => { setZoomDirection('out'); setZoomTick((t) => t + 1); }}
-                  className="px-2 py-1 text-sm bg-neutral-800 hover:bg-neutral-700 rounded"
-                  title="Zoom Out"
-                >
-                  −
-                </button>
-              </div>
-
-              <div className="pl-2 ml-2 border-l border-neutral-700">
+              {/* Fullscreen Control */}
+              <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white pointer-events-auto">
                 <button
                   onClick={toggleFullscreen}
                   className="text-sm hover:text-blue-400 transition-colors"
@@ -328,15 +383,18 @@ export default function PublicSpaceViewer({ spaceData, spaceId }: PublicSpaceVie
           <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end z-10 pointer-events-none">
             <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white max-w-md pointer-events-auto">
               <div className="text-sm text-neutral-300">
-                Use mouse to orbit around the space. Scroll to zoom.
+                {cameraMode === 'orbit' && 'Use mouse to orbit around the space. Scroll to zoom.'}
+                {cameraMode === 'fly' && 'WASD to move, mouse to look. Q/E for up/down.'}
+                {cameraMode === 'firstPerson' && 'WASD to move, mouse to look around.'}
+                {cameraMode === 'pointerLock' && 'WASD to move, mouse to look. Space to jump. Press L to lock pointer.'}
               </div>
             </div>
 
             <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-white pointer-events-auto">
               <div className="text-xs text-neutral-300">
-                Press H to {showControls ? 'hide' : 'show'} controls
+                Press H to {showControls ? 'hide' : 'show'} controls • 1-4 for camera modes
               </div>
-              <div className="text-xs text-neutral-400">{sceneChildren.length} objects</div>
+              <div className="text-xs text-neutral-400">{sceneChildren.length} objects • {cameraMode} mode</div>
             </div>
           </div>
         </>
@@ -402,28 +460,5 @@ function CameraPoseApplier({ position, quaternion, target, pullBackFactor = 1 }:
       }
     } catch {}
   }, [position, quaternion, target, camera, controls, pullBackFactor]);
-  return null;
-}
-
-// Imperative zoom controller to nudge controls/camera from UI buttons
-function ZoomController({ tick, direction }: { tick: number; direction: 'in' | 'out' }) {
-  const { camera, controls } = useThree() as any;
-  useEffect(() => {
-    if (!tick) return;
-    try {
-      const factor = direction === 'in' ? 0.9 : 1.111111; // ~10% steps
-      if (controls && typeof controls.dollyIn === 'function' && typeof controls.dollyOut === 'function') {
-        // OrbitControls for Perspective has dollyIn/Out; for Ortho it adjusts zoom
-        if (direction === 'in') controls.dollyIn(1 / factor); else controls.dollyOut(1 / factor);
-        controls.update?.();
-      } else if (camera?.isPerspectiveCamera) {
-        camera.fov = Math.max(10, Math.min(100, camera.fov * (direction === 'in' ? 0.95 : 1.05)));
-        camera.updateProjectionMatrix();
-      } else if (camera?.isOrthographicCamera) {
-        camera.zoom = Math.max(0.1, Math.min(10, camera.zoom * (direction === 'in' ? 1.1 : 0.9)));
-        camera.updateProjectionMatrix();
-      }
-    } catch {}
-  }, [tick, direction, camera, controls]);
   return null;
 }
