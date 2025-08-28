@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useAgentStream } from '@/app/visual-search/hooks/useAgentStream';
 
 type Msg = { role: 'user' | 'assistant' | 'tool'; content: string };
@@ -156,65 +156,48 @@ function AgentStreamRunner({
   onDone: () => void;
   conversationalContext?: string;
 }) {
-  const [synthesizedMessages, setSynthesizedMessages] = useState<Msg[] | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    async function processMessages() {
-      if (!conversationalContext || isProcessing) {
-        setSynthesizedMessages(messages);
-        return;
-      }
-
-      setIsProcessing(true);
-      const userRequest = messages[messages.length - 1]?.content || '';
-      
-      // Check if this is a generation request
-      const isGenerationRequest = /\b(make|create|generate|draw|paint|render|produce|build|design|craft)\b.*\b(picture|image|photo|video|art|artwork|visual)\b/i.test(userRequest);
-      
-      if (isGenerationRequest) {
-        console.log('🎨 AgentStreamRunner: Synthesizing context for generation request');
-        try {
-          const synthesizedPrompt = await synthesizeContextForGeneration(conversationalContext, userRequest);
-          console.log('🎨 AgentStreamRunner: Synthesized prompt:', synthesizedPrompt);
-          
-          const enhanced = [
-            ...messages.slice(0, -1),
-            {
-              role: 'user' as const,
-              content: synthesizedPrompt
-            }
-          ];
-          setSynthesizedMessages(enhanced);
-        } catch (error) {
-          console.error('🔴 AgentStreamRunner: Synthesis failed, using original messages');
-          setSynthesizedMessages(messages);
-        }
-      } else {
-        // For non-generation requests, pass context normally
-        const enhanced = [
-          ...messages.slice(0, -1),
-          {
-            role: 'user' as const,
-            content: `Context: "${conversationalContext.slice(-400)}"
-
-Request: ${userRequest}`
-          }
-        ];
-        setSynthesizedMessages(enhanced);
-      }
-      setIsProcessing(false);
+  // Simple synchronous enhancement - no async synthesis for now to avoid infinite loops
+  const enhancedMessages = useMemo(() => {
+    if (!conversationalContext) {
+      return messages;
     }
 
-    processMessages();
-  }, [messages, conversationalContext, isProcessing]);
+    const userRequest = messages[messages.length - 1]?.content || '';
+    
+    // Check if this is a generation request
+    const isGenerationRequest = /\b(make|create|generate|draw|paint|render|produce|build|design|craft)\b.*\b(picture|image|photo|video|art|artwork|visual|portrait)\b/i.test(userRequest);
+    
+    if (isGenerationRequest) {
+      console.log('🎨 AgentStreamRunner: Enhanced generation request with context');
+      // For now, do simple context enhancement instead of async synthesis
+      return [
+        ...messages.slice(0, -1),
+        {
+          role: 'user' as const,
+          content: `VISUAL GENERATION REQUEST with context:
 
-  // Don't start streaming until we have processed messages
-  if (!synthesizedMessages) {
-    return null;
-  }
+CONTEXT: "${conversationalContext.slice(-600)}"
 
-  useAgentStream(synthesizedMessages, onDelta, onTool, onDone);
+USER REQUEST: ${userRequest}
+
+Please extract visual elements from the context to create detailed generation prompts. Focus on character descriptions, physical appearance, setting, and mood.`
+        }
+      ];
+    } else {
+      // For non-generation requests, pass context normally
+      return [
+        ...messages.slice(0, -1),
+        {
+          role: 'user' as const,
+          content: `Context: "${conversationalContext.slice(-400)}"
+
+Request: ${userRequest}`
+        }
+      ];
+    }
+  }, [messages, conversationalContext]);
+
+  useAgentStream(enhancedMessages, onDelta, onTool, onDone);
   return null;
 }
 
