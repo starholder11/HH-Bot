@@ -550,31 +550,7 @@ export default function AgentChat() {
                 if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
-              if (action === 'generateContent') {
-                console.log('🎯 generateContent: Starting execution with payload:', payload);
-                const result = await (window as any).__agentApi?.prepareGenerate?.(payload);
-                console.log('🎯 generateContent: Execution complete, result:', result);
-                const artifacts = result && typeof result === 'object' ? result : {};
-                console.log('🎯 generateContent: Artifacts to send:', artifacts);
-                if (correlationId) {
-                  console.log('🎯 generateContent: Sending ack with correlationId:', correlationId);
-                  try {
-                    const ackResponse = await fetch('/api/agent/ack', { 
-                      method: 'POST', 
-                      headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: stepName, artifacts }) 
-                    });
-                    console.log('🎯 generateContent: Ack response status:', ackResponse.status);
-                    const ackText = await ackResponse.text();
-                    console.log('🎯 generateContent: Ack response body:', ackText);
-                  } catch (ackError) {
-                    console.error('🎯 generateContent: Ack request failed:', ackError);
-                  }
-                } else {
-                  console.warn('🎯 generateContent: No correlationId found, skipping ack');
-                }
-                return;
-              }
+
 
               // If we get here, it's unhandled - don't show raw JSON
               console.log('Unhandled agent tool result:', possibleResult);
