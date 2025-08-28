@@ -439,16 +439,54 @@ export default function AgentChat() {
                 return;
               }
               if (action === 'prepareGenerate') {
+                console.log('🎯 prepareGenerate: Starting execution with payload:', payload);
                 const result = await (window as any).__agentApi?.prepareGenerate?.(payload);
+                console.log('🎯 prepareGenerate: Execution complete, result:', result);
                 // Optionally attach artifacts for backend (like generated URL)
                 const artifacts = result && typeof result === 'object' ? result : {};
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName, artifacts }) });
+                console.log('🎯 prepareGenerate: Artifacts to send:', artifacts);
+                if (correlationId) {
+                  console.log('🎯 prepareGenerate: Sending ack with correlationId:', correlationId);
+                  try {
+                    const ackResponse = await fetch('/api/agent/ack', { 
+                      method: 'POST', 
+                      headers: { 'Content-Type': 'application/json' }, 
+                      body: JSON.stringify({ correlationId, step: stepName, artifacts }) 
+                    });
+                    console.log('🎯 prepareGenerate: Ack response status:', ackResponse.status);
+                    const ackText = await ackResponse.text();
+                    console.log('🎯 prepareGenerate: Ack response body:', ackText);
+                  } catch (ackError) {
+                    console.error('🎯 prepareGenerate: Ack request failed:', ackError);
+                  }
+                } else {
+                  console.warn('🎯 prepareGenerate: No correlationId found, skipping ack');
+                }
                 return;
               }
               if (action === 'requestPinnedThenGenerate') {
+                console.log('🎯 requestPinnedThenGenerate: Starting execution with payload:', payload);
                 const result = await (window as any).__agentApi?.requestPinnedThenGenerate?.(payload);
+                console.log('🎯 requestPinnedThenGenerate: Execution complete, result:', result);
                 const artifacts = result && typeof result === 'object' ? result : {};
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName, artifacts }) });
+                console.log('🎯 requestPinnedThenGenerate: Artifacts to send:', artifacts);
+                if (correlationId) {
+                  console.log('🎯 requestPinnedThenGenerate: Sending ack with correlationId:', correlationId);
+                  try {
+                    const ackResponse = await fetch('/api/agent/ack', { 
+                      method: 'POST', 
+                      headers: { 'Content-Type': 'application/json' }, 
+                      body: JSON.stringify({ correlationId, step: stepName, artifacts }) 
+                    });
+                    console.log('🎯 requestPinnedThenGenerate: Ack response status:', ackResponse.status);
+                    const ackText = await ackResponse.text();
+                    console.log('🎯 requestPinnedThenGenerate: Ack response body:', ackText);
+                  } catch (ackError) {
+                    console.error('🎯 requestPinnedThenGenerate: Ack request failed:', ackError);
+                  }
+                } else {
+                  console.warn('🎯 requestPinnedThenGenerate: No correlationId found, skipping ack');
+                }
                 return;
               }
               if (action === 'showOutput') {
@@ -462,18 +500,79 @@ export default function AgentChat() {
                 return;
               }
               if (action === 'nameImage') {
+                console.log('🎯 nameImage: Starting execution with payload:', payload);
                 await (window as any).__agentApi?.nameImage?.(payload);
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                console.log('🎯 nameImage: Execution complete');
+                if (correlationId) {
+                  console.log('🎯 nameImage: Sending ack with correlationId:', correlationId);
+                  try {
+                    const ackResponse = await fetch('/api/agent/ack', { 
+                      method: 'POST', 
+                      headers: { 'Content-Type': 'application/json' }, 
+                      body: JSON.stringify({ correlationId, step: stepName }) 
+                    });
+                    console.log('🎯 nameImage: Ack response status:', ackResponse.status);
+                    const ackText = await ackResponse.text();
+                    console.log('🎯 nameImage: Ack response body:', ackText);
+                  } catch (ackError) {
+                    console.error('🎯 nameImage: Ack request failed:', ackError);
+                  }
+                } else {
+                  console.warn('🎯 nameImage: No correlationId found, skipping ack');
+                }
                 return;
               }
               if (action === 'saveImage') {
+                console.log('🎯 saveImage: Starting execution with payload:', payload);
                 await (window as any).__agentApi?.saveImage?.(payload);
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                console.log('🎯 saveImage: Execution complete');
+                if (correlationId) {
+                  console.log('🎯 saveImage: Sending ack with correlationId:', correlationId);
+                  try {
+                    const ackResponse = await fetch('/api/agent/ack', { 
+                      method: 'POST', 
+                      headers: { 'Content-Type': 'application/json' }, 
+                      body: JSON.stringify({ correlationId, step: stepName }) 
+                    });
+                    console.log('🎯 saveImage: Ack response status:', ackResponse.status);
+                    const ackText = await ackResponse.text();
+                    console.log('🎯 saveImage: Ack response body:', ackText);
+                  } catch (ackError) {
+                    console.error('🎯 saveImage: Ack request failed:', ackError);
+                  }
+                } else {
+                  console.warn('🎯 saveImage: No correlationId found, skipping ack');
+                }
                 return;
               }
               if (action === 'useCanvasLora') {
                 await (window as any).__agentApi?.useCanvasLora?.(payload);
                 if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                return;
+              }
+              if (action === 'generateContent') {
+                console.log('🎯 generateContent: Starting execution with payload:', payload);
+                const result = await (window as any).__agentApi?.prepareGenerate?.(payload);
+                console.log('🎯 generateContent: Execution complete, result:', result);
+                const artifacts = result && typeof result === 'object' ? result : {};
+                console.log('🎯 generateContent: Artifacts to send:', artifacts);
+                if (correlationId) {
+                  console.log('🎯 generateContent: Sending ack with correlationId:', correlationId);
+                  try {
+                    const ackResponse = await fetch('/api/agent/ack', { 
+                      method: 'POST', 
+                      headers: { 'Content-Type': 'application/json' }, 
+                      body: JSON.stringify({ correlationId, step: stepName, artifacts }) 
+                    });
+                    console.log('🎯 generateContent: Ack response status:', ackResponse.status);
+                    const ackText = await ackResponse.text();
+                    console.log('🎯 generateContent: Ack response body:', ackText);
+                  } catch (ackError) {
+                    console.error('🎯 generateContent: Ack request failed:', ackError);
+                  }
+                } else {
+                  console.warn('🎯 generateContent: No correlationId found, skipping ack');
+                }
                 return;
               }
 
