@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
           try {
             console.log('🔵 API: Attempting to stream response')
             let eventCount = 0
+            let completed = false
 
             for await (const event of response as any) {
               eventCount++
@@ -79,10 +80,13 @@ export async function POST(req: NextRequest) {
                   response_id: event.response.id
                 }
                 controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
+                completed = true
+                console.log('🔵 API: Response completed, breaking out of loop')
+                break
               }
             }
 
-            console.log('🔵 API: Streaming completed, total events:', eventCount)
+            console.log('🔵 API: Streaming completed, total events:', eventCount, 'completed:', completed)
           } catch (error) {
             console.log('🔴 API: Streaming failed, trying non-streaming:', error)
             // If streaming fails, try non-streaming
