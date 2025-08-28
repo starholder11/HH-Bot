@@ -355,6 +355,23 @@ export async function POST(req: NextRequest) {
     : '';
   const userMessage = typeof lastUserMessage === 'string' ? lastUserMessage : '';
 
+  // Extract structured visual context summary if present in the user message
+  // Marker format from frontend: __CONTEXT_VISUAL_SUMMARY__:{"...prompt..."}
+  let contextVisualSummary: string | undefined;
+  try {
+    const markerIdx = userMessage.lastIndexOf('__CONTEXT_VISUAL_SUMMARY__:');
+    if (markerIdx >= 0) {
+      const markerPayload = userMessage.slice(markerIdx + '__CONTEXT_VISUAL_SUMMARY__:'.length).trim();
+      try {
+        contextVisualSummary = JSON.parse(markerPayload);
+      } catch {
+        // Try lax parse: strip trailing lines
+        const firstLine = markerPayload.split('\n')[0];
+        try { contextVisualSummary = JSON.parse(firstLine); } catch {}
+      }
+    }
+  } catch {}
+
   try {
     // Route to the Phase 2 comprehensive agent system
     const agentResponse = await fetch(`${process.env.LANCEDB_API_URL}/api/agent-comprehensive`, {
@@ -652,7 +669,7 @@ export async function POST(req: NextRequest) {
           } else if (tool === 'preparegenerate') {
             payload = {
               type: params.type || 'image',
-              prompt: params.prompt || params.message || userMessage,
+              prompt: (contextVisualSummary || params.prompt || params.message || userMessage),
               model: params.model || 'default',
               options: params.options || {},
               refs: params.refs || [],
@@ -679,7 +696,7 @@ export async function POST(req: NextRequest) {
             // For generateContent (follow-up), force video and set a sane default i2v model
             payload = {
               type: params.type || 'video',
-              prompt: params.prompt || params.message || userMessage,
+              prompt: (contextVisualSummary || params.prompt || params.message || userMessage),
               model: params.model || 'fal-ai/wan-i2v',
               // Pass resolved refs from previous resolveAssetRefs step
               assetRefs: resolvedRefs.length > 0 ? resolvedRefs : undefined,
