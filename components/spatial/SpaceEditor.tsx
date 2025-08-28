@@ -158,9 +158,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
               console.log('[SpaceEditor] Importing pending layout at position', message.data.position);
               importHandled = true;
               addLayoutAtPosition(pendingLayoutRef.current, message.data.position)
-                .then(() => { 
+                .then(() => {
                   console.log('[SpaceEditor] Layout import complete, clearing pending layout');
-                  pendingLayoutRef.current = null; 
+                  pendingLayoutRef.current = null;
                 })
                 .catch((e) => {
                   console.error('[SpaceEditor] Layout import on bullseye placement failed:', e);

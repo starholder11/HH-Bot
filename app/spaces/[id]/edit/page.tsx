@@ -189,12 +189,12 @@ export default function SpaceEditPage() {
         console.log('[UI] addLayoutAtPosition via bullseye at', position);
         await spaceEditorRef.current?.addLayoutAtPosition?.(pendingLayout, position);
         console.log('[UI] Layout import complete - resetting state');
-        
+
         // Reset state after successful import
         setBullseyeMode(false);
         setPendingLayout(null);
         setHasUnsavedChanges(true);
-        
+
         // Force exit bullseye mode in editor to ensure cleanup
         try {
           await spaceEditorRef.current?.exitBullseyeMode?.();

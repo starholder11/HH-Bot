@@ -5,6 +5,69 @@ import { useAgentStream } from '@/app/visual-search/hooks/useAgentStream';
 
 type Msg = { role: 'user' | 'assistant' | 'tool'; content: string };
 
+// Intent classification for routing between agents
+function classifyIntent(message: string): 'task' | 'conversational' {
+  const msg = message.toLowerCase().trim();
+
+  // Task-oriented patterns (workshop agent)
+  const taskPatterns = [
+    // Search and discovery
+    /\b(search|find|show|pull\s*up|dig\s*up|look.*up|gimme|give me)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?)/i,
+    /\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?)\s+(of|about|with|for|from|like|that|related|containing)/i,
+
+    // Generation and creation
+    /\b(make|create|generate|produce|build|design|craft|draw|paint|render|synthesize)\b/i,
+
+    // Canvas and workspace operations
+    /\b(pin|canvas|workspace|board|layout|arrange|organize)\b/i,
+
+    // File operations
+    /\b(save|name|rename|upload|download|export|import)\b/i,
+
+    // Technical operations
+    /\b(lora|model|generate|workflow|process|analyze)\b/i
+  ];
+
+  // Conversational patterns (chat agent)
+  const conversationalPatterns = [
+    // Greetings and social
+    /\b(hi|hello|hey|yo|sup|what's up|wassup|good morning|good afternoon|good evening)\b/i,
+
+    // Questions about lore, story, characters
+    /\b(who is|what is|tell me about|explain|story|lore|character|starholder|background|history)\b/i,
+
+    // General conversation
+    /\b(how are you|what do you think|opinion|feel|believe|like|dislike)\b/i,
+
+    // Help and guidance (non-technical)
+    /\b(help|advice|suggest|recommend|guidance)\b(?!.*\b(search|find|generate|create|make)\b)/i,
+
+    // Questions about the world/universe
+    /\b(universe|world|setting|place|location|time|era|period)\b/i
+  ];
+
+  // Check task patterns first (more specific)
+  for (const pattern of taskPatterns) {
+    if (pattern.test(msg)) {
+      return 'task';
+    }
+  }
+
+  // Check conversational patterns
+  for (const pattern of conversationalPatterns) {
+    if (pattern.test(msg)) {
+      return 'conversational';
+    }
+  }
+
+  // Default to conversational for ambiguous cases
+  // This encourages more natural conversation flow
+  return 'conversational';
+}
+
+// Import the conversational stream hook
+import { useConversationalStream } from '@/app/workshop/hooks/useConversationalStream';
+
 function AgentStreamRunner({
   messages,
   onDelta,
@@ -20,12 +83,31 @@ function AgentStreamRunner({
   return null;
 }
 
+function ConversationalStreamRunner({
+  messages,
+  onDelta,
+  onDone,
+  lastResponseId,
+  setLastResponseId,
+}: {
+  messages: Msg[];
+  onDelta: (d: string) => void;
+  onDone: () => void;
+  lastResponseId: string | null;
+  setLastResponseId: (id: string | null) => void;
+}) {
+  useConversationalStream(messages, onDelta, onDone, lastResponseId, setLastResponseId);
+  return null;
+}
+
 export default function AgentChat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [runId, setRunId] = useState(0);
   const [pendingMessages, setPendingMessages] = useState<Msg[] | null>(null);
+  const [currentAgent, setCurrentAgent] = useState<'task' | 'conversational'>('conversational');
+  const [lastResponseId, setLastResponseId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -34,6 +116,11 @@ export default function AgentChat() {
 
   async function send() {
     if (!input.trim() || busy) return;
+
+    // Classify the intent to determine which agent to use
+    const intent = classifyIntent(input.trim());
+    setCurrentAgent(intent);
+
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     setMessages(next);
     setInput('');
@@ -44,7 +131,7 @@ export default function AgentChat() {
 
   return (
     <div className="flex flex-col h-[576px]">
-      {busy && pendingMessages && (
+      {busy && pendingMessages && currentAgent === 'task' && (
         <AgentStreamRunner
           key={runId}
           messages={pendingMessages}
@@ -136,6 +223,31 @@ export default function AgentChat() {
           }}
         />
       )}
+      {busy && pendingMessages && currentAgent === 'conversational' && (
+        <ConversationalStreamRunner
+          key={runId}
+          messages={pendingMessages}
+          onDelta={(delta) => {
+            // Accumulate assistant text in last assistant message
+            setMessages((prev) => {
+              const out = prev.slice();
+              const last = out[out.length - 1];
+              if (last?.role === 'assistant') {
+                out[out.length - 1] = { role: 'assistant', content: String((last as any).content || '') + delta } as Msg;
+              } else {
+                out.push({ role: 'assistant', content: delta } as Msg);
+              }
+              return out;
+            });
+          }}
+          onDone={() => {
+            setBusy(false);
+            setPendingMessages(null);
+          }}
+          lastResponseId={lastResponseId}
+          setLastResponseId={setLastResponseId}
+        />
+      )}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto space-y-3 p-4 rounded-xl border border-neutral-800 bg-neutral-900/60"
@@ -157,23 +269,38 @@ export default function AgentChat() {
           </div>
         ))}
       </div>
-      <div className="mt-3 flex gap-2">
-        <input
-          className="flex-1 px-4 py-3 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-2 ring-neutral-700"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') send();
-          }}
-          placeholder="Ask the agent to search, pin, or generate…"
-        />
-        <button
-          className="px-5 py-3 rounded-xl bg-blue-600 text-white font-medium disabled:opacity-50"
-          onClick={send}
-          disabled={busy || !input.trim()}
-        >
-          Send
-        </button>
+      <div className="mt-3 space-y-2">
+        {/* Agent indicator */}
+        <div className="flex items-center justify-between text-xs text-neutral-400">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${currentAgent === 'task' ? 'bg-blue-500' : 'bg-purple-500'}`}></div>
+            <span>
+              {currentAgent === 'task' ? 'Workshop Agent' : 'Starholder Lore Agent'}
+            </span>
+          </div>
+          <div className="text-neutral-500">
+            {busy ? 'Processing...' : 'Ready'}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            className="flex-1 px-4 py-3 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-2 ring-neutral-700"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') send();
+            }}
+            placeholder="Ask about Starholder lore, or request to search, pin, or generate…"
+          />
+          <button
+            className="px-5 py-3 rounded-xl bg-blue-600 text-white font-medium disabled:opacity-50"
+            onClick={send}
+            disabled={busy || !input.trim()}
+          >
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
