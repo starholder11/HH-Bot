@@ -180,7 +180,7 @@ function AgentStreamRunner({
     let cancelled = false;
     (async () => {
       const userRequest = messages[messages.length - 1]?.content || '';
-      const isGenerationRequest = /\b(make|create|generate|draw|paint|render|produce|build|design|craft)\b.*\b(picture|image|photo|video|art|artwork|visual|portrait)\b/i.test(userRequest);
+      const isGenerationRequest = /\b(make|create|generate|draw|paint|render|produce|build|design|craft|turn)\b.*\b(picture|image|photo|video|art|artwork|visual|portrait|into.*video)\b/i.test(userRequest);
 
       // If no context or not a generation request, just pass original messages
       if (!conversationalContext || !isGenerationRequest) {
@@ -198,9 +198,16 @@ function AgentStreamRunner({
           const json = await res.json();
           const synthesized = String(json.prompt || userRequest).trim();
           console.log('🧪 Synthesis result:', synthesized);
+          
+          // For "turn into video" requests, inject the context directly into the user message
+          const isVideoFromContext = /turn.*into.*video/i.test(userRequest);
+          const finalMessage = isVideoFromContext 
+            ? `VISUAL GENERATION REQUEST with context: CONTEXT: "${conversationalContext.slice(-600)}" USER REQUEST: ${userRequest} Please extract visual elements from the context to create detailed generation prompts. Focus on character descriptions, physical appearance, setting, and mood.`
+            : synthesized;
+            
           const next = [
             ...messages.slice(0, -1),
-            { role: 'user' as const, content: synthesized }
+            { role: 'user' as const, content: finalMessage }
           ];
           if (!cancelled) setPrepared(next);
         } else {
