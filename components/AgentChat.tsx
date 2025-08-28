@@ -258,7 +258,7 @@ export default function AgentChat() {
   const [lastResponseId, setLastResponseId] = useState<string | null>(null);
   const [conversationalContext, setConversationalContext] = useState<string>('');
   const [forceDocked, setForceDocked] = useState(false);
-  
+
   console.log('🔍 ForceDocked Debug: forceDocked state is:', forceDocked);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -299,7 +299,7 @@ export default function AgentChat() {
 
   const isLore = currentAgent === 'conversational';
   const showLoreModal = isLore && !forceDocked;
-  
+
   console.log('🔍 Modal Debug:', { currentAgent, isLore, forceDocked, showLoreModal });
 
   const chatSurface = (
@@ -415,14 +415,14 @@ export default function AgentChat() {
               // Handle search action
               if (action === 'searchUnified') {
                 await (window as any).__agentApi?.searchUnified?.(payload);
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
 
               // Handle showResults action
               if (action === 'showResults') {
                 await (window as any).__agentApi?.showResults?.(payload);
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
 
@@ -435,45 +435,45 @@ export default function AgentChat() {
               // Handle other UI actions
               if (action === 'pinToCanvas') {
                 await (window as any).__agentApi?.pin?.(payload || possibleResult);
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'prepareGenerate') {
                 const result = await (window as any).__agentApi?.prepareGenerate?.(payload);
                 // Optionally attach artifacts for backend (like generated URL)
                 const artifacts = result && typeof result === 'object' ? result : {};
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName, artifacts }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName, artifacts }) });
                 return;
               }
               if (action === 'requestPinnedThenGenerate') {
                 const result = await (window as any).__agentApi?.requestPinnedThenGenerate?.(payload);
                 const artifacts = result && typeof result === 'object' ? result : {};
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName, artifacts }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName, artifacts }) });
                 return;
               }
               if (action === 'showOutput') {
                 await (window as any).__agentApi?.showOutput?.(payload);
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'openCanvas') {
                 await (window as any).__agentApi?.openCanvas?.(payload);
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'nameImage') {
                 await (window as any).__agentApi?.nameImage?.(payload);
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'saveImage') {
                 await (window as any).__agentApi?.saveImage?.(payload);
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'useCanvasLora') {
                 await (window as any).__agentApi?.useCanvasLora?.(payload);
-                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
 
