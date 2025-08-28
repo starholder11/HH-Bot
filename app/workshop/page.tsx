@@ -2052,11 +2052,35 @@ export default function VisualSearchPage() {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), url: out, mode, params: { mode, model, prompt, refs }, success: !!out } }) });
             await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId: payload?.correlationId || 'workshop', step: mode === 'video' ? 'generatecontent' : 'preparegenerate', artifacts: { url: out, mode } }) });
 
-            // Set a flag so other handlers know image generation is complete
-            if (mode === 'image') {
-              (window as any).__imageGenerationComplete = true;
-              console.log(`🎯 Image generation complete, genUrl should be: ${out}`);
+                      // Set a flag so other handlers know image generation is complete
+          if (mode === 'image') {
+            (window as any).__imageGenerationComplete = true;
+            console.log(`🎯 Image generation complete, genUrl should be: ${out}`);
+            
+            // Auto-handle naming, saving, and pinning if name parameter provided
+            const autoName = payload?.name;
+            if (autoName && autoName !== 'Untitled') {
+              console.log(`🎯 Auto-handling integrated flow with name: ${autoName}`);
+              
+              // Auto-name the image
+              setTimeout(async () => {
+                try {
+                  await (window as any).__agentApi?.nameImage?.({ name: autoName, correlationId: payload?.correlationId });
+                  console.log(`🎯 Auto-named image: ${autoName}`);
+                  
+                  // Auto-save the image  
+                  await (window as any).__agentApi?.saveImage?.({ correlationId: payload?.correlationId });
+                  console.log(`🎯 Auto-saved image`);
+                  
+                  // Auto-pin to canvas
+                  await (window as any).__agentApi?.pin?.({ correlationId: payload?.correlationId });
+                  console.log(`🎯 Auto-pinned image to canvas`);
+                } catch (e) {
+                  console.error('🎯 Auto-flow failed:', e);
+                }
+              }, 1000);
             }
+          }
           } catch {}
         } catch (e) {
           setGenLoading(false);

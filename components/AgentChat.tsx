@@ -405,11 +405,11 @@ export default function AgentChat() {
               const stepName = String(action || '').toLowerCase();
               const correlationId = payload?.correlationId || payload?.corr || payload?.id || null;
               console.log('🔧 onTool: Received action:', action, 'stepName:', stepName, 'correlationId:', correlationId);
-              
+
               // Map UI action names back to tool names for acknowledgment
               const actionToToolMap: Record<string, string> = {
                 'searchunified': 'searchunified',
-                'preparegenerate': 'preparegenerate', 
+                'preparegenerate': 'preparegenerate',
                 'requestpinnedthengenerate': 'generatecontent', // This is the key mapping!
                 'pintocanvas': 'pintocanvas',
                 'nameimage': 'nameimage',
@@ -457,16 +457,23 @@ export default function AgentChat() {
                 console.log('🎯 prepareGenerate: Starting execution with payload:', payload);
                 const result = await (window as any).__agentApi?.prepareGenerate?.(payload);
                 console.log('🎯 prepareGenerate: Execution complete, result:', result);
-                // Optionally attach artifacts for backend (like generated URL)
-                const artifacts = result && typeof result === 'object' ? result : {};
+
+                // Capture generated URL from the global state for artifacts
+                const generatedUrl = (window as any).genUrlRef?.current || (window as any).genUrl;
+                const artifacts = {
+                  url: generatedUrl,
+                  imageId: generatedUrl ? `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` : null,
+                  type: payload?.type || 'image',
+                  ...(result && typeof result === 'object' ? result : {})
+                };
                 console.log('🎯 prepareGenerate: Artifacts to send:', artifacts);
                 if (correlationId) {
                   console.log('🎯 prepareGenerate: Sending ack with correlationId:', correlationId, 'toolName:', toolNameForAck);
                   try {
-                    const ackResponse = await fetch('/api/agent/ack', { 
-                      method: 'POST', 
-                      headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts }) 
+                    const ackResponse = await fetch('/api/agent/ack', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts })
                     });
                     console.log('🎯 prepareGenerate: Ack response status:', ackResponse.status);
                     const ackText = await ackResponse.text();
@@ -488,10 +495,10 @@ export default function AgentChat() {
                 if (correlationId) {
                   console.log('🎯 requestPinnedThenGenerate: Sending ack with correlationId:', correlationId, 'toolName:', toolNameForAck);
                   try {
-                    const ackResponse = await fetch('/api/agent/ack', { 
-                      method: 'POST', 
-                      headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts }) 
+                    const ackResponse = await fetch('/api/agent/ack', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts })
                     });
                     console.log('🎯 requestPinnedThenGenerate: Ack response status:', ackResponse.status);
                     const ackText = await ackResponse.text();
@@ -521,10 +528,10 @@ export default function AgentChat() {
                 if (correlationId) {
                   console.log('🎯 nameImage: Sending ack with correlationId:', correlationId);
                   try {
-                    const ackResponse = await fetch('/api/agent/ack', { 
-                      method: 'POST', 
-                      headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: toolNameForAck }) 
+                    const ackResponse = await fetch('/api/agent/ack', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ correlationId, step: toolNameForAck })
                     });
                     console.log('🎯 nameImage: Ack response status:', ackResponse.status);
                     const ackText = await ackResponse.text();
@@ -544,10 +551,10 @@ export default function AgentChat() {
                 if (correlationId) {
                   console.log('🎯 saveImage: Sending ack with correlationId:', correlationId);
                   try {
-                    const ackResponse = await fetch('/api/agent/ack', { 
-                      method: 'POST', 
-                      headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: toolNameForAck }) 
+                    const ackResponse = await fetch('/api/agent/ack', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ correlationId, step: toolNameForAck })
                     });
                     console.log('🎯 saveImage: Ack response status:', ackResponse.status);
                     const ackText = await ackResponse.text();
