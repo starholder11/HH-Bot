@@ -5,6 +5,78 @@ import { useAgentStream } from '@/app/visual-search/hooks/useAgentStream';
 
 type Msg = { role: 'user' | 'assistant' | 'tool'; content: string };
 
+// Synthesize conversational context into actionable prompts for generation
+async function synthesizeContextForGeneration(context: string, userRequest: string): Promise<string> {
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: `SYNTHESIS TASK: Convert conversational context into a detailed visual generation prompt.
+
+CONTEXT: "${context.slice(-800)}"
+
+USER REQUEST: "${userRequest}"
+
+TASK: Extract visual elements from the context to create a detailed generation prompt. Focus on:
+- Character physical descriptions (age, appearance, clothing, expression)
+- Setting details (location, environment, atmosphere)
+- Mood and style elements
+- Convert abstract descriptions into concrete visual elements
+
+Respond with ONLY the synthesized visual prompt, nothing else. Make it detailed and specific for image generation.
+
+Example:
+Input: Context about "Almond Al, philosopher-farmer, sharp wit, California groves" + Request "make a picture of him"
+Output: "A weathered middle-aged farmer-philosopher standing in drought-affected California almond groves, intelligent eyes showing sharp wit and wisdom, work-worn hands, wearing simple work clothes, surrounded by struggling almond trees under a heavy sky, embodying both earthiness and intellectual depth"
+
+Now synthesize the actual context above:`,
+        previousResponseId: null,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Synthesis failed');
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const decoder = new TextDecoder();
+    let synthesizedPrompt = '';
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'content') {
+              synthesizedPrompt += data.delta;
+            } else if (data.type === 'done') {
+              return synthesizedPrompt.trim();
+            }
+          } catch (e) {
+            // Ignore JSON parse errors
+          }
+        }
+      }
+    }
+
+    return synthesizedPrompt.trim() || userRequest;
+  } catch (error) {
+    console.error('Context synthesis failed:', error);
+    return userRequest; // Fallback to original request
+  }
+}
+
 // Intent classification for routing between agents
 function classifyIntent(message: string): 'task' | 'conversational' {
   const msg = message.toLowerCase().trim();
@@ -84,21 +156,65 @@ function AgentStreamRunner({
   onDone: () => void;
   conversationalContext?: string;
 }) {
-  // Enhance messages with conversational context if available
-  const enhancedMessages = conversationalContext ? [
-    ...messages.slice(0, -1), // All messages except the last user message
-    {
-      role: 'user' as const,
-      content: `CONTEXT FROM PREVIOUS CONVERSATION: 
-"${conversationalContext.slice(-800)}"
+  const [synthesizedMessages, setSynthesizedMessages] = useState<Msg[] | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-USER REQUEST: ${messages[messages.length - 1]?.content || ''}
+  useEffect(() => {
+    async function processMessages() {
+      if (!conversationalContext || isProcessing) {
+        setSynthesizedMessages(messages);
+        return;
+      }
 
-Please use the context above to understand references like "him", "her", "it", "that character", etc. in the user request. Generate content based on the rich descriptions provided in the context.`
+      setIsProcessing(true);
+      const userRequest = messages[messages.length - 1]?.content || '';
+      
+      // Check if this is a generation request
+      const isGenerationRequest = /\b(make|create|generate|draw|paint|render|produce|build|design|craft)\b.*\b(picture|image|photo|video|art|artwork|visual)\b/i.test(userRequest);
+      
+      if (isGenerationRequest) {
+        console.log('🎨 AgentStreamRunner: Synthesizing context for generation request');
+        try {
+          const synthesizedPrompt = await synthesizeContextForGeneration(conversationalContext, userRequest);
+          console.log('🎨 AgentStreamRunner: Synthesized prompt:', synthesizedPrompt);
+          
+          const enhanced = [
+            ...messages.slice(0, -1),
+            {
+              role: 'user' as const,
+              content: synthesizedPrompt
+            }
+          ];
+          setSynthesizedMessages(enhanced);
+        } catch (error) {
+          console.error('🔴 AgentStreamRunner: Synthesis failed, using original messages');
+          setSynthesizedMessages(messages);
+        }
+      } else {
+        // For non-generation requests, pass context normally
+        const enhanced = [
+          ...messages.slice(0, -1),
+          {
+            role: 'user' as const,
+            content: `Context: "${conversationalContext.slice(-400)}"
+
+Request: ${userRequest}`
+          }
+        ];
+        setSynthesizedMessages(enhanced);
+      }
+      setIsProcessing(false);
     }
-  ] : messages;
 
-  useAgentStream(enhancedMessages, onDelta, onTool, onDone);
+    processMessages();
+  }, [messages, conversationalContext, isProcessing]);
+
+  // Don't start streaming until we have processed messages
+  if (!synthesizedMessages) {
+    return null;
+  }
+
+  useAgentStream(synthesizedMessages, onDelta, onTool, onDone);
   return null;
 }
 
