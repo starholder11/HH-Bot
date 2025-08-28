@@ -277,6 +277,10 @@ export default function AgentChat() {
 
     setHasInteracted(true);
     setCurrentAgent(intent);
+    // Auto pop out modal when switching to lore; reset dock override
+    if (intent === 'conversational') {
+      setForceDocked(false);
+    }
 
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     setMessages(next);
