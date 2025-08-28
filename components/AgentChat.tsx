@@ -249,7 +249,7 @@ export default function AgentChat() {
   const [busy, setBusy] = useState(false);
   const [runId, setRunId] = useState(0);
   const [pendingMessages, setPendingMessages] = useState<Msg[] | null>(null);
-  const [currentAgent, setCurrentAgent] = useState<'task' | 'conversational'>('conversational');
+  const [currentAgent, setCurrentAgent] = useState<'task' | 'conversational'>('task');
   const [lastResponseId, setLastResponseId] = useState<string | null>(null);
   const [conversationalContext, setConversationalContext] = useState<string>('');
   const [forceDocked, setForceDocked] = useState(false);
@@ -275,6 +275,7 @@ export default function AgentChat() {
       setConversationalContext('');
     }
 
+    setHasInteracted(true);
     setCurrentAgent(intent);
 
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
@@ -286,8 +287,9 @@ export default function AgentChat() {
     setRunId((id) => id + 1);
   }
 
+  const [hasInteracted, setHasInteracted] = useState(false);
   const isLore = currentAgent === 'conversational';
-  const showLoreModal = isLore && !forceDocked;
+  const showLoreModal = hasInteracted && isLore && !forceDocked;
 
   const chatSurface = (
     <>
