@@ -356,7 +356,7 @@ export async function POST(req: NextRequest) {
   const userMessage = typeof lastUserMessage === 'string' ? lastUserMessage : '';
 
   // Extract structured visual context summary if present in the user message
-  // Marker format from frontend: __CONTEXT_VISUAL_SUMMARY__:{"...prompt..."}
+  // Marker format from frontend: __CONTEXT_VISUAL_SUMMARY__: {"...prompt..."}
   let contextVisualSummary: string | undefined;
   let cleanedUserMessage = userMessage;
   try {
@@ -374,7 +374,8 @@ export async function POST(req: NextRequest) {
       
       // Clean the user message by removing the marker and everything after it
       cleanedUserMessage = userMessage.slice(0, markerIdx).trim();
-      console.log(`[${correlationId}] PROXY: Extracted context visual summary, cleaned message: "${cleanedUserMessage}"`);
+      // Note: correlationId isn't available yet; log without it here
+      console.log(`PROXY: Extracted context visual summary, cleaned message: "${cleanedUserMessage}"`);
     }
   } catch {}
 
@@ -704,6 +705,18 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
+            // Log the final payload fields that matter
+            try {
+              console.log(`[${correlationId}] PROXY: prepareGenerate FINAL payload:`, JSON.stringify({
+                type: payload.type,
+                prompt: typeof payload.prompt === 'string' ? payload.prompt.slice(0, 140) : payload.prompt,
+                model: payload.model,
+                hasOptions: !!payload.options && Object.keys(payload.options || {}).length > 0,
+                refsCount: Array.isArray(payload.refs) ? payload.refs.length : 0,
+                loraNames: payload.loraNames,
+                name: payload.name
+              }));
+            } catch {}
             console.log(`[${correlationId}] PROXY: prepareGenerate enhanced payload with context prompt: ${payload.prompt?.slice(0, 100)}...`);
             console.log(`[${correlationId}] PROXY: prepareGenerate with LoRAs:`, params.loraNames);
             // Removed deferred materialization; rely on explicit planner steps.
@@ -720,6 +733,15 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: true
             };
+            try {
+              console.log(`[${correlationId}] PROXY: generateContent FINAL payload:`, JSON.stringify({
+                type: payload.type,
+                prompt: typeof payload.prompt === 'string' ? payload.prompt.slice(0, 140) : payload.prompt,
+                model: payload.model,
+                hasOptions: !!payload.options && Object.keys(payload.options || {}).length > 0,
+                assetRefsCount: Array.isArray(payload.assetRefs) ? payload.assetRefs.length : 0
+              }));
+            } catch {}
             console.log(`[${correlationId}] PROXY: generateContent enhanced payload with context prompt: ${payload.prompt?.slice(0, 100)}...`);
             // If no resolved refs yet, UI will fall back to current generated image or pinned items
             if (!payload.prompt || payload.prompt === userMessage) {
@@ -778,6 +800,17 @@ export async function POST(req: NextRequest) {
           }
 
           // Queue the step; ack gating will occur during streaming emission
+          // One more assertive log before queuing
+          try {
+            if (uiAction === 'prepareGenerate' || uiAction === 'requestPinnedThenGenerate') {
+              console.log(`[${correlationId}] PROXY: QUEUE ${uiAction} with payload summary:`, JSON.stringify({
+                type: payload.type,
+                promptSnippet: typeof payload.prompt === 'string' ? payload.prompt.slice(0, 140) : payload.prompt,
+                name: payload.name,
+                refsCount: Array.isArray(payload.refs) ? payload.refs.length : (Array.isArray(payload.assetRefs) ? payload.assetRefs.length : 0)
+              }));
+            }
+          } catch {}
           events.push({ action: uiAction, payload });
           console.log(`[${correlationId}] PROXY: Queued event ${events.length}: ${uiAction}`);
         } else {
