@@ -292,6 +292,8 @@ export default function AgentChat() {
 
   const isLore = currentAgent === 'conversational';
   const showLoreModal = isLore && !forceDocked;
+  
+  console.log('🔍 Modal Debug:', { currentAgent, isLore, forceDocked, showLoreModal });
 
   const chatSurface = (
     <>
