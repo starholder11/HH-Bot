@@ -691,6 +691,7 @@ export async function POST(req: NextRequest) {
               console.warn(`[${correlationId}] PROXY: Failed to fetch search results:`, e);
             }
           } else if (tool === 'preparegenerate') {
+            // CRITICAL: Proxy parameter injection - backend plans, proxy provides execution parameters
             payload = {
               type: params.type || 'image',
               prompt: (contextVisualSummary || params.prompt || params.message || userMessage),
@@ -703,10 +704,11 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
+            console.log(`[${correlationId}] PROXY: prepareGenerate enhanced payload with context prompt: ${payload.prompt?.slice(0, 100)}...`);
             console.log(`[${correlationId}] PROXY: prepareGenerate with LoRAs:`, params.loraNames);
             // Removed deferred materialization; rely on explicit planner steps.
           } else if (tool === 'generatecontent') {
-            // For generateContent (follow-up), force video and set a sane default i2v model
+            // CRITICAL: Proxy parameter injection for video generation
             payload = {
               type: params.type || 'video',
               prompt: (contextVisualSummary || params.prompt || params.message || userMessage),
@@ -718,6 +720,7 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: true
             };
+            console.log(`[${correlationId}] PROXY: generateContent enhanced payload with context prompt: ${payload.prompt?.slice(0, 100)}...`);
             // If no resolved refs yet, UI will fall back to current generated image or pinned items
             if (!payload.prompt || payload.prompt === userMessage) {
               // Minimal prompt extraction for follow-up video requests
