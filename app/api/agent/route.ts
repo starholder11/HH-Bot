@@ -505,6 +505,10 @@ export async function POST(req: NextRequest) {
       }));
       console.log(`[${correlationId}] PROXY: Processing ${steps.length} workflow steps:`, steps.map(s => `${s?.tool_name}(${JSON.stringify(s?.parameters)})`));
       console.log(`[${correlationId}] PROXY: Full workflow steps received from backend:`, JSON.stringify(steps, null, 2));
+      
+      // Track artifacts from previous steps for chaining
+      const stepArtifacts: Record<string, any> = {};
+      
       const waitForAck = async (corr: string, stepName: string, timeoutMs = 60000) => {
         const start = Date.now();
         console.log(`[${corr}] PROXY: Starting waitForAck for step: ${stepName}, timeout: ${timeoutMs}ms`);
@@ -523,6 +527,11 @@ export async function POST(req: NextRequest) {
               console.log(`[${corr}] PROXY: Ack check response data:`, data);
               if (data.acked || data.acknowledged) {
                 console.log(`[${corr}] PROXY: ✅ Step ${stepName} acked, proceeding`);
+                // Capture artifacts from this step for use in subsequent steps
+                if (data.artifacts) {
+                  stepArtifacts[stepName] = data.artifacts;
+                  console.log(`[${corr}] PROXY: Captured artifacts for ${stepName}:`, data.artifacts);
+                }
                 return true; // Ack received, proceed to next step
               } else {
                 console.log(`[${corr}] PROXY: ⏳ Step ${stepName} not yet acknowledged, continuing to wait...`);
@@ -734,15 +743,23 @@ export async function POST(req: NextRequest) {
               };
               console.log(`[${correlationId}] PROXY: Passing ${itemsToPin.length} search results to pinToCanvas`);
             } else {
+              // Check if we have assetId from previous saveImage step
+              const saveImageArtifacts = stepArtifacts['saveimage'];
+              const assetIdFromPrevious = saveImageArtifacts?.assetId;
+              
               payload = {
-                id: params.contentId || null,
-                contentId: params.contentId || null,
+                id: params.contentId || assetIdFromPrevious || null,
+                contentId: params.contentId || assetIdFromPrevious || null,
                 // Try to carry intent forward even if we failed to prefetch results
-                needsLookup: !params.contentId,
+                needsLookup: !params.contentId && !assetIdFromPrevious,
                 count: typeof params.count === 'number' ? params.count : extractRequestedCount(userMessage, 2, 10),
                 originalRequest: userMessage,
                 correlationId
               };
+              
+              if (assetIdFromPrevious) {
+                console.log(`[${correlationId}] PROXY: Injected assetId from saveImage artifacts: ${assetIdFromPrevious}`);
+              }
             }
           } else if (tool === 'nameimage' || tool === 'renameasset') {
             payload = {
