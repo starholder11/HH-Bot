@@ -358,9 +358,11 @@ export async function POST(req: NextRequest) {
   // Extract structured visual context summary if present in the user message
   // Marker format from frontend: __CONTEXT_VISUAL_SUMMARY__:{"...prompt..."}
   let contextVisualSummary: string | undefined;
+  let cleanedUserMessage = userMessage;
   try {
     const markerIdx = userMessage.lastIndexOf('__CONTEXT_VISUAL_SUMMARY__:');
     if (markerIdx >= 0) {
+      // Extract the context summary
       const markerPayload = userMessage.slice(markerIdx + '__CONTEXT_VISUAL_SUMMARY__:'.length).trim();
       try {
         contextVisualSummary = JSON.parse(markerPayload);
@@ -369,6 +371,10 @@ export async function POST(req: NextRequest) {
         const firstLine = markerPayload.split('\n')[0];
         try { contextVisualSummary = JSON.parse(firstLine); } catch {}
       }
+      
+      // Clean the user message by removing the marker and everything after it
+      cleanedUserMessage = userMessage.slice(0, markerIdx).trim();
+      console.log(`[${correlationId}] PROXY: Extracted context visual summary, cleaned message: "${cleanedUserMessage}"`);
     }
   } catch {}
 
@@ -380,7 +386,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: userMessage,
+        message: cleanedUserMessage,
         userId: 'workshop-user',
         tenantId: 'default'
       })
