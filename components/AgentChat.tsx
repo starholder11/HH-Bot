@@ -275,7 +275,6 @@ export default function AgentChat() {
       setConversationalContext('');
     }
 
-    setHasInteracted(true);
     setCurrentAgent(intent);
     // Auto pop out modal when switching to lore; reset dock override
     if (intent === 'conversational') {
@@ -291,10 +290,8 @@ export default function AgentChat() {
     setRunId((id) => id + 1);
   }
 
-  const [hasInteracted, setHasInteracted] = useState(false);
   const isLore = currentAgent === 'conversational';
-  const isLoreBusy = busy && currentAgent === 'conversational';
-  const showLoreModal = isLoreBusy && !forceDocked;
+  const showLoreModal = isLore && !forceDocked;
 
   const chatSurface = (
     <>
