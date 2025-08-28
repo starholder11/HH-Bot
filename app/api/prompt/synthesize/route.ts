@@ -30,26 +30,15 @@ TASK:
 - Output ONLY the final prompt with no preface or explanation.
 `;
 
-    const resp: any = await (openai as any).responses.create({
-      input: [{ role: 'user', content: promptText }],
-      max_output_tokens: 512,
-      stream: false,
-      store: false,
+    // Use chat.completions for reliability
+    const resp = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: promptText }],
+      max_tokens: 512,
+      temperature: 0.4
     });
 
-    let text = '';
-    try {
-      if ((resp as any).output_text) {
-        text = (resp as any).output_text as string;
-      } else if (Array.isArray(resp?.output) && resp.output[0]?.content) {
-        const arr = resp.output[0].content;
-        for (const item of arr) {
-          if (item.type === 'text') text += item.text;
-        }
-      }
-    } catch {}
-
-    text = (text || '').trim();
+    let text = (resp.choices?.[0]?.message?.content || '').trim();
     if (!text) {
       // Fallback: just echo request
       text = String(request).trim();
@@ -58,7 +47,7 @@ TASK:
     return NextResponse.json({ prompt: text });
   } catch (error) {
     console.error('prompt/synthesize error', error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error', detail: (error as any)?.message || String(error) }, { status: 500 });
   }
 }
 
