@@ -40,11 +40,16 @@ export class SimpleIntentClassifier {
       console.log(`[${correlationId}] DEBUG: Using planner config version: ${version}`);
       console.log(`[${correlationId}] DEBUG: Planner prompt includes 'name it toby': ${plannerCfg.systemPrompt.includes('name it toby')}`);
       
-      // Replace {{context_visual_summary}} placeholders with actual context
+      // Replace {{context_visual_summary}} placeholders with actual context throughout the entire config
       let systemPrompt = plannerCfg.systemPrompt;
       if (context?.contextVisualSummary) {
         console.log(`[${correlationId}] DEBUG: Replacing context_visual_summary placeholders with: ${context.contextVisualSummary.slice(0, 100)}...`);
-        systemPrompt = systemPrompt.replace(/\{\{context_visual_summary\}\}/g, context.contextVisualSummary);
+        // Replace in the system prompt AND in the entire config JSON string to catch examples
+        const configStr = JSON.stringify(plannerCfg);
+        const replacedConfigStr = configStr.replace(/\{\{context_visual_summary\}\}/g, context.contextVisualSummary);
+        const replacedConfig = JSON.parse(replacedConfigStr);
+        systemPrompt = replacedConfig.systemPrompt;
+        console.log(`[${correlationId}] DEBUG: Replaced ${(configStr.match(/\{\{context_visual_summary\}\}/g) || []).length} placeholder instances`);
       }
       
       const result = await generateObject({
