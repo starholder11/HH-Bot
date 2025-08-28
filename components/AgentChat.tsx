@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useAgentStream } from '@/app/visual-search/hooks/useAgentStream';
 
 type Msg = { role: 'user' | 'assistant' | 'tool'; content: string };
@@ -251,6 +252,7 @@ export default function AgentChat() {
   const [currentAgent, setCurrentAgent] = useState<'task' | 'conversational'>('conversational');
   const [lastResponseId, setLastResponseId] = useState<string | null>(null);
   const [conversationalContext, setConversationalContext] = useState<string>('');
+  const [forceDocked, setForceDocked] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -283,6 +285,78 @@ export default function AgentChat() {
     setPendingMessages(next);
     setRunId((id) => id + 1);
   }
+
+  const isLore = currentAgent === 'conversational';
+  const showLoreModal = isLore && !forceDocked;
+
+  const chatSurface = (
+    <>
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto space-y-3 p-4 rounded-xl border border-neutral-800 bg-neutral-900/60"
+      >
+        {messages.map((m, i) => (
+          <div key={i} className={m.role === 'user' ? 'text-right' : ''}>
+            <div
+              className={
+                'inline-block max-w-[85%] px-4 py-3 rounded-2xl text-base leading-6 ' +
+                (m.role === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : m.role === 'assistant'
+                  ? 'bg-neutral-800 text-neutral-100'
+                  : 'bg-neutral-950 text-neutral-200 border border-neutral-800')
+              }
+            >
+              <pre className="whitespace-pre-wrap break-words">{m.content}</pre>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 space-y-2">
+        {/* Agent indicator */}
+        <div className="flex items-center justify-between text-xs text-neutral-400">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${currentAgent === 'task' ? 'bg-blue-500' : 'bg-purple-500'}`}></div>
+            <span>
+              {currentAgent === 'task' ? 'Workshop Agent' : 'Starholder Lore Agent'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-neutral-500">
+              {busy ? 'Processing...' : 'Ready'}
+            </div>
+            {isLore && (
+              <button
+                className="px-2 py-1 rounded-md border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
+                onClick={() => setForceDocked(v => !v)}
+              >
+                {showLoreModal ? 'Dock' : 'Pop out'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            className="flex-1 px-4 py-3 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-2 ring-neutral-700"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') send();
+            }}
+            placeholder="Ask about Starholder lore, or request to search, pin, or generate…"
+          />
+          <button
+            className="px-5 py-3 rounded-xl bg-blue-600 text-white font-medium disabled:opacity-50"
+            onClick={send}
+            disabled={busy || !input.trim()}
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <div className="flex flex-col h-[576px]">
@@ -413,60 +487,17 @@ export default function AgentChat() {
           setLastResponseId={setLastResponseId}
         />
       )}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto space-y-3 p-4 rounded-xl border border-neutral-800 bg-neutral-900/60"
-      >
-        {messages.map((m, i) => (
-          <div key={i} className={m.role === 'user' ? 'text-right' : ''}>
-            <div
-              className={
-                'inline-block max-w-[85%] px-4 py-3 rounded-2xl text-base leading-6 ' +
-                (m.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : m.role === 'assistant'
-                  ? 'bg-neutral-800 text-neutral-100'
-                  : 'bg-neutral-950 text-neutral-200 border border-neutral-800')
-              }
-            >
-              <pre className="whitespace-pre-wrap break-words">{m.content}</pre>
+      {showLoreModal ? (
+        <Dialog open>
+          <DialogContent className="max-w-5xl w-[92vw] p-4 bg-neutral-950 border-neutral-800">
+            <div className="max-h-[78vh] overflow-y-auto">
+              {chatSurface}
             </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 space-y-2">
-        {/* Agent indicator */}
-        <div className="flex items-center justify-between text-xs text-neutral-400">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${currentAgent === 'task' ? 'bg-blue-500' : 'bg-purple-500'}`}></div>
-            <span>
-              {currentAgent === 'task' ? 'Workshop Agent' : 'Starholder Lore Agent'}
-            </span>
-          </div>
-          <div className="text-neutral-500">
-            {busy ? 'Processing...' : 'Ready'}
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <input
-            className="flex-1 px-4 py-3 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-2 ring-neutral-700"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') send();
-            }}
-            placeholder="Ask about Starholder lore, or request to search, pin, or generate…"
-          />
-          <button
-            className="px-5 py-3 rounded-xl bg-blue-600 text-white font-medium disabled:opacity-50"
-            onClick={send}
-            disabled={busy || !input.trim()}
-          >
-            Send
-          </button>
-        </div>
-      </div>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        chatSurface
+      )}
     </div>
   );
 }
