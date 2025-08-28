@@ -117,16 +117,18 @@ export default function AgentChat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
-  async function send() {
+    async function send() {
     if (!input.trim() || busy) return;
-
+    
     // Classify the intent to determine which agent to use
     const intent = classifyIntent(input.trim());
+    console.log('🟡 AgentChat: Classified intent for "' + input.trim() + '" as:', intent);
     setCurrentAgent(intent);
-
+    
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     setMessages(next);
     setInput('');
+    console.log('🟡 AgentChat: Setting busy to true');
     setBusy(true);
     setPendingMessages(next);
     setRunId((id) => id + 1);
@@ -231,6 +233,7 @@ export default function AgentChat() {
           key={runId}
           messages={pendingMessages}
           onDelta={(delta) => {
+            console.log('🟢 AgentChat: ConversationalStreamRunner onDelta called with:', delta);
             // Accumulate assistant text in last assistant message
             setMessages((prev) => {
               const out = prev.slice();
@@ -244,6 +247,7 @@ export default function AgentChat() {
             });
           }}
           onDone={() => {
+            console.log('🟢 AgentChat: ConversationalStreamRunner onDone called - setting busy to false');
             setBusy(false);
             setPendingMessages(null);
           }}
