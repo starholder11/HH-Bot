@@ -253,6 +253,8 @@ export default function AgentChat() {
   const [lastResponseId, setLastResponseId] = useState<string | null>(null);
   const [conversationalContext, setConversationalContext] = useState<string>('');
   const [forceDocked, setForceDocked] = useState(false);
+  
+  console.log('🔍 ForceDocked Debug: forceDocked state is:', forceDocked);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -275,11 +277,11 @@ export default function AgentChat() {
       setConversationalContext('');
     }
 
-    setCurrentAgent(intent);
     // Auto pop out modal when switching to lore; reset dock override
     if (intent === 'conversational') {
       setForceDocked(false);
     }
+    setCurrentAgent(intent);
 
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     setMessages(next);
@@ -334,7 +336,10 @@ export default function AgentChat() {
             {isLore && (
               <button
                 className="px-2 py-1 rounded-md border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
-                onClick={() => setForceDocked(v => !v)}
+                onClick={() => {
+                  console.log('🔍 Dock button clicked, current forceDocked:', forceDocked);
+                  setForceDocked(v => !v);
+                }}
               >
                 {showLoreModal ? 'Dock' : 'Pop out'}
               </button>
