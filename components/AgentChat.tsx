@@ -143,6 +143,22 @@ function classifyIntent(message: string): 'task' | 'conversational' {
 // Import the conversational stream hook
 import { useConversationalStream } from '@/app/workshop/hooks/useConversationalStream';
 
+function PreparedAgentRunner({
+  finalMessages,
+  onDelta,
+  onTool,
+  onDone,
+}: {
+  finalMessages: Msg[];
+  onDelta: (d: string) => void;
+  onTool: (obj: any) => void;
+  onDone: () => void;
+}) {
+  // This component always calls the hook (no conditional hooks inside)
+  useAgentStream(finalMessages, onDelta, onTool, onDone);
+  return null;
+}
+
 function AgentStreamRunner({
   messages,
   onDelta,
@@ -199,8 +215,14 @@ function AgentStreamRunner({
 
   if (!prepared) return null;
 
-  useAgentStream(prepared, onDelta, onTool, onDone);
-  return null;
+  return (
+    <PreparedAgentRunner
+      finalMessages={prepared}
+      onDelta={onDelta}
+      onTool={onTool}
+      onDone={onDone}
+    />
+  );
 }
 
 function ConversationalStreamRunner({
