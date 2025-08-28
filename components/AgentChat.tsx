@@ -334,7 +334,7 @@ export default function AgentChat() {
               {busy ? 'Processing...' : 'Ready'}
             </div>
             {isLore && (
-              <button
+              <button type="button"
                 className="px-2 py-1 rounded-md border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
                 onClick={() => {
                   console.log('🔍 Dock button clicked, current forceDocked:', forceDocked);
@@ -353,7 +353,11 @@ export default function AgentChat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') send();
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                send();
+              }
             }}
             placeholder="Ask about Starholder lore, or request to search, pin, or generate…"
           />
@@ -500,7 +504,7 @@ export default function AgentChat() {
       )}
       {showLoreModal ? (
         <Dialog open>
-          <DialogContent className="max-w-5xl w-[92vw] p-0 bg-neutral-950 border-neutral-800">
+          <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-5xl w-[92vw] p-0 bg-neutral-950 border-neutral-800">
             <DialogTitle className="sr-only">Lore Chat</DialogTitle>
             <DialogDescription className="sr-only">Conversational agent output</DialogDescription>
             <div className="max-h-[78vh] overflow-y-auto p-4">
