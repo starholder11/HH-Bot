@@ -47,12 +47,14 @@ export function useAgentStream(messages: Msg[], onTextDelta: (delta: string) => 
           if (done || controller.signal.aborted) break;
           const chunk = decoder.decode(value);
           debug('agent:raw', chunk);
+          console.log('🔧 Agent stream chunk:', chunk);
           buffer += chunk;
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
           for (const line of lines) {
             const trimmed = line.trim();
             if (!trimmed) continue;
+            console.log('🔧 Processing line:', trimmed);
             if (trimmed.startsWith('0:')) {
               let delta: any = trimmed.slice(2);
               try { delta = JSON.parse(delta); } catch {}
@@ -60,15 +62,19 @@ export function useAgentStream(messages: Msg[], onTextDelta: (delta: string) => 
               onTextDeltaRef.current(delta);
               continue;
             }
-            if (trimmed.startsWith('data:')) {
+            if (trimmed.startsWith('data: ')) {
               try {
-                const payload = JSON.parse(trimmed.slice(5));
+                const payload = JSON.parse(trimmed.slice(6));
+                console.log('🔧 Parsed SSE data:', payload);
                 const possibleResult = payload?.result ?? payload;
                 if (possibleResult && typeof possibleResult === 'object') {
+                  console.log('🔧 Calling onToolAction with:', possibleResult);
                   onToolActionRef.current(possibleResult);
                   continue;
                 }
-              } catch {}
+              } catch (e) {
+                console.log('🔧 Failed to parse SSE data:', e);
+              }
               continue;
             }
             const idx = trimmed.indexOf(':');
