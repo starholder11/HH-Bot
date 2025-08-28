@@ -679,19 +679,7 @@ export async function POST(req: NextRequest) {
               isFollowUp: false
             };
             console.log(`[${correlationId}] PROXY: prepareGenerate with LoRAs:`, params.loraNames);
-            // Store deferred materialize steps to emit AFTER prepareGenerate ack
-            try {
-              // Find current step index by tool_name since object references differ
-              const stepIndex = steps.findIndex(s => s?.tool_name === step?.tool_name);
-              const next = steps[stepIndex + 1];
-              if (next?.tool_name === 'generateContent') {
-                console.log(`[${correlationId}] Adding deferred materialize steps for video workflow`);
-                payload.__deferredMaterialize = [
-                  { action: 'nameImage', payload: { imageId: 'current', name: extractName(userMessage) || 'Generated Image', correlationId } },
-                  { action: 'saveImage', payload: { imageId: 'current', collection: 'default', correlationId } }
-                ];
-              }
-            } catch {}
+            // Removed deferred materialization; rely on explicit planner steps.
           } else if (tool === 'generatecontent') {
             // For generateContent (follow-up), force video and set a sane default i2v model
             payload = {
@@ -812,46 +800,6 @@ export async function POST(req: NextRequest) {
 
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
               console.log(`[${correlationId}] PROXY: ✅ Emitted step: ${stepName}`);
-
-              // If this was prepareGenerate with deferred materialization, wait for its ack then emit deferred steps
-              if (stepName === 'preparegenerate' && evt.payload?.__deferredMaterialize) {
-                try {
-                  const deferred = Array.isArray(evt.payload.__deferredMaterialize)
-                    ? evt.payload.__deferredMaterialize
-                    : [];
-                  if (deferred.length > 0) {
-                    console.log(`[${correlationId}] Waiting for preparegenerate ack before emitting ${deferred.length} deferred steps`);
-                    await waitForAck(correlationId, 'preparegenerate');
-                    console.log(`[${correlationId}] preparegenerate acked, now emitting deferred steps`);
-
-                    for (const deferredEvt of deferred) {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify(deferredEvt)}\n\n`));
-                      console.log(`[${correlationId}] Emitted deferred step: ${deferredEvt.action.toLowerCase()}`);
-
-                      // Auto-ack the deferred step immediately since it's UI-only
-                      const deferredStepName = deferredEvt.action.toLowerCase();
-                      try {
-                        const backendUrl = process.env.LANCEDB_API_URL || '';
-                        setTimeout(async () => {
-                          try {
-                            await fetch(`${backendUrl}/api/agent-comprehensive/ack`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                correlationId,
-                                step: deferredStepName,
-                                artifacts: { synthetic: true, deferred: true }
-                              })
-                            });
-                          } catch {}
-                        }, 100);
-                      } catch {}
-                    }
-                  }
-                } catch (e) {
-                  console.warn(`[${correlationId}] Failed to emit deferred steps:`, e);
-                }
-              }
 
               // REMOVED: Auto-ack logic that was interfering with proper workflow sequencing
               // Let the frontend handlers send their own acknowledgments after completing their work

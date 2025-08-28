@@ -398,26 +398,31 @@ export default function AgentChat() {
               return out;
             });
           }}
-          onTool={(possibleResult) => {
+          onTool={async (possibleResult) => {
             try {
               const payload = possibleResult?.payload ?? possibleResult;
               const action = possibleResult?.action;
+              const stepName = String(action || '').toLowerCase();
+              const correlationId = payload?.correlationId || payload?.corr || payload?.id || null;
 
               // Handle chat action - this should be clean assistant text
               if (action === 'chat' && payload?.text) {
                 setMessages((prev) => [...prev, { role: 'assistant', content: String(payload.text) } as Msg]);
+                // No ack needed for chat
                 return;
               }
 
               // Handle search action
               if (action === 'searchUnified') {
-                (window as any).__agentApi?.searchUnified?.(payload);
+                await (window as any).__agentApi?.searchUnified?.(payload);
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
 
               // Handle showResults action
               if (action === 'showResults') {
-                (window as any).__agentApi?.showResults?.(payload);
+                await (window as any).__agentApi?.showResults?.(payload);
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
 
@@ -429,35 +434,46 @@ export default function AgentChat() {
 
               // Handle other UI actions
               if (action === 'pinToCanvas') {
-                (window as any).__agentApi?.pin?.(payload || possibleResult);
+                await (window as any).__agentApi?.pin?.(payload || possibleResult);
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'prepareGenerate') {
-                (window as any).__agentApi?.prepareGenerate?.(payload);
+                const result = await (window as any).__agentApi?.prepareGenerate?.(payload);
+                // Optionally attach artifacts for backend (like generated URL)
+                const artifacts = result && typeof result === 'object' ? result : {};
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName, artifacts }) });
                 return;
               }
               if (action === 'requestPinnedThenGenerate') {
-                (window as any).__agentApi?.requestPinnedThenGenerate?.(payload);
+                const result = await (window as any).__agentApi?.requestPinnedThenGenerate?.(payload);
+                const artifacts = result && typeof result === 'object' ? result : {};
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName, artifacts }) });
                 return;
               }
               if (action === 'showOutput') {
-                (window as any).__agentApi?.showOutput?.(payload);
+                await (window as any).__agentApi?.showOutput?.(payload);
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'openCanvas') {
-                (window as any).__agentApi?.openCanvas?.(payload);
+                await (window as any).__agentApi?.openCanvas?.(payload);
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'nameImage') {
-                (window as any).__agentApi?.nameImage?.(payload);
+                await (window as any).__agentApi?.nameImage?.(payload);
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'saveImage') {
-                (window as any).__agentApi?.saveImage?.(payload);
+                await (window as any).__agentApi?.saveImage?.(payload);
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
               if (action === 'useCanvasLora') {
-                (window as any).__agentApi?.useCanvasLora?.(payload);
+                await (window as any).__agentApi?.useCanvasLora?.(payload);
+                if (correlationId) await fetch('/api/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
                 return;
               }
 
