@@ -11,6 +11,7 @@ export function useConversationalStream(
 ) {
   const runningRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<any>(null);
 
   // Use refs to avoid stale closures while keeping stable references
   const onTextDeltaRef = useRef(onTextDelta);
@@ -33,6 +34,17 @@ export function useConversationalStream(
       runningRef.current = true;
 
       try {
+        // Helper: reset a failsafe timeout that will end the run if streaming stalls
+        const resetTimeout = () => {
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          timeoutRef.current = setTimeout(() => {
+            try {
+              onDoneRef.current();
+              controller.abort();
+            } catch {}
+          }, 30000); // 30s stall guard
+        };
+
         // Get the latest user message
         const lastUserMessage = messages.filter(m => m.role === 'user').pop();
         if (!lastUserMessage) {
@@ -60,6 +72,7 @@ export function useConversationalStream(
         if (!reader) throw new Error('No response body');
 
         const decoder = new TextDecoder();
+        resetTimeout();
 
         while (true) {
           const { done, value } = await reader.read();
@@ -68,6 +81,7 @@ export function useConversationalStream(
             if (!controller.signal.aborted) {
               onDoneRef.current();
             }
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
             break;
           }
 
@@ -81,11 +95,14 @@ export function useConversationalStream(
 
                 if (data.type === 'content') {
                   onTextDeltaRef.current(data.delta);
+                  resetTimeout();
                 } else if (data.type === 'response_id') {
                   setLastResponseId(data.response_id);
+                  resetTimeout();
                 } else if (data.type === 'done') {
                   // Stream complete signal received, call onDone and exit
                   onDoneRef.current();
+                  if (timeoutRef.current) clearTimeout(timeoutRef.current);
                   return;
                 }
               } catch (e) {
@@ -101,6 +118,7 @@ export function useConversationalStream(
           onDoneRef.current(); // Make sure to call onDone on error
         }
       } finally {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
         runningRef.current = false;
       }
     };

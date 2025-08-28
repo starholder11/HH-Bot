@@ -12,8 +12,9 @@ function classifyIntent(message: string): 'task' | 'conversational' {
   // Task-oriented patterns (workshop agent)
   const taskPatterns = [
     // Search and discovery
-    /\b(search|find|show|pull\s*up|dig\s*up|look.*up|gimme|give me)\s+(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?)/i,
-    /\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?)\s+(of|about|with|for|from|like|that|related|containing)/i,
+    /\b(search|find|show|pull\s*up|dig\s*up|look.*up|gimme|give me|show me|bring up|display)\b.*\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?)\b/i,
+    /\b(videos?|images?|pictures?|photos?|pics?|audio|songs?|music|tracks?|media|content|files?|assets?)\b.*\b(of|about|with|for|from|like|that|related|containing)\b/i,
+    /\b(pics?|images?|photos?)\b/i,
 
     // Generation and creation
     /\b(make|create|generate|produce|build|design|craft|draw|paint|render|synthesize)\b/i,
@@ -62,6 +63,8 @@ function classifyIntent(message: string): 'task' | 'conversational' {
 
   // Default to conversational for ambiguous cases
   // This encourages more natural conversation flow
+  // But if media nouns appear without clear conversational cues, treat as task
+  if (/\b(pics?|images?|photos?|videos?|audio|tracks?|media)\b/i.test(msg)) return 'task';
   return 'conversational';
 }
 
