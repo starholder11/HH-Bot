@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { message, userId = 'test-user', tenantId } = body;
+    const { message, contextVisualSummary, userId = 'test-user', tenantId } = body;
     const finalTenantId = tenantId || 'default';
 
     const buildSha = process.env.APP_BUILD_SHA || 'unknown';
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     // Use V2 API to enforce object-based args and required correlationId
     const result = await (workflowGenerator as any)!.processNaturalLanguageRequestV2({
       userMessage: message,
+      contextVisualSummary: contextVisualSummary, // Pass context to workflow generator
       userId,
       tenantId: finalTenantId,
       correlationId

@@ -387,6 +387,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         message: cleanedUserMessage,
+        contextVisualSummary: contextVisualSummary, // Pass the extracted context to backend
         userId: 'workshop-user',
         tenantId: 'default'
       })
@@ -782,40 +783,7 @@ export async function POST(req: NextRequest) {
 
       console.log(`[${correlationId}] PROXY: Total events queued: ${events.length}`, events.map(e => e.action));
 
-      // Absolute fallback: if planner/executed steps yielded no UI events, synthesize a minimal 2-step chain
-      if (events.length === 0) {
-        try {
-          const synthesizedPrompt = contextVisualSummary || cleanedUserMessage || userMessage || 'Generate a vivid reference image';
-          const fallbackName = extractName(userMessage) || 'Untitled';
-          console.warn(`[${correlationId}] PROXY: No events from backend steps; injecting local 2-step chain with synthesized prompt`);
-          events.push({
-            action: 'prepareGenerate',
-            payload: {
-              type: 'image',
-              prompt: synthesizedPrompt,
-              model: 'default',
-              options: {},
-              originalRequest: userMessage,
-              name: fallbackName,
-              correlationId
-            }
-          });
-          events.push({
-            action: 'requestPinnedThenGenerate',
-            payload: {
-              type: 'video',
-              prompt: synthesizedPrompt,
-              model: 'fal-ai/wan-i2v',
-              options: {},
-              originalRequest: userMessage,
-              correlationId
-            }
-          });
-          console.log(`[${correlationId}] PROXY: Injected 2 fallback events`);
-        } catch (fallbackErr) {
-          console.warn(`[${correlationId}] PROXY: Failed to inject fallback events:`, fallbackErr);
-        }
-      }
+
 
       // Fallback injection: if user asked to pin and planner omitted a pin step,
       // but we captured search results, inject a pinToCanvas step.

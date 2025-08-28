@@ -51,24 +51,26 @@ export class SimpleWorkflowGenerator {
   // Safer, object-based API to prevent positional-argument drift and enforce correlationId
   async processNaturalLanguageRequestV2(options: {
     userMessage: string;
+    contextVisualSummary?: string;
     userId: string;
     tenantId?: string;
     correlationId: string;
   }): Promise<WorkflowResult> {
-    const { userMessage, userId, tenantId = 'default', correlationId } = options;
+    const { userMessage, contextVisualSummary, userId, tenantId = 'default', correlationId } = options;
     if (!correlationId || typeof correlationId !== 'string') {
       throw new Error('processNaturalLanguageRequestV2 requires a non-empty correlationId');
     }
 
     // Delegate to the legacy signature to minimize changes internally
-    return this.processNaturalLanguageRequest(userMessage, userId, tenantId, correlationId);
+    return this.processNaturalLanguageRequest(userMessage, userId, tenantId, correlationId, contextVisualSummary);
   }
 
   async processNaturalLanguageRequest(
     userMessage: string,
     userId: string,
     tenantId: string = 'default',
-    providedCorrelationId?: string
+    providedCorrelationId?: string,
+    contextVisualSummary?: string
   ): Promise<WorkflowResult> {
     console.log(`[DEBUG] SimpleWorkflowGenerator received providedCorrelationId: ${providedCorrelationId}`);
     // CRITICAL FIX: Use the provided correlationId directly, don't generate a new one
@@ -87,7 +89,7 @@ export class SimpleWorkflowGenerator {
       const userContext = await this.contextService.getUserContext(userId, tenantId);
 
       // Classify intent with cost tracking
-      const { intent } = await this.intentClassifier.classifyIntent(userMessage, { userId });
+      const { intent } = await this.intentClassifier.classifyIntent(userMessage, { userId, contextVisualSummary });
       const llmCost = this.intentClassifier.getCostStats().totalCost;
 
       console.log(`[${correlationId}] Intent: ${intent.intent} (confidence: ${intent.confidence})`);

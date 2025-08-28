@@ -39,10 +39,18 @@ export class SimpleIntentClassifier {
       const { config: plannerCfg, version } = await loadPlannerConfig();
       console.log(`[${correlationId}] DEBUG: Using planner config version: ${version}`);
       console.log(`[${correlationId}] DEBUG: Planner prompt includes 'name it toby': ${plannerCfg.systemPrompt.includes('name it toby')}`);
+      
+      // Replace {{context_visual_summary}} placeholders with actual context
+      let systemPrompt = plannerCfg.systemPrompt;
+      if (context?.contextVisualSummary) {
+        console.log(`[${correlationId}] DEBUG: Replacing context_visual_summary placeholders with: ${context.contextVisualSummary.slice(0, 100)}...`);
+        systemPrompt = systemPrompt.replace(/\{\{context_visual_summary\}\}/g, context.contextVisualSummary);
+      }
+      
       const result = await generateObject({
         model: this.model as any,
         schema: SimpleIntentSchema,
-                system: `${plannerCfg.systemPrompt}\n\nAvailable tools: ${this.availableTools?.join(', ') || ''}.
+                system: `${systemPrompt}\n\nAvailable tools: ${this.availableTools?.join(', ') || ''}.
 
         CRITICAL: Look for compound actions that require MULTIPLE steps in sequence.
 
