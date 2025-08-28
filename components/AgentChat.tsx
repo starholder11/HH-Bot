@@ -458,12 +458,12 @@ export default function AgentChat() {
                 const result = await (window as any).__agentApi?.prepareGenerate?.(payload);
                 console.log('🎯 prepareGenerate: Execution complete, result:', result);
 
-                // Capture generated URL from the global state for artifacts
-                const generatedUrl = (window as any).genUrlRef?.current || (window as any).genUrl;
+                // Prefer URL returned from the handler; fall back to global refs
+                const generatedUrl = (result && result.url) || (window as any).genUrlRef?.current || (window as any).genUrl;
                 const artifacts = {
                   url: generatedUrl,
                   imageId: generatedUrl ? `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` : null,
-                  type: payload?.type || 'image',
+                  type: (result && (result as any).mode) || payload?.type || 'image',
                   ...(result && typeof result === 'object' ? result : {})
                 };
                 console.log('🎯 prepareGenerate: Artifacts to send:', artifacts);

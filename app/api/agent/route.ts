@@ -509,7 +509,7 @@ export async function POST(req: NextRequest) {
       // Track artifacts from previous steps for chaining
       const stepArtifacts: Record<string, any> = {};
       
-      const waitForAck = async (corr: string, stepName: string, timeoutMs = 60000) => {
+      const waitForAck = async (corr: string, stepName: string, timeoutMs = 120000) => {
         const start = Date.now();
         console.log(`[${corr}] PROXY: Starting waitForAck for step: ${stepName}, timeout: ${timeoutMs}ms`);
         while (Date.now() - start < timeoutMs) {
@@ -821,16 +821,23 @@ export async function POST(req: NextRequest) {
 
               console.log(`[${correlationId}] PROXY: About to emit event ${i}/${events.length-1}: ${stepName}`);
 
-              // Wait for previous step to be acked before emitting next
-              if (i > 1) {
-                              const prevStepName = events[i-1].action.toLowerCase();
+              // Wait for previous step to be acked before emitting next (including first-to-second)
+              const prevStepName = events[i-1].action.toLowerCase();
               console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevStepName}`);
               console.log(`[${correlationId}] PROXY: Previous event was:`, JSON.stringify(events[i-1], null, 2));
-              await waitForAck(correlationId, prevStepName);
-              console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
+              const ackOk = await waitForAck(correlationId, prevStepName);
+              if (ackOk) {
+                console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
+              } else {
+                console.warn(`[${correlationId}] PROXY: Timed out waiting for ${prevStepName}, proceeding with ${stepName} anyway`);
               }
 
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
+              try {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
+              } catch (enqueueErr) {
+                console.warn(`[${correlationId}] PROXY: Failed to enqueue step ${stepName} (stream likely closed):`, enqueueErr);
+                break;
+              }
               console.log(`[${correlationId}] PROXY: ✅ Emitted step: ${stepName}`);
 
               // REMOVED: Auto-ack logic that was interfering with proper workflow sequencing
@@ -839,12 +846,14 @@ export async function POST(req: NextRequest) {
             }
           } catch (error) {
             console.error(`[${correlationId}] Stream error:`, error);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              action: 'error',
-              payload: { message: 'Workflow failed', error: error.message, correlationId }
-            })}\n\n`));
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                action: 'error',
+                payload: { message: 'Workflow failed', error: (error as any)?.message, correlationId }
+              })}\n\n`));
+            } catch {}
           } finally {
-            controller.close();
+            try { controller.close(); } catch {}
           }
         }
       });

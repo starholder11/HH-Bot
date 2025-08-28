@@ -2056,22 +2056,22 @@ export default function VisualSearchPage() {
           if (mode === 'image') {
             (window as any).__imageGenerationComplete = true;
             console.log(`🎯 Image generation complete, genUrl should be: ${out}`);
-            
+
             // Auto-handle naming, saving, and pinning if name parameter provided
             const autoName = payload?.name;
             if (autoName && autoName !== 'Untitled') {
               console.log(`🎯 Auto-handling integrated flow with name: ${autoName}`);
-              
+
               // Auto-name the image
               setTimeout(async () => {
                 try {
                   await (window as any).__agentApi?.nameImage?.({ name: autoName, correlationId: payload?.correlationId });
                   console.log(`🎯 Auto-named image: ${autoName}`);
-                  
-                  // Auto-save the image  
+
+                  // Auto-save the image
                   await (window as any).__agentApi?.saveImage?.({ correlationId: payload?.correlationId });
                   console.log(`🎯 Auto-saved image`);
-                  
+
                   // Auto-pin to canvas
                   await (window as any).__agentApi?.pin?.({ correlationId: payload?.correlationId });
                   console.log(`🎯 Auto-pinned image to canvas`);
@@ -2082,6 +2082,10 @@ export default function VisualSearchPage() {
             }
           }
           } catch {}
+
+          // Return the generated URL and mode to the caller so they can include
+          // precise artifacts in their acknowledgment payload.
+          return { url: out, mode };
         } catch (e) {
           setGenLoading(false);
           console.error('🔴 Bridge: Generation failed with error:', e);
@@ -2093,6 +2097,8 @@ export default function VisualSearchPage() {
           try {
             await fetch('/api/agent/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ generation: { running: false, finishedAt: new Date().toISOString(), error: (e as any)?.message || 'Unknown error' } }) });
           } catch {}
+          // Surface a consistent return shape on error
+          return { url: null, mode };
         } finally {
           agentRunLockRef.current = false;
           // Drain queued generation requests sequentially
