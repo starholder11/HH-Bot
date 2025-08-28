@@ -293,7 +293,8 @@ export default function AgentChat() {
 
   const [hasInteracted, setHasInteracted] = useState(false);
   const isLore = currentAgent === 'conversational';
-  const showLoreModal = hasInteracted && isLore && !forceDocked;
+  const isLoreBusy = busy && currentAgent === 'conversational';
+  const showLoreModal = hasInteracted && (isLore || isLoreBusy) && !forceDocked;
 
   const chatSurface = (
     <>
