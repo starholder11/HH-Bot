@@ -395,8 +395,19 @@ export async function POST(req: NextRequest) {
         return msg.trim();
       };
       const extractName = (msg: string) => {
-        const m = msg.match(/\b(save|name|rename|call)\s+(?:this\s+)?(?:image|picture|photo|video)?\s*(?:as|to)\s+([\w\-_.]+)/i);
-        return m && m[2] ? m[2] : undefined;
+        const text = String(msg || '');
+        const patterns: RegExp[] = [
+          /\b(?:save|name|rename|call)\s+(?:this\s+)?(?:image|picture|photo|video|it)?\s*(?:as|to)?\s*"([^"]{1,100})"/i,
+          /\b(?:save|name|rename|call)\s+(?:this\s+)?(?:image|picture|photo|video|it)?\s*(?:as|to)?\s*'([^']{1,100})'/i,
+          /\bcall\s+(?:it\s+)?([a-z0-9][\w\- ]{1,100}?)(?=(?:\s+and\b|\s*,|\s*\.|$))/i,
+          /\b(?:name|rename)\s+(?:it\s+)?(?:to\s+)?([a-z0-9][\w\- ]{1,100}?)(?=(?:\s+and\b|\s*,|\s*\.|$))/i,
+          /\bsave\s+(?:it\s+)?(?:as\s+)?([a-z0-9][\w\- ]{1,100}?)(?=(?:\s+and\b|\s*,|\s*\.|$))/i,
+        ];
+        for (const p of patterns) {
+          const m = text.match(p);
+          if (m && m[1]) return m[1].trim();
+        }
+        return undefined;
       };
 
       // Robust numeric extraction for requested counts (e.g., "3", "three", "couple", "a few")
@@ -659,7 +670,7 @@ export async function POST(req: NextRequest) {
               if (next?.tool_name === 'generateContent') {
                 console.log(`[${correlationId}] Adding deferred materialize steps for video workflow`);
                 payload.__deferredMaterialize = [
-                  { action: 'nameImage', payload: { imageId: 'current', name: 'Generated Image', correlationId } },
+                  { action: 'nameImage', payload: { imageId: 'current', name: extractName(userMessage) || 'Generated Image', correlationId } },
                   { action: 'saveImage', payload: { imageId: 'current', collection: 'default', correlationId } }
                 ];
               }
@@ -687,7 +698,7 @@ export async function POST(req: NextRequest) {
             // Trust planner-extracted name; minimal fallback only
             payload = {
               ...params,
-              name: params.name || 'Untitled',
+              name: params.name || extractName(userMessage) || 'Untitled',
               correlationId,
               originalRequest: userMessage
             };
@@ -717,7 +728,7 @@ export async function POST(req: NextRequest) {
           } else if (tool === 'nameimage' || tool === 'renameasset') {
             payload = {
               imageId: params.imageId || params.assetId || 'current',
-              name: params.name || params.newFilename || 'Untitled',
+              name: params.name || params.newFilename || extractName(userMessage) || 'Untitled',
               correlationId,
               originalRequest: userMessage
             };
