@@ -800,10 +800,11 @@ export async function POST(req: NextRequest) {
 
               // Wait for previous step to be acked before emitting next
               if (i > 1) {
-                const prevStepName = events[i-1].action.toLowerCase();
-                console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevStepName}`);
-                await waitForAck(correlationId, prevStepName);
-                console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
+                              const prevStepName = events[i-1].action.toLowerCase();
+              console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevStepName}`);
+              console.log(`[${correlationId}] PROXY: Previous event was:`, JSON.stringify(events[i-1], null, 2));
+              await waitForAck(correlationId, prevStepName);
+              console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
               }
 
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));

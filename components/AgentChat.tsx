@@ -404,6 +404,7 @@ export default function AgentChat() {
               const action = possibleResult?.action;
               const stepName = String(action || '').toLowerCase();
               const correlationId = payload?.correlationId || payload?.corr || payload?.id || null;
+              console.log('🔧 onTool: Received action:', action, 'stepName:', stepName, 'correlationId:', correlationId);
 
               // Handle chat action - this should be clean assistant text
               if (action === 'chat' && payload?.text) {
