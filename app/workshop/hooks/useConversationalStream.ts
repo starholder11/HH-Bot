@@ -63,7 +63,13 @@ export function useConversationalStream(
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done || controller.signal.aborted) break;
+          if (done || controller.signal.aborted) {
+            // Stream completed normally, call onDone
+            if (!controller.signal.aborted) {
+              onDoneRef.current();
+            }
+            break;
+          }
 
           const chunk = decoder.decode(value);
           const lines = chunk.split('\n');
@@ -78,7 +84,9 @@ export function useConversationalStream(
                 } else if (data.type === 'response_id') {
                   setLastResponseId(data.response_id);
                 } else if (data.type === 'done') {
-                  // Stream complete
+                  // Stream complete signal received, call onDone and exit
+                  onDoneRef.current();
+                  return;
                 }
               } catch (e) {
                 // Ignore JSON parse errors
@@ -90,11 +98,9 @@ export function useConversationalStream(
         if (error.name !== 'AbortError') {
           console.error('Conversational stream error:', error);
           onTextDeltaRef.current('Sorry, I encountered an error. Please try again.');
+          onDoneRef.current(); // Make sure to call onDone on error
         }
       } finally {
-        if (!controller.signal.aborted) {
-          onDoneRef.current();
-        }
         runningRef.current = false;
       }
     };
