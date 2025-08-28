@@ -46,7 +46,7 @@ Now synthesize the actual context above:`,
 
     const decoder = new TextDecoder();
     let synthesizedPrompt = '';
-    
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -156,48 +156,50 @@ function AgentStreamRunner({
   onDone: () => void;
   conversationalContext?: string;
 }) {
-  // Simple synchronous enhancement - no async synthesis for now to avoid infinite loops
-  const enhancedMessages = useMemo(() => {
-    if (!conversationalContext) {
-      return messages;
-    }
+  // Server-side synthesis to avoid client render loops; run once per send
+  const [prepared, setPrepared] = useState<Msg[] | null>(null);
 
-    const userRequest = messages[messages.length - 1]?.content || '';
-    
-    // Check if this is a generation request
-    const isGenerationRequest = /\b(make|create|generate|draw|paint|render|produce|build|design|craft)\b.*\b(picture|image|photo|video|art|artwork|visual|portrait)\b/i.test(userRequest);
-    
-    if (isGenerationRequest) {
-      console.log('🎨 AgentStreamRunner: Enhanced generation request with context');
-      // For now, do simple context enhancement instead of async synthesis
-      return [
-        ...messages.slice(0, -1),
-        {
-          role: 'user' as const,
-          content: `VISUAL GENERATION REQUEST with context:
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const userRequest = messages[messages.length - 1]?.content || '';
+      const isGenerationRequest = /\b(make|create|generate|draw|paint|render|produce|build|design|craft)\b.*\b(picture|image|photo|video|art|artwork|visual|portrait)\b/i.test(userRequest);
 
-CONTEXT: "${conversationalContext.slice(-600)}"
+      // If no context or not a generation request, just pass original messages
+      if (!conversationalContext || !isGenerationRequest) {
+        if (!cancelled) setPrepared(messages);
+        return;
+      }
 
-USER REQUEST: ${userRequest}
-
-Please extract visual elements from the context to create detailed generation prompts. Focus on character descriptions, physical appearance, setting, and mood.`
+      try {
+        const res = await fetch('/api/prompt/synthesize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ context: conversationalContext, request: userRequest })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const synthesized = String(json.prompt || userRequest).trim();
+          console.log('🧪 Synthesis result:', synthesized);
+          const next = [
+            ...messages.slice(0, -1),
+            { role: 'user' as const, content: synthesized }
+          ];
+          if (!cancelled) setPrepared(next);
+        } else {
+          if (!cancelled) setPrepared(messages);
         }
-      ];
-    } else {
-      // For non-generation requests, pass context normally
-      return [
-        ...messages.slice(0, -1),
-        {
-          role: 'user' as const,
-          content: `Context: "${conversationalContext.slice(-400)}"
-
-Request: ${userRequest}`
-        }
-      ];
-    }
+      } catch (e) {
+        console.warn('Synthesis fetch failed, using original request', e);
+        if (!cancelled) setPrepared(messages);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [messages, conversationalContext]);
 
-  useAgentStream(enhancedMessages, onDelta, onTool, onDone);
+  if (!prepared) return null;
+
+  useAgentStream(prepared, onDelta, onTool, onDone);
   return null;
 }
 
@@ -235,11 +237,11 @@ export default function AgentChat() {
 
     async function send() {
     if (!input.trim() || busy) return;
-    
+
     // Classify the intent to determine which agent to use
     const intent = classifyIntent(input.trim());
     console.log('🟡 AgentChat: Classified intent for "' + input.trim() + '" as:', intent);
-    
+
     // If switching from task to conversational, reset context for fresh conversation
     // If switching from conversational to task, keep the context
     if (currentAgent === 'task' && intent === 'conversational') {
@@ -248,9 +250,9 @@ export default function AgentChat() {
       // Starting a new conversational session, reset context
       setConversationalContext('');
     }
-    
+
     setCurrentAgent(intent);
-    
+
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     setMessages(next);
     setInput('');
@@ -372,7 +374,7 @@ export default function AgentChat() {
               }
               return out;
             });
-            
+
             // Capture conversational context for potential task agent use
             // Only capture if this is a fresh conversational response (not continuing previous context)
             if (currentAgent === 'conversational') {
