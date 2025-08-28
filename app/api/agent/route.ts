@@ -498,8 +498,10 @@ export async function POST(req: NextRequest) {
         raw_steps: steps
       }));
       console.log(`[${correlationId}] PROXY: Processing ${steps.length} workflow steps:`, steps.map(s => `${s?.tool_name}(${JSON.stringify(s?.parameters)})`));
+      console.log(`[${correlationId}] PROXY: Full workflow steps received from backend:`, JSON.stringify(steps, null, 2));
       const waitForAck = async (corr: string, stepName: string, timeoutMs = 60000) => {
         const start = Date.now();
+        console.log(`[${corr}] PROXY: Starting waitForAck for step: ${stepName}, timeout: ${timeoutMs}ms`);
         while (Date.now() - start < timeoutMs) {
           try {
             // Check backend for ack status (backend has VPC Redis access)
@@ -512,17 +514,23 @@ export async function POST(req: NextRequest) {
 
             if (response.ok) {
               const data = await response.json();
-              if (data.acked) {
-                console.log(`[${corr}] Step ${stepName} acked, proceeding`);
-                return; // Ack received, proceed to next step
+              console.log(`[${corr}] PROXY: Ack check response data:`, data);
+              if (data.acked || data.acknowledged) {
+                console.log(`[${corr}] PROXY: ✅ Step ${stepName} acked, proceeding`);
+                return true; // Ack received, proceed to next step
+              } else {
+                console.log(`[${corr}] PROXY: ⏳ Step ${stepName} not yet acknowledged, continuing to wait...`);
               }
+            } else {
+              console.warn(`[${corr}] PROXY: Ack check failed with status: ${response.status}`);
             }
           } catch (e) {
             console.warn(`[${corr}] Backend ack check failed:`, e);
           }
           await new Promise(r => setTimeout(r, 500));
         }
-        console.warn(`[${corr}] Timeout waiting for ack on step ${stepName}`);
+        console.warn(`[${corr}] PROXY: ❌ Timeout waiting for ack on step: ${stepName} after ${timeoutMs}ms`);
+        return false;
       };
 
       for (const step of steps) {
