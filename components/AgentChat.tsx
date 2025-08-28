@@ -76,13 +76,29 @@ function AgentStreamRunner({
   onDelta,
   onTool,
   onDone,
+  conversationalContext,
 }: {
   messages: Msg[];
   onDelta: (d: string) => void;
   onTool: (obj: any) => void;
   onDone: () => void;
+  conversationalContext?: string;
 }) {
-  useAgentStream(messages, onDelta, onTool, onDone);
+  // Enhance messages with conversational context if available
+  const enhancedMessages = conversationalContext ? [
+    ...messages.slice(0, -1), // All messages except the last user message
+    {
+      role: 'user' as const,
+      content: `CONTEXT FROM PREVIOUS CONVERSATION: 
+"${conversationalContext.slice(-800)}"
+
+USER REQUEST: ${messages[messages.length - 1]?.content || ''}
+
+Please use the context above to understand references like "him", "her", "it", "that character", etc. in the user request. Generate content based on the rich descriptions provided in the context.`
+    }
+  ] : messages;
+
+  useAgentStream(enhancedMessages, onDelta, onTool, onDone);
   return null;
 }
 
@@ -111,6 +127,7 @@ export default function AgentChat() {
   const [pendingMessages, setPendingMessages] = useState<Msg[] | null>(null);
   const [currentAgent, setCurrentAgent] = useState<'task' | 'conversational'>('conversational');
   const [lastResponseId, setLastResponseId] = useState<string | null>(null);
+  const [conversationalContext, setConversationalContext] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -123,6 +140,16 @@ export default function AgentChat() {
     // Classify the intent to determine which agent to use
     const intent = classifyIntent(input.trim());
     console.log('🟡 AgentChat: Classified intent for "' + input.trim() + '" as:', intent);
+    
+    // If switching from task to conversational, reset context for fresh conversation
+    // If switching from conversational to task, keep the context
+    if (currentAgent === 'task' && intent === 'conversational') {
+      setConversationalContext('');
+    } else if (currentAgent === 'conversational' && intent === 'conversational') {
+      // Starting a new conversational session, reset context
+      setConversationalContext('');
+    }
+    
     setCurrentAgent(intent);
     
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
@@ -140,6 +167,7 @@ export default function AgentChat() {
         <AgentStreamRunner
           key={runId}
           messages={pendingMessages}
+          conversationalContext={conversationalContext}
           onDelta={(delta) => {
             // Accumulate assistant text in last assistant message
             setMessages((prev) => {
@@ -245,9 +273,16 @@ export default function AgentChat() {
               }
               return out;
             });
+            
+            // Capture conversational context for potential task agent use
+            // Only capture if this is a fresh conversational response (not continuing previous context)
+            if (currentAgent === 'conversational') {
+              setConversationalContext(prev => prev + delta);
+            }
           }}
           onDone={() => {
             console.log('🟢 AgentChat: ConversationalStreamRunner onDone called - setting busy to false');
+            console.log('🟡 AgentChat: Captured conversational context:', conversationalContext.slice(-200));
             setBusy(false);
             setPendingMessages(null);
           }}
