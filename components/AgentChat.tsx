@@ -405,6 +405,20 @@ export default function AgentChat() {
               const stepName = String(action || '').toLowerCase();
               const correlationId = payload?.correlationId || payload?.corr || payload?.id || null;
               console.log('🔧 onTool: Received action:', action, 'stepName:', stepName, 'correlationId:', correlationId);
+              
+              // Map UI action names back to tool names for acknowledgment
+              const actionToToolMap: Record<string, string> = {
+                'searchunified': 'searchunified',
+                'preparegenerate': 'preparegenerate', 
+                'requestpinnedthengenerate': 'generatecontent', // This is the key mapping!
+                'pintocanvas': 'pintocanvas',
+                'nameimage': 'nameimage',
+                'saveimage': 'saveimage',
+                'showoutput': 'showoutput',
+                'opencanvas': 'opencanvas',
+                'usecanvaslora': 'usecanvaslora'
+              };
+              const toolNameForAck = actionToToolMap[stepName] || stepName;
 
               // Handle chat action - this should be clean assistant text
               if (action === 'chat' && payload?.text) {
@@ -416,14 +430,14 @@ export default function AgentChat() {
               // Handle search action
               if (action === 'searchUnified') {
                 await (window as any).__agentApi?.searchUnified?.(payload);
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: toolNameForAck }) });
                 return;
               }
 
               // Handle showResults action
               if (action === 'showResults') {
                 await (window as any).__agentApi?.showResults?.(payload);
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: toolNameForAck }) });
                 return;
               }
 
@@ -436,7 +450,7 @@ export default function AgentChat() {
               // Handle other UI actions
               if (action === 'pinToCanvas') {
                 await (window as any).__agentApi?.pin?.(payload || possibleResult);
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: toolNameForAck }) });
                 return;
               }
               if (action === 'prepareGenerate') {
@@ -447,12 +461,12 @@ export default function AgentChat() {
                 const artifacts = result && typeof result === 'object' ? result : {};
                 console.log('🎯 prepareGenerate: Artifacts to send:', artifacts);
                 if (correlationId) {
-                  console.log('🎯 prepareGenerate: Sending ack with correlationId:', correlationId);
+                  console.log('🎯 prepareGenerate: Sending ack with correlationId:', correlationId, 'toolName:', toolNameForAck);
                   try {
                     const ackResponse = await fetch('/api/agent/ack', { 
                       method: 'POST', 
                       headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: stepName, artifacts }) 
+                      body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts }) 
                     });
                     console.log('🎯 prepareGenerate: Ack response status:', ackResponse.status);
                     const ackText = await ackResponse.text();
@@ -472,12 +486,12 @@ export default function AgentChat() {
                 const artifacts = result && typeof result === 'object' ? result : {};
                 console.log('🎯 requestPinnedThenGenerate: Artifacts to send:', artifacts);
                 if (correlationId) {
-                  console.log('🎯 requestPinnedThenGenerate: Sending ack with correlationId:', correlationId);
+                  console.log('🎯 requestPinnedThenGenerate: Sending ack with correlationId:', correlationId, 'toolName:', toolNameForAck);
                   try {
                     const ackResponse = await fetch('/api/agent/ack', { 
                       method: 'POST', 
                       headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: stepName, artifacts }) 
+                      body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts }) 
                     });
                     console.log('🎯 requestPinnedThenGenerate: Ack response status:', ackResponse.status);
                     const ackText = await ackResponse.text();
@@ -492,12 +506,12 @@ export default function AgentChat() {
               }
               if (action === 'showOutput') {
                 await (window as any).__agentApi?.showOutput?.(payload);
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: toolNameForAck }) });
                 return;
               }
               if (action === 'openCanvas') {
                 await (window as any).__agentApi?.openCanvas?.(payload);
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: toolNameForAck }) });
                 return;
               }
               if (action === 'nameImage') {
@@ -510,7 +524,7 @@ export default function AgentChat() {
                     const ackResponse = await fetch('/api/agent/ack', { 
                       method: 'POST', 
                       headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: stepName }) 
+                      body: JSON.stringify({ correlationId, step: toolNameForAck }) 
                     });
                     console.log('🎯 nameImage: Ack response status:', ackResponse.status);
                     const ackText = await ackResponse.text();
@@ -533,7 +547,7 @@ export default function AgentChat() {
                     const ackResponse = await fetch('/api/agent/ack', { 
                       method: 'POST', 
                       headers: { 'Content-Type': 'application/json' }, 
-                      body: JSON.stringify({ correlationId, step: stepName }) 
+                      body: JSON.stringify({ correlationId, step: toolNameForAck }) 
                     });
                     console.log('🎯 saveImage: Ack response status:', ackResponse.status);
                     const ackText = await ackResponse.text();
@@ -548,7 +562,7 @@ export default function AgentChat() {
               }
               if (action === 'useCanvasLora') {
                 await (window as any).__agentApi?.useCanvasLora?.(payload);
-                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: stepName }) });
+                if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: toolNameForAck }) });
                 return;
               }
 
