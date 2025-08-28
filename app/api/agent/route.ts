@@ -698,6 +698,7 @@ export async function POST(req: NextRequest) {
               options: params.options || {},
               refs: params.refs || [],
               loraNames: params.loraNames || [], // CRITICAL: Pass through LoRA names from backend planner
+              name: params.name || extractName(userMessage) || 'reference_image', // CRITICAL: Extract name for auto-flow
               originalRequest: userMessage,
               correlationId,
               isFollowUp: false
