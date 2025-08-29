@@ -449,7 +449,8 @@ export default function AgentChat() {
 
               // Handle other UI actions
               if (action === 'pinToCanvas') {
-                await (window as any).__agentApi?.pin?.(payload || possibleResult);
+                // Use the dedicated pinToCanvas handler so generated refs (genUrlRef) are pinned correctly
+                await (window as any).__agentApi?.pinToCanvas?.(payload || possibleResult);
                 if (correlationId) await fetch('/api/agent/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correlationId, step: toolNameForAck }) });
                 return;
               }
