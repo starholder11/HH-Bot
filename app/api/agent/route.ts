@@ -475,14 +475,24 @@ export async function POST(req: NextRequest) {
       const executedSteps = agentResult?.execution?.executedSteps || [];
       const plannedSteps = agentResult?.execution?.intent?.workflow_steps || [];
 
-      // CRITICAL FIX: If planned steps include resolveAssetRefs but executed steps don't,
-      // use planned steps to ensure resolveAssetRefs gets executed by the proxy
+      // CRITICAL FIX: Use planned steps for generation tools so proxy can inject proper parameters
+      // Backend execution often fails due to empty parameters, but proxy can fix them
+      const hasGenerationTools = plannedSteps.some((s: any) => 
+        ['preparegenerate', 'generatecontent'].includes((s?.tool_name || '').toLowerCase())
+      );
       const hasResolveAssetRefs = plannedSteps.some((s: any) => s?.tool_name === 'resolveAssetRefs');
       const executedHasResolveAssetRefs = executedSteps.some((s: any) => s?.tool_name === 'resolveAssetRefs');
 
-      let steps = (hasResolveAssetRefs && !executedHasResolveAssetRefs)
-        ? plannedSteps  // Use planned steps when backend skipped resolveAssetRefs
-        : (executedSteps.length > 0 ? executedSteps : plannedSteps);
+      let steps;
+      if (hasGenerationTools) {
+        // For generation workflows, always use planned steps so proxy can inject parameters
+        steps = plannedSteps;
+        console.log(`[${correlationId}] PROXY: Using planned steps for generation workflow (proxy will inject parameters)`);
+      } else if (hasResolveAssetRefs && !executedHasResolveAssetRefs) {
+        steps = plannedSteps;  // Use planned steps when backend skipped resolveAssetRefs
+      } else {
+        steps = (executedSteps.length > 0 ? executedSteps : plannedSteps);
+      }
 
       // If backend returned planned pin step but did not execute it (common when parameters were missing),
       // ensure the proxy still emits a pinToCanvas UI action at the end so UI can pin generated content.
