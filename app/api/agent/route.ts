@@ -552,11 +552,36 @@ export async function POST(req: NextRequest) {
 
       for (const step of steps) {
         const tool = (step?.tool_name || '').toLowerCase();
-        const params = step?.parameters || {};
+        let params = step?.parameters || {};
 
         console.log(`[${correlationId}] PROXY: Processing step: ${step?.tool_name} -> ${tool}, params:`, JSON.stringify(params));
 
-        // REMOVED: Fallback parameter extraction - S3 planner rules now handle parameter extraction properly
+        // CRITICAL: Parameter injection BEFORE UI mapping - ensure prompt/type are set
+        if (tool === 'preparegenerate') {
+          params = {
+            ...params,
+            type: params.type || 'image',
+            prompt: contextVisualSummary || params.prompt || params.message || userMessage,
+            name: params.name || extractName(userMessage) || 'reference_image'
+          };
+          console.log(`[${correlationId}] PROXY: prepareGenerate params after injection:`, JSON.stringify({
+            type: params.type,
+            prompt: typeof params.prompt === 'string' ? params.prompt.slice(0, 140) : params.prompt,
+            name: params.name
+          }));
+        } else if (tool === 'generatecontent') {
+          params = {
+            ...params,
+            type: params.type || 'video',
+            prompt: contextVisualSummary || params.prompt || params.message || userMessage,
+            model: params.model || 'fal-ai/wan-i2v'
+          };
+          console.log(`[${correlationId}] PROXY: generateContent params after injection:`, JSON.stringify({
+            type: params.type,
+            prompt: typeof params.prompt === 'string' ? params.prompt.slice(0, 140) : params.prompt,
+            model: params.model
+          }));
+        }
 
         // Load UI action mapping from config (with fallback to static map)
         let uiAction: string | undefined;
@@ -692,40 +717,23 @@ export async function POST(req: NextRequest) {
               console.warn(`[${correlationId}] PROXY: Failed to fetch search results:`, e);
             }
           } else if (tool === 'preparegenerate') {
-            // CRITICAL: Proxy parameter injection - backend plans, proxy provides execution parameters
+            // Use the injected params and add additional fields
             payload = {
-              type: params.type || 'image',
-              prompt: (contextVisualSummary || params.prompt || params.message || userMessage),
+              ...params, // params already injected above
               model: params.model || 'default',
               options: params.options || {},
               refs: params.refs || [],
               loraNames: params.loraNames || [], // CRITICAL: Pass through LoRA names from backend planner
-              name: params.name || extractName(userMessage) || 'reference_image', // CRITICAL: Extract name for auto-flow
               originalRequest: userMessage,
               correlationId,
               isFollowUp: false
             };
-            // Log the final payload fields that matter
-            try {
-              console.log(`[${correlationId}] PROXY: prepareGenerate FINAL payload:`, JSON.stringify({
-                type: payload.type,
-                prompt: typeof payload.prompt === 'string' ? payload.prompt.slice(0, 140) : payload.prompt,
-                model: payload.model,
-                hasOptions: !!payload.options && Object.keys(payload.options || {}).length > 0,
-                refsCount: Array.isArray(payload.refs) ? payload.refs.length : 0,
-                loraNames: payload.loraNames,
-                name: payload.name
-              }));
-            } catch {}
             console.log(`[${correlationId}] PROXY: prepareGenerate enhanced payload with context prompt: ${payload.prompt?.slice(0, 100)}...`);
             console.log(`[${correlationId}] PROXY: prepareGenerate with LoRAs:`, params.loraNames);
-            // Removed deferred materialization; rely on explicit planner steps.
           } else if (tool === 'generatecontent') {
-            // CRITICAL: Proxy parameter injection for video generation
+            // Use the injected params and add additional fields
             payload = {
-              type: params.type || 'video',
-              prompt: (contextVisualSummary || params.prompt || params.message || userMessage),
-              model: params.model || 'fal-ai/wan-i2v',
+              ...params, // params already injected above
               // Pass resolved refs from previous resolveAssetRefs step
               assetRefs: resolvedRefs.length > 0 ? resolvedRefs : undefined,
               options: params.options || {},
@@ -733,15 +741,6 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: true
             };
-            try {
-              console.log(`[${correlationId}] PROXY: generateContent FINAL payload:`, JSON.stringify({
-                type: payload.type,
-                prompt: typeof payload.prompt === 'string' ? payload.prompt.slice(0, 140) : payload.prompt,
-                model: payload.model,
-                hasOptions: !!payload.options && Object.keys(payload.options || {}).length > 0,
-                assetRefsCount: Array.isArray(payload.assetRefs) ? payload.assetRefs.length : 0
-              }));
-            } catch {}
             console.log(`[${correlationId}] PROXY: generateContent enhanced payload with context prompt: ${payload.prompt?.slice(0, 100)}...`);
             // If no resolved refs yet, UI will fall back to current generated image or pinned items
             if (!payload.prompt || payload.prompt === userMessage) {
