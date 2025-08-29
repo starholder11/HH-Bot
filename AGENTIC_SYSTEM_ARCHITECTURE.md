@@ -24,6 +24,8 @@ The agentic system transforms natural language requests into executed workflows 
 14. [Deployment Architecture](#deployment-architecture)
 15. [Troubleshooting Guide](#troubleshooting-guide)
 16. [Development Workflow](#development-workflow)
+17. [Lore Agent and Agent Switching](#lore-agent-and-agent-switching)
+18. [Blueprint: Lore-to-Video Multi-Step Workflow](#blueprint-lore-to-video-multi-step-workflow)
 
 ---
 
@@ -138,6 +140,46 @@ The system includes multiple agent implementations for different use cases:
 - **Architecture**: Enhanced context awareness, better tool selection
 - **Features**: Improved intent detection, user context integration
 - **Status**: Development/testing
+
+---
+
+## Lore Agent and Agent Switching
+
+### Overview
+
+The system supports two primary conversational modes that share the same chat surface:
+- The workshop (task) agent, optimized for executing UI actions, searching, pinning, and generating media
+- The lore (conversational) agent, optimized for rich world-building responses and creative context
+
+The UI routes messages to the correct agent at send-time using lightweight intent classification and, when needed, prompt synthesis. This enables a seamless experience: users can ask for lore, then immediately give task-oriented commands such as “make a video out of this,” while the system carries forward the creative context from the lore agent.
+
+### Detection and Switching
+
+- Client-side detection happens in `components/AgentChat.tsx` via `classifyIntent(message)`, using:
+  - Regex-based patterns for clear task intents (search/pin/generate/save/name)
+  - Regex-based patterns for conversational intents (who, what, explain, lore/topics)
+  - A tie-breaker heuristic: media nouns without conversational cues default to task
+- If the message is conversational, the chat surfaces the lore agent and opens a pop-out modal (Radix Dialog) for improved readability. When the next message is task-oriented, the modal closes and execution returns to the docked workshop surface.
+- The UI stores recent conversational output as `conversationalContext`. For generation-flavored messages, the UI optionally invokes `/api/prompt/synthesize` to compress the lore into a concise visual prompt, then appends a structured marker to the last user message:
+  - `__CONTEXT_VISUAL_SUMMARY__:"...synthesized prompt..."`
+
+### Context Flow From Lore → Task
+
+- The workshop agent endpoint (`/api/agent`) acts as a proxy to the backend planner. It extracts the marker and passes `contextVisualSummary` to the backend.
+- The proxy injects parameters for generation tools when the planner omits them (e.g., `prompt`, `type`) and uses the context summary as the canonical prompt for:
+  - `prepareGenerate` (reference image)
+  - `generateContent` (video)
+- Workflow steps are deferred to the frontend via `ui-map.json` rules (e.g., `deferToFrontend: "always"` for `prepareGenerate`, `nameImage`, `saveImage`, and `pinToCanvas`), ensuring the UI performs visible actions and can acknowledge each step.
+
+### Acknowledgment and Streaming Contract
+
+- The backend streams planned steps. The proxy emits them one-by-one and waits for client acknowledgments in between (Redis-backed ack endpoint on the backend).
+- The UI executes each action through `window.__agentApi[...]`, then POSTs `/api/agent/ack` with artifacts (e.g., `{ assetId, url, type }`).
+- The proxy polls the backend ack endpoint using the mapped tool name (e.g., `requestPinnedThenGenerate` → `generatecontent`) to proceed. On timeout, it emits an error and stops the stream cleanly.
+
+### Modal Behavior
+
+- When in lore mode, the chat displays inside a centered modal with a wider layout for readability. Switching to a task intent restores the docked positioning. The modal never opens by default; it is triggered by detected conversational intent.
 
 ---
 
@@ -540,24 +582,100 @@ useAgentStream(eventStream => {
 });
 ```
 
-### Agent Trigger Detection
+---
 
-The UI determines when to use the agent vs regular search:
+## Blueprint: Lore-to-Video Multi-Step Workflow
 
-```typescript
-const agentTriggers = [
-  'find', 'search', 'show', 'pin', 'make', 'create',
-  'generate', 'build', 'name', 'save', 'call it'
-];
+This section provides a concrete, end-to-end blueprint for a complex, chained workflow that begins with the lore agent and transitions into a multi-step front/back-end generation pipeline. Use this as a template for building similarly sophisticated workflows.
 
-if (agentTriggers.some(trigger => userInput.includes(trigger))) {
-  // Use agent stream
-  triggerAgentWorkflow(userInput);
-} else {
-  // Use regular search
-  performRegularSearch(userInput);
-}
-```
+### Flow Summary
+
+1. User asks a lore question → lore agent streams rich narrative output
+2. User follows with “make a video out of this”
+3. UI detects a task intent and synthesizes a concise visual prompt from the lore (if needed)
+4. UI embeds `__CONTEXT_VISUAL_SUMMARY__` in the user message and routes to `/api/agent`
+5. Proxy injects parameters and emits generation steps to the UI in order:
+   - `prepareGenerate` → generate reference image from context
+   - `nameImage` → set a user or system-provided name (default: `reference_image`)
+   - `saveImage` → persist the image to storage and index
+   - `pinToCanvas` → place the reference image where the user can see it
+   - `requestPinnedThenGenerate` (`generateContent`) → generate a video using the reference
+6. UI acknowledges each step; artifacts (e.g., `assetId`, `url`) feed into subsequent steps
+7. Final video is saved and surfaced to the user
+
+### Architectural Components
+
+- UI Classification and Synthesis
+  - `classifyIntent(...)` decides agent routing
+  - `/api/prompt/synthesize` compresses verbose lore into a precise visual prompt
+- Proxy/Backend Coordination
+  - `/api/agent` extracts `__CONTEXT_VISUAL_SUMMARY__`, injects required tool parameters, and sequences planned steps
+  - Missing housekeeping steps (name/save/pin) are injected if the planner omits them, ensuring visible, stateful UI results before the final generation
+- Deferral and UI Execution
+  - `ui-map.json` defers `prepareGenerate`, `nameImage`, `saveImage`, `pinToCanvas` to the frontend
+  - `__agentApi` handlers execute, update the UI, and send acks/op artifacts
+- Ack Loop
+  - Proxy waits for `preparegenerate` ack before sending `nameImage`
+  - Special mapping: `requestPinnedThenGenerate` is acked as `generatecontent`
+
+### Detailed Step Breakdown
+
+1) prepareGenerate (Image)
+- Input: `{ type: 'image', prompt: contextVisualSummary, name?: 'reference_image' }`
+- Behavior: Generates a reference image (e.g., via model `default` or FLUX-LoRA if LoRAs were resolved)
+- Artifacts: `{ url, imageId?, mode: 'image' }`
+- Ack: `/api/agent/ack` with artifacts
+
+2) nameImage
+- Input: `{ imageId?: 'current', name?: extracted || 'reference_image' }`
+- Behavior: Sets a stable, human-readable title persisted in UI state (mirrored to the next `saveImage`)
+- Ack: `/api/agent/ack`
+
+3) saveImage
+- Input: `{ imageId?: 'current', collection?: 'default', metadata?: {} }`
+- Behavior: Saves the generated image via `/api/import/url`, triggers labeling/indexing and returns an asset identifier
+- Artifacts: `{ assetId }` (used by `pinToCanvas`)
+- Ack: `/api/agent/ack` with `{ assetId }`
+
+4) pinToCanvas
+- Input: `{ id?: assetId | contentId, needsLookup?: boolean, count?: number }`
+- Behavior: Pins the reference image; if `assetId` wasn’t present, the UI resolves URL or searches
+- Ack: `/api/agent/ack`
+
+5) requestPinnedThenGenerate (Video)
+- Input: `{ type: 'video', prompt: contextVisualSummary, refs?: [imageUrl|assetId], model?: 'fal-ai/wan-i2v' }`
+- Behavior: Uses the reference image as input to a video model; saves and surfaces the result
+- Ack: `/api/agent/ack` (as `generatecontent`)
+
+### Artifacts and Data Chaining
+
+- `prepareGenerate` → `saveImage`: passes the generated `url` and assigned `name`
+- `saveImage` → `pinToCanvas`: passes `assetId` so pin is immediate and visible
+- `pinToCanvas` → `requestPinnedThenGenerate`: resolves final refs (pinned/current/generated)
+
+### Failure Modes and Recovery
+
+- Planner omissions: Proxy injects missing housekeeping steps (name/save/pin)
+- Ack timeouts: Proxy emits an error and closes the stream cleanly to avoid controller state errors
+- Reference not visible: Ensure `pinToCanvas` uses `payload.url || genUrlRef.current`; the UI shows a toast on pin success
+- Parameter gaps: Proxy injects `prompt`/`type` using `contextVisualSummary` and the original user message as fallback
+
+### Best Practices for Future Multi-Step Flows
+
+- Always defer visible UI actions to the frontend (name/save/pin/showOutput)
+- Design steps to be idempotent—safe to retry if acks are lost
+- Keep backend planner examples short; inject full context in the proxy to control prompt length
+- Maintain a strict ack mapping and a single source-of-truth correlation ID across logs
+- Prefer explicit artifacts over implicit global state; carry `{ assetId, url, type }` forward
+- Include a compact run-summary message to the user after the workflow completes
+
+### Minimal Checklist for New Flows
+
+- [ ] Add planner examples (short) and ensure tools map to UI actions
+- [ ] Update `ui-map.json` with deferral rules and any materialization prepends
+- [ ] Implement/verify `__agentApi` handlers for each action
+- [ ] Validate ack mappings in the proxy (UI action → backend step)
+- [ ] Test end-to-end with correlation IDs and confirm artifacts chain correctly
 
 ---
 
