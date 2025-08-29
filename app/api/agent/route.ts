@@ -628,10 +628,6 @@ export async function POST(req: NextRequest) {
             name: params.name || extractName(userMessage) || 'reference_image'
           };
           
-            type: params.type,
-            prompt: typeof params.prompt === 'string' ? params.prompt.slice(0, 140) : params.prompt,
-            name: params.name
-          }));
         } else if (tool === 'generatecontent') {
           params = {
             ...params,
@@ -640,10 +636,6 @@ export async function POST(req: NextRequest) {
             model: params.model || 'fal-ai/wan-i2v'
           };
           
-            type: params.type,
-            prompt: typeof params.prompt === 'string' ? params.prompt.slice(0, 140) : params.prompt,
-            model: params.model
-          }));
         }
 
         // Load UI action mapping from config (with fallback to static map)
