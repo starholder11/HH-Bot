@@ -505,6 +505,34 @@ export async function POST(req: NextRequest) {
         }
       } catch {}
 
+      // Enforce explicit name/save/pin steps for image->video workflows when missing
+      try {
+        const lower = (arr: any[]) => arr.map(s => ({ name: (s?.tool_name || '').toLowerCase(), raw: s }));
+        const lowered = lower(steps);
+        const hasPrepare = lowered.some(s => s.name === 'preparegenerate');
+        const hasGenerateVideo = lowered.some(s => s.name === 'generatecontent');
+        const hasName = lowered.some(s => s.name === 'nameimage' || s.name === 'renameasset');
+        const hasSave = lowered.some(s => s.name === 'saveimage');
+        const hasPin = lowered.some(s => s.name === 'pintocanvas');
+        if (hasPrepare && hasGenerateVideo && (!hasName || !hasSave || !hasPin)) {
+          const rebuilt: any[] = [];
+          let inserted = false;
+          for (const s of steps) {
+            rebuilt.push(s);
+            if ((s?.tool_name || '').toLowerCase() === 'preparegenerate' && !inserted) {
+              if (!hasName) rebuilt.push({ tool_name: 'nameImage', parameters: {} });
+              if (!hasSave) rebuilt.push({ tool_name: 'saveImage', parameters: {} });
+              if (!hasPin) rebuilt.push({ tool_name: 'pinToCanvas', parameters: {} });
+              inserted = true;
+            }
+          }
+          steps = rebuilt;
+          console.log(`[${correlationId}] PROXY: Inserted explicit name/save/pin steps between prepareGenerate and generateContent`);
+        }
+      } catch (e) {
+        console.warn(`[${correlationId}] PROXY: Failed to enforce explicit steps:`, e);
+      }
+
       console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({
         success: agentResult.success,
         execution: !!agentResult.execution,
@@ -880,7 +908,14 @@ export async function POST(req: NextRequest) {
                 if (ackOk) {
                   console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
                 } else {
-                  console.warn(`[${correlationId}] PROXY: Timed out waiting for ${prevStepName}, proceeding with ${stepName} anyway`);
+                  console.warn(`[${correlationId}] PROXY: Timed out waiting for ${prevStepName}, stopping stream`);
+                  try {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      action: 'error',
+                      payload: { message: `Timeout waiting for ack on ${prevStepName}`, correlationId }
+                    })}\n\n`));
+                  } catch {}
+                  break;
                 }
               } else {
                 console.log(`[${correlationId}] PROXY: Skipping ack wait for previous step '${prevStepName}'`);

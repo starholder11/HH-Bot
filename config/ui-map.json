@@ -33,8 +33,8 @@
       }
     },
     "nameImage": {
-      "condition": "no_asset_id",
-      "description": "Defer nameImage to frontend when no assetId is available",
+      "condition": "always",
+      "description": "Always defer nameImage to frontend for UI handling",
       "payload": {
         "action": "nameImage",
         "imageId": "current",
