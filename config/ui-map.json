@@ -1,5 +1,5 @@
 {
-  "version": "v1.3-asset-resolution",
+  "version": "v1.4-defer-ui-generation-tools",
   "toolsToActions": {
     "searchunified": "searchUnified",
     "preparegenerate": "prepareGenerate",
@@ -24,6 +24,14 @@
     }
   },
   "deferToFrontend": {
+    "prepareGenerate": {
+      "condition": "always",
+      "description": "Always defer prepareGenerate to frontend for UI generation and canvas management",
+      "payload": {
+        "action": "prepareGenerate",
+        "deferred": true
+      }
+    },
     "nameImage": {
       "condition": "no_asset_id",
       "description": "Defer nameImage to frontend when no assetId is available",
@@ -40,6 +48,14 @@
         "action": "saveImage",
         "imageId": "current",
         "collection": "default"
+      }
+    },
+    "pinToCanvas": {
+      "condition": "always", 
+      "description": "Always defer pinToCanvas to frontend for UI canvas management",
+      "payload": {
+        "action": "pinToCanvas",
+        "deferred": true
       }
     }
   },
