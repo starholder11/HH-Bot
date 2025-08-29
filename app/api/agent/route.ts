@@ -494,6 +494,41 @@ export async function POST(req: NextRequest) {
         steps = (executedSteps.length > 0 ? executedSteps : plannedSteps);
       }
 
+      // If planner misclassified (no generation tools planned) but the user clearly asked for a video,
+      // inject a minimal, robust image->video workflow so UI can proceed without stalling.
+      try {
+        const userTextLc = String((cleanedUserMessage || userMessage) || '').toLowerCase();
+        const videoRequest = /(make|create|generate|turn)\b[\s\S]{0,50}\b(video|into\s+a?\s*video)\b/.test(userTextLc)
+          || /make\s+a?\s*video\s+out\s+of\s+(this|that|it)/.test(userTextLc)
+          || /turn\s+(this|that|it)\s+into\s+(a\s*)?video/.test(userTextLc);
+
+        const loweredTemp = (steps || []).map((s:any) => (s?.tool_name || '').toLowerCase());
+        const planHasPrepare = loweredTemp.includes('preparegenerate');
+        const planHasGenerateContent = loweredTemp.includes('generatecontent');
+
+        if (!planHasPrepare && !planHasGenerateContent && videoRequest) {
+          steps = [
+            { tool_name: 'prepareGenerate', parameters: { type: 'image' } },
+            { tool_name: 'nameImage', parameters: {} },
+            { tool_name: 'saveImage', parameters: {} },
+            { tool_name: 'pinToCanvas', parameters: {} },
+            { tool_name: 'generateContent', parameters: { type: 'video' } }
+          ];
+          console.log(`[${correlationId}] PROXY: Injected fallback image->video workflow due to video request and missing plan`);
+        }
+
+        // If plan tries to generate video without a preceding prepareGenerate, prepend one.
+        if (!planHasPrepare && planHasGenerateContent) {
+          steps = [
+            { tool_name: 'prepareGenerate', parameters: { type: 'image' } },
+            ...steps
+          ];
+          console.log(`[${correlationId}] PROXY: Prepended prepareGenerate step before generateContent`);
+        }
+      } catch (e) {
+        console.warn(`[${correlationId}] PROXY: Video fallback planning check failed:`, e);
+      }
+
       // If backend returned planned pin step but did not execute it (common when parameters were missing),
       // ensure the proxy still emits a pinToCanvas UI action at the end so UI can pin generated content.
       try {
@@ -565,12 +600,14 @@ export async function POST(req: NextRequest) {
             if (response.ok) {
               const data = await response.json();
               console.log(`[${corr}] PROXY: Ack check response data:`, data);
-              if (data.acked || data.acknowledged) {
+              const acked = !!(data.acked || data.acknowledged);
+              if (acked) {
                 console.log(`[${corr}] PROXY: ✅ Step ${stepName} acked, proceeding`);
                 // Capture artifacts from this step for use in subsequent steps
-                if (data.artifacts) {
-                  stepArtifacts[stepName] = data.artifacts;
-                  console.log(`[${corr}] PROXY: Captured artifacts for ${stepName}:`, data.artifacts);
+                const artifacts = (data && (data.data?.artifacts ?? data.artifacts)) as any;
+                if (artifacts) {
+                  stepArtifacts[stepName] = artifacts;
+                  console.log(`[${corr}] PROXY: Captured artifacts for ${stepName}:`, artifacts);
                 }
                 return true; // Ack received, proceed to next step
               } else {
@@ -900,25 +937,29 @@ export async function POST(req: NextRequest) {
 
               // Wait for previous step to be acked before emitting next, but skip ack wait for non-ackable steps like 'chat'
               const prevStepName = (events[i-1].action || '').toLowerCase();
+              // Map UI action names back to backend tool step keys for ack polling
+              const prevAckStep =
+                prevStepName === 'requestpinnedthengenerate' ? 'generatecontent' :
+                prevStepName;
               const acklessSteps = new Set(['chat', 'error']);
-              if (!acklessSteps.has(prevStepName)) {
-                console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevStepName}`);
+              if (!acklessSteps.has(prevAckStep)) {
+                console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevAckStep}`);
                 console.log(`[${correlationId}] PROXY: Previous event was:`, JSON.stringify(events[i-1], null, 2));
-                const ackOk = await waitForAck(correlationId, prevStepName);
+                const ackOk = await waitForAck(correlationId, prevAckStep);
                 if (ackOk) {
-                  console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
+                  console.log(`[${correlationId}] PROXY: Got ack for ${prevAckStep}, proceeding with ${stepName}`);
                 } else {
-                  console.warn(`[${correlationId}] PROXY: Timed out waiting for ${prevStepName}, stopping stream`);
+                  console.warn(`[${correlationId}] PROXY: Timed out waiting for ${prevAckStep}, stopping stream`);
                   try {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                       action: 'error',
-                      payload: { message: `Timeout waiting for ack on ${prevStepName}`, correlationId }
+                      payload: { message: `Timeout waiting for ack on ${prevAckStep}`, correlationId }
                     })}\n\n`));
                   } catch {}
                   break;
                 }
               } else {
-                console.log(`[${correlationId}] PROXY: Skipping ack wait for previous step '${prevStepName}'`);
+                console.log(`[${correlationId}] PROXY: Skipping ack wait for previous step '${prevAckStep}'`);
               }
 
               try {
