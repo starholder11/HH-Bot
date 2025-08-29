@@ -258,8 +258,6 @@ export default function AgentChat() {
   const [lastResponseId, setLastResponseId] = useState<string | null>(null);
   const [conversationalContext, setConversationalContext] = useState<string>('');
   const [forceDocked, setForceDocked] = useState(false);
-
-  console.log('🔍 ForceDocked Debug: forceDocked state is:', forceDocked);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -271,7 +269,6 @@ export default function AgentChat() {
 
     // Classify the intent to determine which agent to use
     const intent = classifyIntent(input.trim());
-    console.log('🟡 AgentChat: Classified intent for "' + input.trim() + '" as:', intent);
 
     // If switching from task to conversational, reset context for fresh conversation
     // If switching from conversational to task, keep the context
@@ -300,7 +297,7 @@ export default function AgentChat() {
   const isLore = currentAgent === 'conversational';
   const showLoreModal = isLore && !forceDocked;
 
-  console.log('🔍 Modal Debug:', { currentAgent, isLore, forceDocked, showLoreModal });
+  
 
   const chatSurface = (
     <>
@@ -342,7 +339,6 @@ export default function AgentChat() {
               <button type="button"
                 className="px-2 py-1 rounded-md border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
                 onClick={() => {
-                  console.log('🔍 Dock button clicked, current forceDocked:', forceDocked);
                   setForceDocked(v => !v);
                 }}
               >
@@ -404,7 +400,6 @@ export default function AgentChat() {
               const action = possibleResult?.action;
               const stepName = String(action || '').toLowerCase();
               const correlationId = payload?.correlationId || payload?.corr || payload?.id || null;
-              console.log('🔧 onTool: Received action:', action, 'stepName:', stepName, 'correlationId:', correlationId);
 
               // Map UI action names back to tool names for acknowledgment
               const actionToToolMap: Record<string, string> = {
@@ -455,9 +450,7 @@ export default function AgentChat() {
                 return;
               }
               if (action === 'prepareGenerate') {
-                console.log('🎯 prepareGenerate: Starting execution with payload:', payload);
                 const result = await (window as any).__agentApi?.prepareGenerate?.(payload);
-                console.log('🎯 prepareGenerate: Execution complete, result:', result);
 
                 // Prefer URL returned from the handler; fall back to global refs
                 const generatedUrl = (result && result.url) || (window as any).genUrlRef?.current || (window as any).genUrl;
@@ -467,48 +460,36 @@ export default function AgentChat() {
                   type: (result && (result as any).mode) || payload?.type || 'image',
                   ...(result && typeof result === 'object' ? result : {})
                 };
-                console.log('🎯 prepareGenerate: Artifacts to send:', artifacts);
                 if (correlationId) {
-                  console.log('🎯 prepareGenerate: Sending ack with correlationId:', correlationId, 'toolName:', toolNameForAck);
                   try {
                     const ackResponse = await fetch('/api/agent/ack', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts })
                     });
-                    console.log('🎯 prepareGenerate: Ack response status:', ackResponse.status);
-                    const ackText = await ackResponse.text();
-                    console.log('🎯 prepareGenerate: Ack response body:', ackText);
                   } catch (ackError) {
-                    console.error('🎯 prepareGenerate: Ack request failed:', ackError);
+                    
                   }
                 } else {
-                  console.warn('🎯 prepareGenerate: No correlationId found, skipping ack');
+                  
                 }
                 return;
               }
               if (action === 'requestPinnedThenGenerate') {
-                console.log('🎯 requestPinnedThenGenerate: Starting execution with payload:', payload);
                 const result = await (window as any).__agentApi?.requestPinnedThenGenerate?.(payload);
-                console.log('🎯 requestPinnedThenGenerate: Execution complete, result:', result);
                 const artifacts = result && typeof result === 'object' ? result : {};
-                console.log('🎯 requestPinnedThenGenerate: Artifacts to send:', artifacts);
                 if (correlationId) {
-                  console.log('🎯 requestPinnedThenGenerate: Sending ack with correlationId:', correlationId, 'toolName:', toolNameForAck);
                   try {
                     const ackResponse = await fetch('/api/agent/ack', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts })
                     });
-                    console.log('🎯 requestPinnedThenGenerate: Ack response status:', ackResponse.status);
-                    const ackText = await ackResponse.text();
-                    console.log('🎯 requestPinnedThenGenerate: Ack response body:', ackText);
                   } catch (ackError) {
-                    console.error('🎯 requestPinnedThenGenerate: Ack request failed:', ackError);
+                    
                   }
                 } else {
-                  console.warn('🎯 requestPinnedThenGenerate: No correlationId found, skipping ack');
+                  
                 }
                 return;
               }
@@ -523,48 +504,36 @@ export default function AgentChat() {
                 return;
               }
               if (action === 'nameImage') {
-                console.log('🎯 nameImage: Starting execution with payload:', payload);
                 await (window as any).__agentApi?.nameImage?.(payload);
-                console.log('🎯 nameImage: Execution complete');
                 if (correlationId) {
-                  console.log('🎯 nameImage: Sending ack with correlationId:', correlationId);
                   try {
                     const ackResponse = await fetch('/api/agent/ack', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ correlationId, step: toolNameForAck })
                     });
-                    console.log('🎯 nameImage: Ack response status:', ackResponse.status);
-                    const ackText = await ackResponse.text();
-                    console.log('🎯 nameImage: Ack response body:', ackText);
                   } catch (ackError) {
-                    console.error('🎯 nameImage: Ack request failed:', ackError);
+                    
                   }
                 } else {
-                  console.warn('🎯 nameImage: No correlationId found, skipping ack');
+                  
                 }
                 return;
               }
               if (action === 'saveImage') {
-                console.log('🎯 saveImage: Starting execution with payload:', payload);
                 await (window as any).__agentApi?.saveImage?.(payload);
-                console.log('🎯 saveImage: Execution complete');
                 if (correlationId) {
-                  console.log('🎯 saveImage: Sending ack with correlationId:', correlationId);
                   try {
                     const ackResponse = await fetch('/api/agent/ack', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ correlationId, step: toolNameForAck })
                     });
-                    console.log('🎯 saveImage: Ack response status:', ackResponse.status);
-                    const ackText = await ackResponse.text();
-                    console.log('🎯 saveImage: Ack response body:', ackText);
                   } catch (ackError) {
-                    console.error('🎯 saveImage: Ack request failed:', ackError);
+                    
                   }
                 } else {
-                  console.warn('🎯 saveImage: No correlationId found, skipping ack');
+                  
                 }
                 return;
               }

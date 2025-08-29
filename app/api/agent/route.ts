@@ -112,7 +112,7 @@ const tools = {
       loraNames: z.array(z.string()).optional().describe('Names of LoRA models to use (e.g. ["petaflop sheen", "commissarsha"])'),
     }),
     execute: async ({ userRequest, type, prompt, model, refs, loraNames }) => {
-      console.log(`[prepareGenerate] Received parameters:`, { userRequest, type, prompt, model, refs, loraNames });
+      
       // Smart extraction from user request
       const request = userRequest.toLowerCase();
 
@@ -134,15 +134,15 @@ const tools = {
 
       // Look up actual LoRA data if names provided
       let resolvedLoras: any[] = [];
-      console.log(`[prepareGenerate] LoRA names to resolve:`, finalLoraNames);
+      
       if (finalLoraNames.length > 0) {
         try {
           const baseUrl = process.env.PUBLIC_API_BASE_URL || `http://localhost:3000`;
           const res = await fetch(`${baseUrl}/api/loras`, { method: 'GET' });
-          console.log(`[prepareGenerate] LoRA fetch response ok:`, res.ok);
+          
           if (res.ok) {
             const allLoras = await res.json();
-            console.log(`[prepareGenerate] Available LoRAs:`, allLoras.length, allLoras.map(l => l.canvasName));
+            
             resolvedLoras = finalLoraNames.map(name => {
               const cleanName = name.toLowerCase().trim();
               const found = allLoras.find((l: any) =>
@@ -150,7 +150,7 @@ const tools = {
                 (l.triggerWord && l.triggerWord.toLowerCase().includes(cleanName)) ||
                 (cleanName.includes(l.canvasName?.toLowerCase() || ''))
               );
-              console.log(`[prepareGenerate] Searching for "${cleanName}", found:`, found?.canvasName);
+              
               return found;
             }).filter(Boolean).map((l: any) => ({
               path: l.artifactUrl || l.path,
@@ -158,7 +158,7 @@ const tools = {
               triggerWord: l.triggerWord,
               canvasName: l.canvasName
             }));
-            console.log(`[prepareGenerate] Resolved LoRAs:`, resolvedLoras);
+            
           }
         } catch (e) {
           console.warn('Failed to resolve LoRA names:', e);
@@ -375,7 +375,7 @@ export async function POST(req: NextRequest) {
       // Clean the user message by removing the marker and everything after it
       cleanedUserMessage = userMessage.slice(0, markerIdx).trim();
       // Note: correlationId isn't available yet; log without it here
-      console.log(`PROXY: Extracted context visual summary, cleaned message: "${cleanedUserMessage}"`);
+      
     }
   } catch {}
 
@@ -487,7 +487,7 @@ export async function POST(req: NextRequest) {
       if (hasGenerationTools) {
         // For generation workflows, always use planned steps so proxy can inject parameters
         steps = plannedSteps;
-        console.log(`[${correlationId}] PROXY: Using planned steps for generation workflow (proxy will inject parameters)`);
+        
       } else if (hasResolveAssetRefs && !executedHasResolveAssetRefs) {
         steps = plannedSteps;  // Use planned steps when backend skipped resolveAssetRefs
       } else {
@@ -514,7 +514,7 @@ export async function POST(req: NextRequest) {
             { tool_name: 'pinToCanvas', parameters: {} },
             { tool_name: 'generateContent', parameters: { type: 'video' } }
           ];
-          console.log(`[${correlationId}] PROXY: Injected fallback image->video workflow due to video request and missing plan`);
+          
         }
 
         // If plan tries to generate video without a preceding prepareGenerate, prepend one.
@@ -523,7 +523,7 @@ export async function POST(req: NextRequest) {
             { tool_name: 'prepareGenerate', parameters: { type: 'image' } },
             ...steps
           ];
-          console.log(`[${correlationId}] PROXY: Prepended prepareGenerate step before generateContent`);
+          
         }
       } catch (e) {
         console.warn(`[${correlationId}] PROXY: Video fallback planning check failed:`, e);
@@ -536,7 +536,7 @@ export async function POST(req: NextRequest) {
         const executedHasPin = executedSteps.some((s: any) => (s?.tool_name || '').toLowerCase() === 'pintocanvas');
         if (planHasPin && !executedHasPin) {
           steps = [...steps, { tool_name: 'pinToCanvas', parameters: {} }];
-          console.log(`[${correlationId}] PROXY: Appended pinToCanvas step since planner included it but backend did not execute it`);
+          
         }
       } catch {}
 
@@ -562,13 +562,14 @@ export async function POST(req: NextRequest) {
             }
           }
           steps = rebuilt;
-          console.log(`[${correlationId}] PROXY: Inserted explicit name/save/pin steps between prepareGenerate and generateContent`);
+          
         }
       } catch (e) {
         console.warn(`[${correlationId}] PROXY: Failed to enforce explicit steps:`, e);
       }
 
-      console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({
+      /* minimal log */
+      /* console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({ */
         success: agentResult.success,
         execution: !!agentResult.execution,
         intent: !!agentResult.execution?.intent,
@@ -577,16 +578,14 @@ export async function POST(req: NextRequest) {
         usingExecutedSteps: executedSteps.length > 0,
         steps: steps.map(s => s?.tool_name),
         raw_steps: steps
-      }));
-      console.log(`[${correlationId}] PROXY: Processing ${steps.length} workflow steps:`, steps.map(s => `${s?.tool_name}(${JSON.stringify(s?.parameters)})`));
-      console.log(`[${correlationId}] PROXY: Full workflow steps received from backend:`, JSON.stringify(steps, null, 2));
+      /* })); */
+      
       
       // Track artifacts from previous steps for chaining
       const stepArtifacts: Record<string, any> = {};
       
       const waitForAck = async (corr: string, stepName: string, timeoutMs = 120000) => {
         const start = Date.now();
-        console.log(`[${corr}] PROXY: Starting waitForAck for step: ${stepName}, timeout: ${timeoutMs}ms`);
         while (Date.now() - start < timeoutMs) {
           try {
             // Check backend for ack status (backend has VPC Redis access)
@@ -599,19 +598,18 @@ export async function POST(req: NextRequest) {
 
             if (response.ok) {
               const data = await response.json();
-              console.log(`[${corr}] PROXY: Ack check response data:`, data);
               const acked = !!(data.acked || data.acknowledged);
               if (acked) {
-                console.log(`[${corr}] PROXY: ✅ Step ${stepName} acked, proceeding`);
+                
                 // Capture artifacts from this step for use in subsequent steps
                 const artifacts = (data && (data.data?.artifacts ?? data.artifacts)) as any;
                 if (artifacts) {
                   stepArtifacts[stepName] = artifacts;
-                  console.log(`[${corr}] PROXY: Captured artifacts for ${stepName}:`, artifacts);
+                  
                 }
                 return true; // Ack received, proceed to next step
               } else {
-                console.log(`[${corr}] PROXY: ⏳ Step ${stepName} not yet acknowledged, continuing to wait...`);
+                
               }
             } else {
               console.warn(`[${corr}] PROXY: Ack check failed with status: ${response.status}`);
@@ -621,7 +619,7 @@ export async function POST(req: NextRequest) {
           }
           await new Promise(r => setTimeout(r, 500));
         }
-        console.warn(`[${corr}] PROXY: ❌ Timeout waiting for ack on step: ${stepName} after ${timeoutMs}ms`);
+        console.warn(`[${corr}] PROXY: Timeout waiting for ack on step: ${stepName} after ${timeoutMs}ms`);
         return false;
       };
 
@@ -629,7 +627,7 @@ export async function POST(req: NextRequest) {
         const tool = (step?.tool_name || '').toLowerCase();
         let params = step?.parameters || {};
 
-        console.log(`[${correlationId}] PROXY: Processing step: ${step?.tool_name} -> ${tool}, params:`, JSON.stringify(params));
+        
 
         // CRITICAL: Parameter injection BEFORE UI mapping - ensure prompt/type are set
         if (tool === 'preparegenerate') {
@@ -639,7 +637,7 @@ export async function POST(req: NextRequest) {
             prompt: contextVisualSummary || params.prompt || params.message || userMessage,
             name: params.name || extractName(userMessage) || 'reference_image'
           };
-          console.log(`[${correlationId}] PROXY: prepareGenerate params after injection:`, JSON.stringify({
+          
             type: params.type,
             prompt: typeof params.prompt === 'string' ? params.prompt.slice(0, 140) : params.prompt,
             name: params.name
@@ -651,7 +649,7 @@ export async function POST(req: NextRequest) {
             prompt: contextVisualSummary || params.prompt || params.message || userMessage,
             model: params.model || 'fal-ai/wan-i2v'
           };
-          console.log(`[${correlationId}] PROXY: generateContent params after injection:`, JSON.stringify({
+          
             type: params.type,
             prompt: typeof params.prompt === 'string' ? params.prompt.slice(0, 140) : params.prompt,
             model: params.model
@@ -687,7 +685,7 @@ export async function POST(req: NextRequest) {
             }
           }
         } catch (error) {
-          console.warn(`[${correlationId}] Failed to load UI map config, using fallback`);
+          
         }
 
         // Fallback to static mapping if config failed
@@ -709,11 +707,11 @@ export async function POST(req: NextRequest) {
           uiAction = toolToActionMap[tool];
         }
 
-        console.log(`[${correlationId}] PROXY: Mapped ${tool} -> ${uiAction}`);
+        
 
         // Handle BACKEND_ONLY tools
         if (uiAction === 'BACKEND_ONLY') {
-          console.log(`[${correlationId}] BACKEND_ONLY: Executing ${tool} on backend`);
+          
 
           if (tool === 'resolveassetrefs') {
             try {
@@ -730,7 +728,7 @@ export async function POST(req: NextRequest) {
                 else if (filenameMatch) identifiers.push(filenameMatch[1]);
                 else if (nameMatch) identifiers.push(nameMatch[1]);
 
-                console.log(`[${correlationId}] BACKEND_ONLY: Extracted identifiers from message:`, identifiers);
+                
               }
 
               const backendResponse = await fetch(`${process.env.PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/tools/resolveAssetRefs`, {
@@ -745,7 +743,6 @@ export async function POST(req: NextRequest) {
 
               if (backendResponse.ok) {
                 const result = await backendResponse.json();
-                console.log(`[${correlationId}] BACKEND_ONLY: resolveAssetRefs resolved ${result.refs?.length || 0} refs`);
 
                 // Store resolved refs for next step (generateContent)
                 resolvedRefs = result.refs || [];
@@ -764,14 +761,12 @@ export async function POST(req: NextRequest) {
         if (uiAction) {
           let payload: any = { ...params, correlationId, originalRequest: userMessage };
 
-          console.log(`[${correlationId}] PROXY: Creating event for ${uiAction} with payload:`, JSON.stringify(payload));
-
           // Tool-specific payload shaping
           if (tool === 'searchunified') {
             payload.query = params.query || extractQuery(userMessage);
             // The backend doesn't store intermediate results, so we need to extract from the backend execution
             // For now, we'll get search results from the live search API call
-            console.log(`[${correlationId}] PROXY: Will fetch search results for pin step`);
+            
             try {
               const searchUrl = `${process.env.LANCEDB_API_URL}/api/unified-search`;
               const searchRes = await fetch(searchUrl, {
@@ -786,10 +781,10 @@ export async function POST(req: NextRequest) {
                 const searchData = await searchRes.json();
                 const rawResults = searchData.results;
                 searchResults = Array.isArray(rawResults) ? rawResults : (Array.isArray(rawResults?.all) ? rawResults.all : []);
-                console.log(`[${correlationId}] PROXY: Captured ${searchResults.length} search results for pin step`);
+                
               }
             } catch (e) {
-              console.warn(`[${correlationId}] PROXY: Failed to fetch search results:`, e);
+              
             }
           } else if (tool === 'preparegenerate') {
             // Use the injected params and add additional fields
@@ -803,8 +798,7 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: false
             };
-            console.log(`[${correlationId}] PROXY: prepareGenerate enhanced payload with context prompt: ${payload.prompt?.slice(0, 100)}...`);
-            console.log(`[${correlationId}] PROXY: prepareGenerate with LoRAs:`, params.loraNames);
+            
           } else if (tool === 'generatecontent') {
             // Use the injected params and add additional fields
             payload = {
@@ -816,7 +810,7 @@ export async function POST(req: NextRequest) {
               correlationId,
               isFollowUp: true
             };
-            console.log(`[${correlationId}] PROXY: generateContent enhanced payload with context prompt: ${payload.prompt?.slice(0, 100)}...`);
+            
             // If no resolved refs yet, UI will fall back to current generated image or pinned items
             if (!payload.prompt || payload.prompt === userMessage) {
               // Minimal prompt extraction for follow-up video requests
@@ -842,7 +836,7 @@ export async function POST(req: NextRequest) {
                 originalRequest: userMessage,
                 correlationId
               };
-              console.log(`[${correlationId}] PROXY: Passing ${itemsToPin.length} search results to pinToCanvas`);
+              
             } else {
               // Check if we have assetId from previous saveImage step
               const saveImageArtifacts = stepArtifacts['saveimage'];
@@ -858,9 +852,7 @@ export async function POST(req: NextRequest) {
                 correlationId
               };
               
-              if (assetIdFromPrevious) {
-                console.log(`[${correlationId}] PROXY: Injected assetId from saveImage artifacts: ${assetIdFromPrevious}`);
-              }
+              
             }
           } else if (tool === 'nameimage' || tool === 'renameasset') {
             payload = {
@@ -875,24 +867,15 @@ export async function POST(req: NextRequest) {
 
           // Queue the step; ack gating will occur during streaming emission
           // One more assertive log before queuing
-          try {
-            if (uiAction === 'prepareGenerate' || uiAction === 'requestPinnedThenGenerate') {
-              console.log(`[${correlationId}] PROXY: QUEUE ${uiAction} with payload summary:`, JSON.stringify({
-                type: payload.type,
-                promptSnippet: typeof payload.prompt === 'string' ? payload.prompt.slice(0, 140) : payload.prompt,
-                name: payload.name,
-                refsCount: Array.isArray(payload.refs) ? payload.refs.length : (Array.isArray(payload.assetRefs) ? payload.assetRefs.length : 0)
-              }));
-            }
-          } catch {}
+          
           events.push({ action: uiAction, payload });
-          console.log(`[${correlationId}] PROXY: Queued event ${events.length}: ${uiAction}`);
+          
         } else {
           console.warn(`[${correlationId}] PROXY: No UI action mapped for tool: ${tool} (${step?.tool_name})`);
         }
       }
 
-      console.log(`[${correlationId}] PROXY: Total events queued: ${events.length}`, events.map(e => e.action));
+      
 
 
 
@@ -933,7 +916,7 @@ export async function POST(req: NextRequest) {
               const evt = events[i];
               const stepName = evt.action.toLowerCase();
 
-              console.log(`[${correlationId}] PROXY: About to emit event ${i}/${events.length-1}: ${stepName}`);
+              
 
               // Wait for previous step to be acked before emitting next, but skip ack wait for non-ackable steps like 'chat'
               const prevStepName = (events[i-1].action || '').toLowerCase();
@@ -943,11 +926,9 @@ export async function POST(req: NextRequest) {
                 prevStepName;
               const acklessSteps = new Set(['chat', 'error']);
               if (!acklessSteps.has(prevAckStep)) {
-                console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevAckStep}`);
-                console.log(`[${correlationId}] PROXY: Previous event was:`, JSON.stringify(events[i-1], null, 2));
                 const ackOk = await waitForAck(correlationId, prevAckStep);
                 if (ackOk) {
-                  console.log(`[${correlationId}] PROXY: Got ack for ${prevAckStep}, proceeding with ${stepName}`);
+                  
                 } else {
                   console.warn(`[${correlationId}] PROXY: Timed out waiting for ${prevAckStep}, stopping stream`);
                   try {
@@ -959,7 +940,7 @@ export async function POST(req: NextRequest) {
                   break;
                 }
               } else {
-                console.log(`[${correlationId}] PROXY: Skipping ack wait for previous step '${prevAckStep}'`);
+                
               }
 
               try {
@@ -968,7 +949,7 @@ export async function POST(req: NextRequest) {
                 console.warn(`[${correlationId}] PROXY: Failed to enqueue step ${stepName} (stream likely closed):`, enqueueErr);
                 break;
               }
-              console.log(`[${correlationId}] PROXY: ✅ Emitted step: ${stepName}`);
+              
 
               // REMOVED: Auto-ack logic that was interfering with proper workflow sequencing
               // Let the frontend handlers send their own acknowledgments after completing their work
