@@ -1,9 +1,10 @@
 #!/usr/bin/env tsx
 
 import { execSync } from 'child_process';
+import * as fs from 'fs';
 
 async function forceUpdateECS() {
-  console.log('🚀 Force Updating ECS Service with Vector Search Fix...');
+  console.log('🚀 Force Updating ECS Service with PLANNER_RULES_URL Fix...');
 
   try {
     // Step 1: Find the correct cluster and service names
@@ -12,28 +13,23 @@ async function forceUpdateECS() {
     const clustersOutput = execSync('aws ecs list-clusters --region us-east-1', { encoding: 'utf8' });
     console.log('Clusters found:', clustersOutput);
 
-    // Try to find the LanceDB cluster
-    const clusterMatch = clustersOutput.match(/arn:aws:ecs:us-east-1:\d+:cluster\/([^"]+)/);
-    if (!clusterMatch) {
-      throw new Error('Could not find ECS cluster');
-    }
-
-    const clusterName = clusterMatch[1];
-    console.log(`📋 Found cluster: ${clusterName}`);
+    // Target the agent service specifically
+    const clusterName = 'lancedb-bulletproof-simple-cluster';
+    console.log(`📋 Using cluster: ${clusterName}`);
 
     // Step 2: List services in the cluster
-    console.log('\n🔍 Step 2: Finding services in cluster...');
+    console.log('\n🔍 Step 2: Finding agent services in cluster...');
     const servicesOutput = execSync(`aws ecs list-services --cluster ${clusterName} --region us-east-1`, { encoding: 'utf8' });
     console.log('Services found:', servicesOutput);
 
-    // Try to find the LanceDB service
-    const serviceMatch = servicesOutput.match(/arn:aws:ecs:us-east-1:\d+:service\/([^"]+)/);
+    // Try to find the agent service (prefer v2)
+    const serviceMatch = servicesOutput.match(/hh-agent-app-service-v2/) || servicesOutput.match(/hh-agent-app-service/);
     if (!serviceMatch) {
-      throw new Error('Could not find ECS service');
+      throw new Error('Could not find agent service');
     }
 
-    const serviceName = serviceMatch[1];
-    console.log(`📋 Found service: ${serviceName}`);
+    const serviceName = serviceMatch[0];
+    console.log(`📋 Found agent service: ${serviceName}`);
 
     // Step 3: Get current task definition
     console.log('\n🔍 Step 3: Getting current task definition...');
@@ -58,16 +54,20 @@ async function forceUpdateECS() {
       throw new Error('Could not parse task definition');
     }
 
-    const taskDef = JSON.parse(taskDefMatch2[0]);
+    let taskDef = JSON.parse(taskDefMatch2[0]);
 
-    // Step 5: Update the image to use the latest version
-    console.log('\n🔍 Step 5: Updating image to latest version...');
-    if (taskDef.containerDefinitions && taskDef.containerDefinitions.length > 0) {
-      taskDef.containerDefinitions[0].image = '781939061434.dkr.ecr.us-east-1.amazonaws.com/lancedb-service:latest';
-      console.log(`✅ Updated image to: ${taskDef.containerDefinitions[0].image}`);
-    } else {
-      throw new Error('No container definitions found in task definition');
+    // Step 5: Update task definition with our local version (includes PLANNER_RULES_URL)
+    console.log('\n🔍 Step 5: Updating task definition with local changes...');
+    const localTaskDef = JSON.parse(fs.readFileSync('infrastructure/agent-task-definition.json', 'utf8'));
+    
+    // Use the local task definition but preserve the family name if different
+    if (taskDef.family) {
+      localTaskDef.family = taskDef.family;
     }
+    
+    console.log(`✅ Using updated task definition with PLANNER_RULES_URL: ${localTaskDef.containerDefinitions[0].environment.find((e: any) => e.name === 'PLANNER_RULES_URL')?.value}`);
+    
+    taskDef = localTaskDef;
 
     // Remove fields that can't be included in register-task-definition
     delete taskDef.taskDefinitionArn;
@@ -81,7 +81,6 @@ async function forceUpdateECS() {
 
     // Step 6: Register new task definition
     console.log('\n📋 Step 6: Registering new task definition...');
-    const fs = require('fs');
     const tempFile = '/tmp/new-task-definition.json';
     fs.writeFileSync(tempFile, JSON.stringify(taskDef, null, 2));
 
@@ -151,8 +150,8 @@ async function forceUpdateECS() {
     fs.unlinkSync(tempFile);
 
     console.log('\n🎉 ECS service update completed!');
-    console.log('💡 The service should now be running with the vector search fix.');
-    console.log('🔍 You can test the fix by running the ingestion script again.');
+    console.log('💡 The service should now be running with PLANNER_RULES_URL configured.');
+    console.log('🔍 Backend will now load planner rules from S3 and recognize video generation patterns.');
 
   } catch (error) {
     console.error('❌ Failed to update ECS service:', error);

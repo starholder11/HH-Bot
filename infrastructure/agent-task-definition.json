@@ -52,6 +52,14 @@
         {
           "name": "PUBLIC_API_BASE_URL",
           "value": "https://hh-bot-lyart.vercel.app"
+        },
+        {
+          "name": "PLANNER_RULES_URL",
+          "value": "https://hh-bot-images-2025-prod.s3.us-east-1.amazonaws.com/config/planner-rules.json"
+        },
+        {
+          "name": "UI_MAP_URL", 
+          "value": "https://hh-bot-images-2025-prod.s3.us-east-1.amazonaws.com/config/ui-map.json"
         }
       ],
       "secrets": [
