@@ -596,8 +596,8 @@ export async function POST(req: NextRequest) {
         // Load UI action mapping from config (with fallback to static map)
         let uiAction: string | undefined;
         try {
-          // Try to load from S3 config
-          const configResponse = await fetch('https://hh-bot-images-2025-prod.s3.amazonaws.com/config/ui-map.json');
+          // Try to load from S3 config (use region-specific endpoint to avoid redirect/403 issues)
+          const configResponse = await fetch('https://hh-bot-images-2025-prod.s3.us-east-1.amazonaws.com/config/ui-map.json');
           if (configResponse.ok) {
             const config = await configResponse.json();
             uiAction = config.toolsToActions?.[tool];
@@ -870,15 +870,20 @@ export async function POST(req: NextRequest) {
 
               console.log(`[${correlationId}] PROXY: About to emit event ${i}/${events.length-1}: ${stepName}`);
 
-              // Wait for previous step to be acked before emitting next (including first-to-second)
-              const prevStepName = events[i-1].action.toLowerCase();
-              console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevStepName}`);
-              console.log(`[${correlationId}] PROXY: Previous event was:`, JSON.stringify(events[i-1], null, 2));
-              const ackOk = await waitForAck(correlationId, prevStepName);
-              if (ackOk) {
-                console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
+              // Wait for previous step to be acked before emitting next, but skip ack wait for non-ackable steps like 'chat'
+              const prevStepName = (events[i-1].action || '').toLowerCase();
+              const acklessSteps = new Set(['chat', 'error']);
+              if (!acklessSteps.has(prevStepName)) {
+                console.log(`[${correlationId}] PROXY: Waiting for ack on previous step: ${prevStepName}`);
+                console.log(`[${correlationId}] PROXY: Previous event was:`, JSON.stringify(events[i-1], null, 2));
+                const ackOk = await waitForAck(correlationId, prevStepName);
+                if (ackOk) {
+                  console.log(`[${correlationId}] PROXY: Got ack for ${prevStepName}, proceeding with ${stepName}`);
+                } else {
+                  console.warn(`[${correlationId}] PROXY: Timed out waiting for ${prevStepName}, proceeding with ${stepName} anyway`);
+                }
               } else {
-                console.warn(`[${correlationId}] PROXY: Timed out waiting for ${prevStepName}, proceeding with ${stepName} anyway`);
+                console.log(`[${correlationId}] PROXY: Skipping ack wait for previous step '${prevStepName}'`);
               }
 
               try {
