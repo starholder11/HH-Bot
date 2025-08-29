@@ -568,17 +568,7 @@ export async function POST(req: NextRequest) {
         console.warn(`[${correlationId}] PROXY: Failed to enforce explicit steps:`, e);
       }
 
-      /* minimal log */
-      /* console.log(`[${correlationId}] PROXY: Backend response structure:`, JSON.stringify({ */
-        success: agentResult.success,
-        execution: !!agentResult.execution,
-        intent: !!agentResult.execution?.intent,
-        executedSteps: executedSteps.length,
-        plannedSteps: plannedSteps.length,
-        usingExecutedSteps: executedSteps.length > 0,
-        steps: steps.map(s => s?.tool_name),
-        raw_steps: steps
-      /* })); */
+      // Minimal logging removed (was previously verbose backend response structure)
       
       
       // Track artifacts from previous steps for chaining
