@@ -1196,35 +1196,65 @@
 				console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
 				if (isModel) {
 					console.log('Loading 3D model for:', mesh.name);
-					import('three/examples/jsm/loaders/GLTFLoader.js').then(({ GLTFLoader }) => {
-						const loader = new GLTFLoader();
-						loader.load(url, (gltf) => {
+					(async () => {
+						try {
+							// Prefetch to verify availability and get ArrayBuffer
+							const res = await fetch(url, { cache: 'no-store' });
+							if (!res.ok) {
+								console.error('Model fetch failed:', res.status, await res.text().catch(()=>''));
+								return;
+							}
+							const arrayBuffer = await res.arrayBuffer();
+
+							const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+							const loader = new GLTFLoader();
+							// Optional: DRACO support if the asset is compressed
 							try {
-								const object = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-								if (!object) { console.error('GLTF has no scene'); return; }
-								object.position.copy(mesh.position);
-								object.rotation.copy(mesh.rotation);
-								const box = new THREE.Box3().setFromObject(object);
-								const size = box.getSize(new THREE.Vector3());
-								const targetW = Math.max(0.1, mesh.scale.x);
-								const targetH = Math.max(0.1, mesh.scale.y);
-								const targetD = Math.max(0.1, Math.max(mesh.scale.x, mesh.scale.y));
-								if (size.x > 0 && size.y > 0 && size.z > 0) {
-									const sx = targetW / size.x;
-									const sy = targetH / size.y;
-									const sz = targetD / size.z;
-									const s = Math.min(sx, sy, sz);
-									object.scale.setScalar(s);
+								const { DRACOLoader } = await import('three/examples/jsm/loaders/DRACOLoader.js');
+								const draco = new DRACOLoader();
+								draco.setDecoderPath('/examples/jsm/libs/draco/gltf/');
+								loader.setDRACOLoader(draco);
+							} catch (e) {
+								console.warn('DRACOLoader not available, continuing without Draco');
+							}
+
+							loader.parse(arrayBuffer, '', (gltf) => {
+								try {
+									const object = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+									if (!object) { console.error('Parsed GLTF has no scene'); return; }
+									object.position.copy(mesh.position);
+									object.rotation.copy(mesh.rotation);
+									const box = new THREE.Box3().setFromObject(object);
+									const size = box.getSize(new THREE.Vector3());
+									const targetW = Math.max(0.1, mesh.scale.x);
+									const targetH = Math.max(0.1, mesh.scale.y);
+									const targetD = Math.max(0.1, Math.max(mesh.scale.x, mesh.scale.y));
+									if (size.x > 0 && size.y > 0 && size.z > 0) {
+										const sx = targetW / size.x;
+										const sy = targetH / size.y;
+										const sz = targetD / size.z;
+										const s = Math.min(sx, sy, sz);
+										object.scale.setScalar(s);
+									}
+									object.userData = Object.assign({}, mesh.userData || {}, { isModel: true });
+									object.name = mesh.name;
+									object.uuid = mesh.uuid;
+									if (mesh.parent) { mesh.parent.add(object); mesh.parent.remove(mesh); }
+									if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
+									frameScene(editor, object);
+								} catch (e) { console.error('Failed to insert parsed model:', e); }
+							}, (error) => {
+								console.error('GLTF parse error:', error);
+							});
+						} catch (error) {
+							console.error('Model prefetch or load error:', error);
+							try {
+								if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
+									mesh.material = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide, toneMapped: false });
 								}
-								object.userData = Object.assign({}, mesh.userData || {}, { isModel: true });
-								object.name = mesh.name;
-								object.uuid = mesh.uuid;
-								if (mesh.parent) { mesh.parent.add(object); mesh.parent.remove(mesh); }
-								if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
-								frameScene(editor, object);
-							} catch (e) { console.error('Failed to insert model:', e); }
-						}, undefined, (err) => { console.error('Model load error:', err); });
-					}).catch((e)=>{ console.error('Failed to load GLTFLoader:', e); });
+							} catch {}
+						}
+					)();
 				} else if (isVideo) {
 					console.log('Creating video texture for:', mesh.name);
 					// Create video element
