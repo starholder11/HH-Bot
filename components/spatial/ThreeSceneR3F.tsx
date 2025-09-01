@@ -82,17 +82,17 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
           mesh.userData = { ...mesh.userData, ...userData };
         }
       } else if (assetType === 'text') {
+        // If the mediaUrl is an inline data URL image, render it immediately and skip fetch
+        if (typeof mediaUrl === 'string' && mediaUrl.startsWith('data:image/')) {
+          console.log('[Text] Rendering inline data URL image for text asset');
+          applyMediaToMesh(mesh, mediaUrl, 'image', null);
+          return;
+        }
         // Text asset - prefer inline content if available; otherwise fetch
         const fetchTextContent = async () => {
           try {
             if (userData?.fullTextContent && typeof userData.fullTextContent === 'string' && userData.fullTextContent.length > 0) {
               applyTextToMesh(mesh, userData.fullTextContent, null);
-              return;
-            }
-            // If we have an inline rendered image for the text, use it directly
-            if (typeof mediaUrl === 'string' && mediaUrl.startsWith('data:image/')) {
-              console.log('[Text] Using inline data URL image for text asset');
-              applyMediaToMesh(mesh, mediaUrl, 'image', null);
               return;
             }
             if (userData?.assetId) {
