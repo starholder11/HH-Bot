@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { saveMediaAsset } from '@/lib/media-storage';
 import { ObjectAssetZ } from '@/lib/spatial/schemas';
 import { v4 as uuidv4 } from 'uuid';
+import { ingestAsset } from '@/lib/ingestion';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,6 +56,14 @@ export async function POST(request: NextRequest) {
 
     const validated = ObjectAssetZ.parse(asset);
     await saveMediaAsset(id, validated);
+
+    // Best-effort LanceDB ingestion; do not fail upload if ingestion has issues
+    try {
+      await ingestAsset(validated, false);
+      console.log(`[objects/finish-upload] Ingested object to LanceDB: ${id}`);
+    } catch (ingErr) {
+      console.warn('[objects/finish-upload] LanceDB ingestion failed (non-fatal):', (ingErr as any)?.message || ingErr);
+    }
 
     return NextResponse.json({ success: true, asset: validated });
   } catch (error) {
