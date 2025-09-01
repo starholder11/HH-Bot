@@ -1250,6 +1250,25 @@
 									}
 									console.log('🎯 GLTF Scene object:', object, 'children:', object.children.length);
 
+									// Brighten PBR materials and ensure IBL is present
+									try {
+										object.traverse((child) => {
+											if (child.isMesh && child.material && (child.material.isMeshStandardMaterial || child.material.isMeshPhysicalMaterial)) {
+												if (child.material.envMapIntensity == null || child.material.envMapIntensity < 1.8) {
+													child.material.envMapIntensity = 2.0;
+												}
+												child.material.needsUpdate = true;
+											}
+										});
+									} catch {}
+
+									// If no environment is set yet, apply a neutral RoomEnvironment IBL via the viewport handler
+									try {
+										if (editor.scene && editor.scene.environment == null && editor.signals && editor.signals.sceneEnvironmentChanged) {
+											editor.signals.sceneEnvironmentChanged.dispatch('Room');
+										}
+									} catch {}
+
 									object.position.copy(mesh.position);
 									object.rotation.copy(mesh.rotation);
 									const box = new THREE.Box3().setFromObject(object);
