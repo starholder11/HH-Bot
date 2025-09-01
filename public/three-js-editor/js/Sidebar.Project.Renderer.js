@@ -95,8 +95,14 @@ function SidebarProjectRenderer( editor ) {
 		currentRenderer = new THREE.WebGLRenderer( { antialias: antialiasBoolean.getValue() } );
 		currentRenderer.shadowMap.enabled = shadowsBoolean.getValue();
 		currentRenderer.shadowMap.type = parseFloat( shadowTypeSelect.getValue() );
-		currentRenderer.toneMapping = parseFloat( toneMappingSelect.getValue() );
-		currentRenderer.toneMappingExposure = toneMappingExposure.getValue();
+		// Bright, modern defaults for PBR
+		currentRenderer.outputColorSpace = THREE.SRGBColorSpace;
+		currentRenderer.physicallyCorrectLights = true;
+		// Prefer ACES + higher exposure unless user has chosen something else
+		const tm = parseFloat( toneMappingSelect.getValue() );
+		const exp = toneMappingExposure.getValue();
+		currentRenderer.toneMapping = ( tm === 0 ? THREE.ACESFilmicToneMapping : tm );
+		currentRenderer.toneMappingExposure = ( tm === 0 ? Math.max( 1.6, exp ) : exp );
 
 		signals.rendererCreated.dispatch( currentRenderer );
 		signals.rendererUpdated.dispatch();

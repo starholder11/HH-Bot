@@ -551,6 +551,22 @@ function Viewport( editor ) {
 		renderer.setAnimationLoop( animate );
 		renderer.setClearColor( 0xaaaaaa );
 
+		// Ensure a neutral image-based lighting environment by default
+		if ( scene.environment == null ) {
+			try {
+				const envTex = pmremGenerator.fromScene( new RoomEnvironment(), 0.04 ).texture;
+				scene.environment = envTex;
+				// Boost env intensity on common PBR materials so imported GLBs are not too dark
+				scene.traverse( (child) => {
+					const m = child && child.material;
+					if ( m && ( m.isMeshStandardMaterial || m.isMeshPhysicalMaterial ) && ( m.envMapIntensity == null || m.envMapIntensity < 1.2 ) ) {
+						m.envMapIntensity = 1.6;
+						m.needsUpdate = true;
+					}
+				} );
+			} catch (e) { /* ignore */ }
+		}
+
 		if ( window.matchMedia ) {
 
 			const mediaQuery = window.matchMedia( '(prefers-color-scheme: dark)' );
