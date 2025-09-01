@@ -18,7 +18,7 @@
   },
   "object_type": "atomic",
   "object": {
-    "modelUrl": "/models/reference/threejs/Sponza.glb",
+    "modelUrl": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
     "boundingBox": {
       "min": [
         -0.5,
