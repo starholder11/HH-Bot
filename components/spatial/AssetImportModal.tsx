@@ -95,37 +95,30 @@ export default function AssetImportModal({ onClose, onSelect }: AssetImportModal
         <div className="flex items-center justify-between p-4 border-b border-neutral-700">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-medium text-neutral-100">Search Assets</h2>
-            <div className="flex flex-wrap gap-1">
-              {['image','video','audio','text','layout','object','object_collection','space'].map(t => {
-                const active = selectedTypes.includes(t);
-                return (
-                  <button
-                    key={t}
-                    onClick={() => {
-                      setSelectedTypes(prev => {
-                        const isCurrentlyActive = prev.includes(t) && prev.length === 1;
-                        if (isCurrentlyActive) {
-                          // If this is the only active filter, select all types
-                          const allTypes = ['image','video','audio','text','layout','object','object_collection','space'];
-                          console.log('[ASSET SEARCH] Filter changed to ALL:', allTypes);
-                          void searchAssets(searchQuery, allTypes);
-                          return allTypes;
-                        } else {
-                          // Make this the only active filter
-                          const next = [t];
-                          console.log('[ASSET SEARCH] Filter changed to ONLY:', next);
-                          void searchAssets(searchQuery, next);
-                          return next;
-                        }
-                      });
-                    }}
-                    className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${active ? 'border-blue-500 bg-blue-600 text-white' : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:border-neutral-500'}`}
-                  >
-                    {t}
-                  </button>
-                );
-              })}
-            </div>
+            <select
+              value={(() => {
+                // single-select reflects the first active type; default to 'all'
+                const all = ['image','video','audio','text','layout','object','object_collection','space'];
+                const first = selectedTypes.find(t => all.includes(t));
+                return first || 'image';
+              })()}
+              onChange={(e) => {
+                const val = e.target.value;
+                const next = [val];
+                setSelectedTypes(next);
+                void searchAssets(searchQuery, next);
+              }}
+              className="px-3 py-1.5 text-xs rounded-md border border-neutral-700 bg-neutral-800 text-neutral-100"
+            >
+              <option value="image">image</option>
+              <option value="video">video</option>
+              <option value="audio">audio</option>
+              <option value="text">text</option>
+              <option value="layout">layout</option>
+              <option value="object">object</option>
+              <option value="object_collection">object_collection</option>
+              <option value="space">space</option>
+            </select>
           </div>
           <button
             onClick={onClose}

@@ -3250,21 +3250,39 @@ export default function VisualSearchPage() {
             </button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {(["all", "media", "video", "image", "audio", "text", "layout", "object", "object_collection", "space"] as const).map((t) => (
-              <button
-                type="button"
-                key={t}
-                onClick={() => toggleType(t)}
-                className={classNames(
-                  "px-2.5 py-1.5 text-sm rounded-full border",
-                  types.includes(t)
-                    ? "border-neutral-700 bg-neutral-800 text-neutral-100"
-                    : "border-neutral-800 bg-neutral-950 text-neutral-400 hover:bg-neutral-900"
-                )}
-              >
-                {t}
-              </button>
-            ))}
+            <select
+              value={(() => {
+                if (types.includes("all")) return "all";
+                if (types.includes("media")) return "media";
+                return (types[0] as string) || "all";
+              })()}
+              onChange={(e) => {
+                const v = e.target.value as any;
+                let next: Array<ContentType | "media" | "all"> = [v];
+                if (v === "all") next = ["all"]; else if (v === "media") next = ["media"]; else next = [v];
+                setTypes(next);
+                // Trigger search immediately if a query exists
+                if (query.trim()) {
+                  let searchType: string | undefined;
+                  if (v === "all") searchType = undefined;
+                  else if (v === "media") searchType = "media";
+                  else searchType = v as string;
+                  void executeSearch(query, undefined, searchType, true);
+                }
+              }}
+              className="px-3 py-2 rounded-md border border-neutral-800 bg-neutral-900 text-neutral-100"
+            >
+              <option value="all">all</option>
+              <option value="media">media</option>
+              <option value="video">video</option>
+              <option value="image">image</option>
+              <option value="audio">audio</option>
+              <option value="text">text</option>
+              <option value="layout">layout</option>
+              <option value="object">object</option>
+              <option value="object_collection">object_collection</option>
+              <option value="space">space</option>
+            </select>
           </div>
         </form>
 
