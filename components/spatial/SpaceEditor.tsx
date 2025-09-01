@@ -349,10 +349,24 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       (asset.cloudflare_url as string | undefined)
     ) || null;
 
-    // Use proxy for images to avoid CORS issues
-    const mediaUrl = originalMediaUrl && (assetType.includes('image') || assetType.includes('video'))
-      ? `/api/proxy?url=${encodeURIComponent(originalMediaUrl)}`
-      : originalMediaUrl;
+    // Normalize and resolve model URLs for 3D object assets
+    const normalizeLocalUrl = (u: string | null | undefined) => {
+      if (!u) return null;
+      // Map local:/ scheme to public root
+      if (u.startsWith('local:/')) return u.replace(/^local:/, '');
+      return u;
+    };
+    let resolvedUrl: string | null = originalMediaUrl;
+    if (assetType === 'object') {
+      const modelUrl: string | undefined = (asset.object?.modelUrl as string | undefined);
+      resolvedUrl = modelUrl || originalMediaUrl;
+    }
+    resolvedUrl = normalizeLocalUrl(resolvedUrl);
+
+    // Use proxy for images/videos to avoid CORS; direct path for models/objects
+    const mediaUrl = resolvedUrl && (assetType.includes('image') || assetType.includes('video'))
+      ? `/api/proxy?url=${encodeURIComponent(resolvedUrl)}`
+      : resolvedUrl;
 
     // plane for image/video, box otherwise
     const isMediaPlane = assetType.includes('image') || assetType.includes('video');
@@ -420,9 +434,20 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
       (asset.s3_url as string | undefined) ||
       (asset.cloudflare_url as string | undefined)
     ) || null;
-    const mediaUrl = originalMediaUrl && (assetType.includes('image') || assetType.includes('video'))
-      ? `/api/proxy?url=${encodeURIComponent(originalMediaUrl)}`
-      : originalMediaUrl;
+    const normalizeLocalUrl = (u: string | null | undefined) => {
+      if (!u) return null;
+      if (u.startsWith('local:/')) return u.replace(/^local:/, '');
+      return u;
+    };
+    let resolvedUrl: string | null = originalMediaUrl;
+    if (assetType === 'object') {
+      const modelUrl: string | undefined = (asset.object?.modelUrl as string | undefined);
+      resolvedUrl = modelUrl || originalMediaUrl;
+    }
+    resolvedUrl = normalizeLocalUrl(resolvedUrl);
+    const mediaUrl = resolvedUrl && (assetType.includes('image') || assetType.includes('video'))
+      ? `/api/proxy?url=${encodeURIComponent(resolvedUrl)}`
+      : resolvedUrl;
 
     const isMediaPlane = assetType.includes('image') || assetType.includes('video');
     const geometry = isMediaPlane

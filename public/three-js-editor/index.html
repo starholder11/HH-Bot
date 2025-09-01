@@ -704,7 +704,7 @@
 										mesh.userData = { ...childData.userData };
 									}
 
-																		// Set name and UUID consistently
+										// Set name and UUID consistently
 									// For layout items, use the layoutItemId as the name for consistency
 									if (childData.userData && childData.userData.layoutItemId) {
 										mesh.name = childData.userData.layoutItemId;
@@ -1188,14 +1188,45 @@
 
 
 
-						// Shared helper to apply image/video media to a mesh consistently
+						// Shared helper to apply image/video/model media to a mesh consistently
 			function applyMediaToMesh(mesh, url, assetType, editor) {
 				if (!url) return;
 				const isVideo = (assetType === 'video') || /\.mp4(\?|$)/i.test(url);
+				const isModel = (assetType === 'object') || /\.(gltf|glb|obj|fbx)(\?|$)/i.test(url);
 				console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
-				if (isVideo) {
+				if (isModel) {
+					console.log('Loading 3D model for:', mesh.name);
+					import('three/examples/jsm/loaders/GLTFLoader.js').then(({ GLTFLoader }) => {
+						const loader = new GLTFLoader();
+						loader.load(url, (gltf) => {
+							try {
+								const object = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+								if (!object) { console.error('GLTF has no scene'); return; }
+								object.position.copy(mesh.position);
+								object.rotation.copy(mesh.rotation);
+								const box = new THREE.Box3().setFromObject(object);
+								const size = box.getSize(new THREE.Vector3());
+								const targetW = Math.max(0.1, mesh.scale.x);
+								const targetH = Math.max(0.1, mesh.scale.y);
+								const targetD = Math.max(0.1, Math.max(mesh.scale.x, mesh.scale.y));
+								if (size.x > 0 && size.y > 0 && size.z > 0) {
+									const sx = targetW / size.x;
+									const sy = targetH / size.y;
+									const sz = targetD / size.z;
+									const s = Math.min(sx, sy, sz);
+									object.scale.setScalar(s);
+								}
+								object.userData = Object.assign({}, mesh.userData || {}, { isModel: true });
+								object.name = mesh.name;
+								object.uuid = mesh.uuid;
+								if (mesh.parent) { mesh.parent.add(object); mesh.parent.remove(mesh); }
+								if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
+								frameScene(editor, object);
+							} catch (e) { console.error('Failed to insert model:', e); }
+						}, undefined, (err) => { console.error('Model load error:', err); });
+					}).catch((e)=>{ console.error('Failed to load GLTFLoader:', e); });
+				} else if (isVideo) {
 					console.log('Creating video texture for:', mesh.name);
-
 					// Create video element
 					const video = document.createElement('video');
 					video.src = url;
@@ -1219,49 +1250,49 @@
 						videoTexture.magFilter = THREE.LinearFilter;
 						videoTexture.format = THREE.RGBAFormat;
 						videoTexture.type = THREE.UnsignedByteType;
-							videoTexture.colorSpace = THREE.SRGBColorSpace;
-							videoTexture.generateMipmaps = false;
-							videoTexture.wrapS = THREE.ClampToEdgeWrapping;
-							videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-							videoTexture.flipY = true;
+						videoTexture.colorSpace = THREE.SRGBColorSpace;
+						videoTexture.generateMipmaps = false;
+						videoTexture.wrapS = THREE.ClampToEdgeWrapping;
+						videoTexture.wrapT = THREE.ClampToEdgeWrapping;
+						videoTexture.flipY = true;
 
 						console.log('VideoTexture created with ready video');
 
 						// Apply to material
-							const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.DoubleSide, toneMapped: false });
+						const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.DoubleSide, toneMapped: false });
 						mesh.material = videoMaterial;
-							mesh.material.needsUpdate = true;
+						mesh.material.needsUpdate = true;
 
 						console.log('Material applied to mesh');
 
 						// Start video
-							// Try to start; if blocked, ensure first frame shows
+						// Try to start; if blocked, ensure first frame shows
 						video.play().then(() => {
 							console.log('Video playing successfully');
 							videoTexture.needsUpdate = true;
 							console.log('Forced initial texture update');
-								// Force a render update to ensure video appears
-								if (editor.signals && editor.signals.sceneGraphChanged) {
-									editor.signals.sceneGraphChanged.dispatch();
-								}
-								forceRenderTicks(mesh, editor, 4);
+							// Force a render update to ensure video appears
+							if (editor.signals && editor.signals.sceneGraphChanged) {
+								editor.signals.sceneGraphChanged.dispatch();
+							}
+							forceRenderTicks(mesh, editor, 4);
 						}).catch(err => {
 							console.log('Video autoplay failed, will play on user interaction:', err);
-								// Even if play fails, draw the first frame as soon as it can play
-								const showFirstFrame = () => { try { videoTexture.needsUpdate = true; forceRenderTicks(mesh, editor, 4); if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch(); } catch {} }
-								video.addEventListener('canplay', showFirstFrame, { once: true });
-								video.addEventListener('loadedmetadata', showFirstFrame, { once: true });
+							// Even if play fails, draw the first frame as soon as it can play
+							const showFirstFrame = () => { try { videoTexture.needsUpdate = true; forceRenderTicks(mesh, editor, 4); if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch(); } catch {} }
+							video.addEventListener('canplay', showFirstFrame, { once: true });
+							video.addEventListener('loadedmetadata', showFirstFrame, { once: true });
 						});
 
-							// Also nudge updates when player becomes ready
-							const bumpUpdate = () => { try { videoTexture.needsUpdate = true; } catch {} };
-							video.addEventListener('canplay', bumpUpdate, { once: true });
-							video.addEventListener('loadedmetadata', bumpUpdate, { once: true });
+						// Also nudge updates when player becomes ready
+						const bumpUpdate = () => { try { videoTexture.needsUpdate = true; } catch {} };
+						video.addEventListener('canplay', bumpUpdate, { once: true });
+						video.addEventListener('loadedmetadata', bumpUpdate, { once: true });
 
 						// Track video element
 						videoMap.set(mesh.uuid, video);
-							console.log('Video mapped for mesh:', mesh.uuid, 'mesh.name:', mesh.name);
-							console.log('VideoMap now has:', Array.from(videoMap.keys()));
+						console.log('Video mapped for mesh:', mesh.uuid, 'mesh.name:', mesh.name);
+						console.log('VideoMap now has:', Array.from(videoMap.keys()));
 
 						// Notify editor
 						if (editor.signals && editor.signals.materialChanged) {
@@ -1270,7 +1301,7 @@
 						if (editor.signals && editor.signals.sceneGraphChanged) {
 							editor.signals.sceneGraphChanged.dispatch();
 						}
-							// Do not create helper frame for images (keep scene clean)
+						// Do not create helper frame for images (keep scene clean)
 					});
 
 					// Handle video load errors
