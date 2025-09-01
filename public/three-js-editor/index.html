@@ -118,6 +118,22 @@
 				} catch {}
 			}
 
+			// Helper: ensure at least a basic light rig so GLTF/PBR materials are visible
+			function ensureDefaultLights(scene){
+				try{
+					let hasLight = false;
+					scene.traverse((o)=>{ if (o.isLight) hasLight = true; });
+					if (!hasLight){
+						const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
+						hemi.position.set(0, 50, 0);
+						scene.add(hemi);
+						const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+						dir.position.set(50, 100, 50);
+						scene.add(dir);
+					}
+				}catch{}
+			}
+
 			// Enhanced video controls overlay – anchored to selected video card bottom
 			const controls = document.createElement('div');
 			controls.style.cssText = 'position:absolute;left:0;top:0;display:none;gap:8px;align-items:center;background:#0b0b0de0;border:1px solid #1f2937;border-radius:10px;padding:8px 12px;color:#e5e7eb;font:12px system-ui;z-index:1000;box-shadow:0 6px 24px rgba(0,0,0,.5);backdrop-filter:blur(8px)';
@@ -520,6 +536,8 @@
 
 			// Clear any cached scene data
 			editor.clear();
+			// Ensure lighting so models are visible
+			try { ensureDefaultLights(editor.scene); } catch {}
 
 			// Attach viewport-level listeners (with capture) for bullseye interactions
 			attachBullseyeListeners();
@@ -1240,6 +1258,8 @@
 									object.name = mesh.name;
 									object.uuid = mesh.uuid;
 									if (mesh.parent) { mesh.parent.add(object); mesh.parent.remove(mesh); }
+									// Ensure we have some lights for PBR materials
+									try { ensureDefaultLights(editor.scene); } catch {}
 									if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
 									frameScene(editor, object);
 								} catch (e) { console.error('Failed to insert parsed model:', e); }
