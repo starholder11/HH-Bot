@@ -1241,12 +1241,21 @@
 
 							loader.parse(arrayBuffer, '', (gltf) => {
 								try {
+									console.log('🎯 GLTF PARSED SUCCESSFULLY:', gltf);
 									const object = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-									if (!object) { console.error('Parsed GLTF has no scene'); try { mesh.visible = true; } catch {}; return; }
+									if (!object) {
+										console.error('❌ Parsed GLTF has no scene');
+										try { mesh.visible = true; } catch {};
+										return;
+									}
+									console.log('🎯 GLTF Scene object:', object, 'children:', object.children.length);
+
 									object.position.copy(mesh.position);
 									object.rotation.copy(mesh.rotation);
 									const box = new THREE.Box3().setFromObject(object);
 									const size = box.getSize(new THREE.Vector3());
+									console.log('🎯 Model bounding box size:', size);
+
 									const targetW = Math.max(0.1, mesh.scale.x);
 									const targetH = Math.max(0.1, mesh.scale.y);
 									const targetD = Math.max(0.1, Math.max(mesh.scale.x, mesh.scale.y));
@@ -1256,17 +1265,28 @@
 										const sz = targetD / size.z;
 										const s = Math.min(sx, sy, sz);
 										object.scale.setScalar(s);
+										console.log('🎯 Applied scale:', s);
 									}
 									object.userData = Object.assign({}, mesh.userData || {}, { isModel: true });
 									object.name = mesh.name;
 									object.uuid = mesh.uuid;
-									if (mesh.parent) { mesh.parent.add(object); mesh.parent.remove(mesh); }
-									console.log('Model inserted, replaced placeholder for:', mesh.name);
+
+									if (mesh.parent) {
+										mesh.parent.add(object);
+										mesh.parent.remove(mesh);
+										console.log('🎯 Added to scene and removed placeholder');
+									}
+
 									// Ensure we have some lights for PBR materials
 									try { ensureDefaultLights(editor.scene); } catch {}
 									if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
 									frameScene(editor, object);
-								} catch (e) { console.error('Failed to insert parsed model:', e); try { mesh.visible = true; } catch {} }
+
+									console.log('✅ 3D MODEL SUCCESSFULLY LOADED AND VISIBLE:', mesh.name);
+								} catch (e) {
+									console.error('❌ Failed to insert parsed model:', e);
+									try { mesh.visible = true; } catch {}
+								}
 							}, (error) => {
 								console.error('GLTF parse error:', error);
 								try { mesh.visible = true; } catch {}
