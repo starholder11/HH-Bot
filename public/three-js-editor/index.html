@@ -610,11 +610,16 @@
 		// Safely serialize the scene by temporarily removing video material maps
 		function safeEditorToJSON(editor){
 			const removedMaps = [];
+			const objectMediaUrlByUuid = new Map();
 			try {
 				editor.scene.traverse((obj)=>{
 					try {
+						const assetType = (obj?.userData?.assetType||'').toString().toLowerCase();
+						if (assetType === 'object' && obj?.userData?.mediaUrl && typeof obj.userData.mediaUrl === 'string') {
+							objectMediaUrlByUuid.set(obj.uuid, obj.userData.mediaUrl);
+						}
 						if (obj && obj.isMesh && obj.material && obj.material.map) {
-							const isVideoMesh = obj.userData?.assetType === 'video' || /VideoFrame/i.test(obj.name||'');
+							const isVideoMesh = assetType === 'video' || /VideoFrame/i.test(obj.name||'');
 							if (isVideoMesh) {
 								removedMaps.push({ material: obj.material, map: obj.material.map });
 								obj.material.map = null;
@@ -623,7 +628,27 @@
 						}
 					} catch {}
 				});
-				return editor.toJSON();
+
+				const json = editor.toJSON();
+				try {
+					const restoreUrls = (node) => {
+						if (!node) return;
+						try {
+							const assetType = (node?.userData?.assetType||'').toString().toLowerCase();
+							if (assetType === 'object' && node?.uuid && objectMediaUrlByUuid.has(node.uuid)) {
+								const original = objectMediaUrlByUuid.get(node.uuid);
+								if (original && node.userData && node.userData.mediaUrl !== original) {
+									node.userData.mediaUrl = original;
+								}
+							}
+						} catch {}
+						const kids = node.children || [];
+						for (const k of kids) restoreUrls(k);
+					};
+					if (json && json.object) restoreUrls(json.object);
+				} catch {}
+
+				return json;
 			} finally {
 				// Restore maps
 				for (const { material, map } of removedMaps) {
@@ -1027,15 +1052,20 @@
 						const sceneJSON = (function safeSerialize(editor){
 							const removedHelpers = [];
 							const removedVideoMaps = [];
+							const objectMediaUrlByUuid = new Map();
 							try {
-								// Remove helper objects
+								// Remove helper objects and snapshot object mediaUrls
 								editor.scene.traverse((obj)=>{
 									try {
-							if (obj.userData && obj.userData.ignoreSave && obj.parent) {
+										const assetType = (obj?.userData?.assetType||'').toString().toLowerCase();
+										if (obj.userData && obj.userData.ignoreSave && obj.parent) {
 											removedHelpers.push({ obj, parent: obj.parent });
 										}
+										if (assetType === 'object' && obj?.userData?.mediaUrl && typeof obj.userData.mediaUrl === 'string') {
+											objectMediaUrlByUuid.set(obj.uuid, obj.userData.mediaUrl);
+										}
 										// Temporarily clear video maps so three can serialize
-										if (obj.isMesh && obj.material && obj.material.map && obj.userData?.assetType === 'video') {
+										if (obj.isMesh && obj.material && obj.material.map && assetType === 'video') {
 											removedVideoMaps.push({ material: obj.material, map: obj.material.map });
 											obj.material.map = null;
 											obj.material.needsUpdate = true;
@@ -1058,6 +1088,26 @@
 										fov: cam.fov
 									};
 								} catch (e) { console.warn('Failed to serialize camera pose', e); }
+
+								// Restore original object mediaUrls inside JSON tree
+								try {
+									const restoreUrls = (node) => {
+										if (!node) return;
+										try {
+											const assetType = (node?.userData?.assetType||'').toString().toLowerCase();
+											if (assetType === 'object' && node?.uuid && objectMediaUrlByUuid.has(node.uuid)) {
+												const original = objectMediaUrlByUuid.get(node.uuid);
+												if (original && node.userData && node.userData.mediaUrl !== original) {
+													node.userData.mediaUrl = original;
+												}
+											}
+										} catch {}
+										const kids = node.children || [];
+										for (const k of kids) restoreUrls(k);
+									};
+									if (json && json.object) restoreUrls(json.object);
+								} catch {}
+
 								// Restore
 								removedHelpers.forEach(({ obj, parent }) => { try { parent.add(obj); } catch {} });
 								for (const { material, map } of removedVideoMaps) { try { material.map = map; material.needsUpdate = true; } catch {} }

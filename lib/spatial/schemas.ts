@@ -150,6 +150,8 @@ export const SpaceItemZ = z.object({
   groupId: z.string().optional(),
   // Media URL and layout coordinates (optional) - ensure preserved in API
   mediaUrl: z.string().optional(),
+  // Inline text content for text assets (used by viewer/editor)
+  fullTextContent: z.string().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
   importMetadata: z

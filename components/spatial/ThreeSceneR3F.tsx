@@ -82,9 +82,13 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
           mesh.userData = { ...mesh.userData, ...userData };
         }
       } else if (assetType === 'text') {
-        // Text asset - fetch content and use dynamic text rendering with scrolling
+        // Text asset - prefer inline content if available; otherwise fetch
         const fetchTextContent = async () => {
           try {
+            if (userData?.fullTextContent && typeof userData.fullTextContent === 'string' && userData.fullTextContent.length > 0) {
+              applyTextToMesh(mesh, userData.fullTextContent, null);
+              return;
+            }
             if (userData?.assetId) {
               const idStr = String(userData.assetId);
               if (idStr.startsWith('text_timeline/')) {
@@ -129,9 +133,13 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
           }
         };
 
-        // Start with loading message, then fetch actual content
-        applyTextToMesh(mesh, userData?.fullTextContent || 'Loading...', null);
-        fetchTextContent();
+        // Start with inline content if present; else loading then fetch
+        if (userData?.fullTextContent) {
+          applyTextToMesh(mesh, userData.fullTextContent, null);
+        } else {
+          applyTextToMesh(mesh, 'Loading...', null);
+          fetchTextContent();
+        }
       } else {
         // Image or other media types
         applyMediaToMesh(mesh, mediaUrl.startsWith('data:') ? mediaUrl : proxy(mediaUrl), assetType, null);
