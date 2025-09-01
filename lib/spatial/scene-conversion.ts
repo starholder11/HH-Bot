@@ -618,39 +618,39 @@ function extractGeometryParameters(geometry: any): any {
   // Extract common parameters based on geometry type
   switch (geometry.type) {
     case 'PlaneGeometry':
-      params.width = geometry.width || 1;
-      params.height = geometry.height || 1;
-      params.widthSegments = geometry.widthSegments || 1;
-      params.heightSegments = geometry.heightSegments || 1;
+      params.width = geometry.width || geometry.parameters?.width || 1;
+      params.height = geometry.height || geometry.parameters?.height || 1;
+      params.widthSegments = geometry.widthSegments || geometry.parameters?.widthSegments || 1;
+      params.heightSegments = geometry.heightSegments || geometry.parameters?.heightSegments || 1;
       break;
     case 'BoxGeometry':
-      params.width = geometry.width || 1;
-      params.height = geometry.height || 1;
-      params.depth = geometry.depth || 1;
+      params.width = geometry.width || geometry.parameters?.width || 1;
+      params.height = geometry.height || geometry.parameters?.height || 1;
+      params.depth = geometry.depth || geometry.parameters?.depth || 1;
       break;
     case 'SphereGeometry':
-      params.radius = geometry.radius || 1;
-      params.widthSegments = geometry.widthSegments || 32;
-      params.heightSegments = geometry.heightSegments || 16;
+      params.radius = geometry.radius || geometry.parameters?.radius || 1;
+      params.widthSegments = geometry.widthSegments || geometry.parameters?.widthSegments || 32;
+      params.heightSegments = geometry.heightSegments || geometry.parameters?.heightSegments || 16;
       break;
     case 'CylinderGeometry':
-      params.radiusTop = geometry.radiusTop || 1;
-      params.radiusBottom = geometry.radiusBottom || 1;
-      params.height = geometry.height || 1;
-      params.radialSegments = geometry.radialSegments || 32;
+      params.radiusTop = geometry.radiusTop || geometry.parameters?.radiusTop || 1;
+      params.radiusBottom = geometry.radiusBottom || geometry.parameters?.radiusBottom || 1;
+      params.height = geometry.height || geometry.parameters?.height || 1;
+      params.radialSegments = geometry.radialSegments || geometry.parameters?.radialSegments || 32;
       break;
     case 'TorusGeometry':
-      params.radius = geometry.radius || 1;
-      params.tube = geometry.tube || 0.4;
-      params.radialSegments = geometry.radialSegments || 16;
-      params.tubularSegments = geometry.tubularSegments || 100;
+      params.radius = geometry.radius || geometry.parameters?.radius || 1;
+      params.tube = geometry.tube || geometry.parameters?.tube || 0.4;
+      params.radialSegments = geometry.radialSegments || geometry.parameters?.radialSegments || 16;
+      params.tubularSegments = geometry.tubularSegments || geometry.parameters?.tubularSegments || 100;
       break;
     case 'TetrahedronGeometry':
     case 'OctahedronGeometry':
     case 'IcosahedronGeometry':
     case 'DodecahedronGeometry':
-      params.radius = geometry.radius || 1;
-      params.detail = geometry.detail || 0;
+      params.radius = geometry.radius || geometry.parameters?.radius || 1;
+      params.detail = geometry.detail || geometry.parameters?.detail || 0;
       break;
   }
 
