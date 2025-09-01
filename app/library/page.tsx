@@ -1733,30 +1733,48 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
       const is3DModel = ['.glb', '.gltf', '.obj', '.fbx'].includes(fileExtension);
 
       if (is3DModel) {
-        // Handle 3D model upload directly
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('title', file.name.replace(fileExtension, ''));
-        formData.append('description', `${file.name} 3D model`);
-        formData.append('category', 'general');
-        formData.append('subcategory', 'model');
-        formData.append('style', 'default');
-        formData.append('tags', '3d,model');
-        if (selectedProject) formData.append('projectId', selectedProject);
-
-        const response = await fetch(`/api/${apiPath}`, {
+        // Presigned upload flow for 3D models
+        const presignedResponse = await fetch('/api/objects/get-upload-url', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, fileSize: file.size, projectId: selectedProject || null }),
+        });
+        if (!presignedResponse.ok) {
+          const err = await presignedResponse.json().catch(() => ({} as any));
+          throw new Error(err?.error || 'Failed to get model upload URL');
+        }
+        const { uploadUrl, key, s3Url, cloudflareUrl } = await presignedResponse.json();
+
+        // Upload to S3 with progress
+        const xhr = new XMLHttpRequest();
+        await new Promise<void>((resolve, reject) => {
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const progress = Math.round((e.loaded / e.total) * 100);
+              setUploadFiles(prev => prev.map(f => f.id === id ? { ...f, progress } : f));
+            }
+          });
+          xhr.addEventListener('load', () => xhr.status === 200 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`)) );
+          xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+          xhr.open('PUT', uploadUrl);
+          xhr.setRequestHeader('Content-Type',
+            file.name.toLowerCase().endsWith('.glb') ? 'model/gltf-binary' :
+            file.name.toLowerCase().endsWith('.gltf') ? 'model/gltf+json' : 'application/octet-stream');
+          xhr.send(file);
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to upload 3D model');
+        // Finalize and create asset record
+        const completeResponse = await fetch('/api/objects/finish-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, originalFilename: file.name, projectId: selectedProject || null, s3Url, cloudflareUrl })
+        });
+        if (!completeResponse.ok) {
+          const err = await completeResponse.json().catch(() => ({} as any));
+          throw new Error(err?.error || 'Failed to finalize 3D model upload');
         }
 
-        setUploadFiles(prev => prev.map(f =>
-          f.id === id ? { ...f, status: 'completed' as const, progress: 100 } : f
-        ));
+        setUploadFiles(prev => prev.map(f => f.id === id ? { ...f, status: 'completed' as const, progress: 100 } : f));
         return;
       }
 
