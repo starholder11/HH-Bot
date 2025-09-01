@@ -13,7 +13,17 @@ export default function AssetImportModal({ onClose, onSelect }: AssetImportModal
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(['image','video','audio','text']);
+  // Include all known content types by default so object assets appear
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([
+    'image',
+    'video',
+    'audio',
+    'text',
+    'layout',
+    'object',
+    'object_collection',
+    'space',
+  ]);
   const [mounted, setMounted] = useState(false);
   const controllerRef = React.useRef<AbortController | null>(null);
   const debounceRef = React.useRef<number | null>(null);
@@ -45,7 +55,14 @@ export default function AssetImportModal({ onClose, onSelect }: AssetImportModal
         // Choose list to show based on active filters
         const onlyText = activeTypes.length === 1 && activeTypes[0] === 'text';
         const onlyMedia = activeTypes.every(t => ['image','video','audio'].includes(t)) && !activeTypes.includes('text');
-        const baseList = onlyText ? results.text : onlyMedia ? results.media : (results.all || []);
+        const onlyLayout = activeTypes.length === 1 && activeTypes[0] === 'layout';
+        const baseList = onlyText
+          ? results.text
+          : onlyMedia
+          ? results.media
+          : onlyLayout
+          ? (results.layout || [])
+          : (results.all || []);
         console.log('[ASSET SEARCH] Base list:', baseList?.length, 'items from', onlyText ? 'text' : onlyMedia ? 'media' : 'all');
         const allow = new Set<string>(activeTypes.includes('text') && activeTypes.length === 1 ? ['text'] : activeTypes);
         const filtered = (Array.isArray(baseList) ? baseList : []).filter((r: any) => allow.has((r.content_type || r.type || '').toLowerCase()));
@@ -79,7 +96,7 @@ export default function AssetImportModal({ onClose, onSelect }: AssetImportModal
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-medium text-neutral-100">Search Assets</h2>
             <div className="flex flex-wrap gap-1">
-              {['image','video','audio','text'].map(t => {
+              {['image','video','audio','text','layout','object','object_collection','space'].map(t => {
                 const active = selectedTypes.includes(t);
                 return (
                   <button
@@ -89,7 +106,7 @@ export default function AssetImportModal({ onClose, onSelect }: AssetImportModal
                         const isCurrentlyActive = prev.includes(t) && prev.length === 1;
                         if (isCurrentlyActive) {
                           // If this is the only active filter, select all types
-                          const allTypes = ['image', 'video', 'audio', 'text'];
+                          const allTypes = ['image','video','audio','text','layout','object','object_collection','space'];
                           console.log('[ASSET SEARCH] Filter changed to ALL:', allTypes);
                           void searchAssets(searchQuery, allTypes);
                           return allTypes;

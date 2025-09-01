@@ -29,16 +29,19 @@ function buildSnippet(r: UnifiedSearchResult): string {
   }
 }
 
+// Enhanced CanvasCard with AI layout awareness
 function CanvasCard({
   item,
   onRemove,
   onOpen,
-  onToggleView
+  onToggleView,
+  aiReasoning
 }: {
   item: PinnedItem & { expanded?: boolean };
   onRemove: (id: string) => void;
   onOpen: (r: UnifiedSearchResult) => void;
   onToggleView?: (id: string, expanded: boolean) => void;
+  aiReasoning?: string;
 }) {
   const r = item.result;
   const mediaUrl = getResultMediaUrl(r);
@@ -53,6 +56,11 @@ function CanvasCard({
           <div className="text-[10px] px-2 py-0.5 border border-neutral-700 bg-neutral-800/60 text-neutral-300">
             {r.content_type}
           </div>
+          {aiReasoning && (
+            <div className="text-[8px] px-1.5 py-0.5 bg-blue-600/20 text-blue-300 rounded">
+              AI
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {onToggleView && (

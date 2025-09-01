@@ -26,6 +26,16 @@ const CanvasBoard = nextDynamic(() => import('./components/Canvas/CanvasBoardRGL
     </div>
   )
 });
+
+// Dynamically import AI Canvas Board
+const AICanvasBoard = nextDynamic(() => import('./components/Canvas/AICanvasBoard'), {
+  ssr: false,
+  loading: () => (
+    <div className="relative w-full min-h-[640px] rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden flex items-center justify-center">
+      <div className="text-neutral-400">🤖 Loading AI canvas...</div>
+    </div>
+  )
+});
 import GridPinned from './components/Canvas/GridPinned';
 import CanvasToolbar from './components/Canvas/CanvasToolbar';
 import CanvasManagerModal from './components/Canvas/CanvasManagerModal';
@@ -1432,6 +1442,7 @@ export default function VisualSearchPage() {
     status: string;
   }>>([]);
   const [canvasNote, setCanvasNote] = useState<string>('')
+  const [useAICanvas, setUseAICanvas] = useState<boolean>(false);
 
   // Fetch global LoRAs on mount and when rightTab changes to generate
   useEffect(() => {
@@ -3434,30 +3445,71 @@ export default function VisualSearchPage() {
       />
 
       {showCanvasModal && (
-        <CanvasBoard
-          items={pinned}
-          onMove={movePin}
-          onRemove={removePin}
-          onOpen={(r: UnifiedSearchResult) => {
-            try {
-              if (r && typeof r === 'object' && (r as any).id) {
-                setSelected(r);
-              }
-            } catch (e) {
-              console.error('Modal expand error:', e);
-            }
-          }}
-          onResize={resizePin}
-          onToggleView={(id, expanded) => {
-            setPinnedInStore((prev: PinnedItem[]) =>
-              prev.map((p: PinnedItem) =>
-                p.id === id ? { ...p, expanded } : p
-              )
-            );
-          }}
-          isModal={true}
-          onClose={() => setShowCanvasModal(false)}
-        />
+        <div className="relative">
+          {/* AI Canvas Toggle */}
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+            <button
+              onClick={() => setUseAICanvas(!useAICanvas)}
+              className={`px-2 py-1 text-xs rounded-md border transition-colors ${
+                useAICanvas
+                  ? 'border-blue-600 bg-blue-600 text-white'
+                  : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-neutral-500'
+              }`}
+              title={useAICanvas ? 'Switch to manual layout' : 'Switch to AI-powered layout'}
+            >
+              {useAICanvas ? '🤖 AI' : '✋ Manual'}
+            </button>
+          </div>
+
+          {useAICanvas ? (
+            <AICanvasBoard
+              pinned={pinned}
+              onLayoutChange={(layouts) => {
+                // Handle layout changes if needed
+                console.log('AI layout changed:', layouts);
+              }}
+              onRemove={removePin}
+              onOpen={(r: UnifiedSearchResult) => {
+                try {
+                  if (r && typeof r === 'object' && (r as any).id) {
+                    setSelected(r);
+                  }
+                } catch (e) {
+                  console.error('Modal expand error:', e);
+                }
+              }}
+              autoLayout={true}
+              onAutoLayoutComplete={(layouts) => {
+                console.log('AI layout completed:', layouts);
+              }}
+            />
+          ) : (
+            <CanvasBoard
+              items={pinned}
+              onMove={movePin}
+              onRemove={removePin}
+              onOpen={(r: UnifiedSearchResult) => {
+                try {
+                  if (r && typeof r === 'object' && (r as any).id) {
+                    setSelected(r);
+                  }
+                } catch (e) {
+                  console.error('Modal expand error:', e);
+                }
+              }}
+              onResize={resizePin}
+              onToggleView={(id, expanded) => {
+                setPinnedInStore((prev: PinnedItem[]) =>
+                  prev.map((p: PinnedItem) =>
+                    p.id === id ? { ...p, expanded } : p
+                  )
+                );
+              }}
+              isModal={true}
+              onClose={() => setShowCanvasModal(false)}
+            />
+          )}
+        </div>
       )}
     </div>
   );
