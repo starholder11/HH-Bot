@@ -1928,12 +1928,12 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
           <div className="text-4xl">📁</div>
           <div className="text-lg font-medium text-white">Drop media files here or click to browse</div>
           <div className="text-sm text-neutral-400">
-            Supports audio (MP3, WAV, M4A up to 100MB), images (JPEG, PNG, GIF, WebP up to 50MB), and videos (MP4, MOV, AVI, WebM up to 500MB)
+            Supports audio (MP3, WAV, M4A up to 100MB), images (JPEG, PNG, GIF, WebP up to 50MB), videos (MP4, MOV, AVI, WebM up to 500MB), and 3D models (GLB, GLTF, OBJ, FBX up to 200MB)
           </div>
           <input
             type="file"
             multiple
-            accept="audio/*,image/*,video/*"
+            accept="audio/*,image/*,video/*,.glb,.gltf,.obj,.fbx"
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
             id="file-upload"
@@ -1968,9 +1968,12 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
                     <span className="text-2xl">🎵</span>
                   ) : uploadFile.file.type.startsWith('video/') ? (
                     <span className="text-2xl">🎬</span>
-                  ) : (
-                    <span className="text-2xl">📄</span>
-                  )}
+                  ) : (() => {
+                      // Check if it's a 3D model by extension
+                      const fileExtension = uploadFile.file.name.toLowerCase().substring(uploadFile.file.name.lastIndexOf('.'));
+                      const is3DModel = ['.glb', '.gltf', '.obj', '.fbx'].includes(fileExtension);
+                      return is3DModel ? <span className="text-2xl">🎲</span> : <span className="text-2xl">📄</span>;
+                    })()}
                 </div>
 
                 {/* File Info */}
@@ -1980,9 +1983,15 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
                     <span>{(uploadFile.file.size / (1024 * 1024)).toFixed(1)} MB</span>
                     <span>•</span>
                     <span className="uppercase">
-                      {uploadFile.file.type.startsWith('audio/') ? 'Audio' :
-                       uploadFile.file.type.startsWith('image/') ? 'Image' :
-                       uploadFile.file.type.startsWith('video/') ? 'Video' : 'Unknown'}
+                      {(() => {
+                        const fileExtension = uploadFile.file.name.toLowerCase().substring(uploadFile.file.name.lastIndexOf('.'));
+                        const is3DModel = ['.glb', '.gltf', '.obj', '.fbx'].includes(fileExtension);
+                        if (uploadFile.file.type.startsWith('audio/')) return 'Audio';
+                        if (uploadFile.file.type.startsWith('image/')) return 'Image';
+                        if (uploadFile.file.type.startsWith('video/')) return 'Video';
+                        if (is3DModel) return '3D Model';
+                        return 'Unknown';
+                      })()}
                     </span>
                   </div>
 
