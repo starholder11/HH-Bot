@@ -164,6 +164,69 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
 
   // Render geometry based on scene child geometry (fallback to Plane)
   const renderGeometry = () => {
+    // Check for custom geometry from editor wrapping first
+    const customGeom = userData?.customGeometry;
+    if (customGeom && customGeom.type) {
+      console.log(`[Geometry] Using custom geometry for ${child.name}:`, customGeom.type, customGeom);
+      const t = customGeom.type;
+      const params = customGeom.parameters || {};
+      switch (t) {
+        case 'SphereGeometry': {
+          const radius = params.radius ?? 1;
+          const widthSegments = params.widthSegments ?? 32;
+          const heightSegments = params.heightSegments ?? 16;
+          return <sphereGeometry args={[radius, widthSegments, heightSegments]} />;
+        }
+        case 'BoxGeometry': {
+          const width = params.width ?? 1;
+          const height = params.height ?? 1;
+          const depth = params.depth ?? 1;
+          return <boxGeometry args={[width, height, depth]} />;
+        }
+        case 'CylinderGeometry': {
+          const radiusTop = params.radiusTop ?? 1;
+          const radiusBottom = params.radiusBottom ?? 1;
+          const height = params.height ?? 1;
+          const radialSegments = params.radialSegments ?? 32;
+          return <cylinderGeometry args={[radiusTop, radiusBottom, height, radialSegments]} />;
+        }
+        case 'TorusGeometry': {
+          const radius = params.radius ?? 1;
+          const tube = params.tube ?? 0.4;
+          const radialSegments = params.radialSegments ?? 16;
+          const tubularSegments = params.tubularSegments ?? 100;
+          return <torusGeometry args={[radius, tube, radialSegments, tubularSegments]} />;
+        }
+        case 'TetrahedronGeometry': {
+          const radius = params.radius ?? 1;
+          const detail = params.detail ?? 0;
+          return <tetrahedronGeometry args={[radius, detail]} />;
+        }
+        case 'OctahedronGeometry': {
+          const radius = params.radius ?? 1;
+          const detail = params.detail ?? 0;
+          return <octahedronGeometry args={[radius, detail]} />;
+        }
+        case 'IcosahedronGeometry': {
+          const radius = params.radius ?? 1;
+          const detail = params.detail ?? 0;
+          return <icosahedronGeometry args={[radius, detail]} />;
+        }
+        case 'DodecahedronGeometry': {
+          const radius = params.radius ?? 1;
+          const detail = params.detail ?? 0;
+          return <dodecahedronGeometry args={[radius, detail]} />;
+        }
+        case 'PlaneGeometry':
+        default: {
+          const width = params.width ?? 1;
+          const height = params.height ?? 1;
+          return <planeGeometry args={[width, height]} />;
+        }
+      }
+    }
+
+    // Fallback to standard geometry from child.geometry
     const g = child.geometry || {};
     const t = (g.type || 'PlaneGeometry').toString();
     console.log(`[Geometry] Rendering ${child.name} with geometry:`, t, g);
