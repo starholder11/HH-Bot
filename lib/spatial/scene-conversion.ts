@@ -418,6 +418,19 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
     }
 
     // Handle regular assets - use mesh UUID as item ID for consistency
+    // Sanitize importMetadata to ensure it conforms to schema
+    const userImportMeta = child.userData?.importMetadata || {};
+    const userSourceType = userImportMeta.sourceType || child.userData?.sourceType;
+    const validSourceType = userSourceType === 'layout' || userSourceType === 'manual' ? userSourceType : 'manual';
+
+    const sanitizedImportMetadata = {
+      sourceType: validSourceType,
+      ...(userImportMeta.sourceId ? { sourceId: userImportMeta.sourceId } : {}),
+      ...(typeof userImportMeta.importVersion === 'number' ? { importVersion: userImportMeta.importVersion } : {}),
+      ...(userImportMeta.importTimestamp ? { importTimestamp: userImportMeta.importTimestamp } : {}),
+      ...(userImportMeta.originalTransform ? { originalTransform: userImportMeta.originalTransform } : {})
+    };
+
     return {
       id: child.uuid, // Use the actual mesh UUID from Three.js for consistency
       assetId: child.userData?.assetId || child.uuid, // Fallback to uuid if no assetId
@@ -431,11 +444,7 @@ export function convertThreeJSSceneToSpace(scene: ThreeJSScene, existingSpace: S
       opacity: 1, // TODO: Extract from material
       visible: child.visible !== false,
       mediaUrl,
-      importMetadata: {
-        ...(child.userData?.importMetadata || {}),
-        // Persist customGeometry inside importMetadata to survive API schema stripping
-        ...(customGeometry ? { customGeometry } : {})
-      },
+      importMetadata: sanitizedImportMetadata,
       customGeometry
     };
   }).filter(Boolean);
@@ -590,7 +599,7 @@ function getDefaultGeometryType(assetType?: string): string {
 // Helper function to extract geometry parameters from geometry object
 function extractGeometryParameters(geometry: any): any {
   const params: any = {};
-  
+
   // Extract common parameters based on geometry type
   switch (geometry.type) {
     case 'PlaneGeometry':
@@ -629,6 +638,6 @@ function extractGeometryParameters(geometry: any): any {
       params.detail = geometry.detail || 0;
       break;
   }
-  
+
   return params;
 }

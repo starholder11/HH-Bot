@@ -229,7 +229,7 @@ export default function FileManagerPage() {
 
   // Mounted state to prevent state updates on unmounted component
   const isMounted = useRef(true);
-  
+
   // Drag and drop for objects
   const { makeDraggable } = useDragAndDrop({
     onDragStart: (data) => console.log('Started dragging object:', data.objectId),
@@ -302,7 +302,7 @@ export default function FileManagerPage() {
           prompt: song.prompt || '',
         }));
         hasMoreFromServer = false;
-      
+
       } else if (mediaTypeFilter === 'object') {
         // Fetch objects from Phase 3 API
         const response = await fetch('/api/objects');
@@ -1450,7 +1450,7 @@ export default function FileManagerPage() {
                         <p className="text-sm text-neutral-600">{selectedAsset.filename}</p>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <div className="text-xs font-medium text-neutral-600 mb-1">Category</div>
@@ -1662,13 +1662,13 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
       .map(file => {
         const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
         const is3DModel = ['.glb', '.gltf', '.obj', '.fbx'].includes(fileExtension);
-        
+
         return {
           file,
           id: Math.random().toString(36).substr(2, 9),
           progress: 0,
           status: 'pending' as const,
-          previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : 
+          previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) :
                      is3DModel ? '/api/models/reference/threejs/Duck.glb' : undefined // Use Duck.glb as preview for 3D models
         };
       });
@@ -1719,12 +1719,12 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
         if (fileType.startsWith('audio/')) return 'audio-labeling';
         if (fileType.startsWith('image/')) return 'media-labeling/images';
         if (fileType.startsWith('video/')) return 'media-labeling/videos';
-        
+
         // Check if it's a 3D model by file extension
         const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
         const is3DModel = ['.glb', '.gltf', '.obj', '.fbx'].includes(fileExtension);
         if (is3DModel) return 'objects/upload';
-        
+
         throw new Error(`Unsupported file type: ${fileType}`);
       };
 
