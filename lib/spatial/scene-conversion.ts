@@ -80,6 +80,21 @@ interface SpaceItem {
   };
 }
 
+// Normalize rotations to avoid upside-down media on import/export cycles.
+// Historically layouts sometimes stored x-rotation at ±PI; clamp near-PI to 0.
+function normalizeRotation(rot?: [number, number, number] | number[]): [number, number, number] {
+  const r0 = Array.isArray(rot) ? rot : [0, 0, 0];
+  const [rx, ry, rz] = [r0[0] || 0, r0[1] || 0, r0[2] || 0];
+  const clampPi = (v: number) => {
+    const PI = Math.PI;
+    // If the angle is within ~1e-6 of ±PI, treat it as 0 to keep planes upright.
+    if (Math.abs(Math.abs(v) - PI) < 1e-6) return 0;
+    // Snap very small noise to 0 as well
+    return Math.abs(v) < 1e-6 ? 0 : v;
+  };
+  return [clampPi(rx), clampPi(ry), clampPi(rz)];
+}
+
 /**
  * Convert SpaceAsset to Three.js Scene format
  */
@@ -146,7 +161,7 @@ export function convertSpaceToThreeJSScene(space: SpaceAsset): ThreeJSScene {
           type: "Mesh",
           name: item.assetId || item.title || item.id,
           position: [x, y, z],
-          rotation: item.rotation || [0, 0, 0],
+          rotation: normalizeRotation(item.rotation),
           scale: item.scale || [1, 1, 1],
           // Inline geometry object for easier rendering in the public viewer
           geometry: generateGeometryForItem(item),

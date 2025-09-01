@@ -677,6 +677,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           geometry,
           material: { type: 'MeshBasicMaterial', color },
           position: [x, 0.5, z],
+          rotation: [0, 0, 0],
           scale: [fitted.w, fitted.h, 1],
           name: item.snippet || `Layout Item ${i + 1}`,
           userData: {
@@ -871,6 +872,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
           geometry,
           material: { type: 'MeshBasicMaterial', color },
           position: [x, 0.5, z],
+          rotation: [0, 0, 0],
           scale: [fitted.w, fitted.h, 1],
           name: item.snippet || `Layout Item ${i + 1}`,
           userData: {
