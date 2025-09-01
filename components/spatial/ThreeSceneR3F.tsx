@@ -89,6 +89,12 @@ function SpaceMesh({ child }: { child: ThreeChild }) {
               applyTextToMesh(mesh, userData.fullTextContent, null);
               return;
             }
+            // If we have an inline rendered image for the text, use it directly
+            if (typeof mediaUrl === 'string' && mediaUrl.startsWith('data:image/')) {
+              console.log('[Text] Using inline data URL image for text asset');
+              applyMediaToMesh(mesh, mediaUrl, 'image', null);
+              return;
+            }
             if (userData?.assetId) {
               const idStr = String(userData.assetId);
               if (idStr.startsWith('text_timeline/')) {
