@@ -50,6 +50,19 @@ const nextConfig = {
         source: '/(.*)',
         headers,
       },
+      {
+        source: '/models/:path*',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'model/gltf-binary',
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
     ];
   },
 }
