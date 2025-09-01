@@ -9,20 +9,27 @@ export async function GET(
 ) {
   try {
     const pathSegments = params.path;
+    console.log('[Models API] Request for path segments:', pathSegments);
     const filePath = join(process.cwd(), 'public', 'models', ...pathSegments);
+    console.log('[Models API] Resolved file path:', filePath);
     
     // Security check: ensure the path is within the models directory
     if (!filePath.includes('/public/models/')) {
+      console.log('[Models API] Invalid path, rejecting');
       return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
     }
     
     // Check if file exists
     if (!existsSync(filePath)) {
+      console.log('[Models API] File not found:', filePath);
       return NextResponse.json({ error: 'Model not found' }, { status: 404 });
     }
     
-    // Read the binary file
+    console.log('[Models API] File exists, reading...');
+
+        // Read the binary file
     const fileBuffer = await readFile(filePath);
+    console.log('[Models API] File read successfully, size:', fileBuffer.length, 'bytes');
     
     // Determine content type based on file extension
     const ext = pathSegments[pathSegments.length - 1]?.split('.').pop()?.toLowerCase();
@@ -42,6 +49,8 @@ export async function GET(
         contentType = 'application/octet-stream';
         break;
     }
+    
+    console.log('[Models API] Serving file with content-type:', contentType);
     
     // Return the file with proper headers
     return new NextResponse(fileBuffer, {
