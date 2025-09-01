@@ -24,6 +24,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    // Check file size (200MB limit)
+    const maxSize = 200 * 1024 * 1024; // 200MB in bytes
+    if (file.size > maxSize) {
+      return NextResponse.json({ 
+        error: `File too large. Maximum size is 200MB, got ${(file.size / (1024 * 1024)).toFixed(1)}MB` 
+      }, { status: 413 });
+    }
+
     // Validate file type
     const validExtensions = ['.glb', '.gltf', '.obj', '.fbx'];
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
@@ -38,86 +46,95 @@ export async function POST(request: NextRequest) {
     const assetId = uuidv4();
     const now = new Date().toISOString();
 
-    // Upload file to S3
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const { url, key, size, contentType } = await uploadFile(buffer, 'models');
+    try {
+      // Upload file to S3
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const { url, key, size, contentType } = await uploadFile(buffer, 'models');
 
-    // Create proper 3D object asset
-    const asset = {
-      id: assetId,
-      filename: file.name,
-      s3_url: url, // Use the returned URL
-      cloudflare_url: url, // Use the same URL for now
-      title: title || file.name.replace(fileExtension, ''),
-      description: description || `${title || file.name} 3D model`,
-      media_type: 'object' as const,
-      metadata: {
-        category: category || 'general',
-        subcategory: subcategory || 'model',
-        style: style || 'default',
-        tags: [...tags, '3d', 'model', fileExtension.substring(1)],
-        file_size: size, // Use the returned size
-        original_filename: file.name
-      },
-      object_type: 'atomic' as const,
-      object: {
-        modelUrl: url, // Use the returned URL
-        boundingBox: { 
-          min: [-0.5, -0.5, -0.5], 
-          max: [0.5, 0.5, 0.5] 
+      // Create proper 3D object asset
+      const asset = {
+        id: assetId,
+        filename: file.name,
+        s3_url: url,
+        cloudflare_url: url,
+        title: title || file.name.replace(fileExtension, ''),
+        description: description || `${title || file.name} 3D model`,
+        media_type: 'object' as const,
+        metadata: {
+          category: category || 'general',
+          subcategory: subcategory || 'model',
+          style: style || 'default',
+          tags: [...tags, '3d', 'model', fileExtension.substring(1)],
+          file_size: size,
+          original_filename: file.name
         },
-        category: category || 'general',
-        subcategory: subcategory || 'model',
-        style: style || 'default',
-        tags: [...tags, '3d', 'model']
-      },
-      ai_labels: { 
-        scenes: [], 
-        objects: [], 
-        style: [], 
-        mood: [], 
-        themes: [], 
-        confidence_scores: {} 
-      },
-      manual_labels: { 
-        scenes: [], 
-        objects: [], 
-        style: [], 
-        mood: [], 
-        themes: [], 
-        custom_tags: [] 
-      },
-      processing_status: { 
-        upload: 'completed', 
-        metadata_extraction: 'completed', 
-        ai_labeling: 'not_started', 
-        manual_review: 'pending' 
-      },
-      timestamps: { 
-        uploaded: now, 
-        metadata_extracted: now, 
-        labeled_ai: null, 
-        labeled_reviewed: null 
-      },
-      labeling_complete: false,
-      project_id: projectId || null,
-      created_at: now,
-      updated_at: now
-    };
+        object_type: 'atomic' as const,
+        object: {
+          modelUrl: url,
+          boundingBox: { 
+            min: [-0.5, -0.5, -0.5], 
+            max: [0.5, 0.5, 0.5] 
+          },
+          category: category || 'general',
+          subcategory: subcategory || 'model',
+          style: style || 'default',
+          tags: [...tags, '3d', 'model']
+        },
+        ai_labels: { 
+          scenes: [], 
+          objects: [], 
+          style: [], 
+          mood: [], 
+          themes: [], 
+          confidence_scores: {} 
+        },
+        manual_labels: { 
+          scenes: [], 
+          objects: [], 
+          style: [], 
+          mood: [], 
+          themes: [], 
+          custom_tags: [] 
+        },
+        processing_status: { 
+          upload: 'completed', 
+          metadata_extraction: 'completed', 
+          ai_labeling: 'not_started', 
+          manual_review: 'pending' 
+        },
+        timestamps: { 
+          uploaded: now, 
+          metadata_extracted: now, 
+          labeled_ai: null, 
+          labeled_reviewed: null 
+        },
+        labeling_complete: false,
+        project_id: projectId || null,
+        created_at: now,
+        updated_at: now
+      };
 
-    // Validate with schema
-    const validatedAsset = ObjectAssetZ.parse(asset);
+      // Validate with schema
+      const validatedAsset = ObjectAssetZ.parse(asset);
 
-    // Save to asset system
-    await saveMediaAsset(assetId, validatedAsset as MediaAsset);
+      // Save to asset system
+      await saveMediaAsset(assetId, validatedAsset as MediaAsset);
 
-    console.log(`✅ 3D model uploaded: ${assetId} (${file.name})`);
+      console.log(`✅ 3D model uploaded: ${assetId} (${file.name})`);
 
-    return NextResponse.json({
-      success: true,
-      asset: validatedAsset,
-      message: `Successfully uploaded "${validatedAsset.title}"`
-    });
+      return NextResponse.json({
+        success: true,
+        asset: validatedAsset,
+        message: `Successfully uploaded "${validatedAsset.title}"`
+      });
+
+    } catch (uploadError) {
+      console.error('S3 upload error:', uploadError);
+      return NextResponse.json(
+        { error: `S3 upload failed: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}` },
+        { status: 500 }
+      );
+    }
 
   } catch (error) {
     console.error('3D model upload error:', error);
