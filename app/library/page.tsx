@@ -1618,44 +1618,60 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
   const [isUploading, setIsUploading] = useState(false);
   // Remove mediaType state - now accepting all media types
 
-  // Handle file selection - now supports all media types
+  // Handle file selection - now supports all media types including 3D models
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
 
     const newFiles: UploadFile[] = Array.from(files)
       .filter(file => {
         const audioTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/aac'];
-        const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const imageTypes = ['audio/mpeg', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         const videoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/ogg', 'video/3gpp', 'video/x-ms-wmv'];
+        const modelTypes = ['model/gltf-binary', 'model/gltf+json', 'text/plain']; // GLB, GLTF, OBJ
+        const modelExtensions = ['.glb', '.gltf', '.obj', '.fbx'];
 
-        const allValidTypes = [...audioTypes, ...imageTypes, ...videoTypes];
+        // Check if it's a 3D model by extension (since MIME types might not be set correctly)
+        const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+        const is3DModel = modelExtensions.includes(fileExtension);
 
-        if (!allValidTypes.includes(file.type)) {
-          console.warn(`${file.name} is not a supported format. Please upload audio (MP3, WAV, M4A), image (JPEG, PNG, GIF, WebP), or video (MP4, MOV, AVI, WebM, etc.) files.`);
+        const allValidTypes = [...audioTypes, ...imageTypes, ...videoTypes, ...modelTypes];
+
+        if (!allValidTypes.includes(file.type) && !is3DModel) {
+          console.warn(`${file.name} is not a supported format. Please upload audio (MP3, WAV, M4A), image (JPEG, PNG, GIF, WebP), video (MP4, MOV, AVI, WebM, etc.), or 3D model (GLB, GLTF, OBJ, FBX) files.`);
           return false;
         }
 
         // Set size limits based on file type
         const maxSize = file.type.startsWith('audio/') ? 100 * 1024 * 1024 : // 100MB for audio
                      file.type.startsWith('image/') ? 50 * 1024 * 1024 :   // 50MB for images
-                     500 * 1024 * 1024; // 500MB for videos
+                     file.type.startsWith('video/') ? 500 * 1024 * 1024 :  // 500MB for videos
+                     is3DModel ? 200 * 1024 * 1024 : // 200MB for 3D models
+                     50 * 1024 * 1024; // Default 50MB
 
         if (file.size > maxSize) {
           const maxSizeMB = maxSize / (1024 * 1024);
           const typeLabel = file.type.startsWith('audio/') ? 'audio' :
-                           file.type.startsWith('image/') ? 'image' : 'video';
+                           file.type.startsWith('image/') ? 'image' :
+                           file.type.startsWith('video/') ? 'video' :
+                           is3DModel ? '3D model' : 'file';
           console.warn(`${file.name} is too large. Maximum file size for ${typeLabel} is ${maxSizeMB}MB.`);
           return false;
         }
         return true;
       })
-      .map(file => ({
-        file,
-        id: Math.random().toString(36).substr(2, 9),
-        progress: 0,
-        status: 'pending' as const,
-        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
-      }));
+      .map(file => {
+        const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+        const is3DModel = ['.glb', '.gltf', '.obj', '.fbx'].includes(fileExtension);
+        
+        return {
+          file,
+          id: Math.random().toString(36).substr(2, 9),
+          progress: 0,
+          status: 'pending' as const,
+          previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : 
+                     is3DModel ? '/api/models/reference/threejs/Duck.glb' : undefined // Use Duck.glb as preview for 3D models
+        };
+      });
 
     setUploadFiles(prev => [...prev, ...newFiles]);
   };
@@ -1688,7 +1704,7 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
     });
   };
 
-  // Upload single file - now handles audio, image, and video
+  // Upload single file - now handles audio, image, video, and 3D models
   const uploadFile = async (uploadFile: UploadFile): Promise<void> => {
     const { file, id } = uploadFile;
 
@@ -1703,11 +1719,48 @@ function UploadModal({ onClose, projects, onUploadComplete }: UploadModalProps) 
         if (fileType.startsWith('audio/')) return 'audio-labeling';
         if (fileType.startsWith('image/')) return 'media-labeling/images';
         if (fileType.startsWith('video/')) return 'media-labeling/videos';
+        
+        // Check if it's a 3D model by file extension
+        const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+        const is3DModel = ['.glb', '.gltf', '.obj', '.fbx'].includes(fileExtension);
+        if (is3DModel) return 'objects/upload';
+        
         throw new Error(`Unsupported file type: ${fileType}`);
       };
 
       const apiPath = getApiPath(file.type);
+      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      const is3DModel = ['.glb', '.gltf', '.obj', '.fbx'].includes(fileExtension);
 
+      if (is3DModel) {
+        // Handle 3D model upload directly
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', file.name.replace(fileExtension, ''));
+        formData.append('description', `${file.name} 3D model`);
+        formData.append('category', 'general');
+        formData.append('subcategory', 'model');
+        formData.append('style', 'default');
+        formData.append('tags', '3d,model');
+        if (selectedProject) formData.append('projectId', selectedProject);
+
+        const response = await fetch(`/api/${apiPath}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to upload 3D model');
+        }
+
+        setUploadFiles(prev => prev.map(f =>
+          f.id === id ? { ...f, status: 'completed' as const, progress: 100 } : f
+        ));
+        return;
+      }
+
+      // Handle regular media files with presigned URL flow
       // Step 1: Get presigned URL
       const presignedResponse = await fetch(`/api/${apiPath}/get-upload-url`, {
         method: 'POST',
