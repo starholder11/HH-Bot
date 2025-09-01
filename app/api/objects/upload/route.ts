@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadFile } from '@/lib/upload-helpers';
+import { uploadFile } from '@/lib/s3-upload';
 import { saveMediaAsset } from '@/lib/media-storage';
 import { ObjectAssetZ } from '@/lib/spatial/schemas';
 
@@ -36,14 +36,14 @@ export async function POST(request: NextRequest) {
 
     // Upload file to S3
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { s3_url, cloudflare_url } = await uploadFile(buffer, 'models');
+    const { url, key, size, contentType } = await uploadFile(buffer, 'models');
 
     // Create proper 3D object asset
     const asset = {
       id: assetId,
       filename: file.name,
-      s3_url,
-      cloudflare_url,
+      s3_url: url, // Use the returned URL
+      cloudflare_url: url, // Use the same URL for now
       title: title || file.name.replace(fileExtension, ''),
       description: description || `${title || file.name} 3D model`,
       media_type: 'object' as const,
@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
         subcategory: subcategory || 'model',
         style: style || 'default',
         tags: [...tags, '3d', 'model', fileExtension.substring(1)],
-        file_size: file.size,
+        file_size: size, // Use the returned size
         original_filename: file.name
       },
       object_type: 'atomic' as const,
       object: {
-        modelUrl: cloudflare_url || s3_url, // Use CDN URL if available
+        modelUrl: url, // Use the returned URL
         boundingBox: { 
           min: [-0.5, -0.5, -0.5], 
           max: [0.5, 0.5, 0.5] 
