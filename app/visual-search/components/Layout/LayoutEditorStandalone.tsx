@@ -1536,7 +1536,7 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(['image','video','audio','text','layout','object','object_collection','space']);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['image','video','audio','text','object']);
   const [mounted, setMounted] = useState(false);
   const controllerRef = React.useRef<AbortController | null>(null);
   const debounceRef = React.useRef<number | null>(null);
@@ -1603,26 +1603,27 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
             <h2 className="text-lg font-medium text-neutral-100">Search Assets</h2>
             <select
               value={(() => {
-                const all = ['image','video','audio','text','layout','object','object_collection','space'];
+                const all = ['image','video','audio','text','object'];
+                if (selectedTypes.length === all.length && all.every(t => selectedTypes.includes(t))) {
+                  return 'all';
+                }
                 const first = selectedTypes.find(t => all.includes(t));
-                return first || 'image';
+                return first || 'all';
               })()}
               onChange={(e) => {
                 const val = e.target.value;
-                const next = [val];
+                const next = val === 'all' ? ['image','video','audio','text','object'] : [val];
                 setSelectedTypes(next);
                 void searchAssets(searchQuery, next);
               }}
               className="px-3 py-1.5 text-xs rounded-md border border-neutral-700 bg-neutral-800 text-neutral-100"
             >
-              <option value="image">image</option>
-              <option value="video">video</option>
-              <option value="audio">audio</option>
-              <option value="text">text</option>
-              <option value="layout">layout</option>
-              <option value="object">object</option>
-              <option value="object_collection">object_collection</option>
-              <option value="space">space</option>
+              <option value="all">All</option>
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+              <option value="audio">Audio</option>
+              <option value="text">Text</option>
+              <option value="object">Object</option>
             </select>
           </div>
           <button
