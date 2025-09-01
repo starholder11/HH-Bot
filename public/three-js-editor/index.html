@@ -1214,12 +1214,15 @@
 				console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
 				if (isModel) {
 					console.log('Loading 3D model for:', mesh.name);
+					// Hide the placeholder immediately to avoid showing a white box
+					try { mesh.visible = false; } catch {}
 					const loadModel = async () => {
 						try {
 							// Prefetch to verify availability and get ArrayBuffer
 							const res = await fetch(url, { cache: 'no-store' });
 							if (!res.ok) {
 								console.error('Model fetch failed:', res.status, await res.text().catch(()=>''));
+								try { mesh.visible = true; } catch {}
 								return;
 							}
 							const arrayBuffer = await res.arrayBuffer();
@@ -1239,7 +1242,7 @@
 							loader.parse(arrayBuffer, '', (gltf) => {
 								try {
 									const object = gltf.scene || (gltf.scenes && gltf.scenes[0]);
-									if (!object) { console.error('Parsed GLTF has no scene'); return; }
+									if (!object) { console.error('Parsed GLTF has no scene'); try { mesh.visible = true; } catch {}; return; }
 									object.position.copy(mesh.position);
 									object.rotation.copy(mesh.rotation);
 									const box = new THREE.Box3().setFromObject(object);
@@ -1258,13 +1261,15 @@
 									object.name = mesh.name;
 									object.uuid = mesh.uuid;
 									if (mesh.parent) { mesh.parent.add(object); mesh.parent.remove(mesh); }
+									console.log('Model inserted, replaced placeholder for:', mesh.name);
 									// Ensure we have some lights for PBR materials
 									try { ensureDefaultLights(editor.scene); } catch {}
 									if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
 									frameScene(editor, object);
-								} catch (e) { console.error('Failed to insert parsed model:', e); }
+								} catch (e) { console.error('Failed to insert parsed model:', e); try { mesh.visible = true; } catch {} }
 							}, (error) => {
 								console.error('GLTF parse error:', error);
+								try { mesh.visible = true; } catch {}
 							});
 						} catch (error) {
 							console.error('Model prefetch or load error:', error);
@@ -1272,6 +1277,7 @@
 								if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 									mesh.material = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide, toneMapped: false });
 								}
+								mesh.visible = true;
 							} catch (e) {}
 						}
 					};
