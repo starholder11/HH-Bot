@@ -18,7 +18,7 @@
   },
   "object_type": "atomic",
   "object": {
-    "modelUrl": "/models/reference/threejs/Sponza.glb",
+    "modelUrl": "/api/models/sponza",
     "boundingBox": {
       "min": [
         -0.5,
