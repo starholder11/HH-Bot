@@ -1,24 +1,12 @@
 {
-  "id": "obj_Lantern",
+  "id": "8f2d4193-5310-4791-96f2-2fcafa0cdf87",
   "filename": "Lantern.glb",
-  "s3_url": "local:/models/reference/threejs/Lantern.glb",
-  "cloudflare_url": "",
   "title": "Lantern",
   "description": "Lantern reference model",
   "media_type": "object",
-  "metadata": {
-    "category": "lighting",
-    "subcategory": "portable",
-    "style": "reference",
-    "tags": [
-      "reference",
-      "threejs",
-      "glb"
-    ]
-  },
   "object_type": "atomic",
   "object": {
-    "modelUrl": "/models/reference/threejs/Lantern.glb",
+    "modelUrl": "/api/models/reference/threejs/Lantern.glb",
     "boundingBox": {
       "min": [
         -0.5,
@@ -38,6 +26,8 @@
       "reference"
     ]
   },
+  "s3_url": "local:/models/reference/threejs/Lantern.glb",
+  "cloudflare_url": "",
   "ai_labels": {
     "scenes": [],
     "objects": [],
@@ -60,14 +50,7 @@
     "ai_labeling": "not_started",
     "manual_review": "pending"
   },
-  "timestamps": {
-    "uploaded": "2025-08-21T00:40:35.484Z",
-    "metadata_extracted": "2025-08-21T00:40:35.484Z",
-    "labeled_ai": null,
-    "labeled_reviewed": null
-  },
-  "labeling_complete": false,
-  "project_id": null,
-  "created_at": "2025-08-21T00:40:35.484Z",
-  "updated_at": "2025-08-21T00:40:35.484Z"
+  "timestamps": {},
+  "created_at": "2025-09-01T19:19:51.236Z",
+  "updated_at": "2025-09-01T19:19:51.236Z"
 }

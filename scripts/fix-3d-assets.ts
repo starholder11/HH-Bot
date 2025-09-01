@@ -74,7 +74,7 @@ async function createProper3DAssets() {
         },
         object_type: 'atomic' as const,
         object: {
-          modelUrl,
+          modelUrl: `https://example.com${modelUrl}`, // Use full URL for validation
           boundingBox: { 
             min: [-0.5, -0.5, -0.5], 
             max: [0.5, 0.5, 0.5] 

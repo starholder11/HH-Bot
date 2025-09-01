@@ -1,0 +1,54 @@
+{
+  "id": "cd0d11c4-883c-4586-9c83-de927a50f086",
+  "filename": "reference_models.json",
+  "s3_url": "local:generated",
+  "cloudflare_url": "",
+  "title": "Reference Models Collection",
+  "description": "Collection of reference 3D models for testing",
+  "media_type": "object_collection",
+  "metadata": {
+    "category": "reference",
+    "style": "reference",
+    "item_count": 0
+  },
+  "collection_type": "custom",
+  "collection": {
+    "name": "Reference Models",
+    "description": "Collection of reference 3D models",
+    "objects": [],
+    "category": "reference",
+    "style": "reference"
+  },
+  "ai_labels": {
+    "scenes": [],
+    "objects": [],
+    "style": [],
+    "mood": [],
+    "themes": [],
+    "confidence_scores": {}
+  },
+  "manual_labels": {
+    "scenes": [],
+    "objects": [],
+    "style": [],
+    "mood": [],
+    "themes": [],
+    "custom_tags": []
+  },
+  "processing_status": {
+    "upload": "completed",
+    "metadata_extraction": "completed",
+    "ai_labeling": "not_started",
+    "manual_review": "pending"
+  },
+  "timestamps": {
+    "uploaded": "2025-09-01T19:19:35.135Z",
+    "metadata_extracted": "2025-09-01T19:19:35.135Z",
+    "labeled_ai": null,
+    "labeled_reviewed": null
+  },
+  "labeling_complete": false,
+  "project_id": null,
+  "created_at": "2025-09-01T19:19:35.135Z",
+  "updated_at": "2025-09-01T19:19:35.135Z"
+}

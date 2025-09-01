@@ -1,24 +1,12 @@
 {
-  "id": "obj_BoomBox",
+  "id": "92581555-4cba-4e92-b2a8-2eb3a6d8a13b",
   "filename": "BoomBox.glb",
-  "s3_url": "local:/models/reference/threejs/BoomBox.glb",
-  "cloudflare_url": "",
   "title": "BoomBox",
   "description": "BoomBox reference model",
   "media_type": "object",
-  "metadata": {
-    "category": "electronics",
-    "subcategory": "audio",
-    "style": "reference",
-    "tags": [
-      "reference",
-      "threejs",
-      "glb"
-    ]
-  },
   "object_type": "atomic",
   "object": {
-    "modelUrl": "/models/reference/threejs/BoomBox.glb",
+    "modelUrl": "/api/models/reference/threejs/BoomBox.glb",
     "boundingBox": {
       "min": [
         -0.5,
@@ -38,6 +26,8 @@
       "reference"
     ]
   },
+  "s3_url": "local:/models/reference/threejs/BoomBox.glb",
+  "cloudflare_url": "",
   "ai_labels": {
     "scenes": [],
     "objects": [],
@@ -60,14 +50,7 @@
     "ai_labeling": "not_started",
     "manual_review": "pending"
   },
-  "timestamps": {
-    "uploaded": "2025-08-21T00:40:35.484Z",
-    "metadata_extracted": "2025-08-21T00:40:35.484Z",
-    "labeled_ai": null,
-    "labeled_reviewed": null
-  },
-  "labeling_complete": false,
-  "project_id": null,
-  "created_at": "2025-08-21T00:40:35.484Z",
-  "updated_at": "2025-08-21T00:40:35.484Z"
+  "timestamps": {},
+  "created_at": "2025-09-01T19:19:51.236Z",
+  "updated_at": "2025-09-01T19:19:51.236Z"
 }

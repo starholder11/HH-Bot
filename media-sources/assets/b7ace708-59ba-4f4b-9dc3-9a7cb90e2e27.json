@@ -1,0 +1,147 @@
+{
+  "id": "b7ace708-59ba-4f4b-9dc3-9a7cb90e2e27",
+  "filename": "reference_models.json",
+  "s3_url": "local:generated",
+  "cloudflare_url": "",
+  "title": "Reference Models Collection",
+  "description": "Collection of reference 3D models for testing",
+  "media_type": "object_collection",
+  "metadata": {
+    "category": "reference",
+    "style": "reference",
+    "item_count": 4
+  },
+  "collection_type": "custom",
+  "collection": {
+    "name": "Reference Models",
+    "description": "Collection of reference 3D models",
+    "objects": [
+      {
+        "id": "ref_0",
+        "objectId": "7673d133-cd5b-4653-97ff-afd27369d872",
+        "transform": {
+          "position": [
+            -2,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "role": "reference_0",
+        "required": true
+      },
+      {
+        "id": "ref_1",
+        "objectId": "92581555-4cba-4e92-b2a8-2eb3a6d8a13b",
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "role": "reference_1",
+        "required": true
+      },
+      {
+        "id": "ref_2",
+        "objectId": "8f2d4193-5310-4791-96f2-2fcafa0cdf87",
+        "transform": {
+          "position": [
+            2,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "role": "reference_2",
+        "required": true
+      },
+      {
+        "id": "ref_3",
+        "objectId": "26baa1d7-f9f5-42db-bdb2-b863bb863621",
+        "transform": {
+          "position": [
+            4,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "role": "reference_3",
+        "required": true
+      }
+    ],
+    "category": "reference",
+    "style": "reference"
+  },
+  "ai_labels": {
+    "scenes": [],
+    "objects": [],
+    "style": [],
+    "mood": [],
+    "themes": [],
+    "confidence_scores": {}
+  },
+  "manual_labels": {
+    "scenes": [],
+    "objects": [],
+    "style": [],
+    "mood": [],
+    "themes": [],
+    "custom_tags": []
+  },
+  "processing_status": {
+    "upload": "completed",
+    "metadata_extraction": "completed",
+    "ai_labeling": "not_started",
+    "manual_review": "pending"
+  },
+  "timestamps": {
+    "uploaded": "2025-09-01T19:19:51.236Z",
+    "metadata_extracted": "2025-09-01T19:19:51.236Z",
+    "labeled_ai": null,
+    "labeled_reviewed": null
+  },
+  "labeling_complete": false,
+  "project_id": null,
+  "created_at": "2025-09-01T19:19:51.236Z",
+  "updated_at": "2025-09-01T19:19:51.236Z"
+}
