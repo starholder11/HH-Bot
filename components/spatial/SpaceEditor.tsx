@@ -352,9 +352,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     // Normalize and resolve model URLs for 3D object assets
     const normalizeLocalUrl = (u: string | null | undefined) => {
       if (!u) return null;
-      // Map local:/ scheme to API route for proper serving
-      if (u.startsWith('local:/models/')) return u.replace(/^local:/, '/api');
-      // Map local:/ scheme to public root for other assets
+      // Map local:/ scheme directly to public root for now (bypass API route)
       if (u.startsWith('local:/')) return u.replace(/^local:/, '');
       return u;
     };
