@@ -1,10 +1,10 @@
 {
   "id": "obj_Sponza",
-  "filename": "Sponza.glb",
-  "s3_url": "local:/models/reference/threejs/Sponza.glb",
+  "filename": "DamagedHelmet.glb",
+  "s3_url": "local:/models/reference/threejs/DamagedHelmet.glb",
   "cloudflare_url": "",
-  "title": "Sponza",
-  "description": "Sponza reference model",
+  "title": "Sponza (using DamagedHelmet)",
+  "description": "Sponza reference model - using DamagedHelmet as placeholder",
   "media_type": "object",
   "metadata": {
     "category": "architectural",
