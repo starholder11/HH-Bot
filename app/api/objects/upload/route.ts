@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadFile } from '@/lib/s3-upload';
-import { saveMediaAsset } from '@/lib/media-storage';
+import { saveMediaAsset, type MediaAsset } from '@/lib/media-storage';
 import { ObjectAssetZ } from '@/lib/spatial/schemas';
+
+// Configure for large file uploads (200MB)
+export const maxDuration = 300; // 5 minutes timeout
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,7 +109,7 @@ export async function POST(request: NextRequest) {
     const validatedAsset = ObjectAssetZ.parse(asset);
 
     // Save to asset system
-    await saveMediaAsset(assetId, validatedAsset);
+    await saveMediaAsset(assetId, validatedAsset as MediaAsset);
 
     console.log(`✅ 3D model uploaded: ${assetId} (${file.name})`);
 

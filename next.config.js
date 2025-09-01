@@ -31,8 +31,12 @@ const nextConfig = {
   output: 'standalone',
   experimental: {
     serverComponentsExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/lib-storage'],
+    serverActions: {
+      bodySizeLimit: '200mb',
+    },
   },
   transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
+  // Configure for large file uploads
   async headers() {
     // these are also defined in the root layout since github pages doesn't support headers
     const headers = [
