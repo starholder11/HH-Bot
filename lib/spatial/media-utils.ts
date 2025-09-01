@@ -96,8 +96,67 @@ function renderTextMesh(mesh: THREE.Mesh) {
 export function applyMediaToMesh(mesh: THREE.Mesh, url: string, assetType: string, editor?: any) {
   if (!url) return;
 
-  const isVideo = (assetType === 'video') || /\.mp4(\?|$)/i.test(url);
+  const isVideo = (assetType === 'video') || /.mp4(\?|$)/i.test(url);
+  const isGLTF = (assetType === 'object') || /(\.glb|\.gltf)(\?|$)/i.test(url);
   console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
+
+  if (isGLTF) {
+    console.log('Loading GLTF model for:', mesh.name, 'from', url);
+    (async () => {
+      try {
+        const mod: any = await import('three/examples/jsm/loaders/GLTFLoader.js');
+        const GLTFLoader = mod.GLTFLoader || mod.default;
+        const loader = new GLTFLoader();
+        loader.crossOrigin = 'anonymous';
+        loader.load(
+          url,
+          (gltf: any) => {
+            try {
+              const model: THREE.Object3D | undefined = gltf?.scene || (gltf?.scenes && gltf.scenes[0]);
+              if (!model) {
+                console.error('GLTF loaded but no scene found for:', mesh.name);
+                return;
+              }
+
+              model.traverse((obj: any) => {
+                if (obj && obj.isMesh && obj.material) {
+                  try {
+                    if ('envMapIntensity' in obj.material) {
+                      (obj.material as any).envMapIntensity = 2.0;
+                    }
+                    obj.material.needsUpdate = true;
+                  } catch {}
+                }
+              });
+
+              model.userData = { ...(mesh.userData || {}) };
+              model.name = `${mesh.name}_model`;
+              model.position.copy(mesh.position);
+              model.quaternion.copy(mesh.quaternion);
+              model.scale.copy(mesh.scale);
+              if (mesh.parent) {
+                mesh.parent.add(model);
+              } else {
+                mesh.add(model);
+              }
+              mesh.visible = false;
+              try { model.updateMatrixWorld(true); } catch {}
+              console.log('GLTF model attached for:', mesh.name);
+            } catch (e) {
+              console.error('GLTF post-load processing error for:', mesh.name, e);
+            }
+          },
+          undefined,
+          (err: any) => {
+            console.error('GLTF load error for:', mesh.name, err);
+          }
+        );
+      } catch (e) {
+        console.error('Failed to import GLTFLoader for:', mesh.name, e);
+      }
+    })();
+    return;
+  }
 
   if (isVideo) {
     console.log('Creating video texture for:', mesh.name);
