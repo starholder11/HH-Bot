@@ -1425,7 +1425,7 @@
 						videoTexture.generateMipmaps = false;
 						videoTexture.wrapS = THREE.ClampToEdgeWrapping;
 						videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-						videoTexture.flipY = false;
+						videoTexture.flipY = true;
 
 						console.log('VideoTexture created with ready video');
 
@@ -1496,7 +1496,7 @@
 							texture.magFilter = THREE.LinearFilter;
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
-							texture.flipY = false;
+							texture.flipY = true;
 
 							// Wait for image to be fully loaded before applying texture
 							const applyTextureWhenReady = () => {
