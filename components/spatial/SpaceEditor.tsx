@@ -352,7 +352,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     // Normalize and resolve model URLs for 3D object assets
     const normalizeLocalUrl = (u: string | null | undefined) => {
       if (!u) return null;
-      // Map local:/ scheme to public root
+      // Map local:/ scheme to API route for proper serving
+      if (u.startsWith('local:/models/')) return u.replace(/^local:/, '/api');
+      // Map local:/ scheme to public root for other assets
       if (u.startsWith('local:/')) return u.replace(/^local:/, '');
       return u;
     };
@@ -363,7 +365,7 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     }
     resolvedUrl = normalizeLocalUrl(resolvedUrl);
 
-    // Use proxy for images/videos to avoid CORS; direct path for models/objects
+    // Use proxy for images/videos to avoid CORS; direct API route for models
     const mediaUrl = resolvedUrl && (assetType.includes('image') || assetType.includes('video'))
       ? `/api/proxy?url=${encodeURIComponent(resolvedUrl)}`
       : resolvedUrl;
@@ -436,6 +438,9 @@ const SpaceEditor = forwardRef<SpaceEditorRef, SpaceEditorProps>(({
     ) || null;
     const normalizeLocalUrl = (u: string | null | undefined) => {
       if (!u) return null;
+      // Map local:/ scheme to API route for proper serving
+      if (u.startsWith('local:/models/')) return u.replace(/^local:/, '/api');
+      // Map local:/ scheme to public root for other assets
       if (u.startsWith('local:/')) return u.replace(/^local:/, '');
       return u;
     };
