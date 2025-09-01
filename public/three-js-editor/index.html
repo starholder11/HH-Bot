@@ -1196,7 +1196,7 @@
 				console.log('applyMediaToMesh:', mesh.name, 'url:', url, 'assetType:', assetType, 'isVideo:', isVideo);
 				if (isModel) {
 					console.log('Loading 3D model for:', mesh.name);
-					(async () => {
+					const loadModel = async () => {
 						try {
 							// Prefetch to verify availability and get ArrayBuffer
 							const res = await fetch(url, { cache: 'no-store' });
@@ -1252,9 +1252,10 @@
 								if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 									mesh.material = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide, toneMapped: false });
 								}
-							} catch {}
+							} catch (e) {}
 						}
-					)();
+					};
+					loadModel();
 				} else if (isVideo) {
 					console.log('Creating video texture for:', mesh.name);
 					// Create video element
