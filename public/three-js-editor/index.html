@@ -1250,6 +1250,10 @@
 									}
 									console.log('🎯 GLTF Scene object:', object, 'children:', object.children.length);
 
+									// Debug: log placeholder and target userData
+									try { console.log('[GLTF] Placeholder mesh.userData before transfer:', JSON.parse(JSON.stringify(mesh.userData||{}))); } catch { console.log('[GLTF] Placeholder mesh.userData before transfer:', mesh.userData); }
+									try { console.log('[GLTF] Root object.userData before transfer:', JSON.parse(JSON.stringify(object.userData||{}))); } catch { console.log('[GLTF] Root object.userData before transfer:', object.userData); }
+
 									// Brighten PBR materials and ensure IBL is present
 									try {
 										object.traverse((child) => {
@@ -1261,6 +1265,27 @@
 											}
 										});
 									} catch {}
+
+									// Establish base userData for the imported model
+									const baseUserData = Object.assign({}, mesh.userData || {}, {
+										isModel: true,
+										assetType: (mesh.userData && mesh.userData.assetType) ? mesh.userData.assetType : 'object',
+										mediaUrl: url,
+										importMetadata: (mesh.userData && mesh.userData.importMetadata) ? mesh.userData.importMetadata : { sourceType: 'manual' }
+									});
+
+									// Propagate identifying userData to all child meshes to ensure persistence on save
+									try {
+										object.traverse((child) => {
+											if (child && child.isMesh) {
+												child.userData = Object.assign({}, child.userData || {}, baseUserData, {
+													assetId: (mesh.userData && mesh.userData.assetId) ? mesh.userData.assetId : mesh.uuid
+												});
+											}
+										});
+									} catch {}
+
+									object.userData = Object.assign({}, object.userData || {}, baseUserData);
 
 									// If no environment is set yet, apply a neutral RoomEnvironment IBL via the viewport handler
 									try {
@@ -1286,7 +1311,6 @@
 										object.scale.setScalar(s);
 										console.log('🎯 Applied scale:', s);
 									}
-									object.userData = Object.assign({}, mesh.userData || {}, { isModel: true });
 									object.name = mesh.name;
 									object.uuid = mesh.uuid;
 
@@ -1301,6 +1325,7 @@
 									if (editor.signals && editor.signals.sceneGraphChanged) editor.signals.sceneGraphChanged.dispatch();
 									frameScene(editor, object);
 
+									try { console.log('[GLTF] Root object.userData after transfer:', JSON.parse(JSON.stringify(object.userData||{}))); } catch { console.log('[GLTF] Root object.userData after transfer:', object.userData); }
 									console.log('✅ 3D MODEL SUCCESSFULLY LOADED AND VISIBLE:', mesh.name);
 								} catch (e) {
 									console.error('❌ Failed to insert parsed model:', e);
@@ -1567,6 +1592,21 @@
 						textCanvasMap.set(mesh, { canvas, ctx, padding, maxWidth, lineHeight, textContent: safeText, texture });
 						textScrollState.set(mesh.uuid, { scrollY: 0, totalHeight: 0 });
 						renderTextMesh(mesh);
+
+						// Persist text as data URL and annotate userData for save/publish
+						try {
+							const dataUrl = canvas.toDataURL('image/png');
+							mesh.userData = Object.assign({}, mesh.userData || {}, {
+								assetType: 'text',
+								contentType: 'text',
+								fullTextContent: safeText,
+								mediaUrl: dataUrl,
+								importMetadata: (mesh.userData && mesh.userData.importMetadata && mesh.userData.importMetadata.sourceType === 'layout')
+									? mesh.userData.importMetadata
+									: Object.assign({}, mesh.userData?.importMetadata || {}, { sourceType: 'manual' })
+							});
+							console.log('[Text] userData set for persistence:', mesh.userData);
+						} catch(e) { console.warn('Failed to set text userData/dataURL', e); }
 					}catch{}
 				}
 				// Selection + wheel scrolling (robust)
