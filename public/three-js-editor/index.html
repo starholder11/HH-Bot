@@ -1425,7 +1425,7 @@
 						videoTexture.generateMipmaps = false;
 						videoTexture.wrapS = THREE.ClampToEdgeWrapping;
 						videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-						videoTexture.flipY = true;
+						videoTexture.flipY = false;
 
 						console.log('VideoTexture created with ready video');
 
@@ -1496,7 +1496,7 @@
 							texture.magFilter = THREE.LinearFilter;
 							texture.wrapS = THREE.ClampToEdgeWrapping;
 							texture.wrapT = THREE.ClampToEdgeWrapping;
-							texture.flipY = true;
+							texture.flipY = false;
 
 							// Wait for image to be fully loaded before applying texture
 							const applyTextureWhenReady = () => {
@@ -1629,7 +1629,7 @@
 						texture.magFilter = THREE.LinearFilter;
 						texture.wrapS = THREE.ClampToEdgeWrapping;
 						texture.wrapT = THREE.ClampToEdgeWrapping;
-						texture.flipY = true; // Align with images/videos to prevent upside-down on import
+						texture.flipY = false; // Align with images/videos to prevent upside-down on import
 						if (!mesh.material || !(mesh.material instanceof THREE.MeshBasicMaterial)) {
 							mesh.material = new THREE.MeshBasicMaterial({ side: THREE.FrontSide, toneMapped: false });
 						}
