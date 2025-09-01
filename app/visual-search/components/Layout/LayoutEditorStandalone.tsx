@@ -1536,7 +1536,7 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(['image','video','audio','text']);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['image','video','audio','text','layout','object','object_collection','space']);
   const [mounted, setMounted] = useState(false);
   const controllerRef = React.useRef<AbortController | null>(null);
   const debounceRef = React.useRef<number | null>(null);
@@ -1603,7 +1603,7 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
             <h2 className="text-lg font-medium text-neutral-100">Search Assets</h2>
             <select
               value={(() => {
-                const all = ['image','video','audio','text'];
+                const all = ['image','video','audio','text','layout','object','object_collection','space'];
                 const first = selectedTypes.find(t => all.includes(t));
                 return first || 'image';
               })()}
@@ -1619,6 +1619,10 @@ function AssetSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect
               <option value="video">video</option>
               <option value="audio">audio</option>
               <option value="text">text</option>
+              <option value="layout">layout</option>
+              <option value="object">object</option>
+              <option value="object_collection">object_collection</option>
+              <option value="space">space</option>
             </select>
           </div>
           <button
