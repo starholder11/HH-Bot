@@ -812,9 +812,21 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 <BoxesIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">Assets</span>
               </Button>
-              <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('hero');}}>
-                <TrophyIcon className="w-4 h-4" />
-                <span className="text-xs ml-2">Hero</span>
+              <Button className="h-auto justify-start bg-blue-700 border-blue-600 text-white hover:bg-blue-600" onClick={(e)=>{
+                e.preventDefault(); e.stopPropagation();
+                // Insert a text_section block and immediately open in markdown (DOC) mode
+                const id = crypto.randomUUID();
+                addBlock({ blockType: 'text_section', id });
+                setTimeout(() => {
+                  const openCb = (window as any).__openRteForId;
+                  // Find the newly added block id if not supported by addBlock
+                  const latest = edited.layout_data.items[edited.layout_data.items.length - 1];
+                  const targetId = (latest && latest.id) || id;
+                  openCb?.(targetId, true);
+                }, 100);
+              }}>
+                <FileTextIcon className="w-4 h-4" />
+                <span className="text-xs ml-2">DOC</span>
               </Button>
               <Button className="h-auto justify-start bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); addBlock('media_grid');}}>
                 <GridIcon className="w-4 h-4" />
