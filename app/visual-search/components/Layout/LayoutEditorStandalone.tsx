@@ -814,16 +814,25 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               </Button>
               <Button className="h-auto justify-start bg-blue-700 border-blue-600 text-white hover:bg-blue-600" onClick={(e)=>{
                 e.preventDefault(); e.stopPropagation();
-                // Insert a text_section block and immediately open in markdown (DOC) mode
-                const id = crypto.randomUUID();
-                addBlock({ blockType: 'text_section', id });
+                // Insert a rich text block and immediately open in markdown (DOC) mode
+                addBlock('text_section');
                 setTimeout(() => {
-                  const openCb = (window as any).__openRteForId;
-                  // Find the newly added block id if not supported by addBlock
-                  const latest = edited.layout_data.items[edited.layout_data.items.length - 1];
-                  const targetId = (latest && latest.id) || id;
-                  openCb?.(targetId, true);
-                }, 100);
+                  try {
+                    const latest = edited.layout_data.items[edited.layout_data.items.length - 1];
+                    const targetId = latest?.id;
+                    if (!targetId) return;
+                    // Ensure textKind is asset before opening
+                    setEdited(prev => ({
+                      ...prev,
+                      layout_data: {
+                        ...prev.layout_data,
+                        items: prev.layout_data.items.map(i => i.id === targetId ? ({ ...(i as any), textKind: 'asset' } as Item) : i)
+                      }
+                    } as LayoutAsset));
+                    const openCb = (window as any).__openRteForId;
+                    openCb?.(targetId, true);
+                  } catch {}
+                }, 120);
               }}>
                 <FileTextIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">DOC</span>
