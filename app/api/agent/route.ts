@@ -782,6 +782,11 @@ export async function POST(req: NextRequest) {
             };
             
           } else if (tool === 'generatecontent') {
+            // Determine if this is actually a follow-up request based on content type and user intent
+            const isActualFollowUp = params.type === 'video' || 
+              /\b(video|animate|motion|movement)\b/i.test(userMessage) ||
+              /\b(use|take|with)\s+the\s+(pinned\s+)?(image|picture|pic)\b/i.test(userMessage);
+            
             // Use the injected params and add additional fields
             payload = {
               ...params, // params already injected above
@@ -790,11 +795,11 @@ export async function POST(req: NextRequest) {
               options: params.options || {},
               originalRequest: userMessage,
               correlationId,
-              isFollowUp: true
+              isFollowUp: isActualFollowUp
             };
             
-            // If no resolved refs yet, UI will fall back to current generated image or pinned items
-            if (!payload.prompt || payload.prompt === userMessage) {
+            // Only do video-specific prompt cleaning for actual video requests
+            if (isActualFollowUp && (!payload.prompt || payload.prompt === userMessage)) {
               // Minimal prompt extraction for follow-up video requests
               const cleaned = userMessage.replace(/^(now\s+)?(use|take|with)\s+the\s+pinned\s+image\s+to\s+(make|create|generate)\s+\w*\s*video\s*(of|about)?\s*/i, '').trim();
               payload.prompt = cleaned || 'video';
