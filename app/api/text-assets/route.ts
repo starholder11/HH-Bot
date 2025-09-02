@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import { Octokit } from '@octokit/rest';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,10 +39,6 @@ export async function POST(req: NextRequest) {
     const indexPath = path.join(baseDir, 'index.yaml');
     const contentPath = path.join(baseDir, 'content.mdx');
 
-    if (!fs.existsSync(baseDir)) {
-      fs.mkdirSync(baseDir, { recursive: true });
-    }
-
     const indexDoc = {
       slug,
       title,
@@ -52,6 +49,57 @@ export async function POST(req: NextRequest) {
     };
 
     const indexYaml = yaml.dump(indexDoc, { noRefs: true });
+
+    // If running on Vercel serverless (read-only FS), fallback to GitHub commit
+    const isReadOnly = !!process.env.VERCEL;
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
+
+    if (isReadOnly) {
+      if (!token) {
+        console.error('[text-assets] Missing GITHUB_TOKEN in serverless environment');
+        return NextResponse.json({ success: false, error: 'Serverless FS is read-only and GITHUB_TOKEN is not configured' }, { status: 500 });
+      }
+
+      const octokit = new Octokit({ auth: token });
+      const owner = 'starholder11';
+      const repo = 'HH-Bot';
+
+      async function upsertFile(filePath: string, content: string, message: string) {
+        try {
+          // Check if file exists to get sha
+          let sha: string | undefined = undefined;
+          try {
+            const { data } = await octokit.repos.getContent({ owner, repo, path: filePath, ref: 'main' });
+            if (!Array.isArray(data) && 'sha' in data) sha = (data as any).sha;
+          } catch (e) {
+            // not found is fine, we'll create it
+          }
+
+          await octokit.repos.createOrUpdateFileContents({
+            owner, repo, path: filePath, branch: 'main',
+            message,
+            content: Buffer.from(content, 'utf-8').toString('base64'),
+            sha,
+            committer: { name: 'text-bot', email: 'bot@starholder' },
+            author: { name: 'text-bot', email: 'bot@starholder' },
+          });
+        } catch (e) {
+          console.error('[text-assets] GitHub upsert failed', filePath, e);
+          throw e;
+        }
+      }
+
+      await upsertFile(`content/timeline/${slug}/index.yaml`, indexYaml, `chore(text): create/update ${slug} index`);
+      await upsertFile(`content/timeline/${slug}/content.mdx`, String(mdx ?? ''), `chore(text): create/update ${slug} content`);
+
+      console.log('[text-assets] Committed files to GitHub:', { slug });
+      return NextResponse.json({ success: true, slug, paths: { indexPath: `github:content/timeline/${slug}/index.yaml`, contentPath: `github:content/timeline/${slug}/content.mdx` } });
+    }
+
+    // Local/dev: write to filesystem
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir, { recursive: true });
+    }
     fs.writeFileSync(indexPath, indexYaml, 'utf-8');
     fs.writeFileSync(contentPath, String(mdx ?? ''), 'utf-8');
 
