@@ -70,13 +70,16 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     setSelectedIds(new Set([id]));
     const item = edited.layout_data.items.find(i => i.id === id) as any;
     const isAsset = (item as any)?.textKind === 'asset';
+    console.log('[RTE DEBUG] Opening RTE for item:', { id, textKind: item?.textKind, isAsset, item });
     setRteMode(isAsset ? 'markdown' : 'html');
     if (isAsset) {
       const md = (item?.config && item.config.content_markdown) || '';
       setRteMarkdown(md);
+      console.log('[RTE DEBUG] Using markdown mode with content:', md);
     } else {
       const existing = item ? getRichTextHtmlForItem(item) : '';
       setRteHtml(existing);
+      console.log('[RTE DEBUG] Using HTML mode with content:', existing);
     }
     setRteTargetId(id);
     setShowRteModal(true);
