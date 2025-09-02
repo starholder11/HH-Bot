@@ -882,55 +882,36 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
       </div>
       {showRteModal && rteTargetId && (
-        rteMode === 'html' ? (
-          <RteModal
-            initialHtml={rteHtml}
-            onClose={() => {
-              setShowRteModal(false);
-              setRteTargetId(null);
-            }}
-            onSave={(html) => {
-              setEdited(prev => ({
-                ...prev,
-                layout_data: {
-                  ...prev.layout_data,
-                  items: prev.layout_data.items.map(i => {
-                    if (i.id !== rteTargetId) return i;
-                    return applyRichTextHtmlToItem(i as any, html) as Item;
-                  })
-                },
-                updated_at: new Date().toISOString(),
-              } as LayoutAsset));
-              setShowRteModal(false);
-              setRteTargetId(null);
-            }}
-          />
-        ) : (
-          <MarkdownModal
-            initialMarkdown={rteMarkdown}
-            onClose={() => {
-              setShowRteModal(false);
-              setRteTargetId(null);
-            }}
-            onSave={(markdown) => {
-              setEdited(prev => ({
-                ...prev,
-                layout_data: {
-                  ...prev.layout_data,
-                  items: prev.layout_data.items.map(i => {
-                    if (i.id !== rteTargetId) return i;
-                    const cfg = { ...((i as any).config || {}), content_markdown: markdown };
+        <RteModal
+          initialHtml={rteHtml}
+          initialMarkdown={rteMarkdown}
+          mode={rteMode}
+          onClose={() => {
+            setShowRteModal(false);
+            setRteTargetId(null);
+          }}
+          onSave={(content) => {
+            setEdited(prev => ({
+              ...prev,
+              layout_data: {
+                ...prev.layout_data,
+                items: prev.layout_data.items.map(i => {
+                  if (i.id !== rteTargetId) return i;
+                  if (rteMode === 'markdown') {
+                    const cfg = { ...((i as any).config || {}), content_markdown: content };
                     delete (cfg as any).content;
                     return { ...(i as any), config: cfg } as Item;
-                  })
-                },
-                updated_at: new Date().toISOString(),
-              } as LayoutAsset));
-              setShowRteModal(false);
-              setRteTargetId(null);
-            }}
-          />
-        )
+                  } else {
+                    return applyRichTextHtmlToItem(i as any, content) as Item;
+                  }
+                })
+              },
+              updated_at: new Date().toISOString(),
+            } as LayoutAsset));
+            setShowRteModal(false);
+            setRteTargetId(null);
+          }}
+        />
       )}
 
       {showTransformPanel && transformTargetId && (
@@ -1942,77 +1923,62 @@ const quillFormats = [
   'header', 'blockquote', 'code-block', 'list', 'indent', 'direction', 'align', 'link', 'image', 'video', 'formula'
 ];
 
-function RteModal({ initialHtml, onClose, onSave }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void }) {
+function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void; mode?: 'html' | 'markdown'; initialMarkdown?: string }) {
   const [mounted, setMounted] = useState(false);
   const [html, setHtml] = useState(initialHtml || '');
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted || typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
-          <div className="flex items-center justify-between p-3 border-b border-neutral-700">
-          <div className="text-neutral-200 text-sm">Edit Rich Text</div>
-          <div className="flex gap-2">
-            <button className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded" onClick={() => onClose()}>Cancel</button>
-              <button className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(html)}>Save</button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-hidden p-3">
-          <div className="h-full w-full flex flex-col bg-white rounded border border-neutral-300 text-neutral-900">
-            <div className="flex-1 overflow-auto quill-container">
-              <ReactQuill
-                theme="snow"
-                modules={quillModules}
-                formats={quillFormats}
-                value={html}
-                onChange={setHtml}
-                placeholder="Start typing…"
-                className="h-full"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
-function MarkdownModal({ initialMarkdown, onClose, onSave }: { initialMarkdown: string; onClose: () => void; onSave: (md: string) => void }) {
-  const [mounted, setMounted] = useState(false);
   const [md, setMd] = useState(initialMarkdown || '');
   useEffect(() => setMounted(true), []);
 
   if (!mounted || typeof document === 'undefined') return null;
 
+  const isMarkdown = mode === 'markdown';
+
   return createPortal(
     <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
-        <div className="flex items-center justify-between p-3 border-b border-neutral-700">
-          <div className="text-neutral-200 text-sm">Edit Markdown</div>
+          <div className="flex items-center justify-between p-3 border-b border-neutral-700">
+          <div className="text-neutral-200 text-sm">{isMarkdown ? 'Edit Markdown' : 'Edit Rich Text'}</div>
           <div className="flex gap-2">
             <button className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded" onClick={() => onClose()}>Cancel</button>
-            <button className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(md)}>Save</button>
+              <button className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(isMarkdown ? md : html)}>Save</button>
           </div>
         </div>
-        <div className="flex-1 overflow-hidden p-3 grid grid-cols-2 gap-3">
-          <textarea
-            className="w-full h-full px-2 py-1 bg-white text-neutral-900 border border-neutral-300 rounded text-sm font-mono"
-            value={md}
-            onChange={(e) => setMd(e.target.value)}
-            placeholder="# Title\n\nBody..."
-          />
-          <div className="w-full h-full bg-white text-neutral-900 border border-neutral-300 rounded text-sm p-3 overflow-auto">
-            <pre className="whitespace-pre-wrap break-words text-sm">{md}</pre>
-          </div>
+        <div className="flex-1 overflow-hidden p-3">
+          {isMarkdown ? (
+            <div className="h-full w-full grid grid-cols-2 gap-3">
+              <textarea
+                className="w-full h-full px-2 py-1 bg-white text-neutral-900 border border-neutral-300 rounded text-sm font-mono"
+                value={md}
+                onChange={(e) => setMd(e.target.value)}
+                placeholder="# Title\n\nBody..."
+              />
+              <div className="w-full h-full bg-white text-neutral-900 border border-neutral-300 rounded text-sm p-3 overflow-auto">
+                <pre className="whitespace-pre-wrap break-words text-sm">{md}</pre>
+              </div>
+            </div>
+          ) : (
+            <div className="h-full w-full flex flex-col bg-white rounded border border-neutral-300 text-neutral-900">
+              <div className="flex-1 overflow-auto quill-container">
+                <ReactQuill
+                  theme="snow"
+                  modules={quillModules}
+                  formats={quillFormats}
+                  value={html}
+                  onChange={setHtml}
+                  placeholder="Start typing…"
+                  className="h-full"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>,
     document.body
   );
 }
+
+
 
 function ItemInspector({
   item,
@@ -2038,11 +2004,6 @@ function ItemInspector({
 
   return (
     <div className="space-y-3">
-      {/* Debug: Show item type and blockType */}
-      <div className="text-xs text-yellow-400 p-2 bg-neutral-800 rounded">
-        Debug: type={item.type}, blockType={(item as any).blockType}
-      </div>
-
       {/* Primary content editing first */}
       {item.type === 'inline_text' && (
         <div>
