@@ -2104,37 +2104,18 @@ function ItemInspector({
         </div>
       )}
 
-      {/* Text Kind selector and DOC button for block rich-text items */}
+      {/* Text Kind selector for block rich-text items */}
       {item.type === 'block' && (['text_section','hero','cta','footer'] as const).includes((item as any).blockType) && (
         <div>
           <div className="text-xs text-white mb-1">Text Kind</div>
-          <div className="flex gap-2">
-            <select
-              className="flex-1 px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-white"
-              value={(item as any).textKind || 'layout_inline'}
-              onChange={(e) => onChange({ ...(item as any), textKind: e.target.value as any })}
-            >
-              <option value="layout_inline">Layout Inline</option>
-              <option value="asset">Text Asset</option>
-            </select>
-            <button
-              className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white"
-              onClick={() => {
-                // Force markdown mode and open RTE
-                const updatedItem = { ...item, textKind: 'asset' } as any;
-                onChange(updatedItem);
-                setTimeout(() => {
-                  // Use a callback to open RTE in markdown mode
-                  const openRteCallback = (window as any).__openRteForId;
-                  if (openRteCallback) {
-                    openRteCallback(item.id, true); // true = force markdown mode
-                  }
-                }, 100);
-              }}
-            >
-              DOC
-            </button>
-          </div>
+          <select
+            className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-white"
+            value={(item as any).textKind || 'layout_inline'}
+            onChange={(e) => onChange({ ...(item as any), textKind: e.target.value as any })}
+          >
+            <option value="layout_inline">Layout Inline</option>
+            <option value="asset">Text Asset</option>
+          </select>
         </div>
       )}
 
