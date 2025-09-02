@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { Octokit } from '@octokit/rest';
+// OpenAI upsert uses native fetch/FormData/Blob available in Next.js runtime
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -105,11 +106,71 @@ export async function POST(req: NextRequest) {
 
     console.log('[text-assets] Wrote files:', { indexPath, contentPath, bytes: { index: indexYaml.length, mdx: String(mdx ?? '').length } });
 
-    return NextResponse.json({ success: true, slug, paths: { indexPath, contentPath } });
+    // Attempt OpenAI File Search upsert (non-blocking)
+    let oai: { fileId?: string; vectorStoreFileId?: string } | undefined;
+    try {
+      oai = await upsertToOpenAI(slug, title, String(mdx ?? ''));
+    } catch (e) {
+      console.warn('[text-assets] OAI upsert failed (non-blocking):', (e as Error)?.message || e);
+    }
+
+    return NextResponse.json({ success: true, slug, paths: { indexPath, contentPath }, oai });
   } catch (error) {
     console.error('[text-assets] POST failed', error);
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined }, { status: 500 });
   }
+}
+async function upsertToOpenAI(slug: string, title: string, mdx: string): Promise<{ fileId?: string; vectorStoreFileId?: string }> {
+  const apiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_APIKEY || process.env.OAI_API_KEY;
+  const vectorStoreId = process.env.OAI_VECTOR_STORE_ID || process.env.OPENAI_VECTOR_STORE_ID || process.env.OPENAI_VECTORSTORE_ID;
+  if (!apiKey) {
+    console.log('[text-assets][oai] Skipping upsert: OPENAI_API_KEY not set');
+    return {};
+  }
+
+  // Upload file to OpenAI Files
+  const form = new FormData();
+  const filename = `${slug}.mdx`;
+  form.append('file', new Blob([mdx], { type: 'text/markdown' }), filename);
+  form.append('purpose', 'assistants');
+
+  const uploadRes = await fetch('https://api.openai.com/v1/files', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: form,
+  });
+  if (!uploadRes.ok) {
+    const text = await uploadRes.text();
+    throw new Error(`OpenAI file upload failed: ${uploadRes.status} ${text}`);
+  }
+  const uploadJson: any = await uploadRes.json();
+  const fileId: string | undefined = uploadJson?.id;
+  console.log('[text-assets][oai] Uploaded file to OpenAI:', { fileId, filename });
+
+  let vectorStoreFileId: string | undefined;
+  if (fileId && vectorStoreId) {
+    const attachRes = await fetch(`https://api.openai.com/v1/vector_stores/${vectorStoreId}/files`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ file_id: fileId }),
+    });
+    if (!attachRes.ok) {
+      const text = await attachRes.text();
+      throw new Error(`OpenAI vector store attach failed: ${attachRes.status} ${text}`);
+    }
+    const attachJson: any = await attachRes.json();
+    vectorStoreFileId = attachJson?.id || attachJson?.data?.[0]?.id;
+    console.log('[text-assets][oai] Attached file to vector store:', { vectorStoreId, vectorStoreFileId });
+  } else if (!vectorStoreId) {
+    console.log('[text-assets][oai] Skipping vector store attach: OAI_VECTOR_STORE_ID not set');
+  }
+
+  return { fileId, vectorStoreFileId };
 }
 
 

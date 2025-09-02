@@ -61,3 +61,6 @@ lambda-video-processor/node_modules/
 lambda-video-processor/*.zip
 lancedb-service/node_modules/
 .env.vercel*
+
+# Ignore test timeline directories
+content/timeline/test-*/
