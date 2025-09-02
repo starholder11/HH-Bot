@@ -871,6 +871,30 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 <input type="checkbox" checked={showAlignmentGuides} onChange={e => setShowAlignmentGuides(e.target.checked)} className="rounded" />
                 Show Alignment Guides
               </label>
+              {/* First-class DOC button */}
+              {selectedIds.size === 1 && selectedId && (() => {
+                const it = edited.layout_data.items.find(i => i.id === selectedId) as any;
+                const isTextBlock = (it?.type === 'block' && ['text_section','hero','cta','footer'].includes(it?.blockType)) || it?.type === 'inline_text';
+                if (!isTextBlock) return null;
+                return (
+                  <button
+                    className="w-full px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white"
+                    onClick={() => {
+                      // ensure asset mode and open markdown editor
+                      setEdited(prev => ({
+                        ...prev,
+                        layout_data: {
+                          ...prev.layout_data,
+                          items: prev.layout_data.items.map(i => i.id === selectedId ? ({ ...(i as any), textKind: 'asset' } as Item) : i)
+                        }
+                      } as LayoutAsset));
+                      setTimeout(() => openRteForId(selectedId, true), 50);
+                    }}
+                  >
+                    DOC
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
