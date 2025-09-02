@@ -2113,8 +2113,11 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                                 ...i,
                                 refId: `text_timeline/${json.slug}`,
                                 contentId: `text_timeline/${json.slug}`,
-                                snippet: finalTitle || 'Document'
-                              } as Item;
+                                snippet: finalTitle || 'Document',
+                                // Ensure immediate reflection in canvas without waiting for fetch
+                                fullTextContent: md,
+                                textMetadata: JSON.stringify({ title: finalTitle, slug: json.slug, categories: cats })
+                              } as any;
                             })
                           },
                           updated_at: new Date().toISOString(),
