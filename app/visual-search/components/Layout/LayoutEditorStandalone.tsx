@@ -58,6 +58,10 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [rteHtml, setRteHtml] = useState<string>('');
   const [rteMode, setRteMode] = useState<'html' | 'markdown'>('html');
   const [rteMarkdown, setRteMarkdown] = useState<string>('');
+  // RTE metadata (for Markdown mode)
+  const [rteTitle, setRteTitle] = useState<string>('Document Title');
+  const [rteSlug, setRteSlug] = useState<string>('');
+  const [rteCategories, setRteCategories] = useState<string>('');
   const [showTransformPanel, setShowTransformPanel] = useState(false);
   const [transformTargetId, setTransformTargetId] = useState<string | null>(null);
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -66,42 +70,65 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(edited.title);
 
-  const openRteForId = React.useCallback(async (id: string, forceMarkdown?: boolean) => {
+    const openRteForId = React.useCallback(async (id: string, forceMarkdown?: boolean) => {
     setSelectedId(id);
     setSelectedIds(new Set([id]));
     const item = edited.layout_data.items.find(i => i.id === id) as any;
-    const isAsset = forceMarkdown || (item as any)?.textKind === 'asset';
-    console.log('[RTE DEBUG] Opening RTE for item:', { id, textKind: item?.textKind, isAsset, forceMarkdown, item });
+
+    // Check if this is a text content_ref (text asset)
+    const isTextAsset = item?.type === 'content_ref' && item?.contentType === 'text';
+    const isAsset = forceMarkdown || isTextAsset;
+
+    console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
     setRteMode(isAsset ? 'markdown' : 'html');
+
     if (isAsset) {
-      const md = (item?.config && item.config.content_markdown) || '';
-      setRteMarkdown(md);
-      console.log('[RTE DEBUG] Using markdown mode with content:', md);
-      
-      // Initialize fields with defaults
-      setTitle('Document Title');
-      setSlug('');
-      setCategories('');
-      
-      // Load metadata if we have a slug stored in the item
-      const storedSlug = (item?.config && item.config.slug) || '';
-      if (storedSlug) {
+      // For text assets, extract slug from refId/contentId and load from GitHub
+      let slug = '';
+      const refId = item?.refId || item?.contentId || '';
+      if (refId.includes('text_timeline/')) {
+        slug = refId.replace('text_timeline/', '');
+      } else if (refId.startsWith('text_')) {
+        slug = refId.replace('text_', '');
+      } else {
+        slug = refId;
+      }
+
+      console.log('[RTE DEBUG] Loading text asset with slug:', slug);
+
+      if (slug) {
         try {
-          console.log('[RTE DEBUG] Loading metadata for slug:', storedSlug);
-          const res = await fetch(`/api/internal/get-content/${encodeURIComponent(storedSlug)}`);
+          const res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
           if (res.ok) {
             const data = await res.json();
-            if (data.success && data.metadata) {
+            if (data.success) {
               const parsed = yaml.load(data.metadata) as any;
-              setTitle(parsed.title || 'Document Title');
-              setSlug(parsed.slug || storedSlug);
-              setCategories(Array.isArray(parsed.categories) ? parsed.categories.join(', ') : '');
-              console.log('[RTE DEBUG] Loaded metadata:', parsed);
+              setRteTitle(parsed.title || 'Document Title');
+              setRteSlug(parsed.slug || slug);
+              setRteCategories(Array.isArray(parsed.categories) ? parsed.categories.join(', ') : '');
+              setRteMarkdown(data.content || '');
+              console.log('[RTE DEBUG] Loaded text asset:', { title: parsed.title, slug: parsed.slug, contentLength: data.content?.length });
             }
+          } else {
+            console.log('[RTE DEBUG] Text asset not found, using defaults');
+            setRteTitle('Document Title');
+            setRteSlug(slug || 'new-document');
+            setRteCategories('');
+            setRteMarkdown('# Document Title\n\nStart writing...');
           }
         } catch (e) {
-          console.warn('[RTE DEBUG] Failed to load metadata:', e);
+          console.warn('[RTE DEBUG] Failed to load text asset:', e);
+          setRteTitle('Document Title');
+          setRteSlug(slug || 'new-document');
+          setRteCategories('');
+          setRteMarkdown('# Document Title\n\nStart writing...');
         }
+      } else {
+        // New text asset
+        setRteTitle('Document Title');
+        setRteSlug('new-document');
+        setRteCategories('');
+        setRteMarkdown('# Document Title\n\nStart writing...');
       }
     } else {
       const existing = item ? getRichTextHtmlForItem(item) : '';
@@ -795,6 +822,15 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                           ✎ Edit
                         </button>
                       )}
+                      {it.type === 'content_ref' && it.contentType === 'text' && (
+                        <button
+                          className="px-1.5 py-0.5 text-[10px] rounded bg-neutral-900/80 border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openRteForId(it.id); }}
+                          title="Edit text asset"
+                        >
+                          ✎ Edit
+                        </button>
+                      )}
                       <button
                         className="px-1.5 py-0.5 text-[10px] rounded bg-neutral-900/80 border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); openTransformForId(it.id); }}
@@ -843,7 +879,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 e.preventDefault(); e.stopPropagation();
                 console.log('[DOC] Creating text asset block...');
 
-                // Create the block manually with textKind already set
+                                // Create the block as a content_ref to a text asset (not inline)
                 const id = `text_section_${Date.now().toString(36)}`;
                 const cellSize = edited.layout_data.cellSize || 20;
                 const design = breakpointSizes[currentBreakpoint];
@@ -851,10 +887,10 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
                 const newItem = {
                   id,
-                  type: 'block',
-                  blockType: 'text_section',
-                  textKind: 'asset',
-                  config: { title: 'Document Title', content_markdown: '# Document Title\n\nStart writing...' },
+                  type: 'content_ref',
+                  contentType: 'text',
+                  refId: '', // Will be set after save
+                  snippet: 'New Document',
                   x: 0, y: 0, w, h,
                   nx: 0, ny: 0,
                   nw: (w * cellSize) / design.width,
@@ -876,6 +912,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 setSelectedIds(new Set([id]));
                 setRteMode('markdown');
                 setRteMarkdown('# Document Title\n\nStart writing...');
+                setRteTitle('Document Title');
+                setRteSlug('document-title');
+                setRteCategories('');
                 setRteTargetId(id);
                 setShowRteModal(true);
                 console.log('[DOC] Opened markdown editor for:', id);
@@ -965,6 +1004,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           initialHtml={rteHtml}
           initialMarkdown={rteMarkdown}
           mode={rteMode}
+          initialTitle={rteTitle}
+          initialSlug={rteSlug}
+          initialCategories={rteCategories}
+          rteTargetId={rteTargetId}
+          setEdited={setEdited}
           onClose={() => {
             setShowRteModal(false);
             setRteTargetId(null);
@@ -2002,13 +2046,13 @@ const quillFormats = [
   'header', 'blockquote', 'code-block', 'list', 'indent', 'direction', 'align', 'link', 'image', 'video', 'formula'
 ];
 
-function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void; mode?: 'html' | 'markdown'; initialMarkdown?: string }) {
+function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown, initialTitle, initialSlug, initialCategories, rteTargetId, setEdited }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void; mode?: 'html' | 'markdown'; initialMarkdown?: string; initialTitle?: string; initialSlug?: string; initialCategories?: string; rteTargetId?: string | null; setEdited?: React.Dispatch<React.SetStateAction<LayoutAsset>> }) {
   const [mounted, setMounted] = useState(false);
   const [html, setHtml] = useState(initialHtml || '');
   const [md, setMd] = useState(initialMarkdown || '');
-  const [title, setTitle] = useState('Document Title');
-  const [slug, setSlug] = useState('');
-  const [categories, setCategories] = useState('');
+  const [title, setTitle] = useState(initialTitle || 'Document Title');
+  const [slug, setSlug] = useState(initialSlug || '');
+  const [categories, setCategories] = useState(initialCategories || '');
   const [saving, setSaving] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -2030,34 +2074,56 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                   onClick={async () => {
                     try {
                       setSaving(true);
-                      const payload = { slug, title, categories: categories.split(',').map(s=>s.trim()).filter(Boolean), source: 'layout', status: 'draft', mdx: md };
-                      console.log('[DOC] Saving text asset payload:', payload);
-                      const res = await fetch('/api/text-assets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                      const json = await res.json();
-                      console.log('[DOC] Save response:', { ok: res.ok, status: res.status, json });
-                      if (!json?.success) {
-                        console.error('[DOC] Save failed', json);
-                        alert('Failed to save text asset');
+                      const slugify = (v: string) => (v || '')
+                        .toString()
+                        .trim()
+                        .toLowerCase()
+                        .replace(/[^a-z0-9\s-]/g, '')
+                        .replace(/\s+/g, '-')
+                        .replace(/-+/g, '-');
+
+                      const finalTitle = (title || 'Untitled').trim();
+                      const finalSlug = (slug && slug.trim()) ? slug.trim() : slugify(finalTitle);
+                      if (!finalSlug) {
+                        alert('Please provide a title or slug.');
                         return;
                       }
-                      // Store slug in item config for future loading
-                      setEdited(prev => ({
-                        ...prev,
-                        layout_data: {
-                          ...prev.layout_data,
-                          items: prev.layout_data.items.map(i => {
-                            if (i.id !== rteTargetId) return i;
-                            const cfg = { ...((i as any).config || {}), content_markdown: md, slug: json.slug };
-                            delete (cfg as any).content;
-                            return { ...(i as any), config: cfg } as Item;
-                          })
-                        },
-                        updated_at: new Date().toISOString(),
-                      } as LayoutAsset));
+                      const cats = categories.split(',').map(s => s.trim()).filter(Boolean);
+                      const payload = { slug: finalSlug, title: finalTitle, categories: cats, source: 'layout', status: 'draft', mdx: md };
+                      console.log('[DOC] Saving text asset payload:', payload);
+                      const res = await fetch('/api/text-assets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                      let json: any = null;
+                      try { json = await res.json(); } catch {}
+                      console.log('[DOC] Save response:', { ok: res.ok, status: res.status, json });
+                      if (!res.ok || !json?.success) {
+                        const errMsg = (json && (json.error || json.message)) || res.statusText || 'Unknown error';
+                        console.error('[DOC] Save failed', { status: res.status, json });
+                        alert(`Failed to save text asset: ${errMsg}`);
+                        return;
+                      }
+                      // Update item to reference the text asset by ID
+                      if (setEdited && rteTargetId) {
+                        setEdited(prev => ({
+                          ...prev,
+                          layout_data: {
+                            ...prev.layout_data,
+                            items: prev.layout_data.items.map(i => {
+                              if (i.id !== rteTargetId) return i;
+                              return {
+                                ...i,
+                                refId: `text_timeline/${json.slug}`,
+                                contentId: `text_timeline/${json.slug}`,
+                                snippet: finalTitle || 'Document'
+                              } as Item;
+                            })
+                          },
+                          updated_at: new Date().toISOString(),
+                        } as LayoutAsset));
+                      }
                       onSave(md);
                     } catch (e) {
                       console.error('[DOC] Save error', e);
-                      alert('Error saving text asset');
+                      alert(`Error saving text asset: ${e instanceof Error ? e.message : 'Unknown error'}`);
                     } finally {
                       setSaving(false);
                     }

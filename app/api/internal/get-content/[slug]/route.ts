@@ -72,8 +72,28 @@ export async function GET(
 
     console.log(`🔍 Looking for content with slug: ${slug}`);
 
-    // Find the actual folder name
-    const folderName = await findFolderNameBySlug(slug);
+    // Find the actual folder name - try GitHub first, then local
+    let folderName = await findFolderNameBySlug(slug);
+
+    if (!folderName) {
+      // Fallback to local filesystem search
+      console.log('🔍 GitHub folder search failed, trying local filesystem...');
+      const timelineDir = path.join(process.cwd(), 'content', 'timeline');
+
+      if (fs.existsSync(timelineDir)) {
+        const folders = fs.readdirSync(timelineDir, { withFileTypes: true });
+        for (const folder of folders) {
+          if (folder.isDirectory()) {
+            const folderSlug = folder.name.replace(/\s+/g, '-').toLowerCase();
+            if (folderSlug === slug) {
+              folderName = folder.name;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     if (!folderName) {
       return NextResponse.json(
         { error: `No folder found for slug: ${slug}` },
