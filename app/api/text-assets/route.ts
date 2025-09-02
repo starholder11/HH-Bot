@@ -19,6 +19,7 @@ function slugify(input: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log('[text-assets] POST body:', body);
     const {
       slug: rawSlug,
       title = 'Untitled',
@@ -54,10 +55,12 @@ export async function POST(req: NextRequest) {
     fs.writeFileSync(indexPath, indexYaml, 'utf-8');
     fs.writeFileSync(contentPath, String(mdx ?? ''), 'utf-8');
 
+    console.log('[text-assets] Wrote files:', { indexPath, contentPath, bytes: { index: indexYaml.length, mdx: String(mdx ?? '').length } });
+
     return NextResponse.json({ success: true, slug, paths: { indexPath, contentPath } });
   } catch (error) {
     console.error('[text-assets] POST failed', error);
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined }, { status: 500 });
   }
 }
 

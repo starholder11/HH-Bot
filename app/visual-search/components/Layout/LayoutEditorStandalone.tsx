@@ -2004,8 +2004,10 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                     try {
                       setSaving(true);
                       const payload = { slug, title, categories: categories.split(',').map(s=>s.trim()).filter(Boolean), source: 'layout', status: 'draft', mdx: md };
+                      console.log('[DOC] Saving text asset payload:', payload);
                       const res = await fetch('/api/text-assets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                       const json = await res.json();
+                      console.log('[DOC] Save response:', { ok: res.ok, status: res.status, json });
                       if (!json?.success) {
                         console.error('[DOC] Save failed', json);
                         alert('Failed to save text asset');
