@@ -2038,6 +2038,11 @@ function ItemInspector({
 
   return (
     <div className="space-y-3">
+      {/* Debug: Show item type and blockType */}
+      <div className="text-xs text-yellow-400 p-2 bg-neutral-800 rounded">
+        Debug: type={item.type}, blockType={(item as any).blockType}
+      </div>
+
       {/* Primary content editing first */}
       {item.type === 'inline_text' && (
         <div>
