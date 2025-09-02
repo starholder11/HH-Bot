@@ -20,6 +20,7 @@ const TransformPanel = dynamic(() => import('./TransformPanel'), { ssr: false })
 import 'react-quill/dist/quill.snow.css';
 import 'katex/dist/katex.min.css';
 import hljs from 'highlight.js';
+import yaml from 'js-yaml';
 import 'highlight.js/styles/atom-one-dark.css';
 import { TransformComponents } from './transforms';
 import { Button } from '@/components/ui/button';
@@ -65,7 +66,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(edited.title);
 
-  const openRteForId = React.useCallback((id: string, forceMarkdown?: boolean) => {
+  const openRteForId = React.useCallback(async (id: string, forceMarkdown?: boolean) => {
     setSelectedId(id);
     setSelectedIds(new Set([id]));
     const item = edited.layout_data.items.find(i => i.id === id) as any;
@@ -76,6 +77,32 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       const md = (item?.config && item.config.content_markdown) || '';
       setRteMarkdown(md);
       console.log('[RTE DEBUG] Using markdown mode with content:', md);
+      
+      // Initialize fields with defaults
+      setTitle('Document Title');
+      setSlug('');
+      setCategories('');
+      
+      // Load metadata if we have a slug stored in the item
+      const storedSlug = (item?.config && item.config.slug) || '';
+      if (storedSlug) {
+        try {
+          console.log('[RTE DEBUG] Loading metadata for slug:', storedSlug);
+          const res = await fetch(`/api/internal/get-content/${encodeURIComponent(storedSlug)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.metadata) {
+              const parsed = yaml.load(data.metadata) as any;
+              setTitle(parsed.title || 'Document Title');
+              setSlug(parsed.slug || storedSlug);
+              setCategories(Array.isArray(parsed.categories) ? parsed.categories.join(', ') : '');
+              console.log('[RTE DEBUG] Loaded metadata:', parsed);
+            }
+          }
+        } catch (e) {
+          console.warn('[RTE DEBUG] Failed to load metadata:', e);
+        }
+      }
     } else {
       const existing = item ? getRichTextHtmlForItem(item) : '';
       setRteHtml(existing);
@@ -2013,6 +2040,20 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                         alert('Failed to save text asset');
                         return;
                       }
+                      // Store slug in item config for future loading
+                      setEdited(prev => ({
+                        ...prev,
+                        layout_data: {
+                          ...prev.layout_data,
+                          items: prev.layout_data.items.map(i => {
+                            if (i.id !== rteTargetId) return i;
+                            const cfg = { ...((i as any).config || {}), content_markdown: md, slug: json.slug };
+                            delete (cfg as any).content;
+                            return { ...(i as any), config: cfg } as Item;
+                          })
+                        },
+                        updated_at: new Date().toISOString(),
+                      } as LayoutAsset));
                       onSave(md);
                     } catch (e) {
                       console.error('[DOC] Save error', e);
