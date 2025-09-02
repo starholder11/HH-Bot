@@ -52,6 +52,15 @@ export async function POST(req: NextRequest) {
     const indexYaml = yaml.dump(indexDoc, { noRefs: true });
 
     // If running on Vercel serverless (read-only FS), fallback to GitHub commit
+    // Attempt OpenAI File Search upsert FIRST (immediate lore visibility per spec)
+    let oai: { fileId?: string; vectorStoreFileId?: string } | undefined;
+    try {
+      oai = await upsertToOpenAI(slug, title, String(mdx ?? ''));
+      console.log('[text-assets] OAI upsert completed:', oai);
+    } catch (e) {
+      console.warn('[text-assets] OAI upsert failed (non-blocking):', (e as Error)?.message || e);
+    }
+
     const isReadOnly = !!process.env.VERCEL;
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
 
@@ -94,7 +103,7 @@ export async function POST(req: NextRequest) {
       await upsertFile(`content/timeline/${slug}/content.mdx`, String(mdx ?? ''), `chore(text): create/update ${slug} content`);
 
       console.log('[text-assets] Committed files to GitHub:', { slug });
-      return NextResponse.json({ success: true, slug, paths: { indexPath: `github:content/timeline/${slug}/index.yaml`, contentPath: `github:content/timeline/${slug}/content.mdx` } });
+      return NextResponse.json({ success: true, slug, paths: { indexPath: `github:content/timeline/${slug}/index.yaml`, contentPath: `github:content/timeline/${slug}/content.mdx` }, oai });
     }
 
     // Local/dev: write to filesystem
@@ -105,15 +114,6 @@ export async function POST(req: NextRequest) {
     fs.writeFileSync(contentPath, String(mdx ?? ''), 'utf-8');
 
     console.log('[text-assets] Wrote files:', { indexPath, contentPath, bytes: { index: indexYaml.length, mdx: String(mdx ?? '').length } });
-
-    // Attempt OpenAI File Search upsert (non-blocking)
-    let oai: { fileId?: string; vectorStoreFileId?: string } | undefined;
-    try {
-      oai = await upsertToOpenAI(slug, title, String(mdx ?? ''));
-    } catch (e) {
-      console.warn('[text-assets] OAI upsert failed (non-blocking):', (e as Error)?.message || e);
-    }
-
     return NextResponse.json({ success: true, slug, paths: { indexPath, contentPath }, oai });
   } catch (error) {
     console.error('[text-assets] POST failed', error);
