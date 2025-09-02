@@ -814,25 +814,44 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               </Button>
               <Button className="h-auto justify-start bg-blue-700 border-blue-600 text-white hover:bg-blue-600" onClick={(e)=>{
                 e.preventDefault(); e.stopPropagation();
-                // Insert a rich text block and immediately open in markdown (DOC) mode
-                addBlock('text_section');
-                setTimeout(() => {
-                  try {
-                    const latest = edited.layout_data.items[edited.layout_data.items.length - 1];
-                    const targetId = latest?.id;
-                    if (!targetId) return;
-                    // Ensure textKind is asset before opening
-                    setEdited(prev => ({
-                      ...prev,
-                      layout_data: {
-                        ...prev.layout_data,
-                        items: prev.layout_data.items.map(i => i.id === targetId ? ({ ...(i as any), textKind: 'asset' } as Item) : i)
-                      }
-                    } as LayoutAsset));
-                    const openCb = (window as any).__openRteForId;
-                    openCb?.(targetId, true);
-                  } catch {}
-                }, 120);
+                console.log('[DOC] Creating text asset block...');
+
+                // Create the block manually with textKind already set
+                const id = `text_section_${Date.now().toString(36)}`;
+                const cellSize = edited.layout_data.cellSize || 20;
+                const design = breakpointSizes[currentBreakpoint];
+                const { w, h } = getBlockSize('text_section', cellSize);
+
+                const newItem = {
+                  id,
+                  type: 'block',
+                  blockType: 'text_section',
+                  textKind: 'asset',
+                  config: { title: 'Document Title', content_markdown: '# Document Title\n\nStart writing...' },
+                  x: 0, y: 0, w, h,
+                  nx: 0, ny: 0,
+                  nw: (w * cellSize) / design.width,
+                  nh: (h * cellSize) / design.height,
+                  z: 1,
+                } as any;
+
+                setEdited(prev => ({
+                  ...prev,
+                  layout_data: {
+                    ...prev.layout_data,
+                    items: [...prev.layout_data.items, newItem]
+                  },
+                  updated_at: new Date().toISOString()
+                } as LayoutAsset));
+
+                // Select and open markdown editor immediately
+                setSelectedId(id);
+                setSelectedIds(new Set([id]));
+                setRteMode('markdown');
+                setRteMarkdown('# Document Title\n\nStart writing...');
+                setRteTargetId(id);
+                setShowRteModal(true);
+                console.log('[DOC] Opened markdown editor for:', id);
               }}>
                 <FileTextIcon className="w-4 h-4" />
                 <span className="text-xs ml-2">DOC</span>
@@ -1960,6 +1979,10 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
   const [mounted, setMounted] = useState(false);
   const [html, setHtml] = useState(initialHtml || '');
   const [md, setMd] = useState(initialMarkdown || '');
+  const [title, setTitle] = useState('Document Title');
+  const [slug, setSlug] = useState('');
+  const [categories, setCategories] = useState('');
+  const [saving, setSaving] = useState(false);
   useEffect(() => setMounted(true), []);
 
   if (!mounted || typeof document === 'undefined') return null;
@@ -1970,21 +1993,52 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
     <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
           <div className="flex items-center justify-between p-3 border-b border-neutral-700">
-          <div className="text-neutral-200 text-sm">{isMarkdown ? 'Edit Markdown' : 'Edit Rich Text'}</div>
-          <div className="flex gap-2">
-            <button className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded" onClick={() => onClose()}>Cancel</button>
-              <button className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(isMarkdown ? md : html)}>Save</button>
+            <div className="text-neutral-200 text-sm">{isMarkdown ? 'Edit Markdown' : 'Edit Rich Text'}</div>
+            <div className="flex gap-2">
+              <button className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded" onClick={() => onClose()}>Cancel</button>
+              {isMarkdown ? (
+                <button
+                  disabled={saving}
+                  className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white"
+                  onClick={async () => {
+                    try {
+                      setSaving(true);
+                      const payload = { slug, title, categories: categories.split(',').map(s=>s.trim()).filter(Boolean), source: 'layout', status: 'draft', mdx: md };
+                      const res = await fetch('/api/text-assets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                      const json = await res.json();
+                      if (!json?.success) {
+                        console.error('[DOC] Save failed', json);
+                        alert('Failed to save text asset');
+                        return;
+                      }
+                      onSave(md);
+                    } catch (e) {
+                      console.error('[DOC] Save error', e);
+                      alert('Error saving text asset');
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                >{saving ? 'Saving…' : 'Save'}</button>
+              ) : (
+                <button className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(html)}>Save</button>
+              )}
+            </div>
           </div>
-        </div>
         <div className="flex-1 overflow-hidden p-3">
           {isMarkdown ? (
             <div className="h-full w-full grid grid-cols-2 gap-3">
-              <textarea
-                className="w-full h-full px-2 py-1 bg-white text-neutral-900 border border-neutral-300 rounded text-sm font-mono"
-                value={md}
-                onChange={(e) => setMd(e.target.value)}
-                placeholder="# Title\n\nBody..."
-              />
+              <div className="flex flex-col gap-2">
+                <input className="px-2 py-1 bg-white border border-neutral-300 rounded text-sm" placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
+                <input className="px-2 py-1 bg-white border border-neutral-300 rounded text-sm" placeholder="Slug (optional)" value={slug} onChange={(e)=>setSlug(e.target.value)} />
+                <input className="px-2 py-1 bg-white border border-neutral-300 rounded text-sm" placeholder="Categories (comma separated)" value={categories} onChange={(e)=>setCategories(e.target.value)} />
+                <textarea
+                  className="w-full h-full px-2 py-1 bg-white text-neutral-900 border border-neutral-300 rounded text-sm font-mono"
+                  value={md}
+                  onChange={(e) => setMd(e.target.value)}
+                  placeholder="# Title\n\nBody..."
+                />
+              </div>
               <div className="w-full h-full bg-white text-neutral-900 border border-neutral-300 rounded text-sm p-3 overflow-auto">
                 <pre className="whitespace-pre-wrap break-words text-sm">{md}</pre>
               </div>
