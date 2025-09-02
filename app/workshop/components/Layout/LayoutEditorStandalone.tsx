@@ -55,6 +55,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [showRteModal, setShowRteModal] = useState(false);
   const [rteTargetId, setRteTargetId] = useState<string | null>(null);
   const [rteHtml, setRteHtml] = useState<string>('');
+  const [rteMode, setRteMode] = useState<'html' | 'markdown'>('html');
+  const [rteMarkdown, setRteMarkdown] = useState<string>('');
   const [showTransformPanel, setShowTransformPanel] = useState(false);
   const [transformTargetId, setTransformTargetId] = useState<string | null>(null);
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -67,8 +69,15 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     setSelectedId(id);
     setSelectedIds(new Set([id]));
     const item = edited.layout_data.items.find(i => i.id === id) as any;
-    const existing = item ? getRichTextHtmlForItem(item) : '';
-    setRteHtml(existing);
+    const isAsset = (item as any)?.textKind === 'asset';
+    setRteMode(isAsset ? 'markdown' : 'html');
+    if (isAsset) {
+      const md = (item?.config && item.config.content_markdown) || '';
+      setRteMarkdown(md);
+    } else {
+      const existing = item ? getRichTextHtmlForItem(item) : '';
+      setRteHtml(existing);
+    }
     setRteTargetId(id);
     setShowRteModal(true);
   }, [edited.layout_data.items]);
@@ -483,9 +492,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         title: editingTitle.trim(),
         updated_at: new Date().toISOString()
       };
-      
+
       setEdited(updatedLayout);
-      
+
       // Auto-save the title change
       try {
         const response = await fetch(`/api/media-assets/${edited.id}`, {
@@ -495,7 +504,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         });
 
         if (!response.ok) throw new Error('Title save failed');
-        
+
         onSaved?.(updatedLayout);
       } catch (error) {
         console.error('Failed to save title:', error);
@@ -532,7 +541,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               placeholder="Layout title"
             />
           ) : (
-            <h2 
+            <h2
               className="text-lg font-medium text-white cursor-pointer hover:text-neutral-300 transition-colors"
               onDoubleClick={() => {
                 setIsEditingTitle(true);
@@ -873,28 +882,56 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
       </div>
       {showRteModal && rteTargetId && (
-        <RteModal
-          initialHtml={rteHtml}
-          onClose={() => {
-            setShowRteModal(false);
-            setRteTargetId(null);
-          }}
-          onSave={(html) => {
-            setEdited(prev => ({
-              ...prev,
-              layout_data: {
-                ...prev.layout_data,
-                items: prev.layout_data.items.map(i => {
-                  if (i.id !== rteTargetId) return i;
-                  return applyRichTextHtmlToItem(i as any, html) as Item;
-                })
-              },
-              updated_at: new Date().toISOString(),
-            } as LayoutAsset));
-            setShowRteModal(false);
-            setRteTargetId(null);
-          }}
-        />
+        rteMode === 'html' ? (
+          <RteModal
+            initialHtml={rteHtml}
+            onClose={() => {
+              setShowRteModal(false);
+              setRteTargetId(null);
+            }}
+            onSave={(html) => {
+              setEdited(prev => ({
+                ...prev,
+                layout_data: {
+                  ...prev.layout_data,
+                  items: prev.layout_data.items.map(i => {
+                    if (i.id !== rteTargetId) return i;
+                    return applyRichTextHtmlToItem(i as any, html) as Item;
+                  })
+                },
+                updated_at: new Date().toISOString(),
+              } as LayoutAsset));
+              setShowRteModal(false);
+              setRteTargetId(null);
+            }}
+          />
+        ) : (
+          <MarkdownModal
+            initialMarkdown={rteMarkdown}
+            onClose={() => {
+              setShowRteModal(false);
+              setRteTargetId(null);
+            }}
+            onSave={(markdown) => {
+              setEdited(prev => ({
+                ...prev,
+                layout_data: {
+                  ...prev.layout_data,
+                  items: prev.layout_data.items.map(i => {
+                    if (i.id !== rteTargetId) return i;
+                    const cfg = { ...((i as any).config || {}), content_markdown: markdown };
+                    // Ensure we do not keep HTML field in asset mode
+                    delete (cfg as any).content;
+                    return { ...(i as any), config: cfg } as Item;
+                  })
+                },
+                updated_at: new Date().toISOString(),
+              } as LayoutAsset));
+              setShowRteModal(false);
+              setRteTargetId(null);
+            }}
+          />
+        )
       )}
 
       {showTransformPanel && transformTargetId && (
@@ -1060,7 +1097,7 @@ function createBlockItem(blockType: string, id: string, x: number, y: number, w:
   };
 
   if (blockType === 'inline_text') {
-    return { ...baseItem, type: 'inline_text', inlineContent: { text: 'Edit me' } } as any;
+    return { ...baseItem, type: 'inline_text', textKind: 'layout_inline', inlineContent: { text: 'Edit me' } } as any;
   }
   if (blockType === 'inline_image') {
     return { ...baseItem, type: 'inline_image', inlineContent: { imageUrl: '', alt: 'Image' } } as any;
@@ -1069,6 +1106,7 @@ function createBlockItem(blockType: string, id: string, x: number, y: number, w:
   return {
     ...baseItem,
     type: 'block',
+    textKind: 'layout_inline',
     blockType,
     config: getDefaultBlockConfig(blockType)
   } as any;
@@ -1938,6 +1976,40 @@ function RteModal({ initialHtml, onClose, onSave }: { initialHtml: string; onClo
   );
 }
 
+function MarkdownModal({ initialMarkdown, onClose, onSave }: { initialMarkdown: string; onClose: () => void; onSave: (md: string) => void }) {
+  const [mounted, setMounted] = useState(false);
+  const [md, setMd] = useState(initialMarkdown || '');
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
+        <div className="flex items-center justify-between p-3 border-b border-neutral-700">
+          <div className="text-neutral-200 text-sm">Edit Markdown</div>
+          <div className="flex gap-2">
+            <button className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded" onClick={() => onClose()}>Cancel</button>
+            <button className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(md)}>Save</button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-hidden p-3 grid grid-cols-2 gap-3">
+          <textarea
+            className="w-full h-full px-2 py-1 bg-white text-neutral-900 border border-neutral-300 rounded text-sm font-mono"
+            value={md}
+            onChange={(e) => setMd(e.target.value)}
+            placeholder="# Title\n\nBody..."
+          />
+          <div className="w-full h-full bg-white text-neutral-900 border border-neutral-300 rounded text-sm p-3 overflow-auto">
+            <pre className="whitespace-pre-wrap break-words text-sm">{md}</pre>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function ItemInspector({
   item,
   cellSize,
@@ -1974,6 +2046,17 @@ function ItemInspector({
             className="w-full h-20 px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-white"
             placeholder="Enter text content..."
           />
+          <div className="mt-2">
+            <div className="text-xs text-white mb-1">Text Kind</div>
+            <select
+              className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm text-white"
+              value={(item as any).textKind || 'layout_inline'}
+              onChange={(e) => onChange({ ...(item as any), textKind: e.target.value as any })}
+            >
+              <option value="layout_inline">Layout Inline</option>
+              <option value="asset">Text Asset</option>
+            </select>
+          </div>
         </div>
       )}
 
