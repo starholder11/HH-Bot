@@ -61,6 +61,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   // Use ref to track modal state immediately (bypass React's async state updates)
   const modalActiveRef = useRef(false);
   const modalKeydownBlockerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+  // Debug flag for conditional logging
+  const DEBUG_RTE = process.env.NODE_ENV !== 'production';
   // RTE metadata (for Markdown mode)
   const [rteTitle, setRteTitle] = useState<string>('Document Title');
   const [rteSlug, setRteSlug] = useState<string>('');
@@ -75,8 +77,18 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
   // Unique mount/version log to verify correct build and code path
   useEffect(() => {
-    console.log('[LAYOUT EDITOR MOUNT] visual-search LayoutEditorStandalone RTE_FIX_REAPPLY_2025_09_03_2');
+    if (DEBUG_RTE) console.log('[LAYOUT EDITOR MOUNT] visual-search LayoutEditorStandalone RTE_FIX_REAPPLY_2025_09_03_2');
   }, []);
+
+  // Helper to clear modal-active state and remove global key blocker
+  const clearModalKeyBlocker = React.useCallback(() => {
+    modalActiveRef.current = false;
+    if (typeof document !== 'undefined' && modalKeydownBlockerRef.current) {
+      document.removeEventListener('keydown', modalKeydownBlockerRef.current, true);
+      modalKeydownBlockerRef.current = null;
+      if (DEBUG_RTE) console.log('[RTE DEBUG] Removed global capture-phase key blocker');
+    }
+  }, [DEBUG_RTE]);
 
     const openRteForId = React.useCallback(async (id: string, forceMarkdown?: boolean) => {
     setSelectedId(id);
@@ -87,7 +99,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     const isTextAsset = item?.type === 'content_ref' && item?.contentType === 'text';
     const isAsset = forceMarkdown || isTextAsset;
 
-    console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
+    if (DEBUG_RTE) console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
     // Immediately mark modal active and install capture-phase blocker to prevent global handlers
     modalActiveRef.current = true;
     if (typeof document !== 'undefined' && !modalKeydownBlockerRef.current) {
@@ -105,7 +117,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       };
       document.addEventListener('keydown', block, true);
       modalKeydownBlockerRef.current = block;
-      console.log('[RTE DEBUG] Installed global capture-phase key blocker');
+      if (DEBUG_RTE) console.log('[RTE DEBUG] Installed global capture-phase key blocker');
     }
     setRteMode(isAsset ? 'markdown' : 'html');
 
@@ -121,7 +133,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         slug = refId;
       }
 
-      console.log('[RTE DEBUG] Loading text asset with slug:', slug);
+      if (DEBUG_RTE) console.log('[RTE DEBUG] Loading text asset with slug:', slug);
 
       if (slug) {
         try {
@@ -134,17 +146,17 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               setRteSlug(parsed.slug || slug);
               setRteCategories(Array.isArray(parsed.categories) ? parsed.categories.join(', ') : '');
               setRteMarkdown(data.content || '');
-              console.log('[RTE DEBUG] Loaded text asset:', { title: parsed.title, slug: parsed.slug, contentLength: data.content?.length });
+              if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset:', { title: parsed.title, slug: parsed.slug, contentLength: data.content?.length });
             }
           } else {
-            console.log('[RTE DEBUG] Text asset not found, using defaults');
+            if (DEBUG_RTE) console.log('[RTE DEBUG] Text asset not found, using defaults');
             setRteTitle('Document Title');
             setRteSlug(slug || 'new-document');
             setRteCategories('');
             setRteMarkdown('# Document Title\n\nStart writing...');
           }
         } catch (e) {
-          console.warn('[RTE DEBUG] Failed to load text asset:', e);
+          if (DEBUG_RTE) console.warn('[RTE DEBUG] Failed to load text asset:', e);
           setRteTitle('Document Title');
           setRteSlug(slug || 'new-document');
           setRteCategories('');
@@ -160,7 +172,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     } else {
       const existing = item ? getRichTextHtmlForItem(item) : '';
       setRteHtml(existing);
-      console.log('[RTE DEBUG] Using HTML mode with content:', existing);
+      if (DEBUG_RTE) console.log('[RTE DEBUG] Using HTML mode with content:', existing);
     }
     setRteTargetId(id);
     setShowRteModal(true);
@@ -1039,6 +1051,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           onClose={() => {
             setShowRteModal(false);
             setRteTargetId(null);
+            clearModalKeyBlocker();
           }}
           onSave={(content) => {
             setEdited(prev => ({
@@ -1060,6 +1073,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             } as LayoutAsset));
             setShowRteModal(false);
             setRteTargetId(null);
+            clearModalKeyBlocker();
           }}
         />
       )}
