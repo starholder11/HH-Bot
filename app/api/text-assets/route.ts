@@ -6,6 +6,7 @@ import { Octokit } from '@octokit/rest';
 // OAI upsert via shared library (SDK)
 import { uploadFileToVectorStore } from '@/lib/openai-sync';
 import crypto from 'crypto';
+import Redis from 'ioredis';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -77,7 +78,24 @@ export async function POST(req: NextRequest) {
     if (isReadOnly) {
       if (!commitOnSave) {
         console.log('[text-assets] Skipping Git commit on save (TEXT_ASSETS_COMMIT_ON_SAVE=false)');
-        return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped' });
+        // Enqueue draft for later batch commit
+        try {
+          const redisUrl = process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL;
+          if (redisUrl) {
+            const r = new Redis(redisUrl);
+            const draftKey = `textAsset:draft:${slug}`;
+            await r.set(draftKey, JSON.stringify({ slug, indexYaml, mdx: String(mdx ?? ''), updatedAt: Date.now() }), 'EX', 60 * 60 * 24);
+            // Dedup in pending list
+            await r.lrem('textAssets:pending', 0, slug);
+            await r.rpush('textAssets:pending', slug);
+            await r.quit();
+          } else {
+            console.warn('[text-assets] No Redis configured; cannot enqueue draft for batch commit');
+          }
+        } catch (qe) {
+          console.warn('[text-assets] Failed to enqueue draft for batch commit:', (qe as Error)?.message || qe);
+        }
+        return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped', enqueued: true });
       }
       if (!token) {
         console.error('[text-assets] Missing GITHUB_TOKEN in serverless environment');
