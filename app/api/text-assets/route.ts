@@ -3,8 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { Octokit } from '@octokit/rest';
-// OAI upsert via shared library (SDK) for consistent behavior/attributes
-import { syncTimelineEntry } from '@/lib/openai-sync';
+// OAI upsert via shared library (SDK)
+import { uploadFileToVectorStore } from '@/lib/openai-sync';
+import crypto from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -57,9 +58,13 @@ export async function POST(req: NextRequest) {
     // Attempt OpenAI File Search upsert FIRST (immediate lore visibility per spec)
     let oai: { fileId?: string; vectorStoreFileId?: string } | undefined;
     try {
-      // Use versioned naming and attribute filename via shared lib
-      await syncTimelineEntry(slug, String(mdx ?? ''));
-      console.log('[text-assets] OAI upsert completed via syncTimelineEntry');
+      // FAST PATH: versioned filename upload only (no listing or cleanup here)
+      const body = String(mdx ?? '');
+      const hash = crypto.createHash('sha256').update(body).digest('hex').slice(0, 8);
+      const vectorName = `${slug}-body-${hash}.md`;
+      const v = await uploadFileToVectorStore(body, vectorName);
+      oai = { fileId: (v as any)?.file_id, vectorStoreFileId: (v as any)?.id };
+      console.log('[text-assets] OAI upsert (fast) completed:', { vectorName, fileId: oai.fileId, vectorStoreFileId: oai.vectorStoreFileId });
     } catch (e) {
       console.warn('[text-assets] OAI upsert failed (non-blocking):', (e as Error)?.message || e);
     }

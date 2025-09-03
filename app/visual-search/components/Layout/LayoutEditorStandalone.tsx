@@ -2155,6 +2155,9 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                       const payload = { slug: finalSlug, title: finalTitle, categories: cats, source: 'layout', status: 'draft', mdx: md, commitOnSave: commitPref } as any;
                       console.log('[DOC] Saving text asset payload:', payload);
                       const res = await fetch('/api/text-assets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                      if (!res.ok) {
+                        throw new Error(`Save failed (${res.status})`);
+                      }
                       let json: any = null;
                       try { json = await res.json(); } catch {}
                       console.log('[DOC] Save response:', { ok: res.ok, status: res.status, json });
