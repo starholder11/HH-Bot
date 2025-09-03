@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { slug, indexYaml, mdx } = await req.json();
+    const { slug, indexYaml, mdx, scribe_enabled, conversation_id } = await req.json();
     
     if (!slug) {
       return NextResponse.json({ error: 'slug is required' }, { status: 400 });
@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
         slug, 
         indexYaml, 
         mdx, 
+        scribe_enabled,
+        conversation_id,
         updatedAt: Date.now() 
       }), 'EX', 60 * 60 * 24);
       

@@ -33,7 +33,9 @@ export async function POST(req: NextRequest) {
       source = 'layout',
       status = 'draft',
       mdx = '',
-      commitOnSave: commitOnSaveInput
+      commitOnSave: commitOnSaveInput,
+      scribe_enabled,
+      conversation_id
     } = body || {};
 
     const slug = slugify(rawSlug || title);
@@ -52,6 +54,8 @@ export async function POST(req: NextRequest) {
       categories: Array.isArray(categories) ? categories : String(categories || '').split(',').map((s) => s.trim()).filter(Boolean),
       source,
       status,
+      ...(typeof scribe_enabled === 'boolean' && { scribe_enabled }),
+      ...(conversation_id && { conversation_id })
     };
 
     const indexYaml = yaml.dump(indexDoc, { noRefs: true });
@@ -90,7 +94,9 @@ export async function POST(req: NextRequest) {
                 body: JSON.stringify({
                   slug,
                   indexYaml,
-                  mdx: String(mdx ?? '')
+                  mdx: String(mdx ?? ''),
+                  scribe_enabled,
+                  conversation_id
                 })
               }),
               new Promise((_, reject) => setTimeout(() => reject(new Error('agentic-timeout')), 1500))
