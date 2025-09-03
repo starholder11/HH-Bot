@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Forward to backend which has VPC access to Redis
-    const backendUrl = process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
+    const backendUrl = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
     const response = await fetch(`${backendUrl}/api/agent-comprehensive/ack`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -381,7 +381,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Route to the Phase 2 comprehensive agent system
-    const agentResponse = await fetch(`${process.env.LANCEDB_API_URL}/api/agent-comprehensive`, {
+    const agentResponse = await fetch(`${process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL}/api/agent-comprehensive`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -579,7 +579,7 @@ export async function POST(req: NextRequest) {
         while (Date.now() - start < timeoutMs) {
           try {
             // Check backend for ack status (backend has VPC Redis access)
-            const backendUrl = process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
+            const backendUrl = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
             // Use the comprehensive agent ack endpoint (backend side)
             const response = await fetch(`${backendUrl}/api/agent-comprehensive/ack?correlationId=${encodeURIComponent(corr)}&step=${encodeURIComponent(stepName)}`, {
               method: 'GET',
