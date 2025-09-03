@@ -370,14 +370,29 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       return;
     }
 
-    function onKey(e: KeyboardEvent) {
+    // CRITICAL: Double-check if modal is actually open
+    if (modalActiveRef.current) {
+      console.log('[KEYBOARD DEBUG] CRITICAL: Modal ref is true, blocking registration');
+      return;
+    }
+
+        function onKey(e: KeyboardEvent) {
+      // CRITICAL: Check modal ref first before any other logic
+      if (modalActiveRef.current) {
+        console.log('[KEYBOARD DEBUG] CRITICAL: Modal is open, blocking key event:', e.key);
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
       console.log('[KEYBOARD DEBUG] Key event:', {
         key: e.key,
         target: e.target?.tagName,
         targetClass: (e.target as HTMLElement)?.className,
         selectedIdsSize: selectedIds.size,
         selectedId,
-        currentModalState: { isEditingText, showRteModal, showTransformPanel }
+        currentModalState: { isEditingText, showRteModal, showTransformPanel },
+        modalRef: modalActiveRef.current
       });
 
       // Double-check target isn't in an input/textarea
@@ -428,6 +443,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     }
 
     console.log('[KEYBOARD DEBUG] Registering keyboard handler with selectedIds:', Array.from(selectedIds));
+    console.log('[KEYBOARD DEBUG] WARNING: Keyboard handler is now ACTIVE and listening for events');
     window.addEventListener('keydown', onKey);
     return () => {
       console.log('[KEYBOARD DEBUG] Unregistering keyboard handler');
@@ -1120,12 +1136,12 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           rteTargetId={rteTargetId}
           setEdited={setEdited}
           persistEdited={persistEdited}
-                  onClose={() => {
-          setShowRteModal(false);
-          setRteTargetId(null);
-          modalActiveRef.current = false;
-          console.log('[RTE DEBUG] Modal closed, ref reset to false');
-        }}
+          onClose={() => {
+            setShowRteModal(false);
+            setRteTargetId(null);
+            modalActiveRef.current = false;
+            console.log('[RTE DEBUG] Modal closed, ref reset to false');
+          }}
           onSave={(content) => {
             setEdited(prev => ({
               ...prev,
@@ -2171,7 +2187,10 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
   const [saving, setSaving] = useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    console.log('[RTE DEBUG] RteModal mounted, modalActiveRef should be true');
+  }, []);
 
   // Force focus on textarea when modal opens in markdown mode
   useEffect(() => {
