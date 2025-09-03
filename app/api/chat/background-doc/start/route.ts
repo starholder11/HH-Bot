@@ -40,16 +40,26 @@ export async function POST(req: NextRequest) {
       categories: []
     };
 
-    // Import and call the text-assets handler directly (same process, no HTTP)
-    const { POST: textAssetsHandler } = await import('../../text-assets/route');
-    const mockRequest = {
-      json: async () => textAssetPayload
-    } as NextRequest;
+        // Create text asset using HTTP call (avoid import issues)
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    
+    const textAssetResponse = await fetch(`${baseUrl}/api/text-assets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(textAssetPayload)
+    });
 
-    const textAssetResponse = await textAssetsHandler(mockRequest);
+    if (!textAssetResponse.ok) {
+      const error = await textAssetResponse.text();
+      console.error('[background-doc] Text asset creation failed:', error);
+      return NextResponse.json({
+        error: 'Failed to create text asset',
+        details: error
+      }, { status: 500 });
+    }
+
     const textAssetResult = await textAssetResponse.json();
-
-    if (!textAssetResponse.ok || !textAssetResult.success) {
+    if (!textAssetResult.success) {
       console.error('[background-doc] Text asset creation failed:', textAssetResult);
       return NextResponse.json({
         error: 'Failed to create text asset',
@@ -59,7 +69,6 @@ export async function POST(req: NextRequest) {
 
     // Now create a layout that contains this text asset
     const layoutTitle = `${finalTitle} - Layout`;
-    const layoutSlug = `${finalSlug}-layout`;
     
     const layoutPayload = {
       title: layoutTitle,
@@ -91,23 +100,23 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString()
     };
 
-    // Create layout via existing layouts API
-    const { POST: layoutsHandler } = await import('../../layouts/route');
-    const layoutRequest = {
-      json: async () => layoutPayload
-    } as NextRequest;
+    // Create layout using HTTP call
+    const layoutResponse = await fetch(`${baseUrl}/api/layouts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(layoutPayload)
+    });
 
-    const layoutResponse = await layoutsHandler(layoutRequest);
-    const layoutResult = await layoutResponse.json();
-
-    if (!layoutResponse.ok || !layoutResult.success) {
-      console.warn('[background-doc] Layout creation failed, but text asset created:', layoutResult);
-      // Continue anyway - text asset is created successfully
+    let layoutResult = { success: false, id: null };
+    if (layoutResponse.ok) {
+      layoutResult = await layoutResponse.json();
+    } else {
+      console.warn('[background-doc] Layout creation failed, but text asset created');
     }
 
-    console.log('[background-doc] Started scribe for conversation:', { 
-      conversationId, 
-      slug: finalSlug, 
+    console.log('[background-doc] Started scribe for conversation:', {
+      conversationId,
+      slug: finalSlug,
       title: finalTitle,
       layoutId: layoutResult.id,
       textAssetPaths: textAssetResult.paths
