@@ -2108,15 +2108,28 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
   const [slug, setSlug] = useState(initialSlug || '');
   const [categories, setCategories] = useState(initialCategories || '');
   const [saving, setSaving] = useState(false);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => setMounted(true), []);
+
+  // Force focus on textarea when modal opens in markdown mode
+  useEffect(() => {
+    if (mounted && mode === 'markdown' && textareaRef.current) {
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.setSelectionRange(textareaRef.current.value.length, textareaRef.current.value.length);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, mode]);
 
   if (!mounted || typeof document === 'undefined') return null;
 
   const isMarkdown = mode === 'markdown';
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 rte-modal" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }} onKeyDown={(e)=>{ e.stopPropagation(); }}>
-      <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col" onKeyDown={(e)=>{ e.stopPropagation(); }}>
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 rte-modal" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }} onKeyDown={(e)=>{ e.stopPropagation(); e.preventDefault(); }}>
+      <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col" onKeyDown={(e)=>{ e.stopPropagation(); e.preventDefault(); }}>
           <div className="flex items-center justify-between p-3 border-b border-neutral-700">
             <div className="text-neutral-200 text-sm">{isMarkdown ? 'Edit Markdown' : 'Edit Rich Text'}</div>
             <div className="flex gap-2">
@@ -2203,11 +2216,14 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                 <input className="px-2 py-1 bg-white border border-neutral-300 rounded text-sm" placeholder="Slug (optional)" value={slug} onChange={(e)=>setSlug(e.target.value)} />
                 <input className="px-2 py-1 bg-white border border-neutral-300 rounded text-sm" placeholder="Categories (comma separated)" value={categories} onChange={(e)=>setCategories(e.target.value)} />
                 <textarea
+                  ref={textareaRef}
                   className="w-full h-full px-2 py-1 bg-white text-neutral-900 border border-neutral-300 rounded text-sm font-mono"
                   value={md}
                   onChange={(e) => setMd(e.target.value)}
                   placeholder="# Title\n\nBody..."
                   onKeyDownCapture={(e)=>{ e.stopPropagation(); }}
+                  onKeyDown={(e)=>{ e.stopPropagation(); }}
+                  autoFocus
                 />
               </div>
               <div className="w-full h-full bg-white text-neutral-900 border border-neutral-300 rounded text-sm p-3 overflow-auto">
