@@ -531,17 +531,22 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const handleSave = async () => {
     try {
       setWorking(true);
+      // Strip transient UI-only fields before persisting
+      const sanitized: LayoutAsset = sanitizeLayoutForSave(edited);
 
       const response = await fetch(`/api/media-assets/${edited.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edited),
+        body: JSON.stringify(sanitized),
       });
 
       if (!response.ok) throw new Error('Save failed');
 
       const result = await response.json();
-      onSaved?.(result.asset || edited);
+      // Prefer server asset if present, else keep local sanitized state
+      const next = (result && result.asset) ? (result.asset as LayoutAsset) : sanitized;
+      setEdited(next);
+      onSaved?.(next);
 
     } catch (error) {
       alert(`Save failed: ${(error as Error).message}`);
@@ -581,6 +586,46 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   };
 
   const headerHeightPx = 56; // h-14
+
+  function sanitizeLayoutForSave(input: LayoutAsset): LayoutAsset {
+    try {
+      const cleanedItems = input.layout_data.items.map((it: any) => {
+        if (it?.type === 'content_ref' && it?.contentType === 'text') {
+          // Keep reference fields, drop heavy transient preview
+          const { fullTextContent, textMetadata, ...rest } = it || {};
+          return { ...rest } as Item;
+        }
+        return it as Item;
+      });
+      return {
+        ...input,
+        layout_data: {
+          ...input.layout_data,
+          items: cleanedItems,
+        },
+      } as LayoutAsset;
+    } catch {
+      return input;
+    }
+  }
+
+  // Persist current edited layout to server
+  const persistEdited = React.useCallback(async () => {
+    try {
+      const sanitized = sanitizeLayoutForSave(edited);
+      const response = await fetch(`/api/media-assets/${edited.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sanitized),
+      });
+      if (!response.ok) return;
+      const result = await response.json();
+      const next = (result && result.asset) ? (result.asset as LayoutAsset) : sanitized;
+      setEdited(next);
+    } catch (e) {
+      console.warn('[layout] persistEdited failed', e);
+    }
+  }, [edited]);
 
   return (
     <div className="bg-black text-white" style={{ height: `${design.height + headerHeightPx}px` }}>
@@ -1009,6 +1054,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           initialCategories={rteCategories}
           rteTargetId={rteTargetId}
           setEdited={setEdited}
+          persistEdited={persistEdited}
           onClose={() => {
             setShowRteModal(false);
             setRteTargetId(null);
@@ -2046,7 +2092,7 @@ const quillFormats = [
   'header', 'blockquote', 'code-block', 'list', 'indent', 'direction', 'align', 'link', 'image', 'video', 'formula'
 ];
 
-function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown, initialTitle, initialSlug, initialCategories, rteTargetId, setEdited }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void; mode?: 'html' | 'markdown'; initialMarkdown?: string; initialTitle?: string; initialSlug?: string; initialCategories?: string; rteTargetId?: string | null; setEdited?: React.Dispatch<React.SetStateAction<LayoutAsset>> }) {
+function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown, initialTitle, initialSlug, initialCategories, rteTargetId, setEdited, persistEdited }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void; mode?: 'html' | 'markdown'; initialMarkdown?: string; initialTitle?: string; initialSlug?: string; initialCategories?: string; rteTargetId?: string | null; setEdited?: React.Dispatch<React.SetStateAction<LayoutAsset>>; persistEdited?: () => Promise<void> }) {
   const [mounted, setMounted] = useState(false);
   const [html, setHtml] = useState(initialHtml || '');
   const [md, setMd] = useState(initialMarkdown || '');
@@ -2122,6 +2168,10 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                           },
                           updated_at: new Date().toISOString(),
                         } as LayoutAsset));
+                      }
+                      // Persist the layout immediately to avoid external refresh wiping the new item
+                      if (persistEdited) {
+                        try { await persistEdited(); } catch {}
                       }
                       onSave(md);
                     } catch (e) {
