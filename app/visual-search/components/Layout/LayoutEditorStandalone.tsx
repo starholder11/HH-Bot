@@ -338,31 +338,29 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     };
   }, []);
 
-  // Keyboard shortcuts: delete, duplicate, nudge for multi-select, escape to clear
+    // Keyboard shortcuts: delete, duplicate, nudge for multi-select, escape to clear
   useEffect(() => {
+    // Don't register keyboard handler at all while modals are open
+    if (isEditingText || showRteModal || showTransformPanel) {
+      console.log('[KEYBOARD DEBUG] Skipping keyboard handler registration - modal active');
+      return;
+    }
+
     function onKey(e: KeyboardEvent) {
       console.log('[KEYBOARD DEBUG]', {
         key: e.key,
         target: e.target?.tagName,
         targetClass: (e.target as HTMLElement)?.className,
-        isEditingText,
-        showRteModal,
-        showTransformPanel,
         selectedIdsSize: selectedIds.size,
         selectedId
       });
 
-      // Don't interfere with text editing or modals
+      // Double-check target isn't in an input/textarea
       const target = e.target as HTMLElement | null;
-      const isInModal = target && (target.closest('.rte-modal') || target.closest('.quill-container') || target.closest('input, textarea, [contenteditable="true"]'));
+      const isInInput = target && target.closest('input, textarea, [contenteditable="true"]');
 
-      if (
-        isEditingText ||
-        showRteModal ||
-        showTransformPanel ||
-        isInModal
-      ) {
-        console.log('[KEYBOARD DEBUG] Blocked - modal/editing active');
+      if (isInInput) {
+        console.log('[KEYBOARD DEBUG] Blocked - target is input/textarea');
         return;
       }
 
@@ -403,8 +401,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       if (e.key === 'ArrowUp') { e.preventDefault(); nudgeSelection(0, -step); }
       if (e.key === 'ArrowDown') { e.preventDefault(); nudgeSelection(0, step); }
     }
+
+    console.log('[KEYBOARD DEBUG] Registering keyboard handler');
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      console.log('[KEYBOARD DEBUG] Unregistering keyboard handler');
+      window.removeEventListener('keydown', onKey);
+    };
   }, [selectedIds, isEditingText, showRteModal, showTransformPanel, selectedId]);
 
   // Nudge all selected items by dx, dy grid units
