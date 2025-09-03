@@ -17,6 +17,7 @@ import ResultsGrid from '@/app/visual-search/components/ResultsGrid';
 import dynamic from 'next/dynamic';
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 const TransformPanel = dynamic(() => import('./TransformPanel'), { ssr: false });
+const ContinueConversationButton = dynamic(() => import('@/components/lore/ContinueConversationButton'), { ssr: false });
 import 'react-quill/dist/quill.snow.css';
 import 'katex/dist/katex.min.css';
 import hljs from 'highlight.js';
@@ -1446,7 +1447,16 @@ function renderItem(
         const textContent = (
           <div className="h-full w-full p-4 bg-white text-black overflow-auto">
             <div className="prose prose-sm max-w-none">
-              <h3 className="text-lg font-semibold mb-3 text-black">{title}</h3>
+              <div className="flex justify-between items-start mb-3">
+                <h3 className="text-lg font-semibold text-black">{title}</h3>
+                <ContinueConversationButton 
+                  slug={assetId.replace('text_timeline/', '')}
+                  title={title}
+                  contentType="text"
+                  variant="outline"
+                  size="sm"
+                />
+              </div>
               <div className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
                 {fullTextContent}
               </div>

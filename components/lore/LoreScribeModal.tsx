@@ -28,11 +28,11 @@ interface LoreScribeModalProps {
 }
 
 // Scribe Editor Component
-function ScribeEditor({ 
-  documentData, 
-  scribeEnabled, 
-  onScribeToggle, 
-  onSave 
+function ScribeEditor({
+  documentData,
+  scribeEnabled,
+  onScribeToggle,
+  onSave
 }: {
   documentData: TextAssetData | null;
   scribeEnabled: boolean;
@@ -52,7 +52,7 @@ function ScribeEditor({
 
   const handleToggle = async () => {
     if (!documentData?.slug) return;
-    
+
     setIsToggling(true);
     try {
       const response = await fetch('/api/chat/background-doc/toggle', {
@@ -63,7 +63,7 @@ function ScribeEditor({
           scribe_enabled: !scribeEnabled
         })
       });
-      
+
       if (response.ok) {
         onScribeToggle(!scribeEnabled);
       }
@@ -76,7 +76,7 @@ function ScribeEditor({
 
   const handleSave = async () => {
     if (!documentData?.slug) return;
-    
+
     setIsSaving(true);
     try {
       const response = await fetch('/api/text-assets', {
@@ -93,7 +93,7 @@ function ScribeEditor({
           commitOnSave: false
         })
       });
-      
+
       if (response.ok) {
         onSave(content);
         console.log('[scribe] Document saved successfully');
@@ -125,7 +125,7 @@ function ScribeEditor({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
+          <Button
             onClick={handleToggle}
             disabled={isToggling}
             variant={scribeEnabled ? "destructive" : "default"}
@@ -133,7 +133,7 @@ function ScribeEditor({
           >
             {scribeEnabled ? "Stop Scribe" : "Start Scribe"}
           </Button>
-          <Button 
+          <Button
             onClick={handleSave}
             disabled={isSaving}
             variant="outline"
@@ -141,7 +141,7 @@ function ScribeEditor({
           >
             {isSaving ? "Saving..." : "Save"}
           </Button>
-          <Button 
+          <Button
             onClick={openInLayoutEditor}
             variant="outline"
             size="sm"
@@ -198,21 +198,40 @@ export default function LoreScribeModal({
     }
   }, [greetingContext, isOpen]);
 
-  const loadDocumentData = async () => {
+    const loadDocumentData = async () => {
     if (!documentSlug) return;
     
     try {
-      // For now, we'll need to implement a GET endpoint for text assets
-      // Placeholder: construct data from available info
+      const response = await fetch(`/api/text-assets/${documentSlug}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDocumentData({
+          slug: data.slug,
+          title: data.title,
+          mdx: data.mdx,
+          scribe_enabled: data.scribe_enabled || false,
+          conversation_id: data.conversation_id || conversationId
+        });
+      } else {
+        // Fallback for missing documents
+        setDocumentData({
+          slug: documentSlug,
+          title: documentSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          mdx: documentContext || '',
+          scribe_enabled: false,
+          conversation_id: conversationId
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load document data:', error);
+      // Use fallback data
       setDocumentData({
         slug: documentSlug,
         title: documentSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         mdx: documentContext || '',
-        scribe_enabled: true, // Default, will be updated when we have GET endpoint
+        scribe_enabled: false,
         conversation_id: conversationId
       });
-    } catch (error) {
-      console.error('Failed to load document data:', error);
     }
   };
 
@@ -221,14 +240,14 @@ export default function LoreScribeModal({
     const startWords = /(start|begin|create|activate|enable|turn\s+on)/i;
     const stopWords = /(stop|end|pause|disable|turn\s+off|deactivate)/i;
     const scribeWords = /(scribe|background\s+doc|document|documentation)/i;
-    
+
     const isStart = startWords.test(message) && scribeWords.test(message);
     const isStop = stopWords.test(message) && scribeWords.test(message);
-    
+
     // Extract topic/title from message
     const topicMatch = message.match(/(?:scribe|doc|document)\s+(?:about\s+)?([^.!?]+)/i);
     const extractedTitle = topicMatch ? topicMatch[1].trim() : null;
-    
+
     return { isStart, isStop, extractedTitle };
   };
 
@@ -245,7 +264,7 @@ export default function LoreScribeModal({
             slug: intent.extractedTitle ? intent.extractedTitle.toLowerCase().replace(/\s+/g, '-') : undefined
           })
         });
-        
+
         if (response.ok) {
           const result = await response.json();
           setDocumentData({
@@ -256,7 +275,7 @@ export default function LoreScribeModal({
             conversation_id: result.conversationId
           });
           setActiveTab('scribe');
-          
+
           // Add confirmation message
           setMessages(prev => [...prev, {
             role: 'assistant',
@@ -277,7 +296,7 @@ export default function LoreScribeModal({
             scribe_enabled: false
           })
         });
-        
+
         if (response.ok) {
           setDocumentData(prev => prev ? { ...prev, scribe_enabled: false } : null);
           setMessages(prev => [...prev, {
@@ -341,8 +360,8 @@ export default function LoreScribeModal({
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] p-3 rounded-lg ${
-              msg.role === 'user' 
-                ? 'bg-blue-600 text-white' 
+              msg.role === 'user'
+                ? 'bg-blue-600 text-white'
                 : 'bg-neutral-800 text-neutral-100'
             }`}>
               <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -392,7 +411,7 @@ export default function LoreScribeModal({
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-5xl w-[92vw] h-[85vh] p-0 bg-neutral-950 border-neutral-800">
         <DialogTitle className="sr-only">Lore Chat & Scribe</DialogTitle>
         <DialogDescription className="sr-only">Conversational agent and document editor</DialogDescription>
-        
+
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'lore' | 'scribe')} className="h-full flex flex-col">
           <TabsList className="grid w-full grid-cols-2 bg-neutral-900 border-b border-neutral-800 rounded-none">
             <TabsTrigger value="lore" className="data-[state=active]:bg-neutral-800">
@@ -402,11 +421,11 @@ export default function LoreScribeModal({
               Scribe
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="lore" className="flex-1 m-0">
             {renderLoreTab()}
           </TabsContent>
-          
+
           <TabsContent value="scribe" className="flex-1 m-0">
             {renderScribeTab()}
           </TabsContent>

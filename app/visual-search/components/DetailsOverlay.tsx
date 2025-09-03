@@ -4,6 +4,7 @@ import type { UnifiedSearchResult } from '../types';
 import { getResultMediaUrl } from '../utils/mediaUrl';
 import MediaMetadata from './MediaMetadata';
 import dynamic from 'next/dynamic';
+import ContinueConversationButton from '@/components/lore/ContinueConversationButton';
 
 const LayoutViewer = dynamic(() => import('./Layout/LayoutViewer'), {
   ssr: false,
@@ -191,14 +192,26 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
         {/* Scrollable Content with momentum scrolling */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 [scrollbar-width:thin] [scrollbar-color:#3f3f46_transparent]" style={{ WebkitOverflowScrolling: 'touch' }}>
           {r.content_type === 'text' ? (
-            <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
-              {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
-              {!isLoadingText && textError && <div className="text-red-400">{textError}</div>}
-              {!isLoadingText && !textError && (
-                <>
-                  {fullText || toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'))}
-                </>
-              )}
+            <div className="space-y-3">
+              <div className="flex justify-between items-start">
+                <h3 className="text-lg font-semibold text-white">{r.title}</h3>
+                <ContinueConversationButton 
+                  slug={r.id || r.slug || ''}
+                  title={r.title}
+                  contentType="text"
+                  variant="outline"
+                  size="sm"
+                />
+              </div>
+              <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
+                {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
+                {!isLoadingText && textError && <div className="text-red-400">{textError}</div>}
+                {!isLoadingText && !textError && (
+                  <>
+                    {fullText || toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'))}
+                  </>
+                )}
+              </div>
             </div>
           ) : (
             <>
