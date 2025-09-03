@@ -74,6 +74,30 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(edited.title);
 
+  // Always-on capture-phase key blocker that checks modalActiveRef
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const onKeyCapture = (e: KeyboardEvent) => {
+      // Only intervene when modal is active
+      if (!modalActiveRef.current) return;
+      const target = e.target as HTMLElement | null;
+      const insideModal = !!(target && target.closest('.rte-modal'));
+      const isEditable = !!(target && target.closest('textarea, input, [contenteditable="true"]'));
+      // If keydown originated outside the modal editing surface, block destructive/navigation keys
+      if (!insideModal && !isEditable) {
+        if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Escape' || e.key.startsWith('Arrow')) {
+          console.log('[KEYBOARD DEBUG] Global capture (always-on) blocked key while modal active:', e.key, { insideModal, isEditable });
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyCapture, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyCapture, true);
+    };
+  }, []);
+
   // Unique mount/version log to verify correct build and code path
   useEffect(() => {
     console.log('[LAYOUT EDITOR MOUNT] visual-search LayoutEditorStandalone RTE_FIX_BUILD_2025_09_03_1');
