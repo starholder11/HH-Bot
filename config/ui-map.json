@@ -5,6 +5,7 @@
     "preparegenerate": "prepareGenerate",
     "generatecontent": "requestPinnedThenGenerate",
     "resolveassetrefs": "BACKEND_ONLY",
+    "createbackgrounddocdraft": "BACKEND_ONLY",
     "pintocanvas": "pinToCanvas",
     "pin": "pinToCanvas",
     "renameasset": "nameImage",
