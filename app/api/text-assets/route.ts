@@ -78,32 +78,33 @@ export async function POST(req: NextRequest) {
     if (isReadOnly) {
       if (!commitOnSave) {
         console.log('[text-assets] Skipping Git commit on save (UI toggle unchecked)');
-        // Best-effort enqueue to Redis with a very short timeout so save never blocks
+        // Enqueue via agentic backend (has Redis access)
         let enqueued = false;
         try {
-          const redisUrl = process.env.REDIS_AGENTIC_URL;
-          if (redisUrl) {
-            const r = new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1, enableOfflineQueue: false, connectTimeout: 300 } as any);
-            const draftKey = `textAsset:draft:${slug}`;
-            // Race connect against a short timeout
-            await Promise.race([
-              (r as any).connect?.() || Promise.resolve(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('redis-connect-timeout')), 300)),
-            ]);
-            // Use pipeline to minimize roundtrips and keep under tight time budget
-            await r
-              .multi()
-              .set(draftKey, JSON.stringify({ slug, indexYaml, mdx: String(mdx ?? ''), updatedAt: Date.now() }), 'EX', 60 * 60 * 24)
-              .lrem('textAssets:pending', 0, slug)
-              .rpush('textAssets:pending', slug)
-              .exec();
-            enqueued = true;
-            try { r.disconnect(); } catch {}
+          const agenticUrl = process.env.LANCEDB_API_URL;
+          if (agenticUrl) {
+            const response = await Promise.race([
+              fetch(`${agenticUrl}/api/text-assets/enqueue`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  slug,
+                  indexYaml,
+                  mdx: String(mdx ?? '')
+                })
+              }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('agentic-timeout')), 1500))
+            ]) as Response;
+            
+            if (response.ok) {
+              const result = await response.json();
+              enqueued = result.enqueued || false;
+            }
           } else {
-            console.warn('[text-assets] No Redis configured; cannot enqueue draft for batch commit');
+            console.warn('[text-assets] No agentic URL configured; cannot enqueue draft for batch commit');
           }
         } catch (qe) {
-          console.warn('[text-assets] Redis enqueue skipped:', (qe as Error)?.message || qe);
+          console.warn('[text-assets] Agentic enqueue skipped:', (qe as Error)?.message || qe);
         }
         return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped', enqueued });
       }
