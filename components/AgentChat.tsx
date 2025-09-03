@@ -298,7 +298,7 @@ export default function AgentChat() {
   const isLore = currentAgent === 'conversational';
   const showLoreModal = isLore && !forceDocked;
 
-  
+
 
   const chatSurface = (
     <>
@@ -469,10 +469,10 @@ export default function AgentChat() {
                       body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts })
                     });
                   } catch (ackError) {
-                    
+
                   }
                 } else {
-                  
+
                 }
                 return;
               }
@@ -487,10 +487,10 @@ export default function AgentChat() {
                       body: JSON.stringify({ correlationId, step: toolNameForAck, artifacts })
                     });
                   } catch (ackError) {
-                    
+
                   }
                 } else {
-                  
+
                 }
                 return;
               }
@@ -514,10 +514,10 @@ export default function AgentChat() {
                       body: JSON.stringify({ correlationId, step: toolNameForAck })
                     });
                   } catch (ackError) {
-                    
+
                   }
                 } else {
-                  
+
                 }
                 return;
               }
@@ -531,10 +531,10 @@ export default function AgentChat() {
                       body: JSON.stringify({ correlationId, step: toolNameForAck })
                     });
                   } catch (ackError) {
-                    
+
                   }
                 } else {
-                  
+
                 }
                 return;
               }
@@ -596,6 +596,15 @@ export default function AgentChat() {
           isOpen={true}
           onClose={() => setForceDocked(true)}
           initialTab="lore"
+          messages={messages}
+          input={input}
+          setInput={setInput}
+          busy={busy}
+          setBusy={setBusy}
+          onSend={send}
+          lastResponseId={lastResponseId}
+          setLastResponseId={setLastResponseId}
+          conversationalContext={conversationalContext}
         />
       ) : (
         chatSurface

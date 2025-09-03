@@ -25,6 +25,16 @@ interface LoreScribeModalProps {
   documentContext?: string;
   conversationId?: string;
   greetingContext?: string;
+  // AgentChat state integration
+  messages?: Msg[];
+  input?: string;
+  setInput?: (input: string) => void;
+  busy?: boolean;
+  setBusy?: (busy: boolean) => void;
+  onSend?: () => void;
+  lastResponseId?: string | null;
+  setLastResponseId?: (id: string | null) => void;
+  conversationalContext?: string;
 }
 
 // Scribe Editor Component
@@ -173,15 +183,37 @@ export default function LoreScribeModal({
   initialTab = 'lore',
   documentContext,
   conversationId,
-  greetingContext
+  greetingContext,
+  // AgentChat state (when integrated)
+  messages: externalMessages,
+  input: externalInput,
+  setInput: externalSetInput,
+  busy: externalBusy,
+  setBusy: externalSetBusy,
+  onSend: externalOnSend,
+  lastResponseId: externalLastResponseId,
+  setLastResponseId: externalSetLastResponseId,
+  conversationalContext
 }: LoreScribeModalProps) {
   const [activeTab, setActiveTab] = useState<'lore' | 'scribe'>(initialTab);
   const [documentData, setDocumentData] = useState<TextAssetData | null>(null);
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [runId, setRunId] = useState(0);
-  const [lastResponseId, setLastResponseId] = useState<string | null>(null);
+  
+  // Use external state if provided (integrated mode), otherwise internal state (standalone mode)
+  const [internalMessages, setInternalMessages] = useState<Msg[]>([]);
+  const [internalInput, setInternalInput] = useState('');
+  const [internalBusy, setInternalBusy] = useState(false);
+  const [internalRunId, setInternalRunId] = useState(0);
+  const [internalLastResponseId, setInternalLastResponseId] = useState<string | null>(null);
+  
+  const messages = externalMessages || internalMessages;
+  const setMessages = externalMessages ? undefined : setInternalMessages;
+  const input = externalInput !== undefined ? externalInput : internalInput;
+  const setInput = externalSetInput || setInternalInput;
+  const busy = externalBusy !== undefined ? externalBusy : internalBusy;
+  const setBusy = externalSetBusy || setInternalBusy;
+  const lastResponseId = externalLastResponseId !== undefined ? externalLastResponseId : internalLastResponseId;
+  const setLastResponseId = externalSetLastResponseId || setInternalLastResponseId;
+  
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Load document data when modal opens
@@ -200,7 +232,7 @@ export default function LoreScribeModal({
 
     const loadDocumentData = async () => {
     if (!documentSlug) return;
-    
+
     try {
       const response = await fetch(`/api/text-assets/${documentSlug}`);
       if (response.ok) {
@@ -313,7 +345,7 @@ export default function LoreScribeModal({
   const send = async () => {
     if (!input.trim() || busy) return;
 
-    // Check for scribe commands
+    // Check for scribe commands first
     const scribeIntent = detectScribeIntent(input.trim());
     if (scribeIntent.isStart || scribeIntent.isStop) {
       await handleScribeCommand(scribeIntent);
@@ -321,22 +353,35 @@ export default function LoreScribeModal({
       return;
     }
 
+    // Use external send function if available (integrated mode)
+    if (externalOnSend) {
+      externalOnSend();
+      return;
+    }
+
+    // Standalone mode - handle sending internally
+    if (!setMessages) return;
+    
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     setMessages(next);
     setInput('');
     setBusy(true);
-    setRunId(id => id + 1);
+    setInternalRunId(id => id + 1);
   };
 
   const onDelta = (delta: string) => {
-    setMessages(prev => {
-      const last = prev[prev.length - 1];
-      if (last?.role === 'assistant') {
-        return [...prev.slice(0, -1), { ...last, content: last.content + delta }];
-      } else {
-        return [...prev, { role: 'assistant', content: delta }];
-      }
-    });
+    // In integrated mode, AgentChat handles delta updates
+    // In standalone mode, we handle them here
+    if (setMessages) {
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant') {
+          return [...prev.slice(0, -1), { ...last, content: last.content + delta }];
+        } else {
+          return [...prev, { role: 'assistant', content: delta }];
+        }
+      });
+    }
   };
 
   const onDone = () => {
@@ -431,8 +476,8 @@ export default function LoreScribeModal({
           </TabsContent>
         </Tabs>
 
-        {/* Stream processing */}
-        {busy && runId > 0 && (
+        {/* Stream processing - only in standalone mode */}
+        {busy && !externalMessages && internalRunId > 0 && (
           <ConversationalStreamRunner
             messages={messages}
             onDelta={onDelta}
