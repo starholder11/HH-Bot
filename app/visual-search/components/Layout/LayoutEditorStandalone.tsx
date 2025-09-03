@@ -341,14 +341,28 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   // Keyboard shortcuts: delete, duplicate, nudge for multi-select, escape to clear
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      console.log('[KEYBOARD DEBUG]', {
+        key: e.key,
+        target: e.target?.tagName,
+        targetClass: (e.target as HTMLElement)?.className,
+        isEditingText,
+        showRteModal,
+        showTransformPanel,
+        selectedIdsSize: selectedIds.size,
+        selectedId
+      });
+
       // Don't interfere with text editing or modals
       const target = e.target as HTMLElement | null;
+      const isInModal = target && (target.closest('.rte-modal') || target.closest('.quill-container') || target.closest('input, textarea, [contenteditable="true"]'));
+
       if (
         isEditingText ||
         showRteModal ||
         showTransformPanel ||
-        (target && (target.closest('.rte-modal') || target.closest('.quill-container') || target.closest('input, textarea, [contenteditable="true"]')))
+        isInModal
       ) {
+        console.log('[KEYBOARD DEBUG] Blocked - modal/editing active');
         return;
       }
 
@@ -356,22 +370,28 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
       // Escape to clear selection
       if (e.key === 'Escape') {
+        console.log('[KEYBOARD DEBUG] Escape - clearing selection');
         e.preventDefault();
         setSelectedId(null);
         setSelectedIds(new Set());
         return;
       }
 
-      if (selectedIds.size === 0) return;
+      if (selectedIds.size === 0) {
+        console.log('[KEYBOARD DEBUG] No selection - ignoring');
+        return;
+      }
 
       // Duplicate selection
       if (isMeta && e.key.toLowerCase() === 'd') {
+        console.log('[KEYBOARD DEBUG] Duplicate shortcut');
         e.preventDefault();
         duplicateSelected();
         return;
       }
       // Delete selection
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        console.log('[KEYBOARD DEBUG] DELETE/BACKSPACE - deleting selected items:', Array.from(selectedIds));
         e.preventDefault();
         deleteSelected();
         return;
@@ -385,7 +405,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedIds, isEditingText, showRteModal, showTransformPanel]);
+  }, [selectedIds, isEditingText, showRteModal, showTransformPanel, selectedId]);
 
   // Nudge all selected items by dx, dy grid units
   function nudgeSelection(dx: number, dy: number) {
