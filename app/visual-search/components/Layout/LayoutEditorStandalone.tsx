@@ -88,9 +88,10 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     setRteTargetId(id);
     setRteMode(isAsset ? 'markdown' : 'html');
 
-    // CRITICAL: Set ref immediately to block keyboard handler
+        // CRITICAL: Set ref immediately to block keyboard handler
     modalActiveRef.current = true;
     console.log('[RTE DEBUG] Modal ref set to true immediately');
+    console.log('[RTE DEBUG] modalActiveRef.current is now:', modalActiveRef.current);
 
     console.log('[RTE DEBUG] Modal state set to true, clearing selection...');
     // Clear selection AFTER modal is open
@@ -99,6 +100,16 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
     // Force a re-render to ensure state is updated
     console.log('[RTE DEBUG] State updates queued, forcing re-render...');
+
+    // Test: manually trigger a keyboard event to see if our ref is working
+    setTimeout(() => {
+      console.log('[RTE DEBUG] Testing ref after timeout - modalActiveRef.current:', modalActiveRef.current);
+      if (modalActiveRef.current) {
+        console.log('[RTE DEBUG] SUCCESS: Ref is still true after timeout');
+      } else {
+        console.log('[RTE DEBUG] FAILURE: Ref was reset to false');
+      }
+    }, 100);
 
     if (isAsset) {
       // For text assets, extract slug from refId/contentId and load from GitHub
@@ -355,6 +366,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
       // Keyboard shortcuts: delete, duplicate, nudge for multi-select, escape to clear
   useEffect(() => {
+    console.log('[KEYBOARD DEBUG] ===== KEYBOARD HANDLER useEffect RUNNING =====');
     console.log('[KEYBOARD DEBUG] useEffect triggered with state:', {
       isEditingText,
       showRteModal,
