@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAgentStream } from '@/app/visual-search/hooks/useAgentStream';
+import { LoreScribeModal } from '@/components/lore/LoreScribeModal';
 
 type Msg = { role: 'user' | 'assistant' | 'tool'; content: string };
 
@@ -591,15 +592,11 @@ export default function AgentChat() {
         />
       )}
       {showLoreModal ? (
-        <Dialog open>
-          <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-5xl w-[92vw] p-0 bg-neutral-950 border-neutral-800">
-            <DialogTitle className="sr-only">Lore Chat</DialogTitle>
-            <DialogDescription className="sr-only">Conversational agent output</DialogDescription>
-            <div className="max-h-[78vh] overflow-y-auto p-4">
-              {chatSurface}
-            </div>
-          </DialogContent>
-        </Dialog>
+        <LoreScribeModal
+          isOpen={true}
+          onClose={() => setForceDocked(true)}
+          initialTab="lore"
+        />
       ) : (
         chatSurface
       )}
