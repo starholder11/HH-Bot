@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { LayoutAsset } from '@/app/visual-search/types';
 import type { UnifiedSearchResult } from '@/app/visual-search/types';
@@ -58,6 +58,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [rteHtml, setRteHtml] = useState<string>('');
   const [rteMode, setRteMode] = useState<'html' | 'markdown'>('html');
   const [rteMarkdown, setRteMarkdown] = useState<string>('');
+  // Use ref to track modal state immediately (bypass React's async state updates)
+  const modalActiveRef = useRef(false);
+  const modalKeydownBlockerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
   // RTE metadata (for Markdown mode)
   const [rteTitle, setRteTitle] = useState<string>('Document Title');
   const [rteSlug, setRteSlug] = useState<string>('');
@@ -70,6 +73,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(edited.title);
 
+  // Unique mount/version log to verify correct build and code path
+  useEffect(() => {
+    console.log('[LAYOUT EDITOR MOUNT] visual-search LayoutEditorStandalone RTE_FIX_REAPPLY_2025_09_03_2');
+  }, []);
+
     const openRteForId = React.useCallback(async (id: string, forceMarkdown?: boolean) => {
     setSelectedId(id);
     setSelectedIds(new Set([id]));
@@ -80,6 +88,25 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     const isAsset = forceMarkdown || isTextAsset;
 
     console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
+    // Immediately mark modal active and install capture-phase blocker to prevent global handlers
+    modalActiveRef.current = true;
+    if (typeof document !== 'undefined' && !modalKeydownBlockerRef.current) {
+      const block = (e: KeyboardEvent) => {
+        if (!modalActiveRef.current) return;
+        const target = e.target as HTMLElement | null;
+        const isEditable = !!(target && target.closest('textarea, input, [contenteditable="true"]'));
+        if (!isEditable) {
+          if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Escape' || e.key.startsWith('Arrow')) {
+            console.log('[KEYBOARD DEBUG] Global capture block while modal open:', e.key);
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      };
+      document.addEventListener('keydown', block, true);
+      modalKeydownBlockerRef.current = block;
+      console.log('[RTE DEBUG] Installed global capture-phase key blocker');
+    }
     setRteMode(isAsset ? 'markdown' : 'html');
 
     if (isAsset) {
@@ -341,7 +368,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Don't interfere with text editing or modals
-      if (isEditingText || showRteModal || showTransformPanel) return;
+      if (isEditingText || showRteModal || showTransformPanel || modalActiveRef.current) return;
 
       const isMeta = e.metaKey || e.ctrlKey;
 
@@ -376,7 +403,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedIds, isEditingText]);
+  }, [selectedIds, isEditingText, showRteModal, showTransformPanel]);
 
   // Nudge all selected items by dx, dy grid units
   function nudgeSelection(dx: number, dy: number) {
@@ -2061,7 +2088,7 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
   const isMarkdown = mode === 'markdown';
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 rte-modal" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
           <div className="flex items-center justify-between p-3 border-b border-neutral-700">
             <div className="text-neutral-200 text-sm">{isMarkdown ? 'Edit Markdown' : 'Edit Rich Text'}</div>
