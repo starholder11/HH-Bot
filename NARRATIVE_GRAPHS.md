@@ -75,8 +75,11 @@ This specification consolidates and replaces Shadow Creation and Shadow Graphs w
 ## System Overview
 
 ### Ordering of Operations (authoring → explore → formalize)
-1) Text creation (conversation)
-   - Save as draft (YAML+MDX) with `status: draft`. OAI sync runs immediately on save (hash-gated). Webhook ingest runs only when `status: committed` after a manual/cron Git commit.
+1) Integrated lore-scribe creation
+   - User engages in lore conversation, optionally activates scribe with "start scribe [topic]"
+   - Scribe creates flowing narrative content in real-time, saves as draft (YAML+MDX) with `status: draft`, `scribe_enabled: true`
+   - OAI sync runs immediately on save (hash-gated). Webhook ingest runs only when `status: committed` after manual/cron Git commit
+   - User controls AI assistance with "stop scribe" / "start scribe" commands that update YAML persistence
 
 2) Background processing
    - Queue entity detection job → extract candidates, resolve against lore vector store, create/update entities and instances in Neo4j.
@@ -560,10 +563,13 @@ Retry/backoff: exponential up to 24h for vector store or graph service outages. 
 
 ## APIs (spec-level; reusing existing routes where possible)
 
-### Text creation (conversational)
-- Save JSON+MDX to S3 (existing write helpers).
-- Immediately upload MDX body to lore vector store (use existing uploader without LanceDB side-effect).
-- Record draft in Redis context under `narrativeGraphs.draftTextDocs`.
+### Integrated Lore-Scribe System
+- **Modal interface**: Tabbed lore chat + document editor in single modal
+- **Scribe commands**: "start scribe [topic]" / "stop scribe" with fuzzy intent matching
+- **Adaptive summarization**: Literary narrative style, responsive to conversation directives
+- **YAML control**: `scribe_enabled` field persists user preferences across sessions
+- **Document-as-context**: Resume conversations using existing text asset content (no chat persistence needed)
+- **Immediate OAI sync**: Upload MDX body to lore vector store on every scribe update
 
 ### Entity oracle (non-streaming lore check)
 - Endpoint: `/api/narrative-graphs/entity-oracle`
@@ -723,12 +729,20 @@ Users can effortlessly incorporate generated content:
 
 ---
 
-## Living Document & Notification/Review UX
+## Integrated Lore Chat & Scribe System
 
-### Living Document
-- A background "living document" compiles narrative text (entity summaries, scene descriptions, relationships, manifestations) as conversation proceeds.
-- It stays in draft until formalization; when committed, it becomes the canonical timeline entry backing the canon graph.
-- Uses existing timeline JSON structure for compatibility with current publishing flow.
+### Lore-Scribe Modal Integration
+- **Tabbed modal interface**: "Lore" (conversation) and "Scribe" (document editor) tabs in single modal
+- **Real-time document creation**: Scribe creates flowing narrative content from lore conversations
+- **User-controlled AI assistance**: "Start Scribe" / "Stop Scribe" buttons control background summarization
+- **Bidirectional flow**: Documents can launch conversations, conversations create documents
+- **Document-as-context**: When resuming conversations, lore agent reads existing text asset for context
+
+### Document Creation & Style
+- **Adaptive writing style**: Literary narrative by default, responsive to conversation directives
+- **Natural structure**: Flowing article/story format with structured metadata at bottom
+- **YAML persistence**: `scribe_enabled` field controls summarizer behavior across sessions
+- **Session-based**: Scribe works during active chats only (conversation persistence is future TODO)
 
 ### Notifications
 - Subtle toasts for: text ingested; entities detected; manifestations ready; relationships consolidated.
@@ -881,10 +895,10 @@ Users can effortlessly incorporate generated content:
 ## Implementation Roadmap
 
 ### Phase 1: Foundation (Months 1-2)
-- Implement basic conversation analysis and text synthesis
-- Create living document system with real-time updates
-- Establish integration points with existing lore agent
-- Build basic notification and review interfaces
+- Implement integrated lore chat + scribe modal system with tabbed interface
+- Create adaptive summarizer with literary narrative style and user control
+- Establish bidirectional document-conversation flow with "Continue Conversation" buttons
+- Build scribe control system with YAML persistence (`scribe_enabled` field)
 - Immediate vector store upload (decouple LanceDB path)
 - Entity detection worker with resolution via vector store; Redis caching
 - Neo4j schema, constraints, idempotent writers; instance creation within scenes
