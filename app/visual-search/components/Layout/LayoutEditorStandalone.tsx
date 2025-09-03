@@ -2115,13 +2115,27 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
   // Force focus on textarea when modal opens in markdown mode
   useEffect(() => {
     if (mounted && mode === 'markdown' && textareaRef.current) {
-      const timer = setTimeout(() => {
+      const focusNow = () => {
         textareaRef.current?.focus();
-        textareaRef.current?.setSelectionRange(textareaRef.current.value.length, textareaRef.current.value.length);
-      }, 100);
+        const len = textareaRef.current?.value?.length ?? 0;
+        textareaRef.current?.setSelectionRange(len, len);
+      };
+      const raf = requestAnimationFrame(focusNow);
+      const timer = setTimeout(focusNow, 120);
       return () => clearTimeout(timer);
     }
   }, [mounted, mode]);
+
+  // HARD trap: while modal is open, stop keydown from reaching window handlers (capture phase)
+  useEffect(() => {
+    if (!mounted) return;
+    const block = (e: KeyboardEvent) => {
+      // Allow default editing, just stop propagation beyond document
+      e.stopPropagation();
+    };
+    document.addEventListener('keydown', block, true);
+    return () => document.removeEventListener('keydown', block, true);
+  }, [mounted]);
 
   if (!mounted || typeof document === 'undefined') return null;
 
