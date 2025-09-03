@@ -227,10 +227,10 @@ export default function LoreScribeModal({
 
   // Add greeting message when opening with context
   useEffect(() => {
-    if (greetingContext && isOpen && messages.length === 0) {
+    if (greetingContext && isOpen && messages.length === 0 && setMessages) {
       setMessages([{ role: 'assistant', content: greetingContext }]);
     }
-  }, [greetingContext, isOpen]);
+  }, [greetingContext, isOpen, setMessages]);
 
     const loadDocumentData = async () => {
     if (!documentSlug) return;
@@ -311,13 +311,15 @@ export default function LoreScribeModal({
             layoutUrl: result.layoutUrl
           } as any);
           setActiveTab('scribe');
-          
+
           // Add confirmation message with layout link
           const layoutLink = result.layoutUrl ? ` You can also view it in the [layout editor](${result.layoutUrl}).` : '';
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `Started scribe for "${result.title}". I'll document our conversation as we chat. You can switch to the Scribe tab to see the document.${layoutLink}`
-          }]);
+          if (setMessages) {
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: `Started scribe for "${result.title}". I'll document our conversation as we chat. You can switch to the Scribe tab to see the document.${layoutLink}`
+            }]);
+          }
         }
       } catch (error) {
         console.error('Failed to start scribe:', error);
@@ -336,10 +338,12 @@ export default function LoreScribeModal({
 
         if (response.ok) {
           setDocumentData(prev => prev ? { ...prev, scribe_enabled: false } : null);
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: 'Scribe stopped. You now have full editorial control of the document.'
-          }]);
+          if (setMessages) {
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: 'Scribe stopped. You now have full editorial control of the document.'
+            }]);
+          }
         }
       } catch (error) {
         console.error('Failed to stop scribe:', error);
