@@ -58,6 +58,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [rteHtml, setRteHtml] = useState<string>('');
   const [rteMode, setRteMode] = useState<'html' | 'markdown'>('html');
   const [rteMarkdown, setRteMarkdown] = useState<string>('');
+
+  // Use ref to track modal state immediately (bypass React's async state updates)
+  const modalActiveRef = useRef(false);
   // RTE metadata (for Markdown mode)
   const [rteTitle, setRteTitle] = useState<string>('Document Title');
   const [rteSlug, setRteSlug] = useState<string>('');
@@ -77,7 +80,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     const isTextAsset = item?.type === 'content_ref' && item?.contentType === 'text';
     const isAsset = forceMarkdown || isTextAsset;
 
-        console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
+            console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
     console.log('[RTE DEBUG] Current modal state before open:', { showRteModal, isEditingText, showTransformPanel });
 
     // Set modal state FIRST to block keyboard handler
@@ -85,10 +88,17 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     setRteTargetId(id);
     setRteMode(isAsset ? 'markdown' : 'html');
 
+    // CRITICAL: Set ref immediately to block keyboard handler
+    modalActiveRef.current = true;
+    console.log('[RTE DEBUG] Modal ref set to true immediately');
+
     console.log('[RTE DEBUG] Modal state set to true, clearing selection...');
     // Clear selection AFTER modal is open
     setSelectedId(null);
     setSelectedIds(new Set());
+
+    // Force a re-render to ensure state is updated
+    console.log('[RTE DEBUG] State updates queued, forcing re-render...');
 
     if (isAsset) {
       // For text assets, extract slug from refId/contentId and load from GitHub
@@ -350,12 +360,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       showRteModal,
       showTransformPanel,
       selectedIdsSize: selectedIds.size,
-      selectedId
+      selectedId,
+      modalActiveRef: modalActiveRef.current
     });
 
     // Don't register keyboard handler at all while modals are open
-    if (isEditingText || showRteModal || showTransformPanel) {
-      console.log('[KEYBOARD DEBUG] Skipping keyboard handler registration - modal active');
+    if (isEditingText || showRteModal || showTransformPanel || modalActiveRef.current) {
+      console.log('[KEYBOARD DEBUG] Skipping keyboard handler registration - modal active (ref check)');
       return;
     }
 
@@ -423,6 +434,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       window.removeEventListener('keydown', onKey);
     };
   }, [selectedIds, isEditingText, showRteModal, showTransformPanel, selectedId]);
+
+  // Cleanup modal ref on unmount
+  useEffect(() => {
+    return () => {
+      modalActiveRef.current = false;
+    };
+  }, []);
 
   // Nudge all selected items by dx, dy grid units
   function nudgeSelection(dx: number, dy: number) {
@@ -1102,10 +1120,12 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           rteTargetId={rteTargetId}
           setEdited={setEdited}
           persistEdited={persistEdited}
-          onClose={() => {
-            setShowRteModal(false);
-            setRteTargetId(null);
-          }}
+                  onClose={() => {
+          setShowRteModal(false);
+          setRteTargetId(null);
+          modalActiveRef.current = false;
+          console.log('[RTE DEBUG] Modal closed, ref reset to false');
+        }}
           onSave={(content) => {
             setEdited(prev => ({
               ...prev,
@@ -1126,6 +1146,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             } as LayoutAsset));
             setShowRteModal(false);
             setRteTargetId(null);
+            modalActiveRef.current = false;
+            console.log('[RTE DEBUG] Modal closed after save, ref reset to false');
           }}
         />
       )}
