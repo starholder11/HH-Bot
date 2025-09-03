@@ -9,7 +9,7 @@ const CRON_INTERVAL_MS = Number(process.env.TEXT_ASSETS_BATCH_INTERVAL_MS || (15
 
 export async function POST(_req: NextRequest) {
   try {
-    const redisUrl = process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL;
+    const redisUrl = process.env.REDIS_AGENTIC_URL;
     if (!redisUrl) return NextResponse.json({ success: false, error: 'Redis not configured' }, { status: 500 });
     const r = new Redis(redisUrl);
 

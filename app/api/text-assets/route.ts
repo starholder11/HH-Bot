@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
         console.log('[text-assets] Skipping Git commit on save (TEXT_ASSETS_COMMIT_ON_SAVE=false)');
         // Enqueue draft for later batch commit
         try {
-          const redisUrl = process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL;
+          const redisUrl = process.env.REDIS_AGENTIC_URL;
           if (redisUrl) {
             const r = new Redis(redisUrl);
             const draftKey = `textAsset:draft:${slug}`;

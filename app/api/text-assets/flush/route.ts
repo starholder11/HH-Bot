@@ -10,7 +10,7 @@ const BATCH_MAX = Number(process.env.TEXT_ASSETS_BATCH_MAX || 10);
 
 export async function POST(_req: NextRequest) {
   try {
-    const redisUrl = process.env.REDIS_AGENTIC_URL || process.env.REDIS_URL;
+    const redisUrl = process.env.REDIS_AGENTIC_URL;
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
     if (!redisUrl) return NextResponse.json({ success: false, error: 'Redis not configured' }, { status: 500 });
     if (!token) return NextResponse.json({ success: false, error: 'GITHUB_TOKEN not configured' }, { status: 500 });
