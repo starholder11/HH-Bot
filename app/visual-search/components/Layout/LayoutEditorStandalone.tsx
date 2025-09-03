@@ -77,13 +77,15 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     const isTextAsset = item?.type === 'content_ref' && item?.contentType === 'text';
     const isAsset = forceMarkdown || isTextAsset;
 
-    console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
+        console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
+    console.log('[RTE DEBUG] Current modal state before open:', { showRteModal, isEditingText, showTransformPanel });
 
     // Set modal state FIRST to block keyboard handler
     setShowRteModal(true);
     setRteTargetId(id);
     setRteMode(isAsset ? 'markdown' : 'html');
 
+    console.log('[RTE DEBUG] Modal state set to true, clearing selection...');
     // Clear selection AFTER modal is open
     setSelectedId(null);
     setSelectedIds(new Set());
@@ -341,8 +343,16 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     };
   }, []);
 
-    // Keyboard shortcuts: delete, duplicate, nudge for multi-select, escape to clear
+      // Keyboard shortcuts: delete, duplicate, nudge for multi-select, escape to clear
   useEffect(() => {
+    console.log('[KEYBOARD DEBUG] useEffect triggered with state:', {
+      isEditingText,
+      showRteModal,
+      showTransformPanel,
+      selectedIdsSize: selectedIds.size,
+      selectedId
+    });
+
     // Don't register keyboard handler at all while modals are open
     if (isEditingText || showRteModal || showTransformPanel) {
       console.log('[KEYBOARD DEBUG] Skipping keyboard handler registration - modal active');
@@ -350,12 +360,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     }
 
     function onKey(e: KeyboardEvent) {
-      console.log('[KEYBOARD DEBUG]', {
+      console.log('[KEYBOARD DEBUG] Key event:', {
         key: e.key,
         target: e.target?.tagName,
         targetClass: (e.target as HTMLElement)?.className,
         selectedIdsSize: selectedIds.size,
-        selectedId
+        selectedId,
+        currentModalState: { isEditingText, showRteModal, showTransformPanel }
       });
 
       // Double-check target isn't in an input/textarea
@@ -405,7 +416,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       if (e.key === 'ArrowDown') { e.preventDefault(); nudgeSelection(0, step); }
     }
 
-    console.log('[KEYBOARD DEBUG] Registering keyboard handler');
+    console.log('[KEYBOARD DEBUG] Registering keyboard handler with selectedIds:', Array.from(selectedIds));
     window.addEventListener('keydown', onKey);
     return () => {
       console.log('[KEYBOARD DEBUG] Unregistering keyboard handler');
