@@ -61,6 +61,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
   // Use ref to track modal state immediately (bypass React's async state updates)
   const modalActiveRef = useRef(false);
+  const modalKeydownBlockerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
   // RTE metadata (for Markdown mode)
   const [rteTitle, setRteTitle] = useState<string>('Document Title');
   const [rteSlug, setRteSlug] = useState<string>('');
@@ -92,6 +93,25 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     modalActiveRef.current = true;
     console.log('[RTE DEBUG] Modal ref set to true immediately');
     console.log('[RTE DEBUG] modalActiveRef.current is now:', modalActiveRef.current);
+
+    // Install capture-phase global key blocker immediately
+    if (typeof document !== 'undefined' && !modalKeydownBlockerRef.current) {
+      const block = (e: KeyboardEvent) => {
+        if (!modalActiveRef.current) return;
+        const target = e.target as HTMLElement | null;
+        const isEditable = !!(target && target.closest('textarea, input, [contenteditable="true"]'));
+        if (!isEditable) {
+          if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Escape' || e.key.startsWith('Arrow')) {
+            console.log('[KEYBOARD DEBUG] Global capture block while modal open:', e.key);
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      };
+      document.addEventListener('keydown', block, true);
+      modalKeydownBlockerRef.current = block;
+      console.log('[RTE DEBUG] Installed global capture-phase key blocker');
+    }
 
     console.log('[RTE DEBUG] Modal state set to true, clearing selection...');
     // Clear selection AFTER modal is open
@@ -1153,6 +1173,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             setRteTargetId(null);
             modalActiveRef.current = false;
             console.log('[RTE DEBUG] Modal closed, ref reset to false');
+            if (typeof document !== 'undefined' && modalKeydownBlockerRef.current) {
+              document.removeEventListener('keydown', modalKeydownBlockerRef.current, true);
+              modalKeydownBlockerRef.current = null;
+              console.log('[RTE DEBUG] Removed global capture-phase key blocker');
+            }
           }}
           onSave={(content) => {
             setEdited(prev => ({
@@ -1176,6 +1201,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             setRteTargetId(null);
             modalActiveRef.current = false;
             console.log('[RTE DEBUG] Modal closed after save, ref reset to false');
+            if (typeof document !== 'undefined' && modalKeydownBlockerRef.current) {
+              document.removeEventListener('keydown', modalKeydownBlockerRef.current, true);
+              modalKeydownBlockerRef.current = null;
+              console.log('[RTE DEBUG] Removed global capture-phase key blocker (save)');
+            }
           }}
         />
       )}
