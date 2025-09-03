@@ -71,9 +71,6 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [editingTitle, setEditingTitle] = useState(edited.title);
 
     const openRteForId = React.useCallback(async (id: string, forceMarkdown?: boolean) => {
-    // Do not keep selection while modal is open to avoid delete-key removing the block
-    setSelectedId(null);
-    setSelectedIds(new Set());
     const item = edited.layout_data.items.find(i => i.id === id) as any;
 
     // Check if this is a text content_ref (text asset)
@@ -81,7 +78,15 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     const isAsset = forceMarkdown || isTextAsset;
 
     console.log('[RTE DEBUG] Opening RTE for item:', { id, type: item?.type, contentType: item?.contentType, isTextAsset, isAsset, item });
+
+    // Set modal state FIRST to block keyboard handler
+    setShowRteModal(true);
+    setRteTargetId(id);
     setRteMode(isAsset ? 'markdown' : 'html');
+
+    // Clear selection AFTER modal is open
+    setSelectedId(null);
+    setSelectedIds(new Set());
 
     if (isAsset) {
       // For text assets, extract slug from refId/contentId and load from GitHub
@@ -136,8 +141,6 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       setRteHtml(existing);
       console.log('[RTE DEBUG] Using HTML mode with content:', existing);
     }
-    setRteTargetId(id);
-    setShowRteModal(true);
   }, [edited.layout_data.items]);
 
   // Expose openRteForId globally for the DOC button
