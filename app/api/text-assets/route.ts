@@ -7,6 +7,7 @@ import { Octokit } from '@octokit/rest';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+const COMMIT_ON_SAVE = (process.env.TEXT_ASSETS_COMMIT_ON_SAVE ?? 'true') !== 'false';
 
 function slugify(input: string): string {
   return (input || '')
@@ -51,7 +52,6 @@ export async function POST(req: NextRequest) {
 
     const indexYaml = yaml.dump(indexDoc, { noRefs: true });
 
-    // If running on Vercel serverless (read-only FS), fallback to GitHub commit
     // Attempt OpenAI File Search upsert FIRST (immediate lore visibility per spec)
     let oai: { fileId?: string; vectorStoreFileId?: string } | undefined;
     try {
@@ -61,10 +61,15 @@ export async function POST(req: NextRequest) {
       console.warn('[text-assets] OAI upsert failed (non-blocking):', (e as Error)?.message || e);
     }
 
+    // If running on Vercel serverless (read-only FS), optionally commit to GitHub
     const isReadOnly = !!process.env.VERCEL;
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
 
     if (isReadOnly) {
+      if (!COMMIT_ON_SAVE) {
+        console.log('[text-assets] Skipping Git commit on save (TEXT_ASSETS_COMMIT_ON_SAVE=false)');
+        return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped' });
+      }
       if (!token) {
         console.error('[text-assets] Missing GITHUB_TOKEN in serverless environment');
         return NextResponse.json({ success: false, error: 'Serverless FS is read-only and GITHUB_TOKEN is not configured' }, { status: 500 });

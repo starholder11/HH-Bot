@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateGitHubWebhook, extractGitHubSignature } from '@/lib/webhook-security';
 import { syncTimelineEntry, getFileContentFromGitHub } from '@/lib/openai-sync';
+import yaml from 'js-yaml';
 import { uploadImage, uploadFile } from '@/lib/s3-upload';
 import { updateFileInGitHub, replaceImageReferences, getFileContentAsString } from '@/lib/github-file-updater';
 // import { updateSearchIndexFile } from '@/lib/search/search-index';
@@ -200,6 +201,21 @@ export async function POST(request: NextRequest) {
         console.log(`   🏷️ Base name: ${baseName}`);
         console.log(`   📄 File name: ${fileName}`);
         console.log(`   📝 Content length: ${fileContent.length} chars`);
+
+        // Gate by YAML status: only ingest when index.yaml has status: committed
+        try {
+          const idxPath = `content/timeline/${baseName}/index.yaml`;
+          const idx = await getFileContentFromGitHub(idxPath, branch);
+          const meta = yaml.load(idx) as any;
+          const status = (meta?.status || '').toString();
+          if (status !== 'committed') {
+            console.log(`⏭️  Skipping ingest for ${baseName}: status is '${status}' (requires 'committed')`);
+            continue;
+          }
+        } catch (merr) {
+          console.warn(`⚠️  Missing or unparsable index.yaml for ${baseName}, skipping ingest.`, merr);
+          continue;
+        }
 
         // Use SQS queue for ingestion only (no direct sync to avoid duplicates)
         try {
