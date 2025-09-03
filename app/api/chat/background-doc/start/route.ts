@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       // Serverless: enqueue draft via agentic backend (no direct server-to-server calls within Vercel)
       let enqueued = false;
       try {
-        const agenticUrl = process.env.LANCEDB_API_URL;
+        const agenticUrl = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL;
         if (agenticUrl) {
           const response = (await Promise.race([
             fetch(`${agenticUrl}/api/text-assets/enqueue`, {
@@ -69,13 +69,13 @@ export async function POST(req: NextRequest) {
             const result = await response.json();
             enqueued = !!result.enqueued;
           } else {
-            console.warn('[background-doc] Agentic enqueue returned non-OK status');
+            console.warn('[background-doc] Agent backend enqueue returned non-OK status');
           }
         } else {
-          console.warn('[background-doc] No LANCEDB_API_URL configured; cannot enqueue draft');
+          console.warn('[background-doc] No AGENT_BACKEND_URL configured; cannot enqueue draft');
         }
       } catch (err) {
-        console.warn('[background-doc] Agentic enqueue failed (non-blocking):', (err as Error)?.message || err);
+        console.warn('[background-doc] Agent backend enqueue failed (non-blocking):', (err as Error)?.message || err);
       }
 
       console.log('[background-doc] Started scribe (serverless) for conversation:', {

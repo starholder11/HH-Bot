@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         // Enqueue via agentic backend (has Redis access)
         let enqueued = false;
         try {
-          const agenticUrl = process.env.LANCEDB_API_URL;
+          const agenticUrl = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL;
           if (agenticUrl) {
             const response = await Promise.race([
               fetch(`${agenticUrl}/api/text-assets/enqueue`, {
@@ -101,16 +101,16 @@ export async function POST(req: NextRequest) {
               }),
               new Promise((_, reject) => setTimeout(() => reject(new Error('agentic-timeout')), 1500))
             ]) as Response;
-            
+
             if (response.ok) {
               const result = await response.json();
               enqueued = result.enqueued || false;
             }
           } else {
-            console.warn('[text-assets] No agentic URL configured; cannot enqueue draft for batch commit');
+            console.warn('[text-assets] No AGENT_BACKEND_URL configured; cannot enqueue draft for batch commit');
           }
         } catch (qe) {
-          console.warn('[text-assets] Agentic enqueue skipped:', (qe as Error)?.message || qe);
+          console.warn('[text-assets] Agent backend enqueue skipped:', (qe as Error)?.message || qe);
         }
         return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped', enqueued });
       }
