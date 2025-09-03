@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { LayoutAsset } from '@/app/visual-search/types';
 import type { UnifiedSearchResult } from '@/app/visual-search/types';
@@ -73,6 +73,11 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [imageModalTargetId, setImageModalTargetId] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(edited.title);
+
+  // Unique mount/version log to verify correct build and code path
+  useEffect(() => {
+    console.log('[LAYOUT EDITOR MOUNT] visual-search LayoutEditorStandalone RTE_FIX_BUILD_2025_09_03_1');
+  }, []);
 
     const openRteForId = React.useCallback(async (id: string, forceMarkdown?: boolean) => {
     const item = edited.layout_data.items.find(i => i.id === id) as any;
