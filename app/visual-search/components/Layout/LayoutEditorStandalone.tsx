@@ -341,7 +341,15 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Don't interfere with text editing or modals
-      if (isEditingText || showRteModal || showTransformPanel) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        isEditingText ||
+        showRteModal ||
+        showTransformPanel ||
+        (target && (target.closest('.rte-modal') || target.closest('.quill-container') || target.closest('input, textarea, [contenteditable="true"]')))
+      ) {
+        return;
+      }
 
       const isMeta = e.metaKey || e.ctrlKey;
 
@@ -376,7 +384,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedIds, isEditingText]);
+  }, [selectedIds, isEditingText, showRteModal, showTransformPanel]);
 
   // Nudge all selected items by dx, dy grid units
   function nudgeSelection(dx: number, dy: number) {
@@ -2107,8 +2115,8 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
   const isMarkdown = mode === 'markdown';
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 rte-modal" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }} onKeyDown={(e)=>{ e.stopPropagation(); }}>
+      <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col" onKeyDown={(e)=>{ e.stopPropagation(); }}>
           <div className="flex items-center justify-between p-3 border-b border-neutral-700">
             <div className="text-neutral-200 text-sm">{isMarkdown ? 'Edit Markdown' : 'Edit Rich Text'}</div>
             <div className="flex gap-2">
@@ -2199,6 +2207,7 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                   value={md}
                   onChange={(e) => setMd(e.target.value)}
                   placeholder="# Title\n\nBody..."
+                  onKeyDownCapture={(e)=>{ e.stopPropagation(); }}
                 />
               </div>
               <div className="w-full h-full bg-white text-neutral-900 border border-neutral-300 rounded text-sm p-3 overflow-auto">
@@ -2216,6 +2225,7 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                   onChange={setHtml}
                   placeholder="Start typing…"
                   className="h-full"
+                  onKeyDownCapture={(e:any)=>{ e.stopPropagation(); }}
                 />
               </div>
             </div>
