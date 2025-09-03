@@ -71,8 +71,9 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   const [editingTitle, setEditingTitle] = useState(edited.title);
 
     const openRteForId = React.useCallback(async (id: string, forceMarkdown?: boolean) => {
-    setSelectedId(id);
-    setSelectedIds(new Set([id]));
+    // Do not keep selection while modal is open to avoid delete-key removing the block
+    setSelectedId(null);
+    setSelectedIds(new Set());
     const item = edited.layout_data.items.find(i => i.id === id) as any;
 
     // Check if this is a text content_ref (text asset)
@@ -842,7 +843,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                       setSelectedIds(next);
                     }
                   }}
-                  onDoubleClickCapture={() => {
+                  onDoubleClickCapture={(e) => {
+                    e.stopPropagation();
                     if (it.type === 'inline_text') {
                       setSelectedId(it.id);
                       setSelectedIds(new Set([it.id]));
