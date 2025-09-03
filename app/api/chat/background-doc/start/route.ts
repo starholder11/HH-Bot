@@ -51,20 +51,76 @@ export async function POST(req: NextRequest) {
 
     if (!textAssetResponse.ok || !textAssetResult.success) {
       console.error('[background-doc] Text asset creation failed:', textAssetResult);
-      return NextResponse.json({ 
-        error: 'Failed to create text asset', 
-        details: textAssetResult.error || 'Unknown error' 
+      return NextResponse.json({
+        error: 'Failed to create text asset',
+        details: textAssetResult.error || 'Unknown error'
       }, { status: 500 });
     }
 
-    console.log('[background-doc] Started scribe for conversation:', { conversationId, slug: finalSlug, title: finalTitle });
+    // Now create a layout that contains this text asset
+    const layoutTitle = `${finalTitle} - Layout`;
+    const layoutSlug = `${finalSlug}-layout`;
+    
+    const layoutPayload = {
+      title: layoutTitle,
+      description: `Layout containing the text asset: ${finalTitle}`,
+      layout_data: {
+        cellSize: 20,
+        designSize: { width: 1200, height: 800 },
+        items: [
+          {
+            id: `text_${Date.now()}`,
+            type: 'content_ref',
+            contentType: 'text',
+            contentId: `text_timeline/${finalSlug}`,
+            refId: `text_timeline/${finalSlug}`,
+            snippet: finalTitle,
+            title: finalTitle,
+            x: 0,
+            y: 0,
+            w: 8,
+            h: 6,
+            nx: 0,
+            ny: 0,
+            nw: 8/15, // 8 columns out of 15
+            nh: 6/10, // 6 rows out of 10
+            transform: {}
+          }
+        ]
+      },
+      updated_at: new Date().toISOString()
+    };
+
+    // Create layout via existing layouts API
+    const { POST: layoutsHandler } = await import('../../layouts/route');
+    const layoutRequest = {
+      json: async () => layoutPayload
+    } as NextRequest;
+
+    const layoutResponse = await layoutsHandler(layoutRequest);
+    const layoutResult = await layoutResponse.json();
+
+    if (!layoutResponse.ok || !layoutResult.success) {
+      console.warn('[background-doc] Layout creation failed, but text asset created:', layoutResult);
+      // Continue anyway - text asset is created successfully
+    }
+
+    console.log('[background-doc] Started scribe for conversation:', { 
+      conversationId, 
+      slug: finalSlug, 
+      title: finalTitle,
+      layoutId: layoutResult.id,
+      textAssetPaths: textAssetResult.paths
+    });
 
     return NextResponse.json({
       success: true,
       slug: finalSlug,
       title: finalTitle,
       conversationId,
-      scribe_enabled: true
+      scribe_enabled: true,
+      layoutId: layoutResult.id,
+      layoutUrl: layoutResult.id ? `/layout-editor/visual-search?id=${layoutResult.id}` : null
     });
 
   } catch (error) {

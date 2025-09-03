@@ -118,7 +118,9 @@ function ScribeEditor({
   const openInLayoutEditor = () => {
     if (documentData?.slug) {
       // Close modal and navigate to layout editor
-      window.location.href = `/layout-editor/visual-search?highlight=${documentData.slug}`;
+      // Try layout-specific URL first, fallback to highlight
+      const layoutUrl = (documentData as any).layoutUrl || `/layout-editor/visual-search?highlight=${documentData.slug}`;
+      window.location.href = layoutUrl;
     }
   };
 
@@ -135,7 +137,7 @@ function ScribeEditor({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
+          <Button
             onClick={handleToggle}
             disabled={isToggling}
             variant={scribeEnabled ? "destructive" : "default"}
@@ -143,7 +145,7 @@ function ScribeEditor({
           >
             {scribeEnabled ? "Stop Scribe" : "Start Scribe"}
           </Button>
-          <Button 
+          <Button
             onClick={handleSave}
             disabled={isSaving}
             variant="outline"
@@ -151,7 +153,7 @@ function ScribeEditor({
           >
             {isSaving ? "Saving..." : "Save"}
           </Button>
-          <Button 
+          <Button
             onClick={openInLayoutEditor}
             variant="outline"
             size="sm"
@@ -297,21 +299,24 @@ export default function LoreScribeModal({
           })
         });
 
-        if (response.ok) {
+                if (response.ok) {
           const result = await response.json();
           setDocumentData({
             slug: result.slug,
             title: result.title,
             mdx: `# ${result.title}\n\n*The scribe will populate this document as your conversation continues...*`,
             scribe_enabled: true,
-            conversation_id: result.conversationId
-          });
+            conversation_id: result.conversationId,
+            layoutId: result.layoutId,
+            layoutUrl: result.layoutUrl
+          } as any);
           setActiveTab('scribe');
-
-          // Add confirmation message
+          
+          // Add confirmation message with layout link
+          const layoutLink = result.layoutUrl ? ` You can also view it in the [layout editor](${result.layoutUrl}).` : '';
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: `Started scribe for "${result.title}". I'll document our conversation as we chat. You can switch to the Scribe tab to see the document.`
+            content: `Started scribe for "${result.title}". I'll document our conversation as we chat. You can switch to the Scribe tab to see the document.${layoutLink}`
           }]);
         }
       } catch (error) {
@@ -402,16 +407,16 @@ export default function LoreScribeModal({
   const renderLoreTab = () => (
     <div className="h-full flex flex-col max-h-[75vh]">
       {/* Chat messages with proper scrolling */}
-      <div 
-        ref={scrollRef} 
+      <div
+        ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 [scrollbar-width:thin] [scrollbar-color:#3f3f46_transparent]"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] p-3 rounded-lg ${
-              msg.role === 'user' 
-                ? 'bg-blue-600 text-white' 
+              msg.role === 'user'
+                ? 'bg-blue-600 text-white'
                 : 'bg-neutral-800 text-neutral-100'
             }`}>
               <div className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>
@@ -461,7 +466,7 @@ export default function LoreScribeModal({
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-5xl w-[92vw] h-[85vh] p-0 bg-neutral-950 border-neutral-800 flex flex-col">
         <DialogTitle className="sr-only">Lore Chat & Scribe</DialogTitle>
         <DialogDescription className="sr-only">Conversational agent and document editor</DialogDescription>
-        
+
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'lore' | 'scribe')} className="h-full flex flex-col min-h-0">
           <TabsList className="grid w-full grid-cols-2 bg-neutral-900 border-b border-neutral-800 rounded-none flex-shrink-0">
             <TabsTrigger value="lore" className="data-[state=active]:bg-neutral-800">
@@ -471,11 +476,11 @@ export default function LoreScribeModal({
               Scribe
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="lore" className="flex-1 m-0 min-h-0">
             {renderLoreTab()}
           </TabsContent>
-          
+
           <TabsContent value="scribe" className="flex-1 m-0 min-h-0">
             {renderScribeTab()}
           </TabsContent>
