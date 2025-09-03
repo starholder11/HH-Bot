@@ -122,10 +122,10 @@ function ScribeEditor({
     }
   };
 
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header with controls */}
-      <div className="flex justify-between items-center p-4 border-b border-neutral-800">
+    return (
+    <div className="h-full flex flex-col max-h-[75vh]">
+      {/* Header with controls - fixed at top */}
+      <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-neutral-800 bg-neutral-950">
         <div>
           <h3 className="text-lg font-semibold text-white">
             {documentData?.title || 'Untitled Document'}
@@ -135,7 +135,7 @@ function ScribeEditor({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
+          <Button 
             onClick={handleToggle}
             disabled={isToggling}
             variant={scribeEnabled ? "destructive" : "default"}
@@ -143,7 +143,7 @@ function ScribeEditor({
           >
             {scribeEnabled ? "Stop Scribe" : "Start Scribe"}
           </Button>
-          <Button
+          <Button 
             onClick={handleSave}
             disabled={isSaving}
             variant="outline"
@@ -151,7 +151,7 @@ function ScribeEditor({
           >
             {isSaving ? "Saving..." : "Save"}
           </Button>
-          <Button
+          <Button 
             onClick={openInLayoutEditor}
             variant="outline"
             size="sm"
@@ -161,12 +161,12 @@ function ScribeEditor({
         </div>
       </div>
 
-      {/* Document Editor */}
-      <div className="flex-1 p-4">
+      {/* Document Editor with proper scrolling */}
+      <div className="flex-1 p-4 min-h-0">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="w-full h-full bg-neutral-900 border border-neutral-700 rounded-md p-4 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full h-full bg-neutral-900 border border-neutral-700 rounded-md p-4 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 [scrollbar-width:thin] [scrollbar-color:#3f3f46_transparent]"
           placeholder="The scribe will populate this document as your conversation continues..."
           spellCheck={false}
         />
@@ -197,14 +197,14 @@ export default function LoreScribeModal({
 }: LoreScribeModalProps) {
   const [activeTab, setActiveTab] = useState<'lore' | 'scribe'>(initialTab);
   const [documentData, setDocumentData] = useState<TextAssetData | null>(null);
-  
+
   // Use external state if provided (integrated mode), otherwise internal state (standalone mode)
   const [internalMessages, setInternalMessages] = useState<Msg[]>([]);
   const [internalInput, setInternalInput] = useState('');
   const [internalBusy, setInternalBusy] = useState(false);
   const [internalRunId, setInternalRunId] = useState(0);
   const [internalLastResponseId, setInternalLastResponseId] = useState<string | null>(null);
-  
+
   const messages = externalMessages || internalMessages;
   const setMessages = externalMessages ? undefined : setInternalMessages;
   const input = externalInput !== undefined ? externalInput : internalInput;
@@ -213,7 +213,7 @@ export default function LoreScribeModal({
   const setBusy = externalSetBusy || setInternalBusy;
   const lastResponseId = externalLastResponseId !== undefined ? externalLastResponseId : internalLastResponseId;
   const setLastResponseId = externalSetLastResponseId || setInternalLastResponseId;
-  
+
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Load document data when modal opens
@@ -361,7 +361,7 @@ export default function LoreScribeModal({
 
     // Standalone mode - handle sending internally
     if (!setMessages) return;
-    
+
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     setMessages(next);
     setInput('');
@@ -398,25 +398,30 @@ export default function LoreScribeModal({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
-  // Render chat interface for Lore tab
+    // Render chat interface for Lore tab
   const renderLoreTab = () => (
-    <div className="h-full flex flex-col">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="h-full flex flex-col max-h-[75vh]">
+      {/* Chat messages with proper scrolling */}
+      <div 
+        ref={scrollRef} 
+        className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 [scrollbar-width:thin] [scrollbar-color:#3f3f46_transparent]"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] p-3 rounded-lg ${
-              msg.role === 'user'
-                ? 'bg-blue-600 text-white'
+              msg.role === 'user' 
+                ? 'bg-blue-600 text-white' 
                 : 'bg-neutral-800 text-neutral-100'
             }`}>
-              <div className="whitespace-pre-wrap">{msg.content}</div>
+              <div className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Input area */}
-      <div className="p-4 border-t border-neutral-800">
+      {/* Input area - fixed at bottom */}
+      <div className="flex-shrink-0 p-4 border-t border-neutral-800 bg-neutral-950">
         <div className="flex gap-2">
           <input
             value={input}
@@ -452,13 +457,13 @@ export default function LoreScribeModal({
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-5xl w-[92vw] h-[85vh] p-0 bg-neutral-950 border-neutral-800">
+        <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-5xl w-[92vw] h-[85vh] p-0 bg-neutral-950 border-neutral-800 flex flex-col">
         <DialogTitle className="sr-only">Lore Chat & Scribe</DialogTitle>
         <DialogDescription className="sr-only">Conversational agent and document editor</DialogDescription>
-
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'lore' | 'scribe')} className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 bg-neutral-900 border-b border-neutral-800 rounded-none">
+        
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'lore' | 'scribe')} className="h-full flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-2 bg-neutral-900 border-b border-neutral-800 rounded-none flex-shrink-0">
             <TabsTrigger value="lore" className="data-[state=active]:bg-neutral-800">
               Lore
             </TabsTrigger>
@@ -466,12 +471,12 @@ export default function LoreScribeModal({
               Scribe
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="lore" className="flex-1 m-0">
+          
+          <TabsContent value="lore" className="flex-1 m-0 min-h-0">
             {renderLoreTab()}
           </TabsContent>
-
-          <TabsContent value="scribe" className="flex-1 m-0">
+          
+          <TabsContent value="scribe" className="flex-1 m-0 min-h-0">
             {renderScribeTab()}
           </TabsContent>
         </Tabs>
