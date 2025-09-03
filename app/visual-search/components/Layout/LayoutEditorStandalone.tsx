@@ -77,6 +77,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   // Always-on capture-phase key blocker that checks modalActiveRef
   useEffect(() => {
     if (typeof document === 'undefined') return;
+    console.log('[KEYBOARD DEBUG] Installing always-on capture key blocker (mount)');
     const onKeyCapture = (e: KeyboardEvent) => {
       // Only intervene when modal is active
       if (!modalActiveRef.current) return;
@@ -93,8 +94,10 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
       }
     };
     document.addEventListener('keydown', onKeyCapture, true);
+    console.log('[KEYBOARD DEBUG] Always-on capture key blocker attached');
     return () => {
       document.removeEventListener('keydown', onKeyCapture, true);
+      console.log('[KEYBOARD DEBUG] Always-on capture key blocker removed');
     };
   }, []);
 
