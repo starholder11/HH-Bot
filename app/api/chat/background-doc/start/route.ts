@@ -27,31 +27,35 @@ export async function POST(req: NextRequest) {
     const finalSlug = slug || slugify(title || 'untitled-conversation');
     const finalTitle = title || 'Untitled Conversation';
 
-        // Create text asset directly (avoid server-side fetch)
-    const baseDir = path.join(process.cwd(), 'content', 'timeline', finalSlug);
-    const indexPath = path.join(baseDir, 'index.yaml');
-    const contentPath = path.join(baseDir, 'content.mdx');
-
-    const indexDoc = {
+            // Use the existing text-assets API for full integration (OAI sync, layout insertion, etc.)
+    const textAssetPayload = {
       slug: finalSlug,
       title: finalTitle,
-      date: new Date().toISOString(),
-      categories: [],
       source: 'conversation',
       status: 'draft',
       scribe_enabled: true,
-      conversation_id: conversationId
+      conversation_id: conversationId,
+      mdx: `# ${finalTitle}\n\n*The scribe will populate this document as your conversation continues...*`,
+      commitOnSave: false,
+      categories: []
     };
 
-    const indexYaml = yaml.dump(indexDoc, { noRefs: true });
-    const mdxContent = `# ${finalTitle}\n\n*The scribe will populate this document as your conversation continues...*`;
+    // Import and call the text-assets handler directly (same process, no HTTP)
+    const { POST: textAssetsHandler } = await import('../../text-assets/route');
+    const mockRequest = {
+      json: async () => textAssetPayload
+    } as NextRequest;
 
-    // Write files to disk
-    if (!fs.existsSync(baseDir)) {
-      fs.mkdirSync(baseDir, { recursive: true });
+    const textAssetResponse = await textAssetsHandler(mockRequest);
+    const textAssetResult = await textAssetResponse.json();
+
+    if (!textAssetResponse.ok || !textAssetResult.success) {
+      console.error('[background-doc] Text asset creation failed:', textAssetResult);
+      return NextResponse.json({ 
+        error: 'Failed to create text asset', 
+        details: textAssetResult.error || 'Unknown error' 
+      }, { status: 500 });
     }
-    fs.writeFileSync(indexPath, indexYaml, 'utf-8');
-    fs.writeFileSync(contentPath, mdxContent, 'utf-8');
 
     console.log('[background-doc] Started scribe for conversation:', { conversationId, slug: finalSlug, title: finalTitle });
 
