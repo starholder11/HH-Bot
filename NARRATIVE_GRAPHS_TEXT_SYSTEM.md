@@ -212,85 +212,44 @@ Remediation:
 
 ## OAI File Search Sync (Secondary Ingest)
 
-Purpose: ensure the lore agent has immediate visibility of draft and evolving text assets without waiting for Git webhook ingestion.
+Purpose: ensure the lore agent has immediate visibility of draft and evolving text assets on every save.
 
-Behavior:
-- On create/update of `content.mdx`, upload to the configured vector store (e.g., `vs_6860128217f08191bacd30e1475d8566`).
-- Upsert by deterministic `external_id` = `timeline:<slug>`; replace or mark superseded versions.
+Behavior (final):
+- Upsert to the configured vector store on create/update of `content.mdx`.
+- Upsert by deterministic `external_id` = `timeline:<slug>` (or versioned filename if preferred) and hash-gate to skip no-ops.
 - Include minimal metadata: `{ slug, title, source, updatedAt }`.
-- Retries with exponential backoff; failures recorded; no user-blocking.
+- Retries with exponential backoff; failures recorded; non-blocking to the user.
 
 Idempotency:
-- Hash MDX body; skip upload if unchanged.
-- Cache last known hash in Redis: `textAsset:lastHash:<slug>`.
+- Compute `sha256(mdx)` and skip upsert if unchanged.
+- Cache last known hash in Redis: `textAsset:lastHash:<slug>` (optional, in addition to provider-side dedupe).
 
-### Detailed Upsert Design
-
-Objectives:
-- Mirror the Git-webhook-based ingestion semantics, but trigger from the app on each create/update to keep lore immediately current.
-
-Inputs:
-- Slug, Title, Source, Status, Categories (from `index.yaml`)
-- MDX body (from `content.mdx`)
-- Optional correlationId (from agent/message flow)
-
-Transform:
-- Strip disallowed HTML (already enforced by editor); keep pure Markdown/MDX text.
-- Normalize whitespace, ensure trailing newline.
-
-Identity & Versioning:
-- external_id: `timeline:<slug>` (stable per asset)
-- content_hash: SHA-256 of MDX body
-- Store mapping `{ slug -> file_id, last_content_hash }` in Redis: `oaiFile:timeline:<slug>`
-- On upsert:
-  - If `last_content_hash === new_hash`: no-op
-  - Else: call OAI File Search upsert; update Redis mapping
-
-Metadata Mapping (sent alongside file where supported):
-- `{ slug, title, source, categories, status, updatedAt, correlationId? }`
-
-Chunking Policy:
-- Prefer single-file upload letting OAI handle chunking. If provider limits require manual chunking, use 8–16k character chunks with overlap 150–300 chars and attach `chunkIndex` in metadata.
-
-API Contract (pseudo):
-```http
-POST /internal/oai/upsert-file
-{
-  "externalId": "timeline:<slug>",
-  "metadata": { "slug": "<slug>", "title": "<title>", "source": "layout|conversation|import", "categories": [..], "status": "draft|committed", "updatedAt": "ISO8601", "correlationId": "..." },
-  "content": "<mdx>"
-}
-
-// Response
-{ "fileId": "file_abc", "externalId": "timeline:<slug>", "hash": "<sha256>", "stored": true }
-```
-
-Client/Service Pseudocode:
-```ts
-const key = `oaiFile:timeline:${slug}`;
-const last = await redis.get(key); // { fileId?, hash? }
-const hash = sha256(mdx);
-if (last?.hash === hash) return { skipped: true };
-
-const res = await upsertToOAI({ externalId, metadata, content: mdx });
-await redis.set(key, { fileId: res.fileId, hash }, TTL_30d);
-```
-
-Error Handling & Retries:
-- 429/5xx: exponential backoff (jittered) up to 24h
-- Validation failures: log + surface toast in UI; provide “Retry” and “Download MDX” debug tools
-- Partial outages: queue to `oai_upsert_dlq` with replay job
-
-Rate Limits & Backpressure:
-- Debounce rapid updates per slug (e.g., ≥ 5s)
-- Global concurrency cap (e.g., 5–10) with queueing
+Manual/cron (optional):
+- A per‑slug manual endpoint remains available to force re-sync.
+- A cron endpoint may batch-check and backfill any missed upserts, but is not the primary path.
 
 Observability:
-- Log fields: `externalId`, `fileId`, `hash`, `status`, `latencyMs`, `retries`, `corrId`
-- Metrics: success rate, p95 latency, skipped-noop count, DLQ depth
+- Log fields: `externalId`, `fileId`, `hash`, `status`, `latencyMs`, `retries`, `corrId`.
 
 Security:
-- Scrub metadata, ensure access controls; redact private content if workspace marked private (configurable)
+- Server-side credentials only.
+
+---
+
+## Save Semantics & Publication
+
+- Save/Update:
+  - Write/refresh `index.yaml` + `content.mdx` for `content/timeline/<slug>/`.
+  - Perform immediate OAI upsert (hash-gated) on every save.
+  - Do NOT Git commit on every save in serverless or app path; commits are manual/cron.
+
+- Publish (Formalize):
+  - A manual action (or scheduled batch) commits selected slugs to Git.
+  - Webhook ingestion is gated by YAML and only processes when `index.yaml.status === committed`.
+
+YAML Metadata Gates:
+- `status: draft|committed` — webhook ingests only on committed content.
+- Optional OAI fields (for audit only): `oai_last_hash`, `oai_last_synced_at`.
 
 ---
 
@@ -340,9 +299,10 @@ Failure Modes & Recovery:
 - “stop background doc” → halt summarizer.
 - “open doc <slug> in layout editor” → client command to open editor focused on asset text.
 
-### HTTP Endpoints (internal)
-- POST `/api/text-assets` → create/update asset from payload.
-- POST `/api/text-assets/:slug/sync-oai` → force re-sync to OAI.
+### HTTP Endpoints (final)
+- POST `/api/text-assets` → create/update asset; immediate OAI upsert; no Git commit.
+- GET `/api/text-assets/:slug/sync-oai` → manual re-sync (safety/backfill; not primary).
+- POST `/api/text-assets/formalize` → commit selected slugs (sets status to committed) to trigger webhook ingest.
 - GET `/api/text-assets/:slug` → fetch YAML+MDX.
 - POST `/api/chat/background-doc/start` → start summarizer for `conversationId` + `slug|title`.
 - POST `/api/chat/background-doc/stop` → stop summarizer.

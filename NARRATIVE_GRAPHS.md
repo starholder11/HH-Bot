@@ -11,7 +11,7 @@ This specification consolidates and replaces Shadow Creation and Shadow Graphs w
 ---
 
 ## Non-Negotiable Constraints
-- Immediate lore visibility: new conversational text must be uploaded to the OpenAI File Search vector store right away; lore agent queries remain current.
+- Immediate lore visibility: on every save, upsert MDX to OAI File Search (hash-gated) so the lore agent remains current; canonical ingest via webhook remains gated by YAML `status` and separate from OAI sync.
 - Deferred canonicalization: GitHub commits happen later in batches; do not couple conversational writes with publication.
 - Infra reuse: S3 for JSON docs, Redis for context/state, SQS/Lambda for background jobs, LanceDB for unified search, agent orchestrator for workflows.
 - Graph sanity: one entity per concept per canonical graph; scene-bounded instances; no cross-scene instance links; cross-scene meaning lives at the entity layer.
@@ -76,15 +76,14 @@ This specification consolidates and replaces Shadow Creation and Shadow Graphs w
 
 ### Ordering of Operations (authoring → explore → formalize)
 1) Text creation (conversation)
-   - Save as JSON to S3 in a timeline-compatible structure.
-   - Immediately upload the text to the lore vector store so the lore agent can retrieve it.
+   - Save as draft (YAML+MDX) with `status: draft`. OAI sync runs immediately on save (hash-gated). Webhook ingest runs only when `status: committed` after a manual/cron Git commit.
 
 2) Background processing
    - Queue entity detection job → extract candidates, resolve against lore vector store, create/update entities and instances in Neo4j.
    - Queue relationship analysis job → intra-scene instance links; periodic roll-up into cross-scene entity relationships.
 
-3) Optional canonicalization
-   - User selects drafts to formalize → batch commit JSON docs to GitHub.
+3) Canonicalization (publish)
+   - User flips `status: committed` (or runs formalize) → webhook ingests; OAI sync remains independent.
    - Existing webhook path updates LanceDB; canon graph is marked complete/immutable; derivatives may be spawned.
 
 ---
@@ -1077,5 +1076,6 @@ Narrative Graphs delivers immediate conversational intelligence and bounded, dur
 - Immediate value: lore-aware conversations without canonical friction.
 - Long-term integrity: clean identity, bounded relationships, scalable graphs.
 - Minimal change: reuses storage, queues, search, and agent contracts already in production.
+
 
 
