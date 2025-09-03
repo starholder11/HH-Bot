@@ -88,35 +88,36 @@ export async function POST(req: NextRequest) {
       const owner = 'starholder11';
       const repo = 'HH-Bot';
 
-      async function upsertFile(filePath: string, content: string, message: string) {
-        try {
-          // Check if file exists to get sha
-          let sha: string | undefined = undefined;
-          try {
-            const { data } = await octokit.repos.getContent({ owner, repo, path: filePath, ref: 'main' });
-            if (!Array.isArray(data) && 'sha' in data) sha = (data as any).sha;
-          } catch (e) {
-            // not found is fine, we'll create it
-          }
+      // Single-commit write using Git Data API (tree + commit)
+      try {
+        const branchRef = `heads/main`;
+        const { data: refData } = await octokit.git.getRef({ owner, repo, ref: branchRef });
+        const baseCommitSha = (refData as any).object?.sha as string;
+        const { data: baseCommit } = await octokit.git.getCommit({ owner, repo, commit_sha: baseCommitSha });
+        const baseTreeSha = (baseCommit as any).tree?.sha as string;
 
-          await octokit.repos.createOrUpdateFileContents({
-            owner, repo, path: filePath, branch: 'main',
-            message,
-            content: Buffer.from(content, 'utf-8').toString('base64'),
-            sha,
-            committer: { name: 'text-bot', email: 'bot@starholder' },
-            author: { name: 'text-bot', email: 'bot@starholder' },
-          });
-        } catch (e) {
-          console.error('[text-assets] GitHub upsert failed', filePath, e);
-          throw e;
-        }
+        const { data: indexBlob } = await octokit.git.createBlob({ owner, repo, content: indexYaml, encoding: 'utf-8' });
+        const { data: contentBlob } = await octokit.git.createBlob({ owner, repo, content: String(mdx ?? ''), encoding: 'utf-8' });
+
+        const { data: newTree } = await octokit.git.createTree({
+          owner,
+          repo,
+          base_tree: baseTreeSha,
+          tree: [
+            { path: `content/timeline/${slug}/index.yaml`, mode: '100644', type: 'blob', sha: indexBlob.sha },
+            { path: `content/timeline/${slug}/content.mdx`, mode: '100644', type: 'blob', sha: contentBlob.sha },
+          ],
+        });
+
+        const message = `chore(text): create/update ${slug} (index+content)`;
+        const { data: newCommit } = await octokit.git.createCommit({ owner, repo, message, tree: newTree.sha!, parents: [baseCommitSha] });
+        await octokit.git.updateRef({ owner, repo, ref: branchRef, sha: newCommit.sha!, force: false });
+        console.log('[text-assets] Committed files to GitHub in one commit:', { slug, commit: newCommit.sha });
+      } catch (e) {
+        console.error('[text-assets] GitHub single-commit write failed', e);
+        throw e;
       }
 
-      await upsertFile(`content/timeline/${slug}/index.yaml`, indexYaml, `chore(text): create/update ${slug} index`);
-      await upsertFile(`content/timeline/${slug}/content.mdx`, String(mdx ?? ''), `chore(text): create/update ${slug} content`);
-
-      console.log('[text-assets] Committed files to GitHub:', { slug });
       return NextResponse.json({ success: true, slug, paths: { indexPath: `github:content/timeline/${slug}/index.yaml`, contentPath: `github:content/timeline/${slug}/content.mdx` }, oai });
     }
 
