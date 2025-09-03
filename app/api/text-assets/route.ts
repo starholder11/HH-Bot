@@ -10,7 +10,7 @@ import Redis from 'ioredis';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-const COMMIT_ON_SAVE = (process.env.TEXT_ASSETS_COMMIT_ON_SAVE ?? 'true') !== 'false';
+// Removed stupid env var - UI toggle is the only control
 
 function slugify(input: string): string {
   return (input || '')
@@ -73,11 +73,11 @@ export async function POST(req: NextRequest) {
     // If running on Vercel serverless (read-only FS), optionally commit to GitHub
     const isReadOnly = !!process.env.VERCEL;
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
-    const commitOnSave = typeof commitOnSaveInput === 'boolean' ? commitOnSaveInput : COMMIT_ON_SAVE;
+    const commitOnSave = commitOnSaveInput === true; // Default false, only commit if explicitly requested
 
     if (isReadOnly) {
       if (!commitOnSave) {
-        console.log('[text-assets] Skipping Git commit on save (TEXT_ASSETS_COMMIT_ON_SAVE=false)');
+        console.log('[text-assets] Skipping Git commit on save (UI toggle unchecked)');
         // Enqueue draft for later batch commit
         try {
           const redisUrl = process.env.REDIS_AGENTIC_URL;
