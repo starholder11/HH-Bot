@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { RedisContextService } from '../context/RedisContextService';
+import yaml from 'js-yaml';
 
 /**
  * Comprehensive Tools Class
@@ -797,6 +798,80 @@ export class ComprehensiveTools {
     }
   }
   static getFalModelsSchema = z.object({
+    userId: z.string().describe('User ID for context tracking')
+  });
+
+  // ============================================================================
+  // LORE / TEXT DOCUMENT TOOLS (BACKEND-ONLY)
+  // ============================================================================
+
+  /**
+   * Create a background document draft for scribe (enqueue to Redis via agent backend)
+   * Backend-only tool. UI reacts to assistant confirmation; no UI handler required.
+   */
+  async createBackgroundDocDraft(params: { title?: string; slug?: string; conversationId: string; scribeEnabled?: boolean; categories?: string[]; userId: string }) {
+    const correlationId = `scribe_start_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    const slugify = (input: string) => (input || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+    try {
+      const finalTitle = params.title || 'Untitled Conversation';
+      const finalSlug = params.slug || slugify(finalTitle || 'untitled-conversation');
+      const scribeEnabled = params.scribeEnabled !== false;
+      const categories = Array.isArray(params.categories) ? params.categories : [];
+
+      // Assemble YAML
+      const indexDoc = {
+        slug: finalSlug,
+        title: finalTitle,
+        date: new Date().toISOString(),
+        categories,
+        source: 'conversation',
+        status: 'draft',
+        scribe_enabled: scribeEnabled,
+        conversation_id: params.conversationId
+      } as const;
+      const indexYaml = yaml.dump(indexDoc, { noRefs: true });
+      const mdx = `# ${finalTitle}\n\n*The scribe will populate this document as your conversation continues...*`;
+
+      // Enqueue draft on agent backend (this.apiClient is bound to backend base URL)
+      const enqueueResp = await this.apiClient.post('/api/text-assets/enqueue', {
+        slug: finalSlug,
+        indexYaml,
+        mdx,
+        scribe_enabled: scribeEnabled,
+        conversation_id: params.conversationId
+      });
+
+      const layoutUrl = `/layout-editor/visual-search?highlight=${finalSlug}`;
+      return {
+        success: !!enqueueResp?.enqueued || true,
+        slug: finalSlug,
+        title: finalTitle,
+        layoutUrl,
+        message: `Started scribe for "${finalTitle}"`,
+        correlationId
+      };
+    } catch (error) {
+      console.error(`[${correlationId}] createBackgroundDocDraft failed:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create background doc draft',
+        correlationId
+      };
+    }
+  }
+  static createBackgroundDocDraftSchema = z.object({
+    title: z.string().optional().describe('Human title for the document'),
+    slug: z.string().optional().describe('Optional slug (auto-generated from title if omitted)'),
+    conversationId: z.string().describe('Active conversation/session identifier'),
+    scribeEnabled: z.boolean().optional().default(true).describe('Enable background summarizer'),
+    categories: z.array(z.string()).optional().describe('Optional categories/tags'),
     userId: z.string().describe('User ID for context tracking')
   });
 
@@ -1673,6 +1748,9 @@ export class ComprehensiveTools {
       { name: 'generateContent', schema: ComprehensiveTools.generateContentSchema, category: 'generation' },
       { name: 'getFalModels', schema: ComprehensiveTools.getFalModelsSchema, category: 'generation' },
       { name: 'callFal', schema: ComprehensiveTools.callFalSchema, category: 'generation' },
+
+      // Lore / Text Document
+      { name: 'createBackgroundDocDraft', schema: ComprehensiveTools.createBackgroundDocDraftSchema, category: 'lore' },
 
       // Audio Management
       { name: 'listSongs', schema: ComprehensiveTools.listSongsSchema, category: 'audio' },
