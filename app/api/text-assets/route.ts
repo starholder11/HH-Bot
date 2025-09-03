@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
       categories = [],
       source = 'layout',
       status = 'draft',
-      mdx = ''
+      mdx = '',
+      commitOnSave: commitOnSaveInput
     } = body || {};
 
     const slug = slugify(rawSlug || title);
@@ -66,9 +67,10 @@ export async function POST(req: NextRequest) {
     // If running on Vercel serverless (read-only FS), optionally commit to GitHub
     const isReadOnly = !!process.env.VERCEL;
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
+    const commitOnSave = typeof commitOnSaveInput === 'boolean' ? commitOnSaveInput : COMMIT_ON_SAVE;
 
     if (isReadOnly) {
-      if (!COMMIT_ON_SAVE) {
+      if (!commitOnSave) {
         console.log('[text-assets] Skipping Git commit on save (TEXT_ASSETS_COMMIT_ON_SAVE=false)');
         return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped' });
       }

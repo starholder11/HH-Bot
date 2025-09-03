@@ -681,6 +681,18 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
         </div>
 
         <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1 text-xs text-white">
+            <input
+              type="checkbox"
+              className="rounded"
+              defaultChecked={false}
+              onChange={(e)=>{
+                try { localStorage.setItem('text-assets-commit-on-save', e.target.checked ? 'true' : 'false'); } catch {}
+              }}
+              title="Commit to Git on save"
+            />
+            Commit on save
+          </label>
           <Button onClick={handleSave} disabled={working} size="sm" className="bg-neutral-700 text-white hover:bg-neutral-600">
             {working ? 'Saving…' : 'Save'}
           </Button>
@@ -2130,7 +2142,8 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                         return;
                       }
                       const cats = categories.split(',').map(s => s.trim()).filter(Boolean);
-                      const payload = { slug: finalSlug, title: finalTitle, categories: cats, source: 'layout', status: 'draft', mdx: md };
+                      const commitPref = (()=>{ try { return localStorage.getItem('text-assets-commit-on-save') === 'true'; } catch { return false; } })();
+                      const payload = { slug: finalSlug, title: finalTitle, categories: cats, source: 'layout', status: 'draft', mdx: md, commitOnSave: commitPref } as any;
                       console.log('[DOC] Saving text asset payload:', payload);
                       const res = await fetch('/api/text-assets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                       let json: any = null;
