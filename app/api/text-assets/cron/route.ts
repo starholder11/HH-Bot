@@ -40,4 +40,9 @@ export async function POST(_req: NextRequest) {
   }
 }
 
+// Vercel Cron invokes via GET by default; support GET and delegate to POST logic
+export async function GET(req: NextRequest) {
+  return POST(req);
+}
+
 
