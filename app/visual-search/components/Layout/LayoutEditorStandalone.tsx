@@ -2118,7 +2118,16 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
       <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
           <div className="flex items-center justify-between p-3 border-b border-neutral-700">
             <div className="text-neutral-200 text-sm">{isMarkdown ? 'Edit Markdown' : 'Edit Rich Text'}</div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1 text-xs text-neutral-300" title="Commit to Git on save">
+                <input
+                  type="checkbox"
+                  className="rounded"
+                  defaultChecked={(()=>{ try { return localStorage.getItem('text-assets-commit-on-save') === 'true'; } catch { return false; } })()}
+                  onChange={(e)=>{ try { localStorage.setItem('text-assets-commit-on-save', e.target.checked ? 'true' : 'false'); } catch {} }}
+                />
+                Commit on save
+              </label>
               <button className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded" onClick={() => onClose()}>Cancel</button>
               {isMarkdown ? (
                 <button
