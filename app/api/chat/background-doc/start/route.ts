@@ -27,99 +27,91 @@ export async function POST(req: NextRequest) {
     const finalSlug = slug || slugify(title || 'untitled-conversation');
     const finalTitle = title || 'Untitled Conversation';
 
-            // Use the existing text-assets API for full integration (OAI sync, layout insertion, etc.)
-    const textAssetPayload = {
+    // Assemble index.yaml structure
+    const indexDoc = {
       slug: finalSlug,
       title: finalTitle,
+      date: new Date().toISOString(),
+      categories: [],
       source: 'conversation',
       status: 'draft',
       scribe_enabled: true,
-      conversation_id: conversationId,
-      mdx: `# ${finalTitle}\n\n*The scribe will populate this document as your conversation continues...*`,
-      commitOnSave: false,
-      categories: []
-    };
+      conversation_id: conversationId
+    } as const;
 
-        // Create text asset using HTTP call (avoid import issues)
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
-    
-    const textAssetResponse = await fetch(`${baseUrl}/api/text-assets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(textAssetPayload)
-    });
+    const indexYaml = yaml.dump(indexDoc, { noRefs: true });
+    const mdxContent = `# ${finalTitle}\n\n*The scribe will populate this document as your conversation continues...*`;
 
-    if (!textAssetResponse.ok) {
-      const error = await textAssetResponse.text();
-      console.error('[background-doc] Text asset creation failed:', error);
-      return NextResponse.json({
-        error: 'Failed to create text asset',
-        details: error
-      }, { status: 500 });
-    }
+    const isReadOnly = !!process.env.VERCEL;
 
-    const textAssetResult = await textAssetResponse.json();
-    if (!textAssetResult.success) {
-      console.error('[background-doc] Text asset creation failed:', textAssetResult);
-      return NextResponse.json({
-        error: 'Failed to create text asset',
-        details: textAssetResult.error || 'Unknown error'
-      }, { status: 500 });
-    }
+    if (isReadOnly) {
+      // Serverless: enqueue draft via agentic backend (no direct server-to-server calls within Vercel)
+      let enqueued = false;
+      try {
+        const agenticUrl = process.env.LANCEDB_API_URL;
+        if (agenticUrl) {
+          const response = (await Promise.race([
+            fetch(`${agenticUrl}/api/text-assets/enqueue`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                slug: finalSlug,
+                indexYaml,
+                mdx: mdxContent,
+                scribe_enabled: true,
+                conversation_id: conversationId
+              })
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('agentic-timeout')), 1500))
+          ])) as Response;
 
-    // Now create a layout that contains this text asset
-    const layoutTitle = `${finalTitle} - Layout`;
-    
-    const layoutPayload = {
-      title: layoutTitle,
-      description: `Layout containing the text asset: ${finalTitle}`,
-      layout_data: {
-        cellSize: 20,
-        designSize: { width: 1200, height: 800 },
-        items: [
-          {
-            id: `text_${Date.now()}`,
-            type: 'content_ref',
-            contentType: 'text',
-            contentId: `text_timeline/${finalSlug}`,
-            refId: `text_timeline/${finalSlug}`,
-            snippet: finalTitle,
-            title: finalTitle,
-            x: 0,
-            y: 0,
-            w: 8,
-            h: 6,
-            nx: 0,
-            ny: 0,
-            nw: 8/15, // 8 columns out of 15
-            nh: 6/10, // 6 rows out of 10
-            transform: {}
+          if (response.ok) {
+            const result = await response.json();
+            enqueued = !!result.enqueued;
+          } else {
+            console.warn('[background-doc] Agentic enqueue returned non-OK status');
           }
-        ]
-      },
-      updated_at: new Date().toISOString()
-    };
+        } else {
+          console.warn('[background-doc] No LANCEDB_API_URL configured; cannot enqueue draft');
+        }
+      } catch (err) {
+        console.warn('[background-doc] Agentic enqueue failed (non-blocking):', (err as Error)?.message || err);
+      }
 
-    // Create layout using HTTP call
-    const layoutResponse = await fetch(`${baseUrl}/api/layouts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(layoutPayload)
-    });
+      console.log('[background-doc] Started scribe (serverless) for conversation:', {
+        conversationId,
+        slug: finalSlug,
+        title: finalTitle,
+        enqueued
+      });
 
-    let layoutResult = { success: false, id: null };
-    if (layoutResponse.ok) {
-      layoutResult = await layoutResponse.json();
-    } else {
-      console.warn('[background-doc] Layout creation failed, but text asset created');
+      return NextResponse.json({
+        success: true,
+        slug: finalSlug,
+        title: finalTitle,
+        conversationId,
+        scribe_enabled: true,
+        layoutId: null,
+        layoutUrl: `/layout-editor/visual-search?highlight=${finalSlug}`
+      });
     }
 
-    console.log('[background-doc] Started scribe for conversation:', {
+    // Local/dev: write files directly
+    const baseDir = path.join(process.cwd(), 'content', 'timeline', finalSlug);
+    const indexPath = path.join(baseDir, 'index.yaml');
+    const contentPath = path.join(baseDir, 'content.mdx');
+
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir, { recursive: true });
+    }
+    fs.writeFileSync(indexPath, indexYaml, 'utf-8');
+    fs.writeFileSync(contentPath, mdxContent, 'utf-8');
+
+    console.log('[background-doc] Started scribe (local) for conversation:', {
       conversationId,
       slug: finalSlug,
       title: finalTitle,
-      layoutId: layoutResult.id,
-      textAssetPaths: textAssetResult.paths
+      paths: { indexPath, contentPath }
     });
 
     return NextResponse.json({
@@ -128,8 +120,8 @@ export async function POST(req: NextRequest) {
       title: finalTitle,
       conversationId,
       scribe_enabled: true,
-      layoutId: layoutResult.id,
-      layoutUrl: layoutResult.id ? `/layout-editor/visual-search?id=${layoutResult.id}` : null
+      layoutId: null,
+      layoutUrl: `/layout-editor/visual-search?highlight=${finalSlug}`
     });
 
   } catch (error) {
