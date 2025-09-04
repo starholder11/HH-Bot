@@ -138,12 +138,8 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
       if (slug) {
         try {
-          // Try backend draft first (Redis), then local files
-          const agentBackend = process.env.NEXT_PUBLIC_AGENT_BACKEND_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
-          let res = await fetch(`${agentBackend}/api/text-assets/enqueue?slug=${encodeURIComponent(slug)}`);
-          if (!res.ok) {
-            res = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
-          }
+          // Use same model as layout editor save: try /api/text-assets first
+          let res = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
           if (!res.ok) {
             res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
           }

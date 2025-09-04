@@ -133,11 +133,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               }
 
               console.log('[TEXT CONTENT] Fetching full text for slug:', slug);
-              const agentBackend = process.env.NEXT_PUBLIC_AGENT_BACKEND_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
-              let response = await fetch(`${agentBackend}/api/text-assets/enqueue?slug=${encodeURIComponent(slug)}`);
-              if (!response.ok) {
-                response = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
-              }
+              let response = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
               if (!response.ok) {
                 response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
               }
