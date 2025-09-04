@@ -82,6 +82,12 @@ export async function POST(req: NextRequest) {
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
 
     if (isReadOnly) {
+      // Respect commitOnSave toggle - skip Git commit if disabled
+      if (!commitOnSave) {
+        console.log('[text-assets] Skipping Git commit on save (commitOnSave=false)');
+        return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped' });
+      }
+
       if (!token) {
         console.error('[text-assets] Missing GITHUB_TOKEN in serverless environment');
         return NextResponse.json({ success: false, error: 'Serverless FS is read-only and GITHUB_TOKEN is not configured' }, { status: 500 });
@@ -91,7 +97,7 @@ export async function POST(req: NextRequest) {
       const owner = 'starholder11';
       const repo = 'HH-Bot';
 
-      // Always write to Git - commitOnSave only affects the status field in YAML
+      // Commit to Git when commitOnSave is enabled
       try {
         const branchRef = `heads/main`;
         const { data: refData } = await octokit.git.getRef({ owner, repo, ref: branchRef });
