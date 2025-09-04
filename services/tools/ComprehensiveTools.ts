@@ -882,7 +882,7 @@ export class ComprehensiveTools {
         };
 
         const layoutResp = await this.apiClient.post('/api/layouts', layoutPayload);
-        layoutId = layoutResp?.id;
+        layoutId = layoutResp?.data?.id || layoutResp?.id;
       } catch (layoutError) {
         console.warn(`[${correlationId}] Layout creation failed (non-blocking):`, layoutError);
       }
