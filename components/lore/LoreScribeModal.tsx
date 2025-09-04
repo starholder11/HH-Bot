@@ -89,27 +89,56 @@ function ScribeEditor({
 
     setIsSaving(true);
     try {
+      // Use exact same model as layout editor save
+      const commitPref = (() => { 
+        try { 
+          return localStorage.getItem('text-assets-commit-on-save') === 'true'; 
+        } catch { 
+          return false; 
+        } 
+      })();
+      
+      const payload = { 
+        slug: documentData.slug, 
+        title: documentData.title, 
+        categories: ['lore', 'conversation'], 
+        source: 'conversation', 
+        status: 'draft', 
+        mdx: content, 
+        commitOnSave: commitPref,
+        scribe_enabled: scribeEnabled,
+        conversation_id: documentData.conversation_id
+      };
+      
+      console.log('[scribe] Saving text asset payload:', payload);
       const response = await fetch('/api/text-assets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slug: documentData.slug,
-          title: documentData.title,
-          mdx: content,
-          source: 'conversation',
-          status: 'draft',
-          scribe_enabled: scribeEnabled,
-          conversation_id: documentData.conversation_id,
-          commitOnSave: false
-        })
+        body: JSON.stringify(payload)
       });
 
-      if (response.ok) {
+      if (!response.ok) {
+        throw new Error(`Save failed (${response.status})`);
+      }
+      
+      let json: any = null;
+      try { 
+        json = await response.json(); 
+      } catch {}
+      
+      console.log('[scribe] Save response:', { ok: response.ok, status: response.status, json });
+      
+      if (response.ok && json?.success) {
         onSave(content);
         console.log('[scribe] Document saved successfully');
+      } else {
+        const errMsg = (json && (json.error || json.message)) || response.statusText || 'Unknown error';
+        console.error('[scribe] Save failed:', { status: response.status, json });
+        throw new Error(`Save failed: ${errMsg}`);
       }
     } catch (error) {
       console.error('Failed to save document:', error);
+      alert(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
