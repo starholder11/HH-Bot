@@ -85,7 +85,8 @@ export async function POST(req: NextRequest) {
         // Enqueue via agentic backend (has Redis access)
         let enqueued = false;
         try {
-          const agenticUrl = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL;
+          const agenticUrl = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
+          console.log('[text-assets] Using agentic URL for enqueue:', agenticUrl);
           if (agenticUrl) {
             const response = await Promise.race([
               fetch(`${agenticUrl}/api/text-assets/enqueue`, {
@@ -105,6 +106,10 @@ export async function POST(req: NextRequest) {
             if (response.ok) {
               const result = await response.json();
               enqueued = result.enqueued || false;
+              console.log('[text-assets] Enqueue response:', { status: response.status, result });
+            } else {
+              const errorText = await response.text();
+              console.log('[text-assets] Enqueue failed:', { status: response.status, error: errorText });
             }
           } else {
             console.warn('[text-assets] No AGENT_BACKEND_URL configured; cannot enqueue draft for batch commit');
