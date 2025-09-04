@@ -38,8 +38,16 @@ export async function POST(req: NextRequest) {
     if (scribeIntent.isStart) {
       // Handle start scribe command - implement directly since backend tool isn't working
       const finalConversationId = conversationId || `conv_${Date.now()}`;
-      const title = scribeIntent.extractedTitle || 'Conversation Summary';
-      const slug = title.toLowerCase().replace(/\s+/g, '-');
+      const baseTitle = (scribeIntent.extractedTitle && String(scribeIntent.extractedTitle).trim()) || 'Conversation Summary';
+      const ts = Date.now();
+      const rand = Math.random().toString(36).slice(2, 6);
+      const title = `${baseTitle} ${ts}-${rand}`;
+      const slug = baseTitle
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-') + `-${ts}-${rand}`;
 
       console.log('[agent-lore] Starting scribe directly:', { title, slug, conversationId: finalConversationId });
 

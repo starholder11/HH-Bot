@@ -138,8 +138,16 @@ function ScribeEditor({
       console.log('[scribe] Save response json details:', JSON.stringify(json, null, 2));
 
       if (response.ok && json?.success) {
-        onSave(content);
-        console.log('[scribe] Document saved successfully');
+        // Persist edited title/slug back into parent state so UI doesn't revert
+        try {
+          const savedSlug = json?.slug || slug || documentData.slug;
+          const savedTitle = title || documentData.title;
+          // Update local fields too to reflect any slug normalization on backend
+          setSlug(savedSlug);
+          setTitle(savedTitle);
+          onSave(content);
+          console.log('[scribe] Document saved successfully');
+        } catch {}
       } else {
         const errMsg = (json && (json.error || json.message)) || response.statusText || 'Unknown error';
         console.error('[scribe] Save failed:', { status: response.status, json });
