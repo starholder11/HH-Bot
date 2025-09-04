@@ -433,6 +433,49 @@ export default function LoreScribeModal({
           setDocumentData(newDocData);
           setActiveTab('scribe');
 
+          // Fallback: if backend did not return a layoutId, create one now via frontend API
+          if (!result.layoutId && result.slug) {
+            try {
+              console.log('🔍 [SCRIBE DEBUG] Creating layout fallback via /api/layouts');
+              const resp = await fetch('/api/layouts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: `${result.title} - Layout`,
+                  description: `Layout for ${result.title}`,
+                  layout_data: {
+                    cellSize: 20,
+                    designSize: { width: 1200, height: 800 },
+                    items: [
+                      {
+                        id: `text_${Date.now()}`,
+                        type: 'content_ref',
+                        contentType: 'text',
+                        refId: `text_timeline/${result.slug}`,
+                        snippet: result.title,
+                        title: result.title,
+                        x: 0, y: 0, w: 640, h: 480,
+                        nx: 0, ny: 0, nw: 640/1200, nh: 480/800,
+                        transform: {}
+                      }
+                    ]
+                  }
+                })
+              });
+              if (resp.ok) {
+                const json = await resp.json();
+                const layoutId = json.id;
+                const layoutUrl = `/layout-editor/${layoutId}`;
+                console.log('🔍 [SCRIBE DEBUG] Fallback layout created:', { layoutId, layoutUrl });
+                setDocumentData(prev => prev ? { ...prev, layoutId, layoutUrl } as any : prev);
+              } else {
+                console.warn('🔍 [SCRIBE DEBUG] Fallback layout create failed with status', resp.status);
+              }
+            } catch (e) {
+              console.warn('🔍 [SCRIBE DEBUG] Fallback layout create error:', e);
+            }
+          }
+
           // Add confirmation message
           if (setMessages) {
             setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
