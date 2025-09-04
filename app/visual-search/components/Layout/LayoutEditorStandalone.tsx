@@ -123,45 +123,70 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     setRteMode(isAsset ? 'markdown' : 'html');
 
     if (isAsset) {
-      // For text assets, extract slug from refId/contentId and load from GitHub
-      let slug = '';
+      // For text assets, handle both UUID (S3) and slug (git) references
       const refId = item?.refId || item?.contentId || '';
-      if (refId.includes('text_timeline/')) {
-        slug = refId.replace('text_timeline/', '');
-      } else if (refId.startsWith('text_')) {
-        slug = refId.replace('text_', '');
-      } else {
-        slug = refId;
-      }
+      
+      if (DEBUG_RTE) console.log('[RTE DEBUG] Loading text asset with refId:', refId);
 
-      if (DEBUG_RTE) console.log('[RTE DEBUG] Loading text asset with slug:', slug);
-
-      if (slug) {
+      if (refId) {
         try {
-          // Use same model as layout editor save: try /api/text-assets first
-          let res = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
-          if (!res.ok) {
-            res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
-          }
-          if (res.ok) {
-            const data = await res.json();
-            // Normalize expected fields from either endpoint
-            const metaYaml = data.metadata || null;
-            if (metaYaml) {
-              const parsed = yaml.load(metaYaml) as any;
-              setRteTitle(parsed.title || 'Document Title');
-              setRteSlug(parsed.slug || slug);
-              setRteCategories(Array.isArray(parsed.categories) ? parsed.categories.join(', ') : '');
-              setRteMarkdown(data.content || '');
-              if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset (git route):', { title: parsed.title, slug: parsed.slug, contentLength: data.content?.length });
+          // Check if refId is a UUID (S3 text asset)
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refId);
+          
+          if (isUUID) {
+            // S3 text asset - load by UUID
+            if (DEBUG_RTE) console.log('[RTE DEBUG] Loading S3 text asset by UUID:', refId);
+            const res = await fetch(`/api/media-assets/${refId}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.success && data.asset && data.asset.media_type === 'text') {
+                const textAsset = data.asset;
+                if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded S3 text asset:', textAsset);
+                setRteMarkdown(textAsset.content);
+                setRteTitle(textAsset.title);
+                setRteSlug(textAsset.metadata.slug);
+                setRteCategories((textAsset.metadata.categories || []).join(', '));
+              } else {
+                throw new Error('Invalid S3 text asset response');
+              }
             } else {
-              setRteTitle(data.title || 'Document Title');
-              setRteSlug(data.slug || slug);
-              setRteCategories('');
-              setRteMarkdown(data.mdx || '# Document Title\n\nStart writing...');
-              if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset (draft route):', { title: data.title, slug: data.slug, contentLength: (data.mdx || '').length });
+              throw new Error(`S3 text asset not found: ${res.status}`);
             }
           } else {
+            // Legacy git-based text asset - extract slug and load from git
+            let slug = refId;
+            if (refId.includes('text_timeline/')) {
+              slug = refId.replace('text_timeline/', '');
+            } else if (refId.startsWith('text_')) {
+              slug = refId.replace('text_', '');
+            }
+
+            if (DEBUG_RTE) console.log('[RTE DEBUG] Loading git text asset with slug:', slug);
+            
+            // Use git-based APIs for legacy content
+            let res = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
+            if (!res.ok) {
+              res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+            }
+            if (res.ok) {
+              const data = await res.json();
+              // Normalize expected fields from either endpoint
+              const metaYaml = data.metadata || null;
+              if (metaYaml) {
+                const parsed = yaml.load(metaYaml) as any;
+                setRteTitle(parsed.title || 'Document Title');
+                setRteSlug(parsed.slug || slug);
+                setRteCategories(Array.isArray(parsed.categories) ? parsed.categories.join(', ') : '');
+                setRteMarkdown(data.content || '');
+                if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset (git route):', { title: parsed.title, slug: parsed.slug, contentLength: data.content?.length });
+              } else {
+                setRteTitle(data.title || 'Document Title');
+                setRteSlug(data.slug || slug);
+                setRteCategories('');
+                setRteMarkdown(data.mdx || '# Document Title\n\nStart writing...');
+                if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset (draft route):', { title: data.title, slug: data.slug, contentLength: (data.mdx || '').length });
+              }
+            } else {
             if (DEBUG_RTE) console.log('[RTE DEBUG] Text asset not found, using defaults');
             setRteTitle('Document Title');
             setRteSlug(slug || 'new-document');
