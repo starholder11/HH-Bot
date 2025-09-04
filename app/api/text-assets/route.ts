@@ -80,45 +80,6 @@ export async function POST(req: NextRequest) {
     const commitOnSave = commitOnSaveInput === true; // Default false, only commit if explicitly requested
 
     if (isReadOnly) {
-      if (!commitOnSave) {
-        console.log('[text-assets] Skipping Git commit on save (UI toggle unchecked)');
-        // Enqueue via agentic backend (has Redis access)
-        let enqueued = false;
-        try {
-          const agenticUrl = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL || 'http://lancedb-bulletproof-simple-alb-705151448.us-east-1.elb.amazonaws.com';
-          console.log('[text-assets] Using agentic URL for enqueue:', agenticUrl);
-          if (agenticUrl) {
-            const response = await Promise.race([
-              fetch(`${agenticUrl}/api/text-assets/enqueue`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  slug,
-                  indexYaml,
-                  mdx: String(mdx ?? ''),
-                  scribe_enabled,
-                  conversation_id
-                })
-              }),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('agentic-timeout')), 1500))
-            ]) as Response;
-
-            if (response.ok) {
-              const result = await response.json();
-              enqueued = result.enqueued || false;
-              console.log('[text-assets] Enqueue response:', { status: response.status, result });
-            } else {
-              const errorText = await response.text();
-              console.log('[text-assets] Enqueue failed:', { status: response.status, error: errorText });
-            }
-          } else {
-            console.warn('[text-assets] No AGENT_BACKEND_URL configured; cannot enqueue draft for batch commit');
-          }
-        } catch (qe) {
-          console.warn('[text-assets] Agent backend enqueue skipped:', (qe as Error)?.message || qe);
-        }
-        return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped', enqueued });
-      }
       if (!token) {
         console.error('[text-assets] Missing GITHUB_TOKEN in serverless environment');
         return NextResponse.json({ success: false, error: 'Serverless FS is read-only and GITHUB_TOKEN is not configured' }, { status: 500 });
@@ -128,7 +89,7 @@ export async function POST(req: NextRequest) {
       const owner = 'starholder11';
       const repo = 'HH-Bot';
 
-      // Single-commit write using Git Data API (tree + commit)
+      // Always write to Git - commitOnSave only affects the status field in YAML
       try {
         const branchRef = `heads/main`;
         const { data: refData } = await octokit.git.getRef({ owner, repo, ref: branchRef });
