@@ -119,25 +119,61 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           const contentType = (item as any).contentType || 'unknown';
           const assetId = (item as any).contentId || (item as any).refId;
 
-          // Handle text content using the same approach as visual-search
+          // Handle text content - support both S3 UUIDs and git-based slugs
           if (contentType === 'text' && assetId && !(item as any).fullTextContent) {
             setLoadingMap(prev => ({ ...prev, [item.id]: true }));
             try {
-              // Extract slug from text asset ID (same logic as visual-search DetailsOverlay)
-              let slug = assetId;
-              if (assetId.startsWith('text_')) {
-                const after = assetId.split('text_')[1] ?? '';
-                const beforeHash = after.split('#')[0] ?? '';
-                const subParts = beforeHash.split('/');
-                slug = subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || assetId;
-              }
+              // Check if assetId is a UUID (S3 text asset) or slug-based (git text asset)
+              const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assetId);
 
-              console.log('[TEXT CONTENT] Fetching full text for slug:', slug);
-              let response = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
-              if (!response.ok) {
-                response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
-              }
-              if (response.ok) {
+              if (isUUID) {
+                // S3 text asset - load directly by UUID
+                console.log('[TEXT CONTENT] Loading S3 text asset by UUID:', assetId);
+                const response = await fetch(`/api/media-assets/${assetId}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.success && data.asset && data.asset.media_type === 'text') {
+                    const textAsset = data.asset;
+                    // Attach full text content to the item
+                    setEdited(prev => ({
+                      ...prev,
+                      layout_data: {
+                        ...prev.layout_data,
+                        items: prev.layout_data.items.map(i => i.id === item.id ?
+                          ({
+                            ...i,
+                            fullTextContent: textAsset.content,
+                            textMetadata: {
+                              title: textAsset.title,
+                              slug: textAsset.metadata.slug,
+                              id: textAsset.id,
+                              source: 's3',
+                              categories: textAsset.metadata.categories
+                            }
+                          }) as any : i)
+                      }
+                    } as LayoutAsset));
+                    console.log('[TEXT CONTENT] Loaded S3 text content for UUID:', assetId);
+                  }
+                }
+              } else {
+                // Legacy git-based text asset - extract slug and load from git
+                let slug = assetId;
+                if (assetId.startsWith('text_timeline/')) {
+                  slug = assetId.replace('text_timeline/', '');
+                } else if (assetId.startsWith('text_')) {
+                  const after = assetId.split('text_')[1] ?? '';
+                  const beforeHash = after.split('#')[0] ?? '';
+                  const subParts = beforeHash.split('/');
+                  slug = subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || assetId;
+                }
+
+                console.log('[TEXT CONTENT] Loading git text asset by slug:', slug);
+                let response = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
+                if (!response.ok) {
+                  response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+                }
+                if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.content) {
                   setEdited(prev => ({

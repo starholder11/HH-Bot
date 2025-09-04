@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
-    const mediaType = url.searchParams.get('type') as 'image' | 'video' | 'audio' | 'layout' | null;
+    const mediaType = url.searchParams.get('type') as 'image' | 'video' | 'audio' | 'layout' | 'text' | null;
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '20');
     const excludeKeyframes = url.searchParams.get('excludeKeyframes') === 'true';
@@ -67,6 +67,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // For text assets, ensure required fields are present
+    if (body.media_type === 'text') {
+      if (!body.content || !body.metadata?.slug) {
+        return NextResponse.json(
+          { success: false, error: 'Text assets require content and metadata.slug' },
+          { status: 400 }
+        );
+      }
+
+      // Validate slug format
+      if (!/^[a-z0-9-]+$/.test(body.metadata.slug)) {
+        return NextResponse.json(
+          { success: false, error: 'Slug must contain only lowercase letters, numbers, and dashes' },
+          { status: 400 }
+        );
+      }
+    }
+
     const now = new Date().toISOString();
 
     // Create the asset with proper defaults
@@ -84,10 +102,14 @@ export async function POST(request: NextRequest) {
       },
       processing_status: {
         upload: 'completed',
-        metadata_extraction: body.media_type === 'layout' ? 'completed' : 'pending',
+        metadata_extraction: (body.media_type === 'layout' || body.media_type === 'text') ? 'completed' : 'pending',
         ai_labeling: 'not_started',
         manual_review: 'pending',
         ...(body.media_type === 'layout' && { html_generation: 'pending' }),
+        ...(body.media_type === 'text' && {
+          content_analysis: 'pending',
+          search_indexing: 'pending'
+        }),
         ...body.processing_status
       },
       ai_labels: body.ai_labels || {

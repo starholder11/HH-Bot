@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
+import { createTextAsset, generateUniqueTextSlug, validateTextAsset } from '@/lib/media-storage';
+import { saveMediaAsset } from '@/lib/media-storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,101 +23,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });
     }
 
-    // Always generate unique values for title and slug
+    // Generate unique title and slug
     const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substr(2, 6);
     const finalTitle = title || `Conversation Summary ${timestamp}`;
-    const finalSlug = slug || slugify(finalTitle) + `-${randomSuffix}`;
+    const finalSlug = await generateUniqueTextSlug(slug || finalTitle);
 
-    // Assemble index.yaml structure
-    const indexDoc = {
+    // Create S3 text asset for scribe
+    const textAsset = createTextAsset({
       slug: finalSlug,
       title: finalTitle,
-      date: new Date().toISOString(),
-      categories: [],
+      content: `# ${finalTitle}\n\n*The scribe will populate this document as your conversation continues...*`,
+      categories: ['lore', 'conversation'],
       source: 'conversation',
       status: 'draft',
       scribe_enabled: true,
-      conversation_id: conversationId
-    } as const;
+      conversation_id: conversationId,
+    });
 
-    const indexYaml = yaml.dump(indexDoc, { noRefs: true });
-    const mdxContent = `# ${finalTitle}\n\n*The scribe will populate this document as your conversation continues...*`;
-
-    const isReadOnly = !!process.env.VERCEL;
-
-    if (isReadOnly) {
-      // Serverless: enqueue draft via agentic backend (no direct server-to-server calls within Vercel)
-      let enqueued = false;
-      try {
-        const agenticUrl = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL;
-        if (agenticUrl) {
-          const response = (await Promise.race([
-            fetch(`${agenticUrl}/api/text-assets/enqueue`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                slug: finalSlug,
-                indexYaml,
-                mdx: mdxContent,
-                scribe_enabled: true,
-                conversation_id: conversationId
-              })
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('agentic-timeout')), 1500))
-          ])) as Response;
-
-          if (response.ok) {
-            const result = await response.json();
-            enqueued = !!result.enqueued;
-          } else {
-            console.warn('[background-doc] Agent backend enqueue returned non-OK status');
-          }
-        } else {
-          console.warn('[background-doc] No AGENT_BACKEND_URL configured; cannot enqueue draft');
-        }
-      } catch (err) {
-        console.warn('[background-doc] Agent backend enqueue failed (non-blocking):', (err as Error)?.message || err);
-      }
-
-      console.log('[background-doc] Started scribe (serverless) for conversation:', {
-        conversationId,
-        slug: finalSlug,
-        title: finalTitle,
-        enqueued
-      });
-
+    // Validate the text asset
+    const errors = validateTextAsset(textAsset);
+    if (errors.length > 0) {
+      console.error('[background-doc] Validation failed:', errors);
       return NextResponse.json({
-        success: true,
-        slug: finalSlug,
-        title: finalTitle,
-        conversationId,
-        scribe_enabled: true,
-        layoutId: null,
-        layoutUrl: `/visual-search?highlight=${finalSlug}`
-      });
+        error: 'Text asset validation failed',
+        details: errors
+      }, { status: 400 });
     }
 
-    // Local/dev: write files directly
-    const baseDir = path.join(process.cwd(), 'content', 'timeline', finalSlug);
-    const indexPath = path.join(baseDir, 'index.yaml');
-    const contentPath = path.join(baseDir, 'content.mdx');
+    // Save to S3
+    await saveMediaAsset(textAsset.id, textAsset);
 
-    if (!fs.existsSync(baseDir)) {
-      fs.mkdirSync(baseDir, { recursive: true });
-    }
-    fs.writeFileSync(indexPath, indexYaml, 'utf-8');
-    fs.writeFileSync(contentPath, mdxContent, 'utf-8');
-
-    console.log('[background-doc] Started scribe (local) for conversation:', {
+    console.log('[background-doc] Started S3 scribe for conversation:', {
       conversationId,
+      id: textAsset.id,
       slug: finalSlug,
-      title: finalTitle,
-      paths: { indexPath, contentPath }
+      title: finalTitle
     });
 
     return NextResponse.json({
       success: true,
+      id: textAsset.id,
       slug: finalSlug,
       title: finalTitle,
       conversationId,
@@ -128,9 +72,9 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[background-doc] Start failed:', error);
+    console.error('[background-doc] S3 start failed:', error);
     return NextResponse.json({
-      error: 'Internal server error',
+      error: 'Failed to create background document',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }

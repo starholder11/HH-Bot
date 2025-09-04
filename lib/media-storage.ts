@@ -105,7 +105,7 @@ export interface BaseMediaAsset {
   cloudflare_url: string;
   title: string;
   description?: string;
-  media_type: 'image' | 'video' | 'audio' | 'keyframe_still' | 'layout' | 'object' | 'object_collection' | 'space';
+  media_type: 'image' | 'video' | 'audio' | 'keyframe_still' | 'layout' | 'object' | 'object_collection' | 'space' | 'text';
   metadata: any; // Type varies by media type
   ai_labels: {
     scenes: string[];
@@ -311,7 +311,7 @@ export interface LayoutAsset extends BaseMediaAsset {
       };
       blockType?: 'hero' | 'media_grid' | 'text_section' | 'cta' | 'footer' | 'spacer';
       config?: Record<string, any>;
-      
+
       // Object-specific layout properties (for objects and collections)
       objectLayoutProperties?: {
         iconUrl: string;                // 2D representation for layout view
@@ -499,7 +499,75 @@ export interface SpaceAsset extends BaseMediaAsset {
   }>;
 }
 
-export type MediaAsset = ImageAsset | VideoAsset | AudioAsset | KeyframeAsset | LayoutAsset | ObjectAsset | ObjectCollection | SpaceAsset;
+export interface TextAsset extends BaseMediaAsset {
+  media_type: 'text';
+  // Content fields (no s3_url/cloudflare_url needed - content is embedded)
+  title: string;
+  content: string;               // MDX content
+  date: string;                  // ISO date string
+
+  // Text-specific metadata
+  metadata: {
+    slug: string;                // REQUIRED & UNIQUE: "withered-grove"
+
+    // Core workflow fields
+    source: 'conversation' | 'layout' | 'keystatic' | 'import' | 'migration';
+    status: 'draft' | 'published';
+    categories: string[];        // ["lore", "location", "mystery"]
+
+    // Optional extensions
+    gallery?: string[];          // Asset UUIDs referencing media
+    attachments?: string[];      // Asset UUIDs referencing media
+
+    // Scribe/conversation extensions
+    scribe_enabled?: boolean;    // Auto-updating document mode
+    conversation_id?: string;    // Source conversation
+    layout_id?: string;          // UUID of creating layout
+
+    // Rich tagging arrays
+    tags?: string[];             // ["dark", "atmospheric", "discovery"]
+    themes?: string[];           // ["decay", "mystery", "transformation"]
+    characters?: string[];       // ["elena", "the-wanderer"]
+    locations?: string[];        // ["northern-wastes", "grove-of-echoes"]
+    events?: string[];           // ["the-great-convergence"]
+
+    // Content analysis
+    word_count?: number;
+    character_count?: number;
+    reading_time_minutes?: number;
+    language?: string;
+
+    // Migration tracking
+    migrated_from_git?: boolean; // Migration status flag
+    original_git_path?: string;  // "content/timeline/withered-grove/"
+    git_sha?: string;            // For migration tracking
+  };
+
+  // Text assets have custom labels for organization
+  manual_labels: {
+    scenes: string[];
+    objects: string[];
+    style: string[];
+    mood: string[];
+    themes: string[];
+    custom_tags: string[];
+    topics?: string[];           // Text-specific
+    genres?: string[];           // Text-specific
+    content_type?: string[];     // ['lore', 'story', 'documentation']
+  };
+
+  // Processing status for text assets
+  processing_status: {
+    upload: 'pending' | 'completed' | 'error';
+    metadata_extraction: 'pending' | 'completed' | 'error';
+    ai_labeling: 'not_started' | 'triggering' | 'pending' | 'processing' | 'completed' | 'failed' | 'error';
+    manual_review: 'pending' | 'completed' | 'error';
+    content_analysis?: 'pending' | 'completed' | 'error';
+    search_indexing?: 'pending' | 'completed' | 'error';
+  };
+}
+
+export type MediaAsset = ImageAsset | VideoAsset | AudioAsset | KeyframeAsset | LayoutAsset | ObjectAsset | ObjectCollection | SpaceAsset | TextAsset;
 
 
 /**
@@ -716,25 +784,25 @@ export async function listMediaAssets(
 
       // For object and space types, do a targeted S3 search since they're alphabetically later
       if (mediaType === 'object' || mediaType === 'object_collection' || mediaType === 'space') {
-        const targetPrefix = mediaType === 'object' ? 'obj_' : 
+        const targetPrefix = mediaType === 'object' ? 'obj_' :
                             mediaType === 'object_collection' ? 'objcol_' : 'space_';
         console.log(`[media-storage] Performing targeted search for ${targetPrefix} files`);
-        
+
         try {
           const targetListResult = await s3.send(new ListObjectsV2Command({
             Bucket: bucket,
             Prefix: `${PREFIX}${targetPrefix}`,
             MaxKeys: 1000
           }));
-          
+
           const targetKeys = (targetListResult.Contents || [])
             .filter(obj => obj.Key?.endsWith('.json'))
             .map(obj => obj.Key!)
             .sort((a, b) => b.localeCompare(a)); // Most recent first
-          
+
           console.log(`[media-storage] Found ${targetKeys.length} ${targetPrefix} files`);
           allKeys = targetKeys;
-          
+
           // Update cache with targeted results
           s3KeysCache = {
             keys: allKeys,
@@ -1075,6 +1143,264 @@ export async function saveMediaAsset(assetId: string, assetData: MediaAsset): Pr
 
   // Clear cache after successful local save too
   clearS3KeysCache();
+}
+
+/**
+ * Create a new TextAsset from basic parameters
+ */
+export function createTextAsset(params: {
+  slug: string;
+  title: string;
+  content: string;
+  categories?: string[];
+  source?: 'conversation' | 'layout' | 'keystatic' | 'import' | 'migration';
+  status?: 'draft' | 'published';
+  scribe_enabled?: boolean;
+  conversation_id?: string;
+  layout_id?: string;
+  date?: string;
+}): TextAsset {
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+
+  // Calculate content metrics
+  const wordCount = params.content.split(/\s+/).filter(word => word.length > 0).length;
+  const characterCount = params.content.length;
+  const readingTimeMinutes = Math.ceil(wordCount / 200); // ~200 WPM average
+
+  return {
+    id,
+    filename: `${params.slug}.md`,
+    s3_url: `media-labeling/assets/${id}.json`,
+    cloudflare_url: '',
+    title: params.title,
+    description: `Text asset: ${params.title}`,
+    media_type: 'text',
+    content: params.content,
+    date: params.date || now,
+    metadata: {
+      slug: params.slug,
+      source: params.source || 'layout',
+      status: params.status || 'draft',
+      categories: params.categories || [],
+      scribe_enabled: params.scribe_enabled,
+      conversation_id: params.conversation_id,
+      layout_id: params.layout_id,
+      word_count: wordCount,
+      character_count: characterCount,
+      reading_time_minutes: readingTimeMinutes,
+      language: 'en', // Could be detected later
+      migrated_from_git: false,
+    },
+    ai_labels: {
+      scenes: [],
+      objects: [],
+      style: [],
+      mood: [],
+      themes: [],
+      confidence_scores: {},
+    },
+    manual_labels: {
+      scenes: [],
+      objects: [],
+      style: [],
+      mood: [],
+      themes: [],
+      custom_tags: [],
+      topics: [],
+      genres: [],
+      content_type: [],
+    },
+    processing_status: {
+      upload: 'completed',
+      metadata_extraction: 'completed',
+      ai_labeling: 'not_started',
+      manual_review: 'pending',
+      content_analysis: 'pending',
+      search_indexing: 'pending',
+    },
+    timestamps: {
+      uploaded: now,
+      metadata_extracted: now,
+      labeled_ai: null,
+      labeled_reviewed: null,
+    },
+    labeling_complete: false,
+    project_id: null,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+/**
+ * Update an existing TextAsset with new content
+ */
+export function updateTextAssetContent(
+  textAsset: TextAsset,
+  updates: {
+    title?: string;
+    content?: string;
+    categories?: string[];
+    status?: 'draft' | 'published';
+    scribe_enabled?: boolean;
+    tags?: string[];
+    themes?: string[];
+  }
+): TextAsset {
+  const now = new Date().toISOString();
+  const newContent = updates.content !== undefined ? updates.content : textAsset.content;
+
+  // Recalculate content metrics if content changed
+  const wordCount = newContent.split(/\s+/).filter(word => word.length > 0).length;
+  const characterCount = newContent.length;
+  const readingTimeMinutes = Math.ceil(wordCount / 200);
+
+  return {
+    ...textAsset,
+    title: updates.title !== undefined ? updates.title : textAsset.title,
+    content: newContent,
+    metadata: {
+      ...textAsset.metadata,
+      categories: updates.categories !== undefined ? updates.categories : textAsset.metadata.categories,
+      status: updates.status !== undefined ? updates.status : textAsset.metadata.status,
+      scribe_enabled: updates.scribe_enabled !== undefined ? updates.scribe_enabled : textAsset.metadata.scribe_enabled,
+      tags: updates.tags !== undefined ? updates.tags : textAsset.metadata.tags,
+      themes: updates.themes !== undefined ? updates.themes : textAsset.metadata.themes,
+      word_count: wordCount,
+      character_count: characterCount,
+      reading_time_minutes: readingTimeMinutes,
+    },
+    updated_at: now,
+  };
+}
+
+/**
+ * Check if a MediaAsset is a TextAsset
+ */
+export function isTextAsset(asset: MediaAsset): asset is TextAsset {
+  return asset.media_type === 'text';
+}
+
+/**
+ * Generate a unique slug for text assets
+ */
+export async function generateUniqueTextSlug(title: string, excludeId?: string): Promise<string> {
+  let baseSlug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+
+  if (!baseSlug) {
+    baseSlug = 'untitled';
+  }
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (await textSlugExists(slug, excludeId)) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return slug;
+}
+
+/**
+ * Check if a text asset slug already exists
+ */
+export async function textSlugExists(slug: string, excludeId?: string): Promise<boolean> {
+  try {
+    // Check S3 text assets
+    const assets = await listMediaAssets();
+    const textAssets = assets.assets.filter(isTextAsset);
+
+    const slugMatch = textAssets.find(asset =>
+      asset.metadata.slug === slug &&
+      asset.id !== excludeId
+    );
+
+    if (slugMatch) return true;
+
+    // Also check git-based slugs during transition period
+    try {
+      const gitResponse = await fetch(`/api/text-assets/${slug}`);
+      if (gitResponse.ok) return true;
+    } catch {
+      // Ignore git check errors
+    }
+
+    return false;
+  } catch (error) {
+    console.warn('textSlugExists check failed:', error);
+    return false; // Default to allowing if check fails
+  }
+}
+
+/**
+ * Find a text asset by slug
+ */
+export async function findTextAssetBySlug(slug: string): Promise<TextAsset | null> {
+  try {
+    const assets = await listMediaAssets();
+    const textAssets = assets.assets.filter(isTextAsset);
+
+    return textAssets.find(asset => asset.metadata.slug === slug) || null;
+  } catch (error) {
+    console.error('findTextAssetBySlug failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Validate a text asset before saving
+ */
+export function validateTextAsset(asset: Partial<TextAsset>): string[] {
+  const errors: string[] = [];
+
+  if (!asset.id) {
+    errors.push('ID is required');
+  }
+
+  if (!asset.title || asset.title.trim().length === 0) {
+    errors.push('Title is required');
+  }
+
+  if (!asset.metadata?.slug) {
+    errors.push('Slug is required');
+  } else {
+    // Validate slug format
+    if (!/^[a-z0-9-]+$/.test(asset.metadata.slug)) {
+      errors.push('Slug must contain only lowercase letters, numbers, and dashes');
+    }
+  }
+
+  if (!asset.metadata?.source) {
+    errors.push('Source is required');
+  } else if (!['conversation', 'layout', 'keystatic', 'import', 'migration'].includes(asset.metadata.source)) {
+    errors.push('Source must be one of: conversation, layout, keystatic, import, migration');
+  }
+
+  if (!asset.metadata?.status) {
+    errors.push('Status is required');
+  } else if (!['draft', 'published'].includes(asset.metadata.status)) {
+    errors.push('Status must be either draft or published');
+  }
+
+  if (!asset.metadata?.categories || !Array.isArray(asset.metadata.categories)) {
+    errors.push('Categories must be an array');
+  }
+
+  if (asset.content === undefined) {
+    errors.push('Content is required (can be empty string)');
+  }
+
+  if (!asset.date) {
+    errors.push('Date is required');
+  }
+
+  return errors;
 }
 
 /**

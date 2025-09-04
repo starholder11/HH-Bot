@@ -236,34 +236,80 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           const contentType = (item as any).contentType || 'unknown';
           const assetId = (item as any).contentId || (item as any).refId;
 
-          // Handle text content using the same approach as visual-search
+          // Handle text content - support both S3 UUIDs and git-based slugs
           if (contentType === 'text' && assetId && !(item as any).fullTextContent) {
             setLoadingMap(prev => ({ ...prev, [item.id]: true }));
             try {
-              // Extract slug from text asset ID (same logic as visual-search DetailsOverlay)
-              let slug = assetId;
-              if (assetId.startsWith('text_')) {
-                const after = assetId.split('text_')[1] ?? '';
-                const beforeHash = after.split('#')[0] ?? '';
-                const subParts = beforeHash.split('/');
-                slug = subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || assetId;
-              }
+              // Check if assetId is a UUID (S3 text asset) or slug-based (git text asset)
+              const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assetId);
 
-              console.log('[TEXT CONTENT] Fetching full text for slug:', slug);
-              const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
-              if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.content) {
-                  // Attach full text content to the item
-                  setEdited(prev => ({
-                    ...prev,
-                    layout_data: {
-                      ...prev.layout_data,
-                      items: prev.layout_data.items.map(i => i.id === item.id ?
-                        ({ ...i, fullTextContent: data.content, textMetadata: data.metadata }) as any : i)
-                    }
-                  } as LayoutAsset));
-                  console.log('[TEXT CONTENT] Loaded full text content for:', slug);
+              if (isUUID) {
+                // S3 text asset - load directly by UUID
+                console.log('[TEXT CONTENT] Loading S3 text asset by UUID:', assetId);
+                const response = await fetch(`/api/media-assets/${assetId}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.success && data.asset && data.asset.media_type === 'text') {
+                    const textAsset = data.asset;
+                    // Attach full text content to the item
+                    setEdited(prev => ({
+                      ...prev,
+                      layout_data: {
+                        ...prev.layout_data,
+                        items: prev.layout_data.items.map(i => i.id === item.id ?
+                          ({
+                            ...i,
+                            fullTextContent: textAsset.content,
+                            textMetadata: {
+                              title: textAsset.title,
+                              slug: textAsset.metadata.slug,
+                              id: textAsset.id,
+                              source: 's3',
+                              categories: textAsset.metadata.categories
+                            }
+                          }) as any : i)
+                      }
+                    } as LayoutAsset));
+                    console.log('[TEXT CONTENT] Loaded S3 text content for UUID:', assetId);
+                  }
+                }
+              } else {
+                // Legacy git-based text asset - extract slug and load from git
+                let slug = assetId;
+                if (assetId.startsWith('text_timeline/')) {
+                  slug = assetId.replace('text_timeline/', '');
+                } else if (assetId.startsWith('text_')) {
+                  const after = assetId.split('text_')[1] ?? '';
+                  const beforeHash = after.split('#')[0] ?? '';
+                  const subParts = beforeHash.split('/');
+                  slug = subParts.length > 1 ? subParts[subParts.length - 1] : beforeHash || assetId;
+                }
+
+                console.log('[TEXT CONTENT] Loading git text asset by slug:', slug);
+                const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.success && data.content) {
+                    // Attach full text content to the item
+                    setEdited(prev => ({
+                      ...prev,
+                      layout_data: {
+                        ...prev.layout_data,
+                        items: prev.layout_data.items.map(i => i.id === item.id ?
+                          ({
+                            ...i,
+                            fullTextContent: data.content,
+                            textMetadata: {
+                              title: data.title || slug,
+                              slug: slug,
+                              source: 'git',
+                              metadata: data.metadata
+                            }
+                          }) as any : i)
+                      }
+                    } as LayoutAsset));
+                    console.log('[TEXT CONTENT] Loaded git text content for slug:', slug);
+                  }
                 }
               }
             } catch (error) {
@@ -1475,7 +1521,18 @@ function renderItem(
               <div className="flex justify-between items-start mb-3">
                 <h3 className="text-lg font-semibold text-black">{title}</h3>
                 <ContinueConversationButton
-                  slug={assetId.replace('text_timeline/', '')}
+                  slug={(() => {
+                    // Handle both UUID (S3) and slug-based (git) references
+                    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assetId);
+                    if (isUUID) {
+                      // For S3 text assets, use the slug from metadata if available
+                      const metadata = (it as any).textMetadata;
+                      return metadata?.slug || assetId;
+                    } else {
+                      // For git-based assets, extract slug from text_timeline/ format
+                      return assetId.replace('text_timeline/', '');
+                    }
+                  })()}
                   title={title}
                   contentType="text"
                   variant="outline"
@@ -2186,16 +2243,81 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                         return;
                       }
                       const cats = categories.split(',').map(s => s.trim()).filter(Boolean);
-                      const commitPref = (()=>{ try { return localStorage.getItem('text-assets-commit-on-save') === 'true'; } catch { return false; } })();
-                      const payload = { slug: finalSlug, title: finalTitle, categories: cats, source: 'layout', status: 'draft', mdx: md, commitOnSave: commitPref } as any;
-                      console.log('[DOC] Saving text asset payload:', payload);
-                      const res = await fetch('/api/text-assets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                      // Create S3 text asset
+                      const s3TextAsset = {
+                        id: crypto.randomUUID(),
+                        media_type: 'text',
+                        title: finalTitle,
+                        content: md,
+                        date: new Date().toISOString(),
+                        filename: `${finalSlug}.md`,
+                        s3_url: `media-labeling/assets/${crypto.randomUUID()}.json`,
+                        cloudflare_url: '',
+                        description: `Text asset: ${finalTitle}`,
+                        metadata: {
+                          slug: finalSlug,
+                          source: 'layout',
+                          status: 'draft',
+                          categories: cats,
+                          layout_id: edited.id, // Reference to creating layout
+                          word_count: md.split(/\s+/).filter(word => word.length > 0).length,
+                          character_count: md.length,
+                          reading_time_minutes: Math.ceil(md.split(/\s+/).filter(word => word.length > 0).length / 200),
+                          language: 'en',
+                          migrated_from_git: false,
+                        },
+                        ai_labels: {
+                          scenes: [],
+                          objects: [],
+                          style: [],
+                          mood: [],
+                          themes: [],
+                          confidence_scores: {},
+                        },
+                        manual_labels: {
+                          scenes: [],
+                          objects: [],
+                          style: [],
+                          mood: [],
+                          themes: [],
+                          custom_tags: [],
+                          topics: [],
+                          genres: [],
+                          content_type: [],
+                        },
+                        processing_status: {
+                          upload: 'completed',
+                          metadata_extraction: 'completed',
+                          ai_labeling: 'not_started',
+                          manual_review: 'pending',
+                          content_analysis: 'pending',
+                          search_indexing: 'pending',
+                        },
+                        timestamps: {
+                          uploaded: new Date().toISOString(),
+                          metadata_extracted: new Date().toISOString(),
+                          labeled_ai: null,
+                          labeled_reviewed: null,
+                        },
+                        labeling_complete: false,
+                        project_id: null,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                      };
+
+                      console.log('[DOC] Saving S3 text asset:', { id: s3TextAsset.id, slug: finalSlug, title: finalTitle });
+                      const res = await fetch('/api/media-assets', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(s3TextAsset)
+                      });
                       if (!res.ok) {
                         throw new Error(`Save failed (${res.status})`);
                       }
                       let json: any = null;
                       try { json = await res.json(); } catch {}
-                      console.log('[DOC] Save response:', { ok: res.ok, status: res.status, json });
+                      console.log('[DOC] S3 save response:', { ok: res.ok, status: res.status, json });
                       if (!res.ok || !json?.success) {
                         const errMsg = (json && (json.error || json.message)) || res.statusText || 'Unknown error';
                         console.error('[DOC] Save failed', { status: res.status, json });
@@ -2212,12 +2334,18 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                               if (i.id !== rteTargetId) return i;
                               return {
                                 ...i,
-                                refId: `text_timeline/${json.slug}`,
-                                contentId: `text_timeline/${json.slug}`,
+                                refId: s3TextAsset.id, // UUID reference to S3 text asset
+                                contentId: s3TextAsset.id,
                                 snippet: finalTitle || 'Document',
                                 // Ensure immediate reflection in canvas without waiting for fetch
                                 fullTextContent: md,
-                                textMetadata: JSON.stringify({ title: finalTitle, slug: json.slug, categories: cats })
+                                textMetadata: JSON.stringify({
+                                  title: finalTitle,
+                                  slug: finalSlug,
+                                  id: s3TextAsset.id,
+                                  source: 's3',
+                                  categories: cats
+                                })
                               } as any;
                             })
                           },
