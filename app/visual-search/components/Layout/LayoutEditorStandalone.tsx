@@ -2212,6 +2212,8 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                         } as LayoutAsset));
                       }
                       onSave(md);
+                      // Close editor modal on successful save to avoid UI blocking interactions
+                      try { onClose(); } catch {}
                     } catch (e) {
                       console.error('[DOC] Save error', e);
                       alert(`Error saving text asset: ${e instanceof Error ? e.message : 'Unknown error'}`);
