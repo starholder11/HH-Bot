@@ -133,11 +133,13 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
               }
 
               console.log('[TEXT CONTENT] Fetching full text for slug:', slug);
-              const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+              let response = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
+              if (!response.ok) {
+                response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+              }
               if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.content) {
-                  // Attach full text content to the item
                   setEdited(prev => ({
                     ...prev,
                     layout_data: {
@@ -146,7 +148,17 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                         ({ ...i, fullTextContent: data.content, textMetadata: data.metadata }) as any : i)
                     }
                   } as LayoutAsset));
-                  console.log('[TEXT CONTENT] Loaded full text content for:', slug);
+                  console.log('[TEXT CONTENT] Loaded full text content for (git route):', slug);
+                } else if (data.mdx) {
+                  setEdited(prev => ({
+                    ...prev,
+                    layout_data: {
+                      ...prev.layout_data,
+                      items: prev.layout_data.items.map(i => i.id === item.id ?
+                        ({ ...i, fullTextContent: data.mdx, textMetadata: JSON.stringify({ title: data.title, slug: data.slug }) }) as any : i)
+                    }
+                  } as LayoutAsset));
+                  console.log('[TEXT CONTENT] Loaded full text content for (draft route):', slug);
                 }
               }
             } catch (error) {

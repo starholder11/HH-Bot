@@ -138,16 +138,28 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
 
       if (slug) {
         try {
-          const res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+          // Try draft text-asset API first (works for enqueued, not-yet-committed docs)
+          let res = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
+          if (!res.ok) {
+            res = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
+          }
           if (res.ok) {
             const data = await res.json();
-            if (data.success) {
-              const parsed = yaml.load(data.metadata) as any;
+            // Normalize expected fields from either endpoint
+            const metaYaml = data.metadata || null;
+            if (metaYaml) {
+              const parsed = yaml.load(metaYaml) as any;
               setRteTitle(parsed.title || 'Document Title');
               setRteSlug(parsed.slug || slug);
               setRteCategories(Array.isArray(parsed.categories) ? parsed.categories.join(', ') : '');
               setRteMarkdown(data.content || '');
-              if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset:', { title: parsed.title, slug: parsed.slug, contentLength: data.content?.length });
+              if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset (git route):', { title: parsed.title, slug: parsed.slug, contentLength: data.content?.length });
+            } else {
+              setRteTitle(data.title || 'Document Title');
+              setRteSlug(data.slug || slug);
+              setRteCategories('');
+              setRteMarkdown(data.mdx || '# Document Title\n\nStart writing...');
+              if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset (draft route):', { title: data.title, slug: data.slug, contentLength: (data.mdx || '').length });
             }
           } else {
             if (DEBUG_RTE) console.log('[RTE DEBUG] Text asset not found, using defaults');
@@ -1449,7 +1461,7 @@ function renderItem(
             <div className="prose prose-sm max-w-none">
               <div className="flex justify-between items-start mb-3">
                 <h3 className="text-lg font-semibold text-black">{title}</h3>
-                <ContinueConversationButton 
+                <ContinueConversationButton
                   slug={assetId.replace('text_timeline/', '')}
                   title={title}
                   contentType="text"
