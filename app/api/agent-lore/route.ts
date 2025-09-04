@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { saveMediaAsset } from '@/lib/media-storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -151,21 +152,12 @@ conversation_id: ${finalConversationId}`;
           updated_at: new Date().toISOString(),
         };
 
-        // Save S3 text asset
+        // Save S3 text asset directly (no HTTP call to self)
         console.log('[agent-lore] Creating S3 text asset:', { id: textAssetId, slug, title });
-        const textResponse = await fetch(`${process.env.PUBLIC_BASE_URL || 'http://localhost:3000'}/api/media-assets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(s3TextAsset)
-        });
-
-        if (!textResponse.ok) {
-          throw new Error(`Failed to create S3 text asset: ${textResponse.status}`);
-        }
-
-        console.log('[agent-lore] S3 text asset created successfully');
-        const textResult = await textResponse.json();
-        console.log('🔍 [AGENT-LORE] S3 text asset response:', textResult);
+        
+        await saveMediaAsset(textAssetId, s3TextAsset as any);
+        
+        console.log('🔍 [AGENT-LORE] S3 text asset saved successfully via direct call');
 
         // Create layout directly
         let layoutId = null;
