@@ -289,11 +289,12 @@ export default function LoreScribeModal({
     }
   }, [greetingContext, isOpen, setMessages]);
 
-    const loadDocumentData = async () => {
+  const loadDocumentData = async () => {
     if (!documentSlug) return;
 
     try {
-      const response = await fetch(`/api/text-assets/${documentSlug}`);
+      // Try primary text-asset endpoint first
+      let response = await fetch(`/api/text-assets/${encodeURIComponent(documentSlug)}`);
       if (response.ok) {
         const data = await response.json();
         setDocumentData({
@@ -303,16 +304,31 @@ export default function LoreScribeModal({
           scribe_enabled: data.scribe_enabled || false,
           conversation_id: data.conversation_id || conversationId
         });
-      } else {
-        // Fallback for missing documents
+        return;
+      }
+
+      // Fallback to GitHub-backed content fetch (mirrors layout editor behavior)
+      response = await fetch(`/api/internal/get-content/${encodeURIComponent(documentSlug)}`);
+      if (response.ok) {
+        const data = await response.json();
         setDocumentData({
           slug: documentSlug,
-          title: documentSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          mdx: documentContext || '',
+          title: (data && data.folderName) ? data.folderName.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : (documentSlug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())),
+          mdx: data?.content || '',
           scribe_enabled: false,
           conversation_id: conversationId
         });
+        return;
       }
+
+      // Final fallback for missing documents
+      setDocumentData({
+        slug: documentSlug,
+        title: documentSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        mdx: documentContext || '',
+        scribe_enabled: false,
+        conversation_id: conversationId
+      });
     } catch (error) {
       console.error('Failed to load document data:', error);
       // Use fallback data
@@ -368,6 +384,28 @@ export default function LoreScribeModal({
             layoutUrl: result.layoutUrl
           } as any);
           setActiveTab('scribe');
+
+          // Immediately create initial Git-backed doc so layouts won't 404
+          try {
+            const commitPref = (() => { try { return localStorage.getItem('text-assets-commit-on-save') === 'true'; } catch { return false; } })();
+            await fetch('/api/text-assets', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                slug: result.slug,
+                title: result.title,
+                categories: ['lore', 'conversation'],
+                source: 'conversation',
+                status: 'draft',
+                mdx: `# ${result.title}\n\n*The scribe will populate this document as your conversation continues...*`,
+                commitOnSave: commitPref,
+                scribe_enabled: true,
+                conversation_id: result.conversationId
+              })
+            });
+          } catch (e) {
+            console.warn('[SCRIBE DEBUG] Initial doc save failed (non-blocking):', e);
+          }
 
           // Add confirmation message with layout link
           const layoutLink = result.layoutUrl ? ` You can also view it in the [layout editor](${result.layoutUrl}).` : '';
@@ -462,6 +500,28 @@ export default function LoreScribeModal({
           console.log('🔍 [SCRIBE DEBUG] Setting documentData to:', JSON.stringify(newDocData, null, 2));
           setDocumentData(newDocData);
           setActiveTab('scribe');
+
+          // Ensure initial Git-backed files exist immediately
+          try {
+            const commitPref = (() => { try { return localStorage.getItem('text-assets-commit-on-save') === 'true'; } catch { return false; } })();
+            await fetch('/api/text-assets', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                slug: result.slug,
+                title: result.title,
+                categories: ['lore', 'conversation'],
+                source: 'conversation',
+                status: 'draft',
+                mdx: `# ${result.title}\n\n*The scribe will populate this document as your conversation continues...*`,
+                commitOnSave: commitPref,
+                scribe_enabled: true,
+                conversation_id: result.conversationId
+              })
+            });
+          } catch (e) {
+            console.warn('[SCRIBE DEBUG] Initial doc save failed (non-blocking):', e);
+          }
 
           // Fallback: if backend did not return a layoutId, create one now via frontend API
           if (!result.layoutId && result.slug) {
