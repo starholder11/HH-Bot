@@ -118,7 +118,11 @@ export async function POST(req: NextRequest) {
         console.log('[text-assets] Committed files to GitHub in one commit:', { slug, commit: newCommit.sha });
       } catch (e) {
         console.error('[text-assets] GitHub single-commit write failed', e);
-        throw e;
+        return NextResponse.json({ 
+          success: false, 
+          error: 'GitHub API write failed', 
+          details: e instanceof Error ? e.message : String(e)
+        }, { status: 500 });
       }
 
       return NextResponse.json({ success: true, slug, paths: { indexPath: `github:content/timeline/${slug}/index.yaml`, contentPath: `github:content/timeline/${slug}/content.mdx` }, oai });
