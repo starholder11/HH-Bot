@@ -117,10 +117,37 @@ function ScribeEditor({
 
   const openInLayoutEditor = () => {
     if (documentData?.slug) {
+      console.log('🔍 [LAYOUT DEBUG] Current documentData:', JSON.stringify(documentData, null, 2));
+      console.log('🔍 [LAYOUT DEBUG] layoutId:', (documentData as any).layoutId);
+      console.log('🔍 [LAYOUT DEBUG] layoutUrl:', (documentData as any).layoutUrl);
+      
       // Close modal and navigate to layout editor
       // Try layout-specific URL first, fallback to highlight
       const layoutUrl = (documentData as any).layoutUrl || `/visual-search?highlight=${documentData.slug}`;
-      window.location.href = layoutUrl;
+      console.log('🔍 [LAYOUT DEBUG] Final layoutUrl to navigate to:', layoutUrl);
+      
+      // Check if the layout actually exists before navigating
+      if ((documentData as any).layoutId) {
+        console.log('🔍 [LAYOUT DEBUG] Layout ID exists, checking layout...');
+        fetch(`/api/media-assets/${(documentData as any).layoutId}`)
+          .then(resp => {
+            console.log('🔍 [LAYOUT DEBUG] Layout check response status:', resp.status);
+            return resp.json();
+          })
+          .then(data => {
+            console.log('🔍 [LAYOUT DEBUG] Layout check data:', JSON.stringify(data, null, 2));
+            window.location.href = layoutUrl;
+          })
+          .catch(err => {
+            console.error('🔍 [LAYOUT DEBUG] Layout check failed:', err);
+            window.location.href = layoutUrl;
+          });
+      } else {
+        console.log('🔍 [LAYOUT DEBUG] No layout ID, using fallback URL');
+        window.location.href = layoutUrl;
+      }
+    } else {
+      console.error('🔍 [LAYOUT DEBUG] No documentData or slug available');
     }
   };
 
@@ -384,14 +411,23 @@ export default function LoreScribeModal({
         const result = await response.json();
 
         if (result.type === 'scribe_started') {
+          console.log('🔍 [SCRIBE DEBUG] Full scribe_started result:', JSON.stringify(result, null, 2));
+          console.log('🔍 [SCRIBE DEBUG] layoutId:', result.layoutId);
+          console.log('🔍 [SCRIBE DEBUG] layoutUrl:', result.layoutUrl);
+          
           // Update document data and switch to scribe tab
-          setDocumentData({
+          const newDocData = {
             slug: result.slug,
             title: result.title,
             mdx: `# ${result.title}\n\n*The scribe will populate this document as your conversation continues...*`,
             scribe_enabled: true,
-            conversation_id: result.conversationId
-          });
+            conversation_id: result.conversationId,
+            layoutId: result.layoutId,
+            layoutUrl: result.layoutUrl
+          };
+          
+          console.log('🔍 [SCRIBE DEBUG] Setting documentData to:', JSON.stringify(newDocData, null, 2));
+          setDocumentData(newDocData);
           setActiveTab('scribe');
 
           // Add confirmation message
