@@ -90,26 +90,26 @@ function ScribeEditor({
     setIsSaving(true);
     try {
       // Use exact same model as layout editor save
-      const commitPref = (() => { 
-        try { 
-          return localStorage.getItem('text-assets-commit-on-save') === 'true'; 
-        } catch { 
-          return false; 
-        } 
+      const commitPref = (() => {
+        try {
+          return localStorage.getItem('text-assets-commit-on-save') === 'true';
+        } catch {
+          return false;
+        }
       })();
-      
-      const payload = { 
-        slug: documentData.slug, 
-        title: documentData.title, 
-        categories: ['lore', 'conversation'], 
-        source: 'conversation', 
-        status: 'draft', 
-        mdx: content, 
+
+      const payload = {
+        slug: documentData.slug,
+        title: documentData.title,
+        categories: ['lore', 'conversation'],
+        source: 'conversation',
+        status: 'draft',
+        mdx: content,
         commitOnSave: commitPref,
         scribe_enabled: scribeEnabled,
         conversation_id: documentData.conversation_id
       };
-      
+
       console.log('[scribe] Saving text asset payload:', payload);
       const response = await fetch('/api/text-assets', {
         method: 'POST',
@@ -120,14 +120,15 @@ function ScribeEditor({
       if (!response.ok) {
         throw new Error(`Save failed (${response.status})`);
       }
-      
+
       let json: any = null;
-      try { 
-        json = await response.json(); 
+      try {
+        json = await response.json();
       } catch {}
-      
+
       console.log('[scribe] Save response:', { ok: response.ok, status: response.status, json });
-      
+      console.log('[scribe] Save response json details:', JSON.stringify(json, null, 2));
+
       if (response.ok && json?.success) {
         onSave(content);
         console.log('[scribe] Document saved successfully');
