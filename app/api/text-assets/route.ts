@@ -47,13 +47,15 @@ export async function POST(req: NextRequest) {
     const indexPath = path.join(baseDir, 'index.yaml');
     const contentPath = path.join(baseDir, 'content.mdx');
 
+    // commitOnSave affects status field only - always write to Git files
+    const finalStatus = commitOnSave ? 'committed' : 'draft';
     const indexDoc = {
       slug,
       title,
       date: new Date().toISOString(),
       categories: Array.isArray(categories) ? categories : String(categories || '').split(',').map((s) => s.trim()).filter(Boolean),
       source,
-      status,
+      status: finalStatus,
       ...(typeof scribe_enabled === 'boolean' && { scribe_enabled }),
       ...(conversation_id && { conversation_id })
     };
