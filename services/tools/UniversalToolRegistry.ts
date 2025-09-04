@@ -141,6 +141,7 @@ export class UniversalToolRegistry {
 
     // 1. Register comprehensive tools (manually curated, high-quality)
     const comprehensiveToolDefs = ComprehensiveTools.getAllTools();
+    console.log('[UniversalToolRegistry] Comprehensive tools to register:', comprehensiveToolDefs.map(t => t.name));
     for (const toolDef of comprehensiveToolDefs) {
       const methodName = toolDef.name;
       const method = (this.comprehensiveTools as any)[methodName];
@@ -154,6 +155,9 @@ export class UniversalToolRegistry {
           requiresContext: true,
           execute: method.bind(this.comprehensiveTools)
         });
+        if (toolDef.name === 'createBackgroundDocDraft') {
+          console.log('[UniversalToolRegistry] Registered createBackgroundDocDraft tool');
+        }
       }
     }
 
@@ -178,6 +182,7 @@ export class UniversalToolRegistry {
     }
 
     console.log(`[UniversalToolRegistry] Registered ${this.tools.size} total tools`);
+    console.log('[UniversalToolRegistry] Tool names:', Array.from(this.tools.keys()));
   }
 
   registerTool(tool: UniversalToolDefinition): void {

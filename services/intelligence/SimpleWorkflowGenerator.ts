@@ -171,6 +171,16 @@ export class SimpleWorkflowGenerator {
         const step = steps[i];
         const params = { ...step.parameters } as any;
 
+        // Inject required params for specific tools if classifier omitted them
+        if (step.tool_name === 'createBackgroundDocDraft') {
+          if (typeof params.conversationId !== 'string' || params.conversationId.length === 0) {
+            params.conversationId = workflow.correlationId;
+          }
+          if (typeof params.userId !== 'string' || params.userId.length === 0) {
+            params.userId = workflow.userId;
+          }
+        }
+
         // Pass search results to pinToCanvas step
         if (step.tool_name === 'pinToCanvas' && lastExecution?.result) {
           // Unified search result normalized to array earlier, but be defensive
@@ -307,6 +317,23 @@ export class SimpleWorkflowGenerator {
       workflow.totalCost = workflow.llmCost + workflow.toolCost;
 
       console.log(`[${workflow.correlationId}] Final lastExecution status: ${lastExecution?.status}, type: ${typeof lastExecution?.status}`);
+
+      // Fallback: if nothing executed (no steps or all skipped), try executing the primary tool directly
+      if (!lastExecution && workflow.intent.tool_name === 'createBackgroundDocDraft') {
+        try {
+          const titleMatch = (workflow.intent as any)?.parameters?.title || /about\s+([^.!?]+)/i.exec((workflow.intent as any)?.reasoning || '')?.[1] || 'Conversation Summary';
+          const fallbackParams: any = {
+            title: typeof titleMatch === 'string' ? titleMatch.trim() : 'Conversation Summary',
+            conversationId: workflow.correlationId,
+            userId: workflow.userId
+          };
+          console.log(`[${workflow.correlationId}] FALLBACK execute createBackgroundDocDraft with`, fallbackParams);
+          lastExecution = await this.toolExecutor.executeTool('createBackgroundDocDraft', fallbackParams, { userId: workflow.userId, tenantId: 'default' });
+          workflow.executedSteps!.push({ tool_name: 'createBackgroundDocDraft', parameters: fallbackParams, result: lastExecution.result, status: lastExecution.status === 'completed' ? 'completed' : 'failed' });
+        } catch (e) {
+          console.warn(`[${workflow.correlationId}] FALLBACK execution failed:`, e);
+        }
+      }
 
       if (lastExecution?.status === 'completed') {
         workflow.status = 'completed';

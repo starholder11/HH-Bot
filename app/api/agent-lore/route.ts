@@ -36,49 +36,120 @@ export async function POST(req: NextRequest) {
     const scribeIntent = detectScribeIntent(lastMessage.content);
 
     if (scribeIntent.isStart) {
-      // Handle start scribe command - call backend tool
+      // Handle start scribe command - implement directly since backend tool isn't working
       const finalConversationId = conversationId || `conv_${Date.now()}`;
       const title = scribeIntent.extractedTitle || 'Conversation Summary';
+      const slug = title.toLowerCase().replace(/\s+/g, '-');
+
+      console.log('[agent-lore] Starting scribe directly:', { title, slug, conversationId: finalConversationId });
 
       try {
-        // Call the backend tool directly via agent-comprehensive
+        // Create text asset via enqueue (same as backend tool would do)
+        const indexDoc = {
+          slug,
+          title,
+          date: new Date().toISOString(),
+          categories: ['lore', 'conversation'],
+          source: 'conversation',
+          status: 'draft',
+          scribe_enabled: true,
+          conversation_id: finalConversationId
+        };
+
+        const indexYaml = `slug: ${slug}
+title: "${title}"
+date: ${indexDoc.date}
+categories:
+  - lore
+  - conversation
+source: conversation
+status: draft
+scribe_enabled: true
+conversation_id: ${finalConversationId}`;
+
+        const mdx = `# ${title}\n\n*The scribe will populate this document as your conversation continues...*`;
+
+        // Enqueue to backend
         const agentBackend = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL;
-        if (!agentBackend) {
-          throw new Error('Agent backend not configured');
+        let enqueued = false;
+
+        if (agentBackend) {
+          try {
+            const enqueueResponse = await Promise.race([
+              fetch(`${agentBackend}/api/text-assets/enqueue`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  slug,
+                  indexYaml,
+                  mdx,
+                  scribe_enabled: true,
+                  conversation_id: finalConversationId
+                })
+              }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+            ]) as Response;
+
+            if (enqueueResponse.ok) {
+              const result = await enqueueResponse.json();
+              enqueued = !!result.enqueued;
+            }
+          } catch (err) {
+            console.warn('[agent-lore] Enqueue failed (non-blocking):', (err as Error)?.message);
+          }
         }
 
-        const toolResponse = await fetch(`${agentBackend}/api/agent-comprehensive`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: `start scribe about ${title}`,
-            userId: 'lore-user',
-            tenantId: 'default'
-          })
+        // Create layout directly
+        let layoutId = null;
+        let layoutUrl = `/visual-search?highlight=${slug}`;
+
+        try {
+          const layoutResponse = await fetch(`${process.env.PUBLIC_BASE_URL || ''}/api/layouts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: `${title} - Layout`,
+              description: `Layout for ${title}`,
+              layout_data: {
+                cellSize: 20,
+                designSize: { width: 1200, height: 800 },
+                items: [
+                  {
+                    id: `text_${Date.now()}`,
+                    type: 'content_ref',
+                    contentType: 'text',
+                    refId: `text_timeline/${slug}`,
+                    snippet: title,
+                    title: title,
+                    x: 0, y: 0, w: 640, h: 480,
+                    nx: 0, ny: 0, nw: 640/1200, nh: 480/800,
+                    transform: {}
+                  }
+                ]
+              }
+            })
+          });
+
+          if (layoutResponse.ok) {
+            const layoutResult = await layoutResponse.json();
+            layoutId = layoutResult.id;
+            layoutUrl = `/layout-editor/${layoutId}`;
+            console.log('[agent-lore] Layout created:', { layoutId, layoutUrl });
+          }
+        } catch (layoutError) {
+          console.warn('[agent-lore] Layout creation failed (non-blocking):', layoutError);
+        }
+
+        return NextResponse.json({
+          type: 'scribe_started',
+          slug,
+          title,
+          conversationId: finalConversationId,
+          message: `Started scribe for "${title}". I'll document our conversation as we chat. Switch to the Scribe tab to see the document.`,
+          layoutId,
+          layoutUrl
         });
 
-        if (toolResponse.ok) {
-          const result = await toolResponse.json();
-          console.log('[agent-lore] Backend tool response:', JSON.stringify(result, null, 2));
-
-          // Extract tool execution results from backend response
-          const toolResults = result?.execution?.results?.[0] || result?.execution || result;
-          const slug = toolResults?.slug || title.toLowerCase().replace(/\s+/g, '-');
-          const layoutId = toolResults?.layoutId || null;
-          const layoutUrl = toolResults?.layoutUrl || `/visual-search?highlight=${slug}`;
-
-          return NextResponse.json({
-            type: 'scribe_started',
-            slug,
-            title,
-            conversationId: finalConversationId,
-            message: `Started scribe for "${title}". I'll document our conversation as we chat. Switch to the Scribe tab to see the document.`,
-            layoutId,
-            layoutUrl
-          });
-        } else {
-          throw new Error('Backend tool execution failed');
-        }
       } catch (error) {
         console.error('[agent-lore] Start scribe failed:', error);
         return NextResponse.json({

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { saveMediaAsset } from '@/lib/media-storage';
 import { RedisContextService } from '../context/RedisContextService';
 import yaml from 'js-yaml';
 
@@ -819,6 +820,7 @@ export class ComprehensiveTools {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
 
+    console.log(`[${correlationId}] START createBackgroundDocDraft`, { title: params.title, slug: params.slug, conversationId: params.conversationId, userId: params.userId });
     try {
       const finalTitle = params.title || 'Untitled Conversation';
       const finalSlug = params.slug || slugify(finalTitle || 'untitled-conversation');
@@ -840,6 +842,7 @@ export class ComprehensiveTools {
       const mdx = `# ${finalTitle}\n\n*The scribe will populate this document as your conversation continues...*`;
 
       // Enqueue draft on agent backend (this.apiClient is bound to backend base URL)
+      console.log(`[${correlationId}] ENQUEUE draft -> /api/text-assets/enqueue`, { finalSlug, scribeEnabled });
       const enqueueResp = await this.apiClient.post('/api/text-assets/enqueue', {
         slug: finalSlug,
         indexYaml,
@@ -847,51 +850,77 @@ export class ComprehensiveTools {
         scribe_enabled: scribeEnabled,
         conversation_id: params.conversationId
       });
+      console.log(`[${correlationId}] ENQUEUE result:`, JSON.stringify(enqueueResp));
 
-      // Also create a layout containing this text asset
-      let layoutId = null;
+      // Also create a layout containing this text asset (direct S3 write for reliability)
+      let layoutId: string | null = null;
       try {
-        const layoutPayload = {
+        layoutId = `layout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const nowIso = new Date().toISOString();
+        const layoutAsset: any = {
+          id: layoutId,
+          filename: `${layoutId}.json`,
+          s3_url: '',
+          cloudflare_url: '',
           title: `${finalTitle} - Layout`,
           description: `Layout containing the text asset: ${finalTitle}`,
+          media_type: 'layout',
+          layout_type: 'blueprint_composer',
+          metadata: {
+            file_size: 0,
+            width: 1200,
+            height: 800,
+            cell_size: 20,
+            item_count: 1,
+            has_inline_content: false,
+            has_transforms: true
+          },
           layout_data: {
-            cellSize: 20,
             designSize: { width: 1200, height: 800 },
+            cellSize: 20,
+            styling: {},
             items: [
               {
                 id: `text_${Date.now()}`,
                 type: 'content_ref',
                 contentType: 'text',
-                contentId: `text_timeline/${finalSlug}`,
                 refId: `text_timeline/${finalSlug}`,
                 snippet: finalTitle,
                 title: finalTitle,
                 x: 0,
                 y: 0,
-                w: 8,
-                h: 6,
+                w: 640,
+                h: 480,
                 nx: 0,
                 ny: 0,
-                nw: 8/15,
-                nh: 6/10,
+                nw: 640/1200,
+                nh: 480/800,
                 transform: {}
               }
             ]
           },
-          updated_at: new Date().toISOString()
+          ai_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+          manual_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] },
+          processing_status: { upload: 'completed', metadata_extraction: 'completed', ai_labeling: 'not_started', manual_review: 'pending', html_generation: 'pending' },
+          timestamps: { uploaded: nowIso, metadata_extracted: nowIso, labeled_ai: null, labeled_reviewed: null, html_generated: null },
+          labeling_complete: false,
+          project_id: null,
+          created_at: nowIso,
+          updated_at: nowIso
         };
 
-        const layoutResp = await this.apiClient.post('/api/layouts', layoutPayload);
-        layoutId = layoutResp?.data?.id || layoutResp?.id;
+        console.log(`[${correlationId}] SAVE LAYOUT -> S3 as ${layoutId}.json`);
+        await saveMediaAsset(layoutId, layoutAsset);
       } catch (layoutError) {
         console.warn(`[${correlationId}] Layout creation failed (non-blocking):`, layoutError);
+        layoutId = null;
       }
 
       const layoutUrl = layoutId
         ? `/layout-editor/${layoutId}`
         : `/visual-search?highlight=${finalSlug}`;
 
-      return {
+      const result = {
         success: !!enqueueResp?.enqueued || true,
         slug: finalSlug,
         title: finalTitle,
@@ -900,6 +929,8 @@ export class ComprehensiveTools {
         message: `Started scribe for "${finalTitle}". I'll document our conversation as we chat.`,
         correlationId
       };
+      console.log(`[${correlationId}] SUCCESS createBackgroundDocDraft:`, JSON.stringify(result));
+      return result;
     } catch (error) {
       console.error(`[${correlationId}] createBackgroundDocDraft failed:`, error);
       return {
