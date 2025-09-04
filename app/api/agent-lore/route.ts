@@ -77,35 +77,83 @@ conversation_id: ${finalConversationId}`;
 
         const mdx = `# ${title}\n\n*The scribe will populate this document as your conversation continues...*`;
 
-        // Enqueue to backend
-        const agentBackend = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL;
-        let enqueued = false;
+        // Create S3 text asset directly
+        const textAssetId = crypto.randomUUID();
+        const s3TextAsset = {
+          id: textAssetId,
+          media_type: 'text',
+          title: title,
+          content: mdx,
+          date: new Date().toISOString(),
+          filename: `${slug}.md`,
+          s3_url: `media-labeling/assets/${textAssetId}.json`,
+          cloudflare_url: '',
+          description: `Text asset: ${title}`,
+          metadata: {
+            slug: slug,
+            source: 'conversation',
+            status: 'draft',
+            categories: ['lore', 'conversation'],
+            scribe_enabled: true,
+            conversation_id: finalConversationId,
+            word_count: mdx.split(/\s+/).filter(word => word.length > 0).length,
+            character_count: mdx.length,
+            reading_time_minutes: Math.ceil(mdx.split(/\s+/).filter(word => word.length > 0).length / 200),
+            language: 'en',
+            migrated_from_git: false,
+          },
+          ai_labels: {
+            scenes: [],
+            objects: [],
+            style: [],
+            mood: [],
+            themes: [],
+            confidence_scores: {},
+          },
+          manual_labels: {
+            scenes: [],
+            objects: [],
+            style: [],
+            mood: [],
+            themes: [],
+            custom_tags: [],
+            topics: [],
+            genres: [],
+            content_type: [],
+          },
+          processing_status: {
+            upload: 'completed',
+            metadata_extraction: 'completed',
+            ai_labeling: 'not_started',
+            manual_review: 'pending',
+            content_analysis: 'pending',
+            search_indexing: 'pending',
+          },
+          timestamps: {
+            uploaded: new Date().toISOString(),
+            metadata_extracted: new Date().toISOString(),
+            labeled_ai: null,
+            labeled_reviewed: null,
+          },
+          labeling_complete: false,
+          project_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
 
-        if (agentBackend) {
-          try {
-            const enqueueResponse = await Promise.race([
-              fetch(`${agentBackend}/api/text-assets/enqueue`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  slug,
-                  indexYaml,
-                  mdx,
-                  scribe_enabled: true,
-                  conversation_id: finalConversationId
-                })
-              }),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
-            ]) as Response;
+        // Save S3 text asset
+        console.log('[agent-lore] Creating S3 text asset:', { id: textAssetId, slug, title });
+        const textResponse = await fetch(`${process.env.PUBLIC_BASE_URL || 'http://localhost:3000'}/api/media-assets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(s3TextAsset)
+        });
 
-            if (enqueueResponse.ok) {
-              const result = await enqueueResponse.json();
-              enqueued = !!result.enqueued;
-            }
-          } catch (err) {
-            console.warn('[agent-lore] Enqueue failed (non-blocking):', (err as Error)?.message);
-          }
+        if (!textResponse.ok) {
+          throw new Error(`Failed to create S3 text asset: ${textResponse.status}`);
         }
+
+        console.log('[agent-lore] S3 text asset created successfully');
 
         // Create layout directly
         let layoutId = null;
@@ -126,7 +174,7 @@ conversation_id: ${finalConversationId}`;
                     id: `text_${Date.now()}`,
                     type: 'content_ref',
                     contentType: 'text',
-                    refId: `text_timeline/${slug}`,
+                    refId: textAssetId, // Use UUID for S3 text asset
                     snippet: title,
                     title: title,
                     x: 0, y: 0, w: 640, h: 480,
@@ -150,6 +198,7 @@ conversation_id: ${finalConversationId}`;
 
         return NextResponse.json({
           type: 'scribe_started',
+          id: textAssetId, // Include UUID for S3 text asset
           slug,
           title,
           conversationId: finalConversationId,

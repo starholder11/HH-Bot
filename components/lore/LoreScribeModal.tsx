@@ -691,7 +691,7 @@ export default function LoreScribeModal({
                         id: `text_${Date.now()}`,
                         type: 'content_ref',
                         contentType: 'text',
-                        refId: `text_timeline/${result.slug}`,
+                        refId: result.id || `text_timeline/${result.slug}`, // Use UUID if available (S3), fallback to slug (git)
                         snippet: result.title,
                         title: result.title,
                         x: 0, y: 0, w: 640, h: 480,
