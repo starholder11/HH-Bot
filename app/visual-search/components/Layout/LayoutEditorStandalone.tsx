@@ -187,11 +187,12 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
                 if (DEBUG_RTE) console.log('[RTE DEBUG] Loaded text asset (draft route):', { title: data.title, slug: data.slug, contentLength: (data.mdx || '').length });
               }
             } else {
-            if (DEBUG_RTE) console.log('[RTE DEBUG] Text asset not found, using defaults');
-            setRteTitle('Document Title');
-            setRteSlug(slug || 'new-document');
-            setRteCategories('');
-            setRteMarkdown('# Document Title\n\nStart writing...');
+              if (DEBUG_RTE) console.log('[RTE DEBUG] Text asset not found, using defaults');
+              setRteTitle('Document Title');
+              setRteSlug(slug || 'new-document');
+              setRteCategories('');
+              setRteMarkdown('# Document Title\n\nStart writing...');
+            }
           }
         } catch (e) {
           if (DEBUG_RTE) console.warn('[RTE DEBUG] Failed to load text asset:', e);
