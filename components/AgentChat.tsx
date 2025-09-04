@@ -271,6 +271,9 @@ export default function AgentChat() {
     async function send() {
     if (!input.trim() || busy) return;
 
+    console.log('🔍 [AGENT SEND] External AgentChat send called with:', input.trim());
+    console.log('🔍 [AGENT SEND] showLoreModal:', showLoreModal);
+
     // Classify the intent to determine which agent to use
     const intent = classifyIntent(input.trim());
 

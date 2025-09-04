@@ -120,12 +120,12 @@ function ScribeEditor({
       console.log('🔍 [LAYOUT DEBUG] Current documentData:', JSON.stringify(documentData, null, 2));
       console.log('🔍 [LAYOUT DEBUG] layoutId:', (documentData as any).layoutId);
       console.log('🔍 [LAYOUT DEBUG] layoutUrl:', (documentData as any).layoutUrl);
-      
+
       // Close modal and navigate to layout editor
       // Try layout-specific URL first, fallback to highlight
       const layoutUrl = (documentData as any).layoutUrl || `/visual-search?highlight=${documentData.slug}`;
       console.log('🔍 [LAYOUT DEBUG] Final layoutUrl to navigate to:', layoutUrl);
-      
+
       // Check if the layout actually exists before navigating
       if ((documentData as any).layoutId) {
         console.log('🔍 [LAYOUT DEBUG] Layout ID exists, checking layout...');
@@ -381,6 +381,9 @@ export default function LoreScribeModal({
   const send = async () => {
     if (!input.trim() || busy) return;
 
+    console.log('🔍 [MODAL SEND] Modal send function called with:', input.trim());
+    console.log('🔍 [MODAL SEND] Using /api/agent-lore route');
+
     // Always use modal-specific agent route that stays in modal context
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     if (setMessages) {
@@ -414,7 +417,7 @@ export default function LoreScribeModal({
           console.log('🔍 [SCRIBE DEBUG] Full scribe_started result:', JSON.stringify(result, null, 2));
           console.log('🔍 [SCRIBE DEBUG] layoutId:', result.layoutId);
           console.log('🔍 [SCRIBE DEBUG] layoutUrl:', result.layoutUrl);
-          
+
           // Update document data and switch to scribe tab
           const newDocData = {
             slug: result.slug,
@@ -425,7 +428,7 @@ export default function LoreScribeModal({
             layoutId: result.layoutId,
             layoutUrl: result.layoutUrl
           };
-          
+
           console.log('🔍 [SCRIBE DEBUG] Setting documentData to:', JSON.stringify(newDocData, null, 2));
           setDocumentData(newDocData);
           setActiveTab('scribe');
