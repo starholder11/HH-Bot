@@ -581,24 +581,37 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
   }
 
   const handleSave = async () => {
+    const corr = `layout_save_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     try {
+      console.log('[LAYOUT SAVE] Clicked Save', { corr, id: edited?.id, working_before: working });
       setWorking(true);
+      console.log('[LAYOUT SAVE] setWorking(true)', { corr });
+
+      const payload = edited;
+      const payloadSize = (() => { try { return JSON.stringify(payload).length; } catch { return -1; } })();
+      console.log('[LAYOUT SAVE] PUT begin', { corr, url: `/api/media-assets/${edited?.id}`, payloadSize });
 
       const response = await fetch(`/api/media-assets/${edited.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edited),
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error('Save failed');
+      console.log('[LAYOUT SAVE] PUT response', { corr, status: response.status, ok: response.ok });
+      if (!response.ok) throw new Error(`Save failed (${response.status})`);
 
-      const result = await response.json();
-      onSaved?.(result.asset || edited);
+      let result: any = null;
+      try { result = await response.json(); } catch {}
+      console.log('[LAYOUT SAVE] PUT json', { corr, hasAsset: !!result?.asset });
+      onSaved?.(result?.asset || edited);
+      console.log('[LAYOUT SAVE] onSaved invoked', { corr });
 
     } catch (error) {
+      console.error('[LAYOUT SAVE] Error', { err: (error as Error)?.message });
       alert(`Save failed: ${(error as Error).message}`);
     } finally {
       setWorking(false);
+      console.log('[LAYOUT SAVE] setWorking(false)', { corr });
     }
   };
 
@@ -706,7 +719,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             />
             Commit on save
           </label>
-          <Button onClick={handleSave} disabled={working} size="sm" className="bg-neutral-700 text-white hover:bg-neutral-600">
+          <Button onClick={() => { console.log('[LAYOUT SAVE] Save button clicked'); handleSave(); }} disabled={working} size="sm" className="bg-neutral-700 text-white hover:bg-neutral-600">
             {working ? 'Saving…' : 'Save'}
           </Button>
 
