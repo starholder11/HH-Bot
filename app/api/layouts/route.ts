@@ -6,6 +6,18 @@ import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * ⚠️  DEPRECATED LAYOUT CREATION ENDPOINT
+ *
+ * This endpoint was created for scribe project but creates layouts with incomplete structure.
+ * Missing: s3_url, proper timestamps, processing_status, styling, etc.
+ *
+ * FOR NEW CODE: Use /api/media-assets POST instead (complete structure)
+ *
+ * GET handler is fine (just lists layouts)
+ * POST handler should be avoided - kept for legacy compatibility only
+ */
+
 export async function GET(request: NextRequest) {
   try {
     console.log('[layouts] Fetching layout assets...');
@@ -67,6 +79,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // ⚠️  WARNING: This POST handler creates layouts with INCOMPLETE structure!
+    // ⚠️  Missing: s3_url, proper timestamps, processing_status, styling, etc.
+    // ⚠️  PREFER: /api/media-assets POST for layout creation (complete structure)
+    // ⚠️  This endpoint exists for legacy compatibility only - avoid for new code
+    console.warn('[layouts] POST: Using legacy incomplete layout creation - prefer /api/media-assets');
+
     const body = await request.json();
     const {
       title = 'Untitled Layout',

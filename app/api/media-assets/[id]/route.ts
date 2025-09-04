@@ -117,6 +117,35 @@ export async function PUT(
 
     await saveMediaAsset(id, updatedAsset);
 
+    // Ensure layouts index contains this layout for fast Workshop listing
+    try {
+      if (updatedAsset.media_type === 'layout') {
+        const s3 = getS3Client();
+        const bucket = getBucketName();
+        const indexKey = 'layouts/index.json';
+
+        let index: { items: Array<{ id: string; title: string; created_at: string }> } = { items: [] };
+        try {
+          const existing = await readJsonFromS3(indexKey);
+          if (existing && Array.isArray(existing.items)) index = existing;
+        } catch {}
+
+        const entry = { id: updatedAsset.id as string, title: (updatedAsset as any).title || updatedAsset.id, created_at: (updatedAsset as any).created_at || new Date().toISOString() };
+        const pos = index.items.findIndex(i => i.id === entry.id);
+        if (pos >= 0) index.items[pos] = entry; else index.items.unshift(entry);
+
+        await s3.send(new PutObjectCommand({
+          Bucket: bucket,
+          Key: indexKey,
+          Body: JSON.stringify(index, null, 2),
+          ContentType: 'application/json',
+          CacheControl: 'no-cache'
+        }));
+      }
+    } catch (e) {
+      console.warn('[media-assets] Failed to update layouts index on PUT (non-fatal):', e);
+    }
+
     console.log(`[media-assets] Updated asset: ${id} (${updatedAsset.media_type})`);
 
     return NextResponse.json({

@@ -605,16 +605,40 @@ export default function LoreScribeModal({
           // Fallback: if backend did not return a layoutId, create one now via frontend API
           if (!result.layoutId && result.slug) {
             try {
-              console.log('🔍 [SCRIBE DEBUG] Creating layout fallback via /api/layouts');
-              const resp = await fetch('/api/layouts', {
+              console.log('🔍 [SCRIBE DEBUG] Creating layout fallback via /api/media-assets (same as Workshop)');
+              const layoutId = `layout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+              const now = new Date().toISOString();
+
+              const resp = await fetch('/api/media-assets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                  id: layoutId,
+                  filename: `scribe_layout_${Date.now()}.json`,
                   title: `${result.title} - Layout`,
                   description: `Layout for ${result.title}`,
+                  media_type: 'layout',
+                  layout_type: 'blueprint_composer',
+                  s3_url: `layouts/${layoutId}.json`,
+                  cloudflare_url: '',
                   layout_data: {
-                    cellSize: 20,
                     designSize: { width: 1200, height: 800 },
+                    cellSize: 20,
+                    styling: {
+                      theme: 'dark',
+                      colors: {
+                        background: '#0b0b0b',
+                        text: '#ffffff',
+                        primary: '#3b82f6',
+                        secondary: '#6b7280',
+                        accent: '#8b5cf6'
+                      },
+                      typography: {
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        headingFont: 'system-ui, -apple-system, sans-serif',
+                        bodyFont: 'system-ui, -apple-system, sans-serif'
+                      }
+                    },
                     items: [
                       {
                         id: `text_${Date.now()}`,
@@ -628,15 +652,30 @@ export default function LoreScribeModal({
                         transform: {}
                       }
                     ]
-                  }
+                  },
+                  html: '',
+                  css: '',
+                  created_at: now,
+                  updated_at: now,
+                  timestamps: {
+                    created: now,
+                    updated: now
+                  },
+                  processing_status: {
+                    created: 'completed',
+                    html_generated: 'pending'
+                  },
+                  ai_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+                  manual_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] },
+                  labeling_complete: false
                 })
               });
               if (resp.ok) {
                 const json = await resp.json();
-                const layoutId = json.id;
-                const layoutUrl = `/layout-editor/${layoutId}`;
-                console.log('🔍 [SCRIBE DEBUG] Fallback layout created:', { layoutId, layoutUrl });
-                setDocumentData(prev => prev ? { ...prev, layoutId, layoutUrl } as any : prev);
+                const createdLayoutId = json.asset?.id || json.id || layoutId;
+                const layoutUrl = `/layout-editor/${createdLayoutId}`;
+                console.log('🔍 [SCRIBE DEBUG] Fallback layout created:', { layoutId: createdLayoutId, layoutUrl });
+                setDocumentData(prev => prev ? { ...prev, layoutId: createdLayoutId, layoutUrl } as any : prev);
               } else {
                 console.warn('🔍 [SCRIBE DEBUG] Fallback layout create failed with status', resp.status);
               }
