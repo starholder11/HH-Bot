@@ -53,7 +53,29 @@ export async function POST(req: NextRequest) {
       console.log('[agent-lore] Starting scribe directly:', { title, slug, conversationId: finalConversationId });
 
       try {
-        // Create S3 text asset content
+        // Create text asset via enqueue (same as backend tool would do)
+        const indexDoc = {
+          slug,
+          title,
+          date: new Date().toISOString(),
+          categories: ['lore', 'conversation'],
+          source: 'conversation',
+          status: 'draft',
+          scribe_enabled: true,
+          conversation_id: finalConversationId
+        };
+
+        const indexYaml = `slug: ${slug}
+title: "${title}"
+date: ${indexDoc.date}
+categories:
+  - lore
+  - conversation
+source: conversation
+status: draft
+scribe_enabled: true
+conversation_id: ${finalConversationId}`;
+
         const mdx = `# ${title}\n\n*The scribe will populate this document as your conversation continues...*`;
 
         // Create S3 text asset directly
@@ -175,8 +197,7 @@ export async function POST(req: NextRequest) {
           console.warn('[agent-lore] Layout creation failed (non-blocking):', layoutError);
         }
 
-        // Return as JSON response (not stream) for scribe commands
-        return new NextResponse(JSON.stringify({
+        return NextResponse.json({
           type: 'scribe_started',
           id: textAssetId, // Include UUID for S3 text asset
           slug,
@@ -185,9 +206,6 @@ export async function POST(req: NextRequest) {
           message: `Started scribe for "${title}". I'll document our conversation as we chat. Switch to the Scribe tab to see the document.`,
           layoutId,
           layoutUrl
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
         });
 
       } catch (error) {
