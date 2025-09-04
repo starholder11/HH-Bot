@@ -1132,6 +1132,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
           initialCategories={rteCategories}
           rteTargetId={rteTargetId}
           setEdited={setEdited}
+          layoutId={edited.id}
           onClose={() => {
             setShowRteModal(false);
             setRteTargetId(null);
@@ -2191,7 +2192,7 @@ const quillFormats = [
   'header', 'blockquote', 'code-block', 'list', 'indent', 'direction', 'align', 'link', 'image', 'video', 'formula'
 ];
 
-function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown, initialTitle, initialSlug, initialCategories, rteTargetId, setEdited }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void; mode?: 'html' | 'markdown'; initialMarkdown?: string; initialTitle?: string; initialSlug?: string; initialCategories?: string; rteTargetId?: string | null; setEdited?: React.Dispatch<React.SetStateAction<LayoutAsset>> }) {
+function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown, initialTitle, initialSlug, initialCategories, rteTargetId, setEdited, layoutId }: { initialHtml: string; onClose: () => void; onSave: (html: string) => void; mode?: 'html' | 'markdown'; initialMarkdown?: string; initialTitle?: string; initialSlug?: string; initialCategories?: string; rteTargetId?: string | null; setEdited?: React.Dispatch<React.SetStateAction<LayoutAsset>>; layoutId?: string }) {
   const [mounted, setMounted] = useState(false);
   const [html, setHtml] = useState(initialHtml || '');
   const [md, setMd] = useState(initialMarkdown || '');
@@ -2260,7 +2261,7 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                           source: 'layout',
                           status: 'draft',
                           categories: cats,
-                          layout_id: edited.id, // Reference to creating layout
+                          layout_id: layoutId, // Reference to creating layout
                           word_count: md.split(/\s+/).filter(word => word.length > 0).length,
                           character_count: md.length,
                           reading_time_minutes: Math.ceil(md.split(/\s+/).filter(word => word.length > 0).length / 200),
