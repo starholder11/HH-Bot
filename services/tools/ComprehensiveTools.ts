@@ -822,8 +822,11 @@ export class ComprehensiveTools {
 
     console.log(`[${correlationId}] START createBackgroundDocDraft`, { title: params.title, slug: params.slug, conversationId: params.conversationId, userId: params.userId });
     try {
-      const finalTitle = params.title || 'Untitled Conversation';
-      const finalSlug = params.slug || slugify(finalTitle || 'untitled-conversation');
+      // Always generate unique values for title and slug
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substr(2, 6);
+      const finalTitle = params.title || `Conversation Summary ${timestamp}`;
+      const finalSlug = params.slug || slugify(finalTitle) + `-${randomSuffix}`;
       const scribeEnabled = params.scribeEnabled !== false;
       const categories = Array.isArray(params.categories) ? params.categories : [];
 

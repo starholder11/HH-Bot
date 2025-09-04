@@ -24,8 +24,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });
     }
 
-    const finalSlug = slug || slugify(title || 'untitled-conversation');
-    const finalTitle = title || 'Untitled Conversation';
+    // Always generate unique values for title and slug
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substr(2, 6);
+    const finalTitle = title || `Conversation Summary ${timestamp}`;
+    const finalSlug = slug || slugify(finalTitle) + `-${randomSuffix}`;
 
     // Assemble index.yaml structure
     const indexDoc = {

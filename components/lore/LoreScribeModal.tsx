@@ -50,6 +50,8 @@ function ScribeEditor({
   onSave: (content: string) => void;
 }) {
   const [content, setContent] = useState(documentData?.mdx || '');
+  const [title, setTitle] = useState(documentData?.title || '');
+  const [slug, setSlug] = useState(documentData?.slug || '');
   const [isToggling, setIsToggling] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -58,7 +60,13 @@ function ScribeEditor({
     if (documentData?.mdx) {
       setContent(documentData.mdx);
     }
-  }, [documentData?.mdx]);
+    if (documentData?.title) {
+      setTitle(documentData.title);
+    }
+    if (documentData?.slug) {
+      setSlug(documentData.slug);
+    }
+  }, [documentData?.mdx, documentData?.title, documentData?.slug]);
 
   const handleToggle = async () => {
     if (!documentData?.slug) return;
@@ -99,8 +107,8 @@ function ScribeEditor({
       })();
 
       const payload = {
-        slug: documentData.slug,
-        title: documentData.title,
+        slug: slug || documentData.slug,
+        title: title || documentData.title,
         categories: ['lore', 'conversation'],
         source: 'conversation',
         status: 'draft',
@@ -184,39 +192,72 @@ function ScribeEditor({
     return (
     <div className="h-full flex flex-col max-h-[75vh]">
       {/* Header with controls - fixed at top */}
-      <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-neutral-800 bg-neutral-950">
-        <div>
-          <h3 className="text-lg font-semibold text-white">
-            {documentData?.title || 'Untitled Document'}
-          </h3>
-          <p className="text-sm text-neutral-400">
-            {scribeEnabled ? 'AI updating document' : 'Manual editing mode'}
-          </p>
+      <div className="flex-shrink-0 p-4 border-b border-neutral-800 bg-neutral-950">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-white">
+              {title || 'Untitled Document'}
+            </h3>
+            <p className="text-sm text-neutral-400">
+              {scribeEnabled ? 'AI updating document' : 'Manual editing mode'}
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleToggle}
-            disabled={isToggling}
-            variant={scribeEnabled ? "destructive" : "default"}
-            size="sm"
-          >
-            {scribeEnabled ? "Stop Scribe" : "Start Scribe"}
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            variant="outline"
-            size="sm"
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-          <Button
-            onClick={openInLayoutEditor}
-            variant="outline"
-            size="sm"
-          >
-            Go to Layout
-          </Button>
+
+        {/* Title and Slug input fields */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">
+              Title
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Document title"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">
+              Slug
+            </label>
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="document-slug"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <div className="flex gap-2">
+            <Button
+              onClick={handleToggle}
+              disabled={isToggling}
+              variant={scribeEnabled ? "destructive" : "default"}
+              size="sm"
+            >
+              {scribeEnabled ? "Stop Scribe" : "Start Scribe"}
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              variant="outline"
+              size="sm"
+            >
+              {isSaving ? "Saving..." : "Save"}
+            </Button>
+            <Button
+              onClick={openInLayoutEditor}
+              variant="outline"
+              size="sm"
+            >
+              Go to Layout
+            </Button>
+          </div>
         </div>
       </div>
 
