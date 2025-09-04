@@ -112,7 +112,9 @@ export async function POST(req: NextRequest) {
           ],
         });
 
-        const message = `chore(text): create/update ${slug} (index+content)`;
+        const message = commitOnSave 
+          ? `chore(text): create/update ${slug} (index+content)`
+          : `chore(text): create/update ${slug} (index+content) [vercel skip]`;
         const { data: newCommit } = await octokit.git.createCommit({ owner, repo, message, tree: newTree.sha!, parents: [baseCommitSha] });
         await octokit.git.updateRef({ owner, repo, ref: branchRef, sha: newCommit.sha!, force: false });
         console.log('[text-assets] Committed files to GitHub in one commit:', { slug, commit: newCommit.sha });
