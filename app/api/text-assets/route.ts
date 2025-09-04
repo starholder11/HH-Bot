@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
     const indexPath = path.join(baseDir, 'index.yaml');
     const contentPath = path.join(baseDir, 'content.mdx');
 
-    // commitOnSave affects status field only - always write to Git files
+    // Normalize commit flag early and compute status for YAML
+    const commitOnSave = commitOnSaveInput === true; // Default false, only commit if explicitly requested
     const finalStatus = commitOnSave ? 'committed' : 'draft';
     const indexDoc = {
       slug,
@@ -79,7 +80,6 @@ export async function POST(req: NextRequest) {
     // If running on Vercel serverless (read-only FS), optionally commit to GitHub
     const isReadOnly = !!process.env.VERCEL;
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
-    const commitOnSave = commitOnSaveInput === true; // Default false, only commit if explicitly requested
 
     if (isReadOnly) {
       if (!token) {
@@ -118,9 +118,9 @@ export async function POST(req: NextRequest) {
         console.log('[text-assets] Committed files to GitHub in one commit:', { slug, commit: newCommit.sha });
       } catch (e) {
         console.error('[text-assets] GitHub single-commit write failed', e);
-        return NextResponse.json({ 
-          success: false, 
-          error: 'GitHub API write failed', 
+        return NextResponse.json({
+          success: false,
+          error: 'GitHub API write failed',
           details: e instanceof Error ? e.message : String(e)
         }, { status: 500 });
       }
