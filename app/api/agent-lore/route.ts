@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: `Execute tool: createBackgroundDocDraft with title="${title}" conversationId="${finalConversationId}"`,
+            message: `start scribe about ${title}`,
             userId: 'lore-user',
             tenantId: 'default'
           })
