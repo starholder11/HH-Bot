@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -78,7 +79,7 @@ conversation_id: ${finalConversationId}`;
         const mdx = `# ${title}\n\n*The scribe will populate this document as your conversation continues...*`;
 
         // Create S3 text asset directly
-        const textAssetId = crypto.randomUUID();
+        const textAssetId = randomUUID();
         const s3TextAsset = {
           id: textAssetId,
           media_type: 'text',
