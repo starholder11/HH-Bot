@@ -47,7 +47,7 @@ function ScribeEditor({
   documentData: TextAssetData | null;
   scribeEnabled: boolean;
   onScribeToggle: (enabled: boolean) => void;
-  onSave: (content: string) => void;
+  onSave: (data: { content: string; slug: string; title: string }) => void;
 }) {
   const [content, setContent] = useState(documentData?.mdx || '');
   const [title, setTitle] = useState(documentData?.title || '');
@@ -145,7 +145,7 @@ function ScribeEditor({
           // Update local fields too to reflect any slug normalization on backend
           setSlug(savedSlug);
           setTitle(savedTitle);
-          onSave(content);
+          onSave({ content, slug: savedSlug, title: savedTitle });
           console.log('[scribe] Document saved successfully');
         } catch {}
       } else {
@@ -771,8 +771,8 @@ export default function LoreScribeModal({
       onScribeToggle={(enabled) => {
         setDocumentData(prev => prev ? { ...prev, scribe_enabled: enabled } : null);
       }}
-      onSave={(content) => {
-        setDocumentData(prev => prev ? { ...prev, mdx: content } : null);
+      onSave={({ content, slug, title }) => {
+        setDocumentData(prev => prev ? { ...prev, mdx: content, slug, title } : null);
       }}
     />
   );
