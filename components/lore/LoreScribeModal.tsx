@@ -354,28 +354,119 @@ export default function LoreScribeModal({
   const send = async () => {
     if (!input.trim() || busy) return;
 
-    // Check for scribe commands first
-    const scribeIntent = detectScribeIntent(input.trim());
-    if (scribeIntent.isStart || scribeIntent.isStop) {
-      await handleScribeCommand(scribeIntent);
-      setInput('');
-      return;
-    }
-
-    // Use external send function if available (integrated mode)
-    if (externalOnSend) {
-      externalOnSend();
-      return;
-    }
-
-    // Standalone mode - handle sending internally
-    if (!setMessages) return;
-
+    // Always use modal-specific agent route that stays in modal context
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
-    setMessages(next);
+    if (setMessages) {
+      setMessages(next);
+    }
     setInput('');
     setBusy(true);
-    setInternalRunId(id => id + 1);
+
+    try {
+      const response = await fetch('/api/agent-lore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: next,
+          documentContext: documentData?.mdx,
+          conversationId: documentData?.conversation_id || conversationId,
+          scribeEnabled: documentData?.scribe_enabled || false
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Agent response failed');
+      }
+
+      // Check if it's a special scribe response
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        const result = await response.json();
+        
+        if (result.type === 'scribe_started') {
+          // Update document data and switch to scribe tab
+          setDocumentData({
+            slug: result.slug,
+            title: result.title,
+            mdx: `# ${result.title}\n\n*The scribe will populate this document as your conversation continues...*`,
+            scribe_enabled: true,
+            conversation_id: result.conversationId
+          });
+          setActiveTab('scribe');
+          
+          // Add confirmation message
+          if (setMessages) {
+            setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
+          }
+        } else if (result.type === 'scribe_stopped') {
+          setDocumentData(prev => prev ? { ...prev, scribe_enabled: false } : null);
+          if (setMessages) {
+            setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
+          }
+        } else if (result.type === 'error') {
+          if (setMessages) {
+            setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
+          }
+        }
+        
+        setBusy(false);
+        return;
+      }
+
+      // Handle streaming response for regular lore chat
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let assistantMessage = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'content') {
+                assistantMessage += data.delta;
+                // Update last assistant message
+                if (setMessages) {
+                  setMessages(prev => {
+                    const updated = [...prev];
+                    const lastMsg = updated[updated.length - 1];
+                    if (lastMsg?.role === 'assistant') {
+                      updated[updated.length - 1] = { ...lastMsg, content: assistantMessage };
+                    } else {
+                      updated.push({ role: 'assistant', content: assistantMessage });
+                    }
+                    return updated;
+                  });
+                }
+              }
+            } catch (e) {
+              // Ignore JSON parse errors
+            }
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Agent-lore request failed:', error);
+      if (setMessages) {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: 'Sorry, I had trouble responding. Please try again.' 
+        }]);
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const onDelta = (delta: string) => {
