@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         conversationId,
         scribe_enabled: true,
         layoutId: null,
-        layoutUrl: `/layout-editor/visual-search?highlight=${finalSlug}`
+        layoutUrl: `/visual-search?highlight=${finalSlug}`
       });
     }
 
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       conversationId,
       scribe_enabled: true,
       layoutId: null,
-      layoutUrl: `/layout-editor/visual-search?highlight=${finalSlug}`
+      layoutUrl: `/visual-search?highlight=${finalSlug}`
     });
 
   } catch (error) {

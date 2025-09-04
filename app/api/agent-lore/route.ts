@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
             title: title,
             conversationId: finalConversationId,
             message: `Started scribe for "${title}". I'll document our conversation as we chat. Switch to the Scribe tab to see the document.`,
-            layoutUrl: `/layout-editor/visual-search?highlight=${title.toLowerCase().replace(/\s+/g, '-')}`
+            layoutUrl: `/visual-search?highlight=${title.toLowerCase().replace(/\s+/g, '-')}`
           });
         } else {
           throw new Error('Backend tool execution failed');

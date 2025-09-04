@@ -119,7 +119,7 @@ function ScribeEditor({
     if (documentData?.slug) {
       // Close modal and navigate to layout editor
       // Try layout-specific URL first, fallback to highlight
-      const layoutUrl = (documentData as any).layoutUrl || `/layout-editor/visual-search?highlight=${documentData.slug}`;
+      const layoutUrl = (documentData as any).layoutUrl || `/visual-search?highlight=${documentData.slug}`;
       window.location.href = layoutUrl;
     }
   };
@@ -382,7 +382,7 @@ export default function LoreScribeModal({
       const contentType = response.headers.get('content-type');
       if (contentType?.includes('application/json')) {
         const result = await response.json();
-        
+
         if (result.type === 'scribe_started') {
           // Update document data and switch to scribe tab
           setDocumentData({
@@ -393,7 +393,7 @@ export default function LoreScribeModal({
             conversation_id: result.conversationId
           });
           setActiveTab('scribe');
-          
+
           // Add confirmation message
           if (setMessages) {
             setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
@@ -408,7 +408,7 @@ export default function LoreScribeModal({
             setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
           }
         }
-        
+
         setBusy(false);
         return;
       }
@@ -459,9 +459,9 @@ export default function LoreScribeModal({
     } catch (error) {
       console.error('Agent-lore request failed:', error);
       if (setMessages) {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: 'Sorry, I had trouble responding. Please try again.' 
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Sorry, I had trouble responding. Please try again.'
         }]);
       }
     } finally {

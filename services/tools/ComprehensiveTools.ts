@@ -887,10 +887,10 @@ export class ComprehensiveTools {
         console.warn(`[${correlationId}] Layout creation failed (non-blocking):`, layoutError);
       }
 
-      const layoutUrl = layoutId 
-        ? `/layout-editor/visual-search?id=${layoutId}`
-        : `/layout-editor/visual-search?highlight=${finalSlug}`;
-        
+      const layoutUrl = layoutId
+        ? `/layout-editor/${layoutId}`
+        : `/visual-search?highlight=${finalSlug}`;
+
       return {
         success: !!enqueueResp?.enqueued || true,
         slug: finalSlug,
