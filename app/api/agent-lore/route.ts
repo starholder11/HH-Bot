@@ -53,29 +53,7 @@ export async function POST(req: NextRequest) {
       console.log('[agent-lore] Starting scribe directly:', { title, slug, conversationId: finalConversationId });
 
       try {
-        // Create text asset via enqueue (same as backend tool would do)
-        const indexDoc = {
-          slug,
-          title,
-          date: new Date().toISOString(),
-          categories: ['lore', 'conversation'],
-          source: 'conversation',
-          status: 'draft',
-          scribe_enabled: true,
-          conversation_id: finalConversationId
-        };
-
-        const indexYaml = `slug: ${slug}
-title: "${title}"
-date: ${indexDoc.date}
-categories:
-  - lore
-  - conversation
-source: conversation
-status: draft
-scribe_enabled: true
-conversation_id: ${finalConversationId}`;
-
+        // Create S3 text asset content
         const mdx = `# ${title}\n\n*The scribe will populate this document as your conversation continues...*`;
 
         // Create S3 text asset directly
