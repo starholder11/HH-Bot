@@ -21,8 +21,15 @@ function detectScribeIntent(message: string) {
 }
 
 export async function POST(req: NextRequest) {
+  console.log('🔍 [AGENT-LORE] POST request received');
   try {
     const { messages, documentContext, conversationId, scribeEnabled } = await req.json();
+    console.log('🔍 [AGENT-LORE] Request body parsed:', { 
+      messagesLength: messages?.length, 
+      conversationId, 
+      scribeEnabled,
+      lastMessage: messages?.[messages.length - 1]?.content
+    });
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'messages array is required' }, { status: 400 });
@@ -35,8 +42,10 @@ export async function POST(req: NextRequest) {
 
     // Check for scribe commands first
     const scribeIntent = detectScribeIntent(lastMessage.content);
+    console.log('🔍 [AGENT-LORE] Scribe intent detected:', scribeIntent);
 
     if (scribeIntent.isStart) {
+      console.log('🔍 [AGENT-LORE] Processing scribe start command');
       // Handle start scribe command - implement directly since backend tool isn't working
       const finalConversationId = conversationId || `conv_${Date.now()}`;
       const baseTitle = (scribeIntent.extractedTitle && String(scribeIntent.extractedTitle).trim()) || 'Conversation Summary';

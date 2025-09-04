@@ -605,6 +605,13 @@ export default function LoreScribeModal({
     setBusy(true);
 
     try {
+      console.log('🔍 [MODAL SEND] About to call /api/agent-lore with payload:', {
+        messages: next,
+        documentContext: documentData?.mdx,
+        conversationId: documentData?.conversation_id || conversationId,
+        scribeEnabled: documentData?.scribe_enabled || false
+      });
+
       const response = await fetch('/api/agent-lore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -616,14 +623,25 @@ export default function LoreScribeModal({
         })
       });
 
+      console.log('🔍 [MODAL SEND] Got response from /api/agent-lore:', {
+        ok: response.ok,
+        status: response.status,
+        contentType: response.headers.get('content-type')
+      });
+
       if (!response.ok) {
-        throw new Error('Agent response failed');
+        const errorText = await response.text();
+        console.error('🔍 [MODAL SEND] Agent response failed:', response.status, errorText);
+        throw new Error(`Agent response failed: ${response.status} - ${errorText}`);
       }
 
       // Check if it's a special scribe response
       const contentType = response.headers.get('content-type');
+      console.log('🔍 [MODAL SEND] Checking response type, contentType:', contentType);
+      
       if (contentType?.includes('application/json')) {
         const result = await response.json();
+        console.log('🔍 [MODAL SEND] Parsed JSON result:', result);
 
         if (result.type === 'scribe_started') {
           console.log('🔍 [SCRIBE DEBUG] Full scribe_started result:', JSON.stringify(result, null, 2));
