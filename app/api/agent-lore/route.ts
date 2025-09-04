@@ -59,13 +59,54 @@ export async function POST(req: NextRequest) {
 
         if (toolResponse.ok) {
           const result = await toolResponse.json();
+
+          // Try to create a layout immediately if backend tool didn't return one
+          let layoutId = result?.execution?.artifacts?.layoutId || result?.layoutId || null;
+          let layoutUrl = result?.execution?.artifacts?.layoutUrl || result?.layoutUrl || null;
+          const slug = title.toLowerCase().replace(/\s+/g, '-');
+
+          if (!layoutId) {
+            try {
+              const layoutResp = await fetch(`${process.env.PUBLIC_BASE_URL || ''}/api/layouts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: `${title} - Layout`,
+                  description: `Layout for ${title}`,
+                  layout_data: {
+                    cellSize: 20,
+                    designSize: { width: 1200, height: 800 },
+                    items: [
+                      {
+                        id: `text_${Date.now()}`,
+                        type: 'content_ref',
+                        contentType: 'text',
+                        refId: `text_timeline/${slug}`,
+                        x: 0, y: 0, w: 640, h: 480,
+                        nx: 0, ny: 0, nw: 640/1200, nh: 480/800
+                      }
+                    ]
+                  }
+                })
+              });
+              if (layoutResp.ok) {
+                const lr = await layoutResp.json();
+                layoutId = lr.id;
+                layoutUrl = `/layout-editor/${layoutId}`;
+              }
+            } catch (e) {
+              console.warn('[agent-lore] Local layout creation failed, falling back to highlight URL');
+            }
+          }
+
           return NextResponse.json({
             type: 'scribe_started',
-            slug: title.toLowerCase().replace(/\s+/g, '-'),
-            title: title,
+            slug,
+            title,
             conversationId: finalConversationId,
             message: `Started scribe for "${title}". I'll document our conversation as we chat. Switch to the Scribe tab to see the document.`,
-            layoutUrl: `/visual-search?highlight=${title.toLowerCase().replace(/\s+/g, '-')}`
+            layoutId: layoutId || null,
+            layoutUrl: layoutUrl || `/visual-search?highlight=${slug}`
           });
         } else {
           throw new Error('Backend tool execution failed');

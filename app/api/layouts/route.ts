@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listMediaAssets } from '@/lib/media-storage';
+import { listMediaAssets, saveMediaAsset } from '@/lib/media-storage';
 import { readJsonFromS3 } from '@/lib/s3-upload';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
@@ -62,5 +62,66 @@ export async function GET(request: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const {
+      title = 'Untitled Layout',
+      description = '',
+      layout_data = {
+        cellSize: 20,
+        designSize: { width: 1200, height: 800 },
+        items: [] as any[]
+      },
+      layout_type = 'blueprint_composer',
+      metadata: incomingMeta
+    } = body || {};
+
+    const id = `layout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const nowIso = new Date().toISOString();
+
+    const width = layout_data?.designSize?.width || 1200;
+    const height = layout_data?.designSize?.height || 800;
+    const itemCount = Array.isArray(layout_data?.items) ? layout_data.items.length : 0;
+
+    const asset = {
+      id,
+      filename: `${id}.json`,
+      s3_url: '',
+      cloudflare_url: '',
+      title,
+      description,
+      media_type: 'layout' as const,
+      layout_type,
+      metadata: {
+        file_size: 0,
+        width,
+        height,
+        cell_size: layout_data?.cellSize || 20,
+        item_count: itemCount,
+        has_inline_content: false,
+        has_transforms: true,
+        ...(incomingMeta || {})
+      },
+      layout_data,
+      ai_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], confidence_scores: {} },
+      manual_labels: { scenes: [], objects: [], style: [], mood: [], themes: [], custom_tags: [] },
+      processing_status: { upload: 'completed', metadata_extraction: 'completed', ai_labeling: 'not_started', manual_review: 'pending', html_generation: 'pending' },
+      timestamps: { uploaded: nowIso, metadata_extracted: nowIso, labeled_ai: null, labeled_reviewed: null, html_generated: null },
+      labeling_complete: false,
+      project_id: null,
+      created_at: nowIso,
+      updated_at: nowIso
+    } as any;
+
+    await saveMediaAsset(id, asset);
+
+    return NextResponse.json({ success: true, id, asset });
+  } catch (error) {
+    console.error('[layouts] Error creating layout:', error);
+    return NextResponse.json({ success: false, error: 'Failed to create layout' }, { status: 500 });
   }
 }
