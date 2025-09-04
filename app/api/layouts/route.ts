@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { listMediaAssets, saveMediaAsset } from '@/lib/media-storage';
 import { readJsonFromS3 } from '@/lib/s3-upload';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,6 +118,33 @@ export async function POST(request: NextRequest) {
     } as any;
 
     await saveMediaAsset(id, asset);
+
+    // Update lightweight layouts index for fast listing
+    try {
+      const s3 = getS3Client();
+      const bucket = getBucketName();
+      const indexKey = 'layouts/index.json';
+
+      let index: { items: Array<{ id: string; title: string; created_at: string }> } = { items: [] };
+      try {
+        const existing = await readJsonFromS3(indexKey);
+        if (existing && Array.isArray(existing.items)) index = existing;
+      } catch {}
+
+      const entry = { id, title, created_at: asset.created_at };
+      const pos = index.items.findIndex(i => i.id === entry.id);
+      if (pos >= 0) index.items[pos] = entry; else index.items.unshift(entry);
+
+      await s3.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: indexKey,
+        Body: JSON.stringify(index, null, 2),
+        ContentType: 'application/json',
+        CacheControl: 'no-cache'
+      }));
+    } catch (e) {
+      console.warn('[layouts] Failed to update layouts index (non-fatal):', e);
+    }
 
     return NextResponse.json({ success: true, id, asset });
   } catch (error) {
