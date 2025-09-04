@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
           ],
         });
 
-        const message = commitOnSave 
+        const message = commitOnSave
           ? `chore(text): create/update ${slug} (index+content)`
           : `chore(text): create/update ${slug} (index+content) [vercel skip]`;
         const { data: newCommit } = await octokit.git.createCommit({ owner, repo, message, tree: newTree.sha!, parents: [baseCommitSha] });

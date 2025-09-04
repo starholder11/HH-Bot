@@ -54,6 +54,7 @@ function ScribeEditor({
   const [slug, setSlug] = useState(documentData?.slug || '');
   const [isToggling, setIsToggling] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [commitOnSave, setCommitOnSave] = useState(false);
 
   // Update content when documentData changes
   useEffect(() => {
@@ -97,23 +98,14 @@ function ScribeEditor({
 
     setIsSaving(true);
     try {
-      // Use exact same model as layout editor save
-      const commitPref = (() => {
-        try {
-          return localStorage.getItem('text-assets-commit-on-save') === 'true';
-        } catch {
-          return false;
-        }
-      })();
-
       const payload = {
         slug: slug || documentData.slug,
         title: title || documentData.title,
         categories: ['lore', 'conversation'],
         source: 'conversation',
-        status: 'draft',
+        status: commitOnSave ? 'committed' : 'draft',
         mdx: content,
-        commitOnSave: commitPref,
+        commitOnSave: commitOnSave,
         scribe_enabled: scribeEnabled,
         conversation_id: documentData.conversation_id
       };
@@ -270,7 +262,17 @@ function ScribeEditor({
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <label className="flex items-center gap-2 text-sm text-neutral-300">
+            <input
+              type="checkbox"
+              checked={commitOnSave}
+              onChange={(e) => setCommitOnSave(e.target.checked)}
+              className="rounded"
+            />
+            Commit on save
+          </label>
+
           <div className="flex gap-2">
             <Button
               onClick={handleToggle}
