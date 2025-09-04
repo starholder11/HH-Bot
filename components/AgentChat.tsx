@@ -560,7 +560,7 @@ export default function AgentChat() {
           }}
         />
       )}
-      {busy && pendingMessages && currentAgent === 'conversational' && !showLoreModal && (
+      {busy && pendingMessages && currentAgent === 'conversational' && (
         <ConversationalStreamRunner
           key={runId}
           messages={pendingMessages}
