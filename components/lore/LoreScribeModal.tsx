@@ -147,6 +147,36 @@ function ScribeEditor({
           setTitle(savedTitle);
           onSave({ content, slug: savedSlug, title: savedTitle });
           console.log('[scribe] Document saved successfully');
+
+          // If a layout was created for this doc, update any content_ref items referencing the old slug
+          const layoutId = (documentData as any)?.layoutId;
+          const oldSlug = documentData.slug;
+          if (layoutId && oldSlug && savedSlug && savedSlug !== oldSlug) {
+            try {
+              const getRes = await fetch(`/api/media-assets/${encodeURIComponent(layoutId)}`);
+              if (getRes.ok) {
+                const assetJson = await getRes.json();
+                const layoutAsset = assetJson?.asset || assetJson;
+                const items = (layoutAsset?.layout_data?.items || []) as any[];
+                const updatedItems = items.map((it: any) => {
+                  if (it?.type === 'content_ref' && ((it.refId || '').includes(oldSlug) || (it.contentId || '').includes(oldSlug))) {
+                    const newRef = `text_timeline/${savedSlug}`;
+                    return { ...it, refId: newRef, contentId: newRef, snippet: savedTitle || it.snippet };
+                  }
+                  return it;
+                });
+                const updatedLayoutData = { ...(layoutAsset?.layout_data || {}), items: updatedItems };
+                await fetch(`/api/media-assets/${encodeURIComponent(layoutId)}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ layout_data: updatedLayoutData })
+                });
+                console.log('[scribe] Updated layout item refs from', oldSlug, 'to', savedSlug);
+              }
+            } catch (e) {
+              console.warn('[scribe] Failed to update layout item refs after slug change:', (e as Error)?.message || e);
+            }
+          }
         } catch {}
       } else {
         const errMsg = (json && (json.error || json.message)) || response.statusText || 'Unknown error';
