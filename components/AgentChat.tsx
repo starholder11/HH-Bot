@@ -99,8 +99,11 @@ function classifyIntent(message: string): 'task' | 'conversational' {
     // File operations
     /\b(save|name|rename|upload|download|export|import)\b/i,
 
-    // Technical operations
-    /\b(lora|model|generate|workflow|process|analyze)\b/i
+      // Technical operations
+  /\b(lora|model|generate|workflow|process|analyze)\b/i,
+
+  // Scribe commands (should route to task agent for tool execution)
+  /\b(start|begin|create|activate|enable|turn\s+on)\s+(scribe|background\s+doc|document|documentation)\b/i
   ];
 
   // Conversational patterns (chat agent)
