@@ -164,6 +164,8 @@ conversation_id: ${finalConversationId}`;
         }
 
         console.log('[agent-lore] S3 text asset created successfully');
+        const textResult = await textResponse.json();
+        console.log('🔍 [AGENT-LORE] S3 text asset response:', textResult);
 
         // Create layout directly
         let layoutId = null;
@@ -218,10 +220,14 @@ conversation_id: ${finalConversationId}`;
         });
 
       } catch (error) {
-        console.error('[agent-lore] Start scribe failed:', error);
+        console.error('🔍 [AGENT-LORE] Start scribe failed with error:', error);
+        console.error('🔍 [AGENT-LORE] Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : 'No stack trace'
+        });
         return NextResponse.json({
           type: 'error',
-          message: 'Sorry, I had trouble starting the scribe. Please try again.'
+          message: `Sorry, I had trouble starting the scribe: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
       }
     }
