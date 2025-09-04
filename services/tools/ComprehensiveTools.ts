@@ -848,13 +848,56 @@ export class ComprehensiveTools {
         conversation_id: params.conversationId
       });
 
-      const layoutUrl = `/layout-editor/visual-search?highlight=${finalSlug}`;
+      // Also create a layout containing this text asset
+      let layoutId = null;
+      try {
+        const layoutPayload = {
+          title: `${finalTitle} - Layout`,
+          description: `Layout containing the text asset: ${finalTitle}`,
+          layout_data: {
+            cellSize: 20,
+            designSize: { width: 1200, height: 800 },
+            items: [
+              {
+                id: `text_${Date.now()}`,
+                type: 'content_ref',
+                contentType: 'text',
+                contentId: `text_timeline/${finalSlug}`,
+                refId: `text_timeline/${finalSlug}`,
+                snippet: finalTitle,
+                title: finalTitle,
+                x: 0,
+                y: 0,
+                w: 8,
+                h: 6,
+                nx: 0,
+                ny: 0,
+                nw: 8/15,
+                nh: 6/10,
+                transform: {}
+              }
+            ]
+          },
+          updated_at: new Date().toISOString()
+        };
+
+        const layoutResp = await this.apiClient.post('/api/layouts', layoutPayload);
+        layoutId = layoutResp?.id;
+      } catch (layoutError) {
+        console.warn(`[${correlationId}] Layout creation failed (non-blocking):`, layoutError);
+      }
+
+      const layoutUrl = layoutId 
+        ? `/layout-editor/visual-search?id=${layoutId}`
+        : `/layout-editor/visual-search?highlight=${finalSlug}`;
+        
       return {
         success: !!enqueueResp?.enqueued || true,
         slug: finalSlug,
         title: finalTitle,
+        layoutId,
         layoutUrl,
-        message: `Started scribe for "${finalTitle}"`,
+        message: `Started scribe for "${finalTitle}". I'll document our conversation as we chat.`,
         correlationId
       };
     } catch (error) {

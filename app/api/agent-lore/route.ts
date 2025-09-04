@@ -34,12 +34,12 @@ export async function POST(req: NextRequest) {
 
     // Check for scribe commands first
     const scribeIntent = detectScribeIntent(lastMessage.content);
-    
+
     if (scribeIntent.isStart) {
       // Handle start scribe command - call backend tool
       const finalConversationId = conversationId || `conv_${Date.now()}`;
       const title = scribeIntent.extractedTitle || 'Conversation Summary';
-      
+
       try {
         // Call the backend tool directly via agent-comprehensive
         const agentBackend = process.env.AGENT_BACKEND_URL || process.env.LANCEDB_API_URL;
@@ -78,11 +78,11 @@ export async function POST(req: NextRequest) {
         });
       }
     }
-    
+
     if (scribeIntent.isStop) {
       // Handle stop scribe command
       return NextResponse.json({
-        type: 'scribe_stopped', 
+        type: 'scribe_stopped',
         message: 'Scribe stopped. You now have full editorial control of the document.'
       });
     }
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     // Regular lore conversation - route to chat endpoint but stay in modal
     try {
       // Add document context if available
-      const contextualizedMessages = documentContext 
+      const contextualizedMessages = documentContext
         ? [
             { role: 'system', content: `You are discussing this existing document: ${documentContext}` },
             ...messages
@@ -111,8 +111,31 @@ export async function POST(req: NextRequest) {
         throw new Error('Chat response failed');
       }
 
-      // Return streaming response
-      return new Response(chatResponse.body, {
+      // Stream the response back to the modal
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        async start(controller) {
+          const reader = chatResponse.body?.getReader();
+          if (!reader) {
+            controller.close();
+            return;
+          }
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              controller.enqueue(value);
+            }
+          } catch (error) {
+            console.error('[agent-lore] Stream error:', error);
+          } finally {
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(readable, {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Transfer-Encoding': 'chunked'
