@@ -110,11 +110,74 @@ function ScribeEditor({
         conversation_id: documentData.conversation_id
       };
 
-      console.log('[scribe] Saving text asset payload:', payload);
-      const response = await fetch('/api/text-assets', {
+      // Create S3 text asset instead of git-based
+      const s3TextAsset = {
+        id: crypto.randomUUID(),
+        media_type: 'text',
+        title: title || documentData.title,
+        content: content,
+        date: new Date().toISOString(),
+        filename: `${slug || documentData.slug}.md`,
+        s3_url: `media-labeling/assets/${crypto.randomUUID()}.json`,
+        cloudflare_url: '',
+        description: `Text asset: ${title || documentData.title}`,
+        metadata: {
+          slug: slug || documentData.slug,
+          source: 'conversation',
+          status: commitOnSave ? 'published' : 'draft',
+          categories: ['lore', 'conversation'],
+          scribe_enabled: scribeEnabled,
+          conversation_id: documentData.conversation_id,
+          word_count: content.split(/\s+/).filter(word => word.length > 0).length,
+          character_count: content.length,
+          reading_time_minutes: Math.ceil(content.split(/\s+/).filter(word => word.length > 0).length / 200),
+          language: 'en',
+          migrated_from_git: false,
+        },
+        ai_labels: {
+          scenes: [],
+          objects: [],
+          style: [],
+          mood: [],
+          themes: [],
+          confidence_scores: {},
+        },
+        manual_labels: {
+          scenes: [],
+          objects: [],
+          style: [],
+          mood: [],
+          themes: [],
+          custom_tags: [],
+          topics: [],
+          genres: [],
+          content_type: [],
+        },
+        processing_status: {
+          upload: 'completed',
+          metadata_extraction: 'completed',
+          ai_labeling: 'not_started',
+          manual_review: 'pending',
+          content_analysis: 'pending',
+          search_indexing: 'pending',
+        },
+        timestamps: {
+          uploaded: new Date().toISOString(),
+          metadata_extracted: new Date().toISOString(),
+          labeled_ai: null,
+          labeled_reviewed: null,
+        },
+        labeling_complete: false,
+        project_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log('[scribe] Saving S3 text asset:', { id: s3TextAsset.id, slug: s3TextAsset.metadata.slug });
+      const response = await fetch('/api/media-assets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(s3TextAsset)
       });
 
       if (!response.ok) {
@@ -582,27 +645,9 @@ export default function LoreScribeModal({
           setDocumentData(newDocData);
           setActiveTab('scribe');
 
-          // Ensure initial Git-backed files exist immediately
-          try {
-            const commitPref = (() => { try { return localStorage.getItem('text-assets-commit-on-save') === 'true'; } catch { return false; } })();
-            await fetch('/api/text-assets', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                slug: result.slug,
-                title: result.title,
-                categories: ['lore', 'conversation'],
-                source: 'conversation',
-                status: 'draft',
-                mdx: `# ${result.title}\n\n*The scribe will populate this document as your conversation continues...*`,
-                commitOnSave: commitPref,
-                scribe_enabled: true,
-                conversation_id: result.conversationId
-              })
-            });
-          } catch (e) {
-            console.warn('[SCRIBE DEBUG] Initial doc save failed (non-blocking):', e);
-          }
+          // Note: S3 text asset is already created by the backend /api/chat/background-doc/start
+          // No need for additional git-based file creation
+          console.log('[SCRIBE DEBUG] S3 text asset created by backend, skipping git creation');
 
           // Fallback: if backend did not return a layoutId, create one now via frontend API
           if (!result.layoutId && result.slug) {
