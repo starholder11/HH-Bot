@@ -82,12 +82,6 @@ export async function POST(req: NextRequest) {
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_PERSONAL_TOKEN;
 
     if (isReadOnly) {
-      // Respect commitOnSave toggle - skip Git commit if disabled to avoid deployments
-      if (!commitOnSave) {
-        console.log('[text-assets] Skipping Git commit on save (commitOnSave=false) - no deployment triggered');
-        return NextResponse.json({ success: true, slug, paths: { indexPath: null, contentPath: null }, oai, commit: 'skipped' });
-      }
-
       if (!token) {
         console.error('[text-assets] Missing GITHUB_TOKEN in serverless environment');
         return NextResponse.json({ success: false, error: 'Serverless FS is read-only and GITHUB_TOKEN is not configured' }, { status: 500 });
