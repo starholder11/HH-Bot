@@ -175,7 +175,8 @@ export async function POST(req: NextRequest) {
           console.warn('[agent-lore] Layout creation failed (non-blocking):', layoutError);
         }
 
-        return NextResponse.json({
+        // Return as JSON response (not stream) for scribe commands
+        return new NextResponse(JSON.stringify({
           type: 'scribe_started',
           id: textAssetId, // Include UUID for S3 text asset
           slug,
@@ -184,6 +185,9 @@ export async function POST(req: NextRequest) {
           message: `Started scribe for "${title}". I'll document our conversation as we chat. Switch to the Scribe tab to see the document.`,
           layoutId,
           layoutUrl
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
         });
 
       } catch (error) {
