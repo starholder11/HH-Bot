@@ -1,0 +1,88 @@
+[18:18:07.964] Running build in Washington, D.C., USA (East) – iad1
+[18:18:07.965] Build machine configuration: 4 cores, 8 GB
+[18:18:07.984] Cloning github.com/starholder11/HH-Bot (Branch: main, Commit: 7e3150a)
+[18:18:12.809] Cloning completed: 4.825s
+[18:18:13.171] Found .vercelignore
+[18:18:13.211] Removed 223 ignored files defined in .vercelignore
+[18:18:13.211]   /.frontmatter/scripts/generate-slug.js
+[18:18:13.211]   /audio-sources/Ad Tracker.txt
+[18:18:13.211]   /audio-sources/Afterhours.txt
+[18:18:13.211]   /audio-sources/Agent Orange.txt
+[18:18:13.211]   /audio-sources/Alice Never Humbled.txt
+[18:18:13.212]   /audio-sources/Anti Love Language.txt
+[18:18:13.212]   /audio-sources/Arbitrary Writs of Royal Courts.txt
+[18:18:13.212]   /audio-sources/Arecibo.txt
+[18:18:13.212]   /audio-sources/Asphalt And Stars.txt
+[18:18:13.212]   /audio-sources/Astronaut Loop Instrumental.txt
+[18:18:15.586] Restored build cache from previous deployment (CeWPC3jz6ReREwdy5M9yKnDTJASz)
+[18:18:16.788] Running "vercel build"
+[18:18:17.194] Vercel CLI 47.0.4
+[18:18:17.753] Warning: Due to "engines": { "node": ">=18.0.0" } in your `package.json` file, the Node.js Version defined in your Project Settings ("20.x") will not apply, Node.js Version "22.x" will be used instead. Learn More: http://vercel.link/node-version
+[18:18:17.754] Warning: Detected "engines": { "node": ">=18.0.0" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: http://vercel.link/node-version
+[18:18:17.770] Your application is being built using `next build`. If you need to define a different build step, please create a `vercel-build` script in your `package.json` (e.g. `{ "scripts": { "vercel-build": "npm run prepare && next build" } }`).
+[18:18:17.779] Installing dependencies...
+[18:18:20.940] 
+[18:18:20.941] changed 1 package in 3s
+[18:18:20.941] 
+[18:18:20.941] 299 packages are looking for funding
+[18:18:20.941]   run `npm fund` for details
+[18:18:20.974] Detected Next.js version: 13.4.19
+[18:18:20.985] Running "npm run vercel-build"
+[18:18:21.101] 
+[18:18:21.102] > hh-bot@2.2.0 vercel-build
+[18:18:21.102] > next build
+[18:18:21.102] 
+[18:18:21.627] - warn You have enabled experimental feature (serverComponentsExternalPackages) in next.config.js.
+[18:18:21.627] - warn Experimental features are not covered by semver, and may cause unexpected or broken application behavior. Use at your own risk.
+[18:18:21.627] 
+[18:18:21.714] - info Creating an optimized production build...
+[18:18:48.071] Failed to compile.
+[18:18:48.071] 
+[18:18:48.071] ./app/visual-search/components/Layout/LayoutEditorStandalone.tsx
+[18:18:48.071] Error: 
+[18:18:48.071]   [31mx[0m Expected a semicolon
+[18:18:48.071]      ,-[[36;1;4m/vercel/path0/app/visual-search/components/Layout/LayoutEditorStandalone.tsx[0m:193:1]
+[18:18:48.071]  [2m193[0m |             setRteCategories('');
+[18:18:48.071]  [2m194[0m |             setRteMarkdown('# Document Title\n\nStart writing...');
+[18:18:48.072]  [2m195[0m |           }
+[18:18:48.072]  [2m196[0m |         } catch (e) {
+[18:18:48.072]      : [31;1m          ^^^^^[0m
+[18:18:48.072]  [2m197[0m |           if (DEBUG_RTE) console.warn('[RTE DEBUG] Failed to load text asset:', e);
+[18:18:48.072]  [2m198[0m |           setRteTitle('Document Title');
+[18:18:48.072]  [2m199[0m |           setRteSlug(slug || 'new-document');
+[18:18:48.072]      `----
+[18:18:48.072] 
+[18:18:48.072]   [31mx[0m Expected a semicolon
+[18:18:48.072]      ,-[[36;1;4m/vercel/path0/app/visual-search/components/Layout/LayoutEditorStandalone.tsx[0m:200:1]
+[18:18:48.072]  [2m200[0m |           setRteCategories('');
+[18:18:48.072]  [2m201[0m |           setRteMarkdown('# Document Title\n\nStart writing...');
+[18:18:48.072]  [2m202[0m |         }
+[18:18:48.073]  [2m203[0m |       } else {
+[18:18:48.073]      : [31;1m        ^[0m
+[18:18:48.073]  [2m204[0m |         // New text asset
+[18:18:48.073]  [2m205[0m |         setRteTitle('Document Title');
+[18:18:48.073]  [2m206[0m |         setRteSlug('new-document');
+[18:18:48.073]      `----
+[18:18:48.073] 
+[18:18:48.073]   [31mx[0m Expression expected
+[18:18:48.073]      ,-[[36;1;4m/vercel/path0/app/visual-search/components/Layout/LayoutEditorStandalone.tsx[0m:200:1]
+[18:18:48.073]  [2m200[0m |           setRteCategories('');
+[18:18:48.073]  [2m201[0m |           setRteMarkdown('# Document Title\n\nStart writing...');
+[18:18:48.073]  [2m202[0m |         }
+[18:18:48.073]  [2m203[0m |       } else {
+[18:18:48.074]      : [31;1m        ^^^^[0m
+[18:18:48.074]  [2m204[0m |         // New text asset
+[18:18:48.074]  [2m205[0m |         setRteTitle('Document Title');
+[18:18:48.074]  [2m206[0m |         setRteSlug('new-document');
+[18:18:48.074]      `----
+[18:18:48.074] 
+[18:18:48.074] Caused by:
+[18:18:48.074]     Syntax Error
+[18:18:48.074] 
+[18:18:48.074] Import trace for requested module:
+[18:18:48.074] ./app/visual-search/components/Layout/LayoutEditorStandalone.tsx
+[18:18:48.074] ./app/layout-editor/[id]/page.tsx
+[18:18:48.074] 
+[18:18:48.074] 
+[18:18:48.074] > Build failed because of webpack errors
+[18:18:48.146] Error: Command "npm run vercel-build" exited with 1
