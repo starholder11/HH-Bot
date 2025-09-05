@@ -31,67 +31,61 @@ export default function ContinueConversationButton({
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Only show for text assets
+  // Only show for S3 text assets (UUID format)
   if (contentType !== 'text') {
     return null;
+  }
+  
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+  if (!isUUID) {
+    return null; // Only show for S3 text assets
   }
 
   const handleContinueConversation = async () => {
     if (isLoading) return;
     
+    // Only work with UUID-based S3 text assets
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+    if (!isUUID) {
+      console.warn('Continue Conversation only works with S3 text assets (UUID), got:', slug);
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      // Check if this is a UUID (S3 text asset) or slug (Git text asset)
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-      
-      let content = '';
-      let actualSlug = slug;
-      let textAssetId = slug;
-      
-      if (isUUID) {
-        // S3 text asset - load by UUID
-        const response = await fetch(`/api/media-assets/${slug}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.asset?.media_type === 'text') {
-            content = data.asset.content || '';
-            actualSlug = data.asset.metadata?.slug || slug;
-            textAssetId = data.asset.id;
-          }
-        }
-      } else {
-        // Git-based text asset - load by slug
-        const response = await fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            content = data.content || '';
-            actualSlug = slug;
-          }
-        } else {
-          console.warn(`Git-based text asset not found: ${slug}, status: ${response.status}`);
-          // For missing Git assets, still try to open modal with title only
-          content = `# ${title}\n\n*This document appears to be from a conversation or scribe session that may not have been committed to the Git timeline yet.*`;
-          actualSlug = slug;
-        }
+      // Load S3 text asset by UUID
+      const response = await fetch(`/api/media-assets/${slug}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load S3 text asset: ${response.status}`);
       }
       
-      if (content) {
-        const conversationId = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        
-        setDocumentData({
-          id: isUUID ? textAssetId : undefined,
-          slug: actualSlug,
-          title,
-          content,
-          conversationId
-        });
-        setIsModalOpen(true);
-      } else {
-        console.error('Failed to load text content for:', slug);
+      const data = await response.json();
+      if (!data.success || !data.asset?.media_type === 'text') {
+        throw new Error('Invalid S3 text asset response');
       }
+      
+      const textAsset = data.asset;
+      const content = textAsset.content || '';
+      const actualSlug = textAsset.metadata?.slug || slug;
+      
+      if (!content) {
+        throw new Error('S3 text asset has no content');
+      }
+      
+      const conversationId = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      
+      setDocumentData({
+        id: textAsset.id,
+        slug: actualSlug,
+        title: textAsset.title || title,
+        content,
+        conversationId
+      });
+      setIsModalOpen(true);
+      
     } catch (error) {
-      console.error('Error loading text content:', error);
+      console.error('Error loading S3 text content:', error);
+      alert(`Failed to load document: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -114,10 +108,10 @@ export default function ContinueConversationButton({
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           documentSlug={documentData.slug}
-          initialTab="scribe"
+          initialTab="lore"
           documentContext={documentData.content}
           conversationId={documentData.conversationId}
-          greetingContext={`I see you want to continue exploring "${title}". I've loaded the document into the Scribe tab. What would you like to discuss about this content?`}
+          greetingContext={`I see you want to continue exploring "${documentData.title}". I've loaded the document into the Scribe tab. What would you like to discuss about this content?`}
         />
       )}
     </>
