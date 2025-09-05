@@ -141,6 +141,7 @@ export async function POST(req: NextRequest) {
     // Check for scribe commands first
     const scribeIntent = detectScribeIntent(lastMessage.content);
     console.log('🔍 [AGENT-LORE] Scribe intent detected:', scribeIntent);
+    console.log('🔍 [AGENT-LORE] Last message content:', lastMessage.content);
 
     if (scribeIntent.isStart) {
       console.log('🔍 [AGENT-LORE] Processing scribe start command');

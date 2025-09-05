@@ -781,10 +781,26 @@ export default function LoreScribeModal({
         documentData: documentData
       });
       
+      console.log('🔍 [MODAL] Making request to /api/agent-lore...');
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch('/api/agent-lore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload)
+        body: JSON.stringify(requestPayload),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log('🔍 [MODAL] Response received:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type')
       });
 
       if (!response.ok) {
