@@ -507,13 +507,16 @@ export default function LoreScribeModal({
     if (documentSlug && isOpen) {
       // If documentContext is provided, use it directly (from Continue Conversation)
       if (documentContext && documentContext.length > 0) {
+        // For Continue Conversation, documentSlug is the UUID
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(documentSlug);
         setDocumentData({
+          id: isUUID ? documentSlug : undefined, // Set ID for S3 assets
           slug: documentSlug,
           title: documentSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
           mdx: documentContext,
           scribe_enabled: true, // Enable scribe for continue conversation
           conversation_id: conversationId || `conv_${Date.now()}`
-        });
+        } as any);
       } else {
         // Otherwise load from API
         loadDocumentData();
@@ -767,7 +770,8 @@ export default function LoreScribeModal({
           messages: next,
           documentContext: documentData?.mdx,
           conversationId: documentData?.conversation_id || conversationId,
-          scribeEnabled: documentData?.scribe_enabled || false
+          scribeEnabled: documentData?.scribe_enabled || false,
+          documentId: (documentData as any)?.id // Pass document ID for editing
         })
       });
 

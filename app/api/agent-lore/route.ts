@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
   const correlationId = generateCorrelationId();
   console.log(`[${correlationId}] Agent-lore request received`);
   try {
-    const { messages, documentContext, conversationId, scribeEnabled } = await req.json();
+    const { messages, documentContext, conversationId, scribeEnabled, documentId } = await req.json();
     console.log('🔍 [AGENT-LORE] Request body parsed:', {
       messagesLength: messages?.length,
       conversationId,
@@ -333,8 +333,13 @@ conversation_id: ${finalConversationId}`;
       console.log(`[${correlationId}] Processing scribe edit command:`, scribeIntent.editInstructions);
       
       try {
-        // Find the text asset for this conversation
-        const textAssetId = await findTextAssetByConversationId(conversationId);
+        // Find the text asset - use documentId if provided (from Continue Conversation), 
+        // otherwise look by conversation ID (from active scribe session)
+        let textAssetId = documentId;
+        if (!textAssetId) {
+          textAssetId = await findTextAssetByConversationId(conversationId);
+        }
+        
         if (!textAssetId) {
           return NextResponse.json({
             type: 'error',
