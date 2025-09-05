@@ -31,7 +31,15 @@ export async function POST(req: NextRequest) {
       }))
     });
     
-    const response = await lambdaClient.send(command);
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Lambda invocation timeout')), 10000)
+    );
+    
+    const response = await Promise.race([
+      lambdaClient.send(command),
+      timeoutPromise
+    ]) as any;
     
     console.log(`[${correlationId}] ✅ Lambda invoked successfully for: ${textAssetId}`);
     console.log(`[${correlationId}] Lambda response status:`, response.StatusCode);

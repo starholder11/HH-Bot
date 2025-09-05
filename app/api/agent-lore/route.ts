@@ -356,14 +356,14 @@ conversation_id: ${finalConversationId}`;
         
         console.log(`[${correlationId}] Using textAssetId for editing:`, textAssetId);
         
-        // Trigger editing Lambda with special editing mode
-        await triggerScribeEdit(
+        // Trigger editing Lambda with special editing mode (don't await - fire and forget)
+        triggerScribeEdit(
           conversationId,
           scribeIntent.editInstructions,
           textAssetId,
           correlationId,
           req
-        );
+        ).catch(error => console.warn(`[${correlationId}] Scribe edit trigger failed:`, error));
         
         return NextResponse.json({
           type: 'scribe_editing',
