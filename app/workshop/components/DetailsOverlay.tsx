@@ -114,7 +114,30 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
       if (!slug) return;
 
       setIsLoadingText(true);
-      fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`)
+
+      // If this is an S3 text asset (UUID id), load directly from media-assets API
+      const isUUID = (id: string): boolean => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      if (typeof r.id === 'string' && isUUID(r.id)) {
+        fetch(`/api/media-assets/${r.id}`, { cache: 'no-store' })
+          .then(async (res) => {
+            if (cancelled) return;
+            const json = await res.json();
+            if (!res.ok || !json?.success) {
+              throw new Error(json?.error || 'Failed to load S3 text asset');
+            }
+            if (!cancelled) setFullText(json.asset?.content || '');
+          })
+          .catch((e) => {
+            if (!cancelled) setTextError((e as Error).message);
+          })
+          .finally(() => {
+            if (!cancelled) setIsLoadingText(false);
+          });
+        return; // Skip legacy slug path
+      }
+
+      // Legacy Git-based text path using slug
+      fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`, { cache: 'no-store' })
         .then(async (res) => {
           if (cancelled) return; // Don't update state if component unmounted
 

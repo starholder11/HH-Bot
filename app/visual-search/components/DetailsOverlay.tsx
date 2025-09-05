@@ -156,7 +156,7 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
           return;
         }
 
-        fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`)
+        fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`, { cache: 'no-store' })
           .then(async (res) => {
             if (cancelled) return;
 
