@@ -229,10 +229,46 @@ export async function PUT(request: NextRequest) {
 
     const now = new Date().toISOString();
 
-    // Update the asset with new timestamp
+    // Update the asset with new timestamp and ensure required fields
     const asset: MediaAsset = {
       ...body,
-      updated_at: now
+      updated_at: now,
+      // Ensure text assets have required fields for isTextAsset check
+      ...(body.media_type === 'text' && {
+        ai_labels: body.ai_labels || {
+          scenes: [],
+          objects: [],
+          style: [],
+          mood: [],
+          themes: [],
+          confidence_scores: {}
+        },
+        manual_labels: body.manual_labels || {
+          scenes: [],
+          objects: [],
+          style: [],
+          mood: [],
+          themes: [],
+          custom_tags: [],
+          topics: [],
+          genres: [],
+          content_type: []
+        },
+        processing_status: body.processing_status || {
+          upload: 'completed',
+          metadata_extraction: 'completed',
+          ai_labeling: 'not_started',
+          manual_review: 'pending',
+          content_analysis: 'pending',
+          search_indexing: 'pending',
+        },
+        timestamps: body.timestamps || {
+          uploaded: now,
+          metadata_extracted: now,
+          labeled_ai: null,
+          labeled_reviewed: null,
+        }
+      })
     };
 
     await saveMediaAsset(body.id, asset);
