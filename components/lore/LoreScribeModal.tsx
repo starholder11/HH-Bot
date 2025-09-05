@@ -1002,20 +1002,38 @@ export default function LoreScribeModal({
   );
 
   return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-5xl w-[92vw] h-[85vh] p-0 bg-neutral-950 border-neutral-800 flex flex-col">
+        <Dialog open={isOpen} onOpenChange={(open) => {
+          // Only close if explicitly set to false, prevent accidental closure
+          if (!open) onClose();
+        }}>
+      <DialogContent 
+        onOpenAutoFocus={(e) => e.preventDefault()} 
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        className="max-w-5xl w-[92vw] h-[85vh] p-0 bg-neutral-950 border-neutral-800 flex flex-col"
+      >
         <DialogTitle className="sr-only">Lore Chat & Scribe</DialogTitle>
         <DialogDescription className="sr-only">Conversational agent and document editor</DialogDescription>
 
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'lore' | 'scribe')} className="h-full flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-2 bg-neutral-900 border-b border-neutral-800 rounded-none flex-shrink-0">
-            <TabsTrigger value="lore" className="data-[state=active]:bg-neutral-800">
-              Lore
-            </TabsTrigger>
-            <TabsTrigger value="scribe" className="data-[state=active]:bg-neutral-800">
-              Scribe
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center border-b border-neutral-800 bg-neutral-900 flex-shrink-0">
+            <TabsList className="grid grid-cols-2 bg-transparent border-0 rounded-none flex-1">
+              <TabsTrigger value="lore" className="data-[state=active]:bg-neutral-800">
+                Lore
+              </TabsTrigger>
+              <TabsTrigger value="scribe" className="data-[state=active]:bg-neutral-800">
+                Scribe
+              </TabsTrigger>
+            </TabsList>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onClose}
+              className="mr-2 text-neutral-400 hover:text-white"
+            >
+              ✕
+            </Button>
+          </div>
 
           <TabsContent value="lore" className="flex-1 m-0 min-h-0">
             {renderLoreTab()}

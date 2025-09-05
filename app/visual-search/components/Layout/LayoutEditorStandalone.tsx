@@ -125,14 +125,14 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
     if (isAsset) {
       // For text assets, handle both UUID (S3) and slug (git) references
       const refId = item?.refId || item?.contentId || '';
-      
+
       if (DEBUG_RTE) console.log('[RTE DEBUG] Loading text asset with refId:', refId);
 
       if (refId) {
         try {
           // Check if refId is a UUID (S3 text asset)
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refId);
-          
+
           if (isUUID) {
             // S3 text asset - load by UUID
             if (DEBUG_RTE) console.log('[RTE DEBUG] Loading S3 text asset by UUID:', refId);
@@ -162,7 +162,7 @@ export default function LayoutEditorStandalone({ layout, onBack, onSaved }: Stan
             }
 
             if (DEBUG_RTE) console.log('[RTE DEBUG] Loading git text asset with slug:', slug);
-            
+
             // Use git-based APIs for legacy content
             let res = await fetch(`/api/text-assets/${encodeURIComponent(slug)}`);
             if (!res.ok) {
@@ -2236,8 +2236,8 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
               </p>
             </div>
             <div className="flex gap-2">
-              <button 
-                className="px-4 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 rounded text-white" 
+              <button
+                className="px-4 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 rounded text-white"
                 onClick={() => onClose()}
               >
                 Cancel
@@ -2280,10 +2280,10 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                         });
                       }
 
-                      console.log('[DOC] Edit check:', { 
-                        rteTargetId, 
+                      console.log('[DOC] Edit check:', {
+                        rteTargetId,
                         existingAssetId,
-                        isUpdate: !!existingAssetId 
+                        isUpdate: !!existingAssetId
                       });
 
                       const s3TextAsset = {
@@ -2347,18 +2347,18 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                         updated_at: new Date().toISOString(),
                       };
 
-                      console.log('[DOC] Saving S3 text asset:', { 
-                        id: s3TextAsset.id, 
-                        slug: finalSlug, 
+                      console.log('[DOC] Saving S3 text asset:', {
+                        id: s3TextAsset.id,
+                        slug: finalSlug,
                         title: finalTitle,
                         isUpdate: !!existingAssetId,
                         method: existingAssetId ? 'PUT' : 'POST'
                       });
-                      
-                      const res = await fetch(existingAssetId ? `/api/media-assets/${existingAssetId}` : '/api/media-assets', { 
-                        method: existingAssetId ? 'PUT' : 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify(s3TextAsset) 
+
+                      const res = await fetch(existingAssetId ? `/api/media-assets/${existingAssetId}` : '/api/media-assets', {
+                        method: existingAssetId ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(s3TextAsset)
                       });
                       if (!res.ok) {
                         let errorDetails = '';
@@ -2425,7 +2425,7 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
               )}
             </div>
           </div>
-          
+
           {/* Form Fields in header */}
           <div className="grid grid-cols-3 gap-4">
             <div>

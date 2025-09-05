@@ -38,7 +38,7 @@ export default function ContinueConversationButton({
 
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
   console.log('[ContinueConversation] Button check:', { slug, title, isUUID, contentType });
-  
+
   if (!isUUID) {
     return null; // Only show for S3 text assets
   }
