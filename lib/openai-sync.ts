@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
+import crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import crypto from 'crypto';
 
 // Use the safe OpenAI client getter
 import { getOpenAIClient } from '@/lib/ai-labeling';
@@ -138,6 +138,44 @@ export async function uploadFileToVectorStore(
 
   } catch (error) {
     console.error(`❌ Error uploading ${fileName}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Upload S3 text asset to OpenAI vector store
+ * @param textAsset - S3 text asset object
+ * @returns Promise<VectorStoreFile>
+ */
+export async function uploadS3TextAssetToVectorStore(textAsset: any) {
+  try {
+    const content = textAsset.content || '';
+    const slug = textAsset.metadata?.slug || textAsset.id;
+    
+    // Create hash-based filename for idempotency (same as git version)
+    const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
+    const vectorName = `s3-${slug}-${hash}.md`;
+    
+    console.log(`📤 Uploading S3 text asset to vector store: ${vectorName}`);
+    
+    // Include metadata in the file content for better search context
+    const metadataHeader = `---
+title: ${textAsset.title}
+slug: ${slug}
+source: ${textAsset.metadata?.source || 'unknown'}
+categories: ${(textAsset.metadata?.categories || []).join(', ')}
+updated: ${textAsset.updated_at}
+---
+
+`;
+    
+    const fullContent = metadataHeader + content;
+    
+    // Use existing uploadFileToVectorStore function
+    return await uploadFileToVectorStore(fullContent, vectorName);
+    
+  } catch (error) {
+    console.error(`❌ Error uploading S3 text asset to vector store:`, error);
     throw error;
   }
 }

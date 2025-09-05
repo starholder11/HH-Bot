@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listMediaAssets, saveMediaAsset, deleteMediaAsset, type MediaAsset } from '@/lib/media-storage';
+import { listMediaAssets, saveMediaAsset, deleteMediaAsset, type MediaAsset, isTextAsset } from '@/lib/media-storage';
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { readJsonFromS3 } from '@/lib/s3-upload';
+import { uploadS3TextAssetToVectorStore } from '@/lib/openai-sync';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -134,6 +136,23 @@ export async function POST(request: NextRequest) {
 
     await saveMediaAsset(body.id, asset);
 
+    // Sync text assets to OAI File Search for immediate lore agent visibility
+    if (isTextAsset(asset)) {
+      try {
+        console.log(`[media-assets] Syncing text asset to OAI vector store: ${asset.id}`);
+        const vectorStoreFile = await uploadS3TextAssetToVectorStore(asset);
+        console.log(`[media-assets] OAI sync completed:`, {
+          assetId: asset.id,
+          slug: asset.metadata.slug,
+          vectorStoreFileId: (vectorStoreFile as any)?.id,
+          fileName: `s3-${asset.metadata.slug}-${crypto.createHash('sha256').update(asset.content).digest('hex').slice(0, 8)}.md`
+        });
+      } catch (oaiError) {
+        console.warn(`[media-assets] OAI sync failed for text asset ${asset.id} (non-blocking):`, oaiError);
+        // Don't fail the save operation if OAI sync fails
+      }
+    }
+
     // Maintain a lightweight layouts index for fast listing
     if (asset.media_type === 'layout') {
       try {
@@ -205,6 +224,22 @@ export async function PUT(request: NextRequest) {
     };
 
     await saveMediaAsset(body.id, asset);
+
+    // Sync text assets to OAI File Search for immediate lore agent visibility
+    if (isTextAsset(asset)) {
+      try {
+        console.log(`[media-assets] Syncing updated text asset to OAI vector store: ${asset.id}`);
+        const vectorStoreFile = await uploadS3TextAssetToVectorStore(asset);
+        console.log(`[media-assets] OAI update sync completed:`, {
+          assetId: asset.id,
+          slug: asset.metadata.slug,
+          vectorStoreFileId: (vectorStoreFile as any)?.id
+        });
+      } catch (oaiError) {
+        console.warn(`[media-assets] OAI sync failed for updated text asset ${asset.id} (non-blocking):`, oaiError);
+        // Don't fail the update operation if OAI sync fails
+      }
+    }
 
     console.log(`[media-assets] Updated ${body.media_type} asset: ${body.id}`);
 
