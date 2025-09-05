@@ -142,6 +142,11 @@ export async function POST(req: NextRequest) {
     const scribeIntent = detectScribeIntent(lastMessage.content);
     console.log('🔍 [AGENT-LORE] Scribe intent detected:', scribeIntent);
     console.log('🔍 [AGENT-LORE] Last message content:', lastMessage.content);
+    console.log('🔍 [AGENT-LORE] Intent flags:', { 
+      isStart: scribeIntent.isStart, 
+      isStop: scribeIntent.isStop, 
+      isEdit: scribeIntent.isEdit 
+    });
 
     if (scribeIntent.isStart) {
       console.log('🔍 [AGENT-LORE] Processing scribe start command');
@@ -322,14 +327,6 @@ conversation_id: ${finalConversationId}`;
       }
     }
 
-    if (scribeIntent.isStop) {
-      // Handle stop scribe command
-      return NextResponse.json({
-        type: 'scribe_stopped',
-        message: 'Scribe stopped. You now have full editorial control of the document.'
-      });
-    }
-
     if (scribeIntent.isEdit) {
       // Handle scribe editing commands
       console.log(`[${correlationId}] Processing scribe edit command:`, scribeIntent.editInstructions);
@@ -379,6 +376,14 @@ conversation_id: ${finalConversationId}`;
           message: `Sorry, I had trouble with that editing request: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
       }
+    }
+
+    if (scribeIntent.isStop) {
+      // Handle stop scribe command
+      return NextResponse.json({
+        type: 'scribe_stopped',
+        message: 'Scribe stopped. You now have full editorial control of the document.'
+      });
     }
 
     // Regular lore conversation - route to chat endpoint but stay in modal
