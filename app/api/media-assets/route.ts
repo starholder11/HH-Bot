@@ -76,10 +76,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Validate slug format
-      if (!/^[a-z0-9-]+$/.test(body.metadata.slug)) {
+      // Validate slug format (allow uppercase letters)
+      if (!/^[a-zA-Z0-9-]+$/.test(body.metadata.slug)) {
         return NextResponse.json(
-          { success: false, error: 'Slug must contain only lowercase letters, numbers, and dashes' },
+          { success: false, error: 'Slug must contain only letters, numbers, and dashes' },
           { status: 400 }
         );
       }

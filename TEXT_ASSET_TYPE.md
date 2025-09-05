@@ -213,7 +213,7 @@ Unlike image/video assets, text assets don't require `s3_url` or `cloudflare_url
 - `metadata.categories` (array)
 
 ### Format Constraints
-- **Slug**: `/^[a-z0-9-]+$/`
+- **Slug**: `/^[a-zA-Z0-9-]+$/`
 - **UUID**: Standard UUID v4 format
 - **Dates**: ISO 8601 format
 - **Arrays**: Must be arrays (can be empty)

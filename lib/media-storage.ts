@@ -1370,9 +1370,9 @@ export function validateTextAsset(asset: Partial<TextAsset>): string[] {
   if (!asset.metadata?.slug) {
     errors.push('Slug is required');
   } else {
-    // Validate slug format
-    if (!/^[a-z0-9-]+$/.test(asset.metadata.slug)) {
-      errors.push('Slug must contain only lowercase letters, numbers, and dashes');
+    // Validate slug format (allow uppercase letters)
+    if (!/^[a-zA-Z0-9-]+$/.test(asset.metadata.slug)) {
+      errors.push('Slug must contain only letters, numbers, and dashes');
     }
   }
 
