@@ -94,6 +94,10 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
     setIsLoadingText(false);
 
     if (r && r.content_type === 'text') {
+      const isUUID = (id: string): boolean => {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      };
+
       const extractSlugFromResult = (res: UnifiedSearchResult): string | null => {
         try {
           const parentUnknown: unknown = (res as any)?.metadata?.parent_slug;
@@ -111,33 +115,66 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
         return null;
       };
 
-      const slug = extractSlugFromResult(r);
-      if (!slug) return;
-
       setIsLoadingText(true);
-      fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`)
-        .then(async (res) => {
-          if (cancelled) return; // Don't update state if component unmounted
 
-          const json = await res.json();
-          if (!res.ok || !json?.success) {
-            throw new Error(json?.error || 'Failed to load content');
-          }
+      // Check if this is an S3 text asset (UUID) or Git-based text asset (slug)
+      if (r.id && isUUID(r.id)) {
+        // S3 text asset - use media-assets API
+        fetch(`/api/media-assets/${r.id}`)
+          .then(async (res) => {
+            if (cancelled) return;
 
-          if (!cancelled) {
-            setFullText(json.content as string);
-          }
-        })
-        .catch((e) => {
-          if (!cancelled) {
-            setTextError((e as Error).message);
-          }
-        })
-        .finally(() => {
-          if (!cancelled) {
-            setIsLoadingText(false);
-          }
-        });
+            const json = await res.json();
+            if (!res.ok || !json?.success) {
+              throw new Error(json?.error || 'Failed to load S3 text asset');
+            }
+
+            if (!cancelled) {
+              setFullText(json.asset?.content || '');
+            }
+          })
+          .catch((e) => {
+            if (!cancelled) {
+              setTextError((e as Error).message);
+            }
+          })
+          .finally(() => {
+            if (!cancelled) {
+              setIsLoadingText(false);
+            }
+          });
+      } else {
+        // Git-based text asset - use legacy API
+        const slug = extractSlugFromResult(r);
+        if (!slug) {
+          setIsLoadingText(false);
+          return;
+        }
+
+        fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`)
+          .then(async (res) => {
+            if (cancelled) return;
+
+            const json = await res.json();
+            if (!res.ok || !json?.success) {
+              throw new Error(json?.error || 'Failed to load Git text content');
+            }
+
+            if (!cancelled) {
+              setFullText(json.content as string);
+            }
+          })
+          .catch((e) => {
+            if (!cancelled) {
+              setTextError((e as Error).message);
+            }
+          })
+          .finally(() => {
+            if (!cancelled) {
+              setIsLoadingText(false);
+            }
+          });
+      }
     }
 
     return () => {
