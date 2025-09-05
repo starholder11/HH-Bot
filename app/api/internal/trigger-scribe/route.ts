@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     const { textAssetId, userMessage, assistantResponse, conversationId, correlationId } = await req.json();
     
-    console.log(`[${correlationId}] Internal trigger-scribe called for: ${textAssetId}`);
+    console.log(`[${correlationId}] Internal trigger-scribe v2 called for: ${textAssetId}`);
     console.log(`[${correlationId}] AWS region:`, process.env.AWS_REGION || 'us-east-1');
     console.log(`[${correlationId}] AWS credentials available:`, !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY));
     
