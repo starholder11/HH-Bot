@@ -83,6 +83,18 @@ Now synthesize the actual context above:`,
 function classifyIntent(message: string): 'task' | 'conversational' {
   const msg = message.toLowerCase().trim();
 
+  // Strong conversational overrides (take precedence over task verbs like "make")
+  const conversationalOverrides = [
+    /\btell\s+me\s+(a\s+)?story\b/i,
+    /\bstory\b/i,
+    /\blore\b/i,
+    /\bmyth\b|\blegend\b/i,
+    /\bcharacter\b|\bbackstory\b/i
+  ];
+  for (const pattern of conversationalOverrides) {
+    if (pattern.test(msg)) return 'conversational';
+  }
+
   // Task-oriented patterns (workshop agent)
   const taskPatterns = [
     // Search and discovery
