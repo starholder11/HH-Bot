@@ -151,13 +151,13 @@ export async function uploadS3TextAssetToVectorStore(textAsset: any) {
   try {
     const content = textAsset.content || '';
     const slug = textAsset.metadata?.slug || textAsset.id;
-    
+
     // Create hash-based filename for idempotency (same as git version)
     const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
     const vectorName = `s3-${slug}-${hash}.md`;
-    
+
     console.log(`📤 Uploading S3 text asset to vector store: ${vectorName}`);
-    
+
     // Include metadata in the file content for better search context
     const metadataHeader = `---
 title: ${textAsset.title}
@@ -168,12 +168,37 @@ updated: ${textAsset.updated_at}
 ---
 
 `;
-    
+
     const fullContent = metadataHeader + content;
-    
-    // Use existing uploadFileToVectorStore function
-    return await uploadFileToVectorStore(fullContent, vectorName);
-    
+
+    // Use direct OpenAI client (exactly like other working Vercel routes)
+    const openai = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY 
+    });
+
+    console.log(`📤 Creating file for vector store...`);
+
+    // Convert string content to Buffer for upload
+    const buffer = Buffer.from(fullContent, 'utf8');
+    const file = new File([buffer], vectorName, { type: 'text/markdown' });
+
+    // Step 1 – upload raw file to /files endpoint
+    const fileInfo = await openai.files.create({ file, purpose: 'assistants' } as any);
+
+    // Step 2 – attach file to vector store
+    const vectorStoreFile = await openai.vectorStores.files.create(
+      VECTOR_STORE_ID,
+      {
+        file_id: fileInfo.id,
+        attributes: {
+          filename: vectorName,
+        },
+      } as any
+    );
+
+    console.log(`✅ Successfully uploaded ${vectorName} to vector store (file_id=${fileInfo.id})`);
+    return vectorStoreFile;
+
   } catch (error) {
     console.error(`❌ Error uploading S3 text asset to vector store:`, error);
     throw error;
