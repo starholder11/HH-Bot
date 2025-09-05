@@ -763,16 +763,26 @@ export default function LoreScribeModal({
     setBusy(true);
 
     try {
+      const requestPayload = {
+        messages: next,
+        documentContext: documentData?.mdx,
+        conversationId: documentData?.conversation_id || conversationId,
+        scribeEnabled: documentData?.scribe_enabled || false,
+        documentId: (documentData as any)?.id // Pass document ID for editing
+      };
+      
+      console.log('🔍 [MODAL] Sending to agent-lore:', {
+        documentId: requestPayload.documentId,
+        conversationId: requestPayload.conversationId,
+        scribeEnabled: requestPayload.scribeEnabled,
+        hasDocumentContext: !!requestPayload.documentContext,
+        documentData: documentData
+      });
+      
       const response = await fetch('/api/agent-lore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: next,
-          documentContext: documentData?.mdx,
-          conversationId: documentData?.conversation_id || conversationId,
-          scribeEnabled: documentData?.scribe_enabled || false,
-          documentId: (documentData as any)?.id // Pass document ID for editing
-        })
+        body: JSON.stringify(requestPayload)
       });
 
       if (!response.ok) {

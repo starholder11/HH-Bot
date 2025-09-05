@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
       messagesLength: messages?.length,
       conversationId,
       scribeEnabled,
+      documentId,
       lastMessage: messages?.[messages.length - 1]?.content
     });
 
@@ -336,16 +337,23 @@ conversation_id: ${finalConversationId}`;
         // Find the text asset - use documentId if provided (from Continue Conversation), 
         // otherwise look by conversation ID (from active scribe session)
         let textAssetId = documentId;
+        console.log(`[${correlationId}] Scribe edit - documentId provided:`, documentId);
+        
         if (!textAssetId) {
+          console.log(`[${correlationId}] No documentId, searching by conversationId:`, conversationId);
           textAssetId = await findTextAssetByConversationId(conversationId);
+          console.log(`[${correlationId}] Found textAssetId by conversationId:`, textAssetId);
         }
         
         if (!textAssetId) {
+          console.log(`[${correlationId}] No textAssetId found - failing`);
           return NextResponse.json({
             type: 'error',
             message: 'No active scribe document found for editing. Please start a scribe session first.'
           });
         }
+        
+        console.log(`[${correlationId}] Using textAssetId for editing:`, textAssetId);
         
         // Trigger editing Lambda with special editing mode
         await triggerScribeEdit(
