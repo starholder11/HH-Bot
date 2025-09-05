@@ -25,9 +25,9 @@ export async function POST(req: NextRequest) {
   console.log('🔍 [AGENT-LORE] POST request received');
   try {
     const { messages, documentContext, conversationId, scribeEnabled } = await req.json();
-    console.log('🔍 [AGENT-LORE] Request body parsed:', { 
-      messagesLength: messages?.length, 
-      conversationId, 
+    console.log('🔍 [AGENT-LORE] Request body parsed:', {
+      messagesLength: messages?.length,
+      conversationId,
       scribeEnabled,
       lastMessage: messages?.[messages.length - 1]?.content
     });
@@ -154,9 +154,9 @@ conversation_id: ${finalConversationId}`;
 
         // Save S3 text asset directly (no HTTP call to self)
         console.log('[agent-lore] Creating S3 text asset:', { id: textAssetId, slug, title });
-        
+
         await saveMediaAsset(textAssetId, s3TextAsset as any);
-        
+
         console.log('🔍 [AGENT-LORE] S3 text asset saved successfully via direct call');
 
         // Create layout directly

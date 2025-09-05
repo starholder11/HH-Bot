@@ -795,19 +795,40 @@ export default function LoreScribeModal({
 
       const decoder = new TextDecoder();
       let assistantMessage = '';
+      let buffer = ''; // Buffer for incomplete lines
+
+      console.log('🔍 [MODAL SEND] Starting SSE stream processing...');
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log('🔍 [MODAL SEND] Stream ended');
+          break;
+        }
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        const chunk = decoder.decode(value, { stream: true });
+        console.log('🔍 [MODAL SEND] Received chunk:', JSON.stringify(chunk));
+        
+        // Add chunk to buffer and process complete lines
+        buffer += chunk;
+        const lines = buffer.split('\n');
+        
+        // Keep the last line in buffer (might be incomplete)
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
+          console.log('🔍 [MODAL SEND] Processing line:', JSON.stringify(line));
+          
           if (line.startsWith('data: ')) {
             try {
-              const data = JSON.parse(line.slice(6));
+              const dataStr = line.slice(6);
+              console.log('🔍 [MODAL SEND] Parsing data:', dataStr);
+              
+              const data = JSON.parse(dataStr);
+              console.log('🔍 [MODAL SEND] Parsed data:', data);
+              
               if (data.type === 'content') {
+                console.log('🔍 [MODAL SEND] Adding delta:', data.delta);
                 assistantMessage += data.delta;
                 // Update last assistant message
                 if (setMessages) {
@@ -822,9 +843,12 @@ export default function LoreScribeModal({
                     return updated;
                   });
                 }
+              } else if (data.type === 'done') {
+                console.log('🔍 [MODAL SEND] Stream completion signal received');
+                break;
               }
             } catch (e) {
-              // Ignore JSON parse errors
+              console.warn('🔍 [MODAL SEND] JSON parse error:', e, 'for line:', line);
             }
           }
         }
