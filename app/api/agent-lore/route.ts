@@ -15,15 +15,32 @@ function detectScribeIntent(message: string) {
   const startWords = /(start|begin|create|activate|enable|turn\s+on)/i;
   const stopWords = /(stop|end|pause|disable|turn\s+off|deactivate)/i;
   const scribeWords = /(scribe|background\s+doc|document|documentation)/i;
-
+  
+  // Enhanced: detect scribe editing commands
+  const editWords = /(tell|have|ask|instruct|command|direct)/i;
+  const editActions = /(rework|rewrite|edit|change|modify|update|revise|improve|enhance|fix|adjust)/i;
+  
   const isStart = startWords.test(message) && scribeWords.test(message);
   const isStop = stopWords.test(message) && scribeWords.test(message);
+  
+  // New: detect editing commands like "tell the scribe to rework..."
+  const isEdit = (editWords.test(message) && scribeWords.test(message)) || 
+                 (scribeWords.test(message) && editActions.test(message));
 
-  // Extract topic/title from message
+  // Extract topic/title from start commands
   const topicMatch = message.match(/(?:scribe|doc|document)\s+(?:about\s+)?([^.!?]+)/i);
   const extractedTitle = topicMatch ? topicMatch[1].trim() : null;
+  
+  // Extract editing instructions from edit commands
+  let editInstructions = null;
+  if (isEdit) {
+    // Try to extract everything after "tell the scribe to" or similar
+    const instructionMatch = message.match(/(?:tell|have|ask|instruct|command|direct)\s+(?:the\s+)?scribe\s+to\s+(.+)/i) ||
+                            message.match(/scribe[,:]\s+(.+)/i);
+    editInstructions = instructionMatch ? instructionMatch[1].trim() : message;
+  }
 
-  return { isStart, isStop, extractedTitle };
+  return { isStart, isStop, isEdit, extractedTitle, editInstructions };
 }
 
 // Helper function to find text asset by conversation ID
@@ -70,6 +87,32 @@ async function triggerScribeUpdate(conversationId: string, userMessage: string, 
     console.log(`[${correlationId}] ✅ Scribe trigger sent for text asset: ${textAssetId}`);
   } catch (error) {
     console.warn(`[${correlationId}] Scribe trigger failed:`, error);
+  }
+}
+
+// Helper function to trigger scribe editing via API
+async function triggerScribeEdit(conversationId: string, editInstructions: string, textAssetId: string, correlationId: string, req: NextRequest) {
+  console.log(`[${correlationId}] Triggering scribe edit for: ${textAssetId}`);
+  console.log(`[${correlationId}] Edit instructions: ${editInstructions}`);
+  
+  // Trigger via internal API endpoint with editing mode
+  try {
+    const baseUrl = new URL(req.url).origin;
+    await fetch(`${baseUrl}/api/internal/trigger-scribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        textAssetId,
+        editMode: true,
+        editInstructions,
+        conversationId,
+        correlationId
+      })
+    });
+    
+    console.log(`[${correlationId}] ✅ Scribe edit trigger sent for: ${textAssetId}`);
+  } catch (error) {
+    console.warn(`[${correlationId}] Scribe edit trigger failed:`, error);
   }
 }
 
@@ -283,6 +326,45 @@ conversation_id: ${finalConversationId}`;
         type: 'scribe_stopped',
         message: 'Scribe stopped. You now have full editorial control of the document.'
       });
+    }
+
+    if (scribeIntent.isEdit) {
+      // Handle scribe editing commands
+      console.log(`[${correlationId}] Processing scribe edit command:`, scribeIntent.editInstructions);
+      
+      try {
+        // Find the text asset for this conversation
+        const textAssetId = await findTextAssetByConversationId(conversationId);
+        if (!textAssetId) {
+          return NextResponse.json({
+            type: 'error',
+            message: 'No active scribe document found for editing. Please start a scribe session first.'
+          });
+        }
+        
+        // Trigger editing Lambda with special editing mode
+        await triggerScribeEdit(
+          conversationId,
+          scribeIntent.editInstructions,
+          textAssetId,
+          correlationId,
+          req
+        );
+        
+        return NextResponse.json({
+          type: 'scribe_editing',
+          message: `Working on your editing request: "${scribeIntent.editInstructions}". Check the Scribe tab for updates.`,
+          textAssetId,
+          editInstructions: scribeIntent.editInstructions
+        });
+        
+      } catch (error) {
+        console.error(`[${correlationId}] Scribe edit failed:`, error);
+        return NextResponse.json({
+          type: 'error',
+          message: `Sorry, I had trouble with that editing request: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+      }
     }
 
     // Regular lore conversation - route to chat endpoint but stay in modal

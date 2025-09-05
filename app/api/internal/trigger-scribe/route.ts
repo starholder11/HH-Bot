@@ -8,9 +8,11 @@ const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION || 'us-ea
 
 export async function POST(req: NextRequest) {
   try {
-    const { textAssetId, userMessage, assistantResponse, conversationId, correlationId } = await req.json();
+    const { textAssetId, userMessage, assistantResponse, conversationId, correlationId, editMode, editInstructions } = await req.json();
     
     console.log(`[${correlationId}] Internal trigger-scribe v2 called for: ${textAssetId}`);
+    console.log(`[${correlationId}] Edit mode:`, editMode || false);
+    console.log(`[${correlationId}] Edit instructions:`, editInstructions || 'none');
     console.log(`[${correlationId}] AWS region:`, process.env.AWS_REGION || 'us-east-1');
     console.log(`[${correlationId}] AWS credentials available:`, !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY));
     
@@ -20,10 +22,12 @@ export async function POST(req: NextRequest) {
       InvocationType: 'Event', // Async invocation
       Payload: Buffer.from(JSON.stringify({
         textAssetId,
-        userMessage,
-        assistantResponse,
+        userMessage: userMessage || '',
+        assistantResponse: assistantResponse || '',
         conversationId,
-        correlationId
+        correlationId,
+        editMode: editMode || false,
+        editInstructions: editInstructions || null
       }))
     });
     

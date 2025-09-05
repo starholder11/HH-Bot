@@ -28,10 +28,12 @@ async function getOpenAIClient() {
 }
 
 exports.handler = async (event) => {
-  const { textAssetId, userMessage, assistantResponse, conversationId } = event;
+  const { textAssetId, userMessage, assistantResponse, conversationId, editMode, editInstructions } = event;
   const correlationId = event.correlationId || `corr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   console.log(`[${correlationId}] Background summarizer triggered for: ${textAssetId}`);
+  console.log(`[${correlationId}] Edit Mode: ${editMode || false}`);
+  if (editMode) console.log(`[${correlationId}] Edit Instructions: ${editInstructions}`);
 
   try {
     // Load current S3 text asset
@@ -49,13 +51,26 @@ exports.handler = async (event) => {
     }
 
     // Generate narrative update
-    const conversationTurn = `User: ${userMessage}\n\nAssistant: ${assistantResponse}`;
-    const updatedContent = await generateNarrativeUpdate(
-      conversationTurn,
-      currentAsset.content || '',
-      currentAsset.title,
-      correlationId
-    );
+    // Generate content update - either conversation integration or editing
+    let updatedContent;
+    if (editMode && editInstructions) {
+      // Document editing mode
+      updatedContent = await generateDocumentEdit(
+        editInstructions,
+        currentAsset.content || '',
+        currentAsset.title,
+        correlationId
+      );
+    } else {
+      // Regular conversation integration mode
+      const conversationTurn = `User: ${userMessage}\n\nAssistant: ${assistantResponse}`;
+      updatedContent = await generateNarrativeUpdate(
+        conversationTurn,
+        currentAsset.content || '',
+        currentAsset.title,
+        correlationId
+      );
+    }
 
     // Update S3 text asset
     const updatedAsset = {
@@ -117,6 +132,48 @@ Integrate this conversation naturally into the document. Return the complete upd
   });
 
   return response.choices[0]?.message?.content || existingContent;
+}
+
+async function generateDocumentEdit(editInstructions, existingContent, documentTitle, correlationId) {
+  console.log(`[${correlationId}] Generating document edit for: ${documentTitle}`);
+  console.log(`[${correlationId}] Edit instructions: ${editInstructions}`);
+  
+  const openaiClient = await getOpenAIClient();
+  
+  const systemPrompt = `You are a master document editor for the Starholder universe. 
+You receive specific editing instructions and apply them to existing documents with precision and creativity.
+Follow the user's editing directions exactly while maintaining narrative coherence and the document's voice.
+You can rework sections, change tone, add dialogue, restructure content, or make any requested modifications.
+Return the complete updated document after applying the requested changes.`;
+
+  const editPrompt = `
+DOCUMENT TITLE: ${documentTitle}
+
+CURRENT DOCUMENT:
+${existingContent}
+
+EDITING INSTRUCTIONS:
+${editInstructions}
+
+TASK: Apply the editing instructions to the document. Make the requested changes while maintaining quality and coherence. Return the complete updated document.
+`;
+
+  console.log(`[${correlationId}] Calling OpenAI for document editing`);
+  
+  const response = await openaiClient.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: editPrompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 8000
+  });
+
+  const result = response.choices[0]?.message?.content || existingContent;
+  console.log(`[${correlationId}] Document edit completed: ${result.length} chars`);
+  
+  return result;
 }
 
 async function streamToString(stream) {
