@@ -3,48 +3,164 @@
 
 ---
 
-## Task Overview
+## Current State Analysis
 
-This document provides an ordered implementation plan for the Background Scribe system using maximum reuse of existing infrastructure. The system provides call-and-response cadence conversation-to-document synthesis with sub-5 second updates.
+### What Already Exists ✅
+- ✅ **Scribe Start/Stop**: `app/api/agent-lore/route.ts` handles "start scribe" commands
+- ✅ **S3 Text Asset Creation**: Creates UUID-based text assets with scribe metadata
+- ✅ **Background Doc APIs**: `/api/chat/background-doc/start` and `/toggle` endpoints exist
+- ✅ **Scribe Metadata**: `scribe_enabled`, `conversation_id` in S3 text asset metadata
+- ✅ **Modal Integration**: LoreScribeModal handles scribe commands and document loading
 
-**Architecture Strategy**: Extend existing Redis, Lambda, and Tool systems rather than building parallel infrastructure.
+### What's Missing 🔨
+- 🔨 **Real-time background processing**: No automatic conversation → document synthesis
+- 🔨 **Lambda worker**: No background service to update documents
+- 🔨 **Message capture**: Agent-lore doesn't capture conversation turns for processing
+- 🔨 **Auto-refresh UI**: Scribe tab doesn't show real-time updates
+
+**Strategy**: Enhance existing scribe system with real-time background processing rather than rebuild.
 
 ---
 
-## Phase 1: Extend Existing Services (1-2 days)
+## Phase 1: Add Missing Background Processing (2-3 days)
 
-### Task 1: Add Scribe Tools to ComprehensiveTools.ts
-**Priority**: High | **Estimated Time**: 4 hours
+### Task 1: Create Lambda Background Summarizer
+**Priority**: High | **Estimated Time**: 6 hours
+**Status**: Missing - this is the core gap
 
 #### Technical Spec
-**File**: `services/tools/ComprehensiveTools.ts`
+**Directory**: `lambda-background-summarizer/` (copy from `lambda-video-processor/`)
 
-**Add Three Methods**:
-```typescript
-// Add to existing ComprehensiveTools class
-async startScribe(params: {
-  title: string;
-  conversationId?: string;
-  userId?: string;
-  tenantId?: string;
-}) {
-  const correlationId = this.contextService.generateCorrelationId();
-  console.log(`[${correlationId}] Starting scribe: ${params.title}`);
+**Main Handler** (copy existing Lambda pattern):
+```javascript
+// lambda-background-summarizer/index.js
+const { getOpenAIClient } = require('./lib/openai-client');
+const { readJsonFromS3, writeJsonToS3 } = require('./lib/s3-utils');
+
+exports.handler = async (event) => {
+  const { conversationId, userMessage, assistantResponse, textAssetId } = event;
+  const correlationId = event.correlationId || `corr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   
-  // Create S3 text asset + Redis workflow state
-  const response = await fetch('/api/chat/background-doc/start', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...params, correlationId })
+  console.log(`[${correlationId}] Background summarizer triggered for: ${conversationId}`);
+  
+  try {
+    // Load current S3 text asset (existing pattern)
+    const assetKey = `media-labeling/assets/${textAssetId}.json`;
+    const currentAsset = await readJsonFromS3(assetKey);
+    
+    if (!currentAsset || currentAsset.media_type !== 'text') {
+      throw new Error(`Text asset ${textAssetId} not found or invalid`);
+    }
+    
+    // Check if scribe is still enabled
+    if (!currentAsset.metadata?.scribe_enabled) {
+      console.log(`[${correlationId}] Scribe disabled for ${textAssetId}, skipping`);
+      return { statusCode: 200, body: 'Scribe disabled' };
+    }
+    
+    // Generate narrative update using OpenAI
+    const conversationTurn = `User: ${userMessage}\n\nAssistant: ${assistantResponse}`;
+    const updatedContent = await generateRealtimeUpdate(
+      conversationTurn,
+      currentAsset.content || '',
+      currentAsset.title,
+      correlationId
+    );
+    
+    // Update S3 text asset (existing pattern)
+    const updatedAsset = {
+      ...currentAsset,
+      content: updatedContent,
+      updated_at: new Date().toISOString(),
+      metadata: {
+        ...currentAsset.metadata,
+        last_scribe_update: new Date().toISOString(),
+        word_count: updatedContent.split(/\s+/).filter(w => w.length > 0).length,
+        character_count: updatedContent.length
+      }
+    };
+    
+    await writeJsonToS3(assetKey, updatedAsset);
+    
+    console.log(`[${correlationId}] ✅ Scribe update completed: ${currentAsset.metadata.slug}`);
+    
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        success: true,
+        updated: currentAsset.metadata.slug,
+        contentLength: updatedContent.length,
+        correlationId
+      })
+    };
+    
+  } catch (error) {
+    console.error(`[${correlationId}] ❌ Summarizer failed:`, error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: error.message,
+        correlationId
+      })
+    };
+  }
+};
+
+async function generateRealtimeUpdate(conversationTurn, existingContent, documentTitle, correlationId) {
+  console.log(`[${correlationId}] Generating narrative update for: ${documentTitle}`);
+  
+  const openai = getOpenAIClient();
+  
+  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe. 
+Take this single conversation turn and seamlessly weave it into the existing document. 
+Write in flowing, engaging prose that captures the essence of the discussion.
+Maintain narrative coherence while integrating new information naturally.
+Respond with the complete updated document.`;
+
+  const updatePrompt = `
+DOCUMENT TITLE: ${documentTitle}
+
+CURRENT DOCUMENT:
+${existingContent}
+
+NEW CONVERSATION TURN TO INTEGRATE:
+${conversationTurn}
+
+TASK: Seamlessly integrate this conversation turn into the document. Maintain the flow and add new insights naturally. Return the complete updated document.
+`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: updatePrompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 8000
   });
-  
-  return await response.json();
-}
 
-async toggleScribe(params: {
-  conversationId: string;
-  enabled: boolean;
-}) {
+  return response.choices[0]?.message?.content || existingContent;
+}
+```
+
+**Copy Structure From**:
+```bash
+cp -r lambda-video-processor lambda-background-summarizer
+# Update package.json, index.js, and lib files
+```
+
+**Acceptance Criteria**:
+- [ ] Lambda follows existing video processor structure
+- [ ] Uses existing S3 and OpenAI client patterns
+- [ ] Processes single conversation turns in <2 seconds
+- [ ] Updates S3 text assets with enhanced content
+- [ ] Includes correlation ID tracing
+
+---
+
+### Task 2: Add Lambda Trigger to Agent-Lore Route
+**Priority**: High | **Estimated Time**: 3 hours
+**Status**: Missing - need to capture and trigger
   const correlationId = this.contextService.generateCorrelationId();
   
   // Use existing workflow state update pattern
