@@ -53,14 +53,17 @@ exports.handler = async (event) => {
     // Generate narrative update
     // Generate content update - either conversation integration or editing
     let updatedContent;
+    let newTitle = null;
     if (editMode && editInstructions) {
       // Document editing mode
-      updatedContent = await generateDocumentEdit(
+      const editResult = await generateDocumentEdit(
         editInstructions,
         currentAsset.content || '',
         currentAsset.title,
         correlationId
       );
+      updatedContent = editResult.content || editResult; // Handle both old and new format
+      newTitle = editResult.newTitle || null;
     } else {
       // Regular conversation integration mode
       const conversationTurn = `User: ${userMessage}\n\nAssistant: ${assistantResponse}`;
@@ -76,12 +79,15 @@ exports.handler = async (event) => {
     const updatedAsset = {
       ...currentAsset,
       content: updatedContent,
+      title: newTitle || currentAsset.title, // Update title if AI suggested one, but keep slug unchanged
       updated_at: new Date().toISOString(),
       metadata: {
         ...currentAsset.metadata,
         last_scribe_update: new Date().toISOString(),
         word_count: updatedContent.split(/\s+/).filter(w => w.length > 0).length,
-        character_count: updatedContent.length
+        character_count: updatedContent.length,
+        // Note: slug is intentionally NOT changed to maintain stable references
+        title_updated_by_ai: !!newTitle
       }
     };
 
@@ -144,6 +150,9 @@ async function generateDocumentEdit(editInstructions, existingContent, documentT
 You receive specific editing instructions and apply them to existing documents with precision and creativity.
 Follow the user's editing directions exactly while maintaining narrative coherence and the document's voice.
 You can rework sections, change tone, add dialogue, restructure content, or make any requested modifications.
+
+IMPORTANT: If you feel the document needs a better title after your edits, you may suggest a new title by starting your response with "TITLE: [new title]" on the first line, followed by a blank line, then the document content. The title should be concise and descriptive of the content.
+
 Return the complete updated document after applying the requested changes.`;
 
   const editPrompt = `
@@ -170,10 +179,21 @@ TASK: Apply the editing instructions to the document. Make the requested changes
     max_tokens: 8000
   });
 
-  const result = response.choices[0]?.message?.content || existingContent;
-  console.log(`[${correlationId}] Document edit completed: ${result.length} chars`);
+  let result = response.choices[0]?.message?.content || existingContent;
   
-  return result;
+  // Check if AI suggested a new title
+  let newTitle = null;
+  if (result.startsWith('TITLE: ')) {
+    const lines = result.split('\n');
+    const titleLine = lines[0];
+    newTitle = titleLine.replace('TITLE: ', '').trim();
+    // Remove title line and blank line from content
+    result = lines.slice(2).join('\n');
+    console.log(`[${correlationId}] AI suggested new title: "${newTitle}"`);
+  }
+  
+  console.log(`[${correlationId}] Document edit completed: ${result.length} chars`);
+  return { content: result, newTitle };
 }
 
 async function streamToString(stream) {

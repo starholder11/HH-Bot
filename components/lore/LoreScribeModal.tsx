@@ -329,9 +329,11 @@ function ScribeEditor({
       console.log('🔍 [LAYOUT DEBUG] layoutUrl:', (documentData as any).layoutUrl);
 
       // Close modal and navigate to layout editor
-      // Try layout-specific URL first, fallback to highlight
-      const layoutUrl = (documentData as any).layoutUrl || `/visual-search?highlight=${documentData.slug}`;
+      // Try layout-specific URL first, fallback to highlight using UUID instead of slug
+      const documentId = (documentData as any).id || documentData.slug;
+      const layoutUrl = (documentData as any).layoutUrl || `/visual-search?highlight=${documentId}`;
       console.log('🔍 [LAYOUT DEBUG] Final layoutUrl to navigate to:', layoutUrl);
+      console.log('🔍 [LAYOUT DEBUG] Using document ID for highlight:', documentId);
 
       // Check if the layout actually exists before navigating
       if ((documentData as any).layoutId) {
