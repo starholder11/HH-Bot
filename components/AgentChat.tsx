@@ -607,6 +607,7 @@ export default function AgentChat() {
           setInput={setInput}
           busy={busy}
           setBusy={setBusy}
+          onSend={send}
           lastResponseId={lastResponseId}
           setLastResponseId={setLastResponseId}
           conversationalContext={conversationalContext}

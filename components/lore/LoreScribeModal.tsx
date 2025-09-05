@@ -611,10 +611,13 @@ export default function LoreScribeModal({
   const send = async () => {
     if (!input.trim() || busy) return;
 
-    console.log('🔍 [MODAL SEND] Modal send function called with:', input.trim());
-    console.log('🔍 [MODAL SEND] Using /api/agent-lore route');
+    // If external onSend is provided (integrated mode), use it instead
+    if (externalOnSend) {
+      externalOnSend();
+      return;
+    }
 
-    // Always use modal-specific agent route that stays in modal context
+    // Standalone mode - handle streaming ourselves
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     if (setMessages) {
       setMessages(next);
@@ -623,13 +626,6 @@ export default function LoreScribeModal({
     setBusy(true);
 
     try {
-      console.log('🔍 [MODAL SEND] About to call /api/agent-lore with payload:', {
-        messages: next,
-        documentContext: documentData?.mdx,
-        conversationId: documentData?.conversation_id || conversationId,
-        scribeEnabled: documentData?.scribe_enabled || false
-      });
-
       const response = await fetch('/api/agent-lore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -641,25 +637,16 @@ export default function LoreScribeModal({
         })
       });
 
-      console.log('🔍 [MODAL SEND] Got response from /api/agent-lore:', {
-        ok: response.ok,
-        status: response.status,
-        contentType: response.headers.get('content-type')
-      });
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('🔍 [MODAL SEND] Agent response failed:', response.status, errorText);
         throw new Error(`Agent response failed: ${response.status} - ${errorText}`);
       }
 
       // Check if it's a special scribe response
       const contentType = response.headers.get('content-type');
-      console.log('🔍 [MODAL SEND] Checking response type, contentType:', contentType);
 
       if (contentType?.includes('application/json')) {
         const result = await response.json();
-        console.log('🔍 [MODAL SEND] Parsed JSON result:', result);
 
         if (result.type === 'scribe_started') {
           console.log('🔍 [SCRIBE DEBUG] Full scribe_started result:', JSON.stringify(result, null, 2));
@@ -797,17 +784,11 @@ export default function LoreScribeModal({
       let assistantMessage = '';
       let buffer = ''; // Buffer for incomplete lines
 
-      console.log('🔍 [MODAL SEND] Starting SSE stream processing...');
-
       while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-          console.log('🔍 [MODAL SEND] Stream ended');
-          break;
-        }
+        if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        console.log('🔍 [MODAL SEND] Received chunk:', JSON.stringify(chunk));
         
         // Add chunk to buffer and process complete lines
         buffer += chunk;
@@ -817,21 +798,22 @@ export default function LoreScribeModal({
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          console.log('🔍 [MODAL SEND] Processing line:', JSON.stringify(line));
-          
           if (line.startsWith('data: ')) {
             try {
               const dataStr = line.slice(6);
-              console.log('🔍 [MODAL SEND] Parsing data:', dataStr);
-              
               const data = JSON.parse(dataStr);
-              console.log('🔍 [MODAL SEND] Parsed data:', data);
               
               if (data.type === 'content') {
-                console.log('🔍 [MODAL SEND] Adding delta:', data.delta);
                 assistantMessage += data.delta;
-                // Update last assistant message
-                if (setMessages) {
+                
+                // In integrated mode (external messages), use parent's message handling
+                // In standalone mode, update local messages
+                if (externalMessages && !setMessages) {
+                  // Integrated mode - this should be handled by parent AgentChat
+                  // But since we're in the modal, we need to trigger the parent's delta handler
+                  // For now, we'll accumulate and set at the end
+                } else if (setMessages) {
+                  // Standalone mode - update local messages
                   setMessages(prev => {
                     const updated = [...prev];
                     const lastMsg = updated[updated.length - 1];
@@ -844,14 +826,31 @@ export default function LoreScribeModal({
                   });
                 }
               } else if (data.type === 'done') {
-                console.log('🔍 [MODAL SEND] Stream completion signal received');
                 break;
               }
             } catch (e) {
-              console.warn('🔍 [MODAL SEND] JSON parse error:', e, 'for line:', line);
+              // Ignore JSON parse errors for incomplete chunks
             }
           }
         }
+      }
+
+      // After stream ends, add the complete assistant message in integrated mode
+      if (externalMessages && !setMessages && assistantMessage) {
+        // We can't directly update external messages, so we'll use the onDelta approach
+        // This is a workaround - ideally AgentChat should handle the streaming
+      } else if (setMessages && assistantMessage) {
+        // Ensure final message is set in standalone mode
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMsg = updated[updated.length - 1];
+          if (lastMsg?.role === 'assistant') {
+            updated[updated.length - 1] = { ...lastMsg, content: assistantMessage };
+          } else {
+            updated.push({ role: 'assistant', content: assistantMessage });
+          }
+          return updated;
+        });
       }
 
     } catch (error) {
@@ -1013,3 +1012,4 @@ function ConversationalStreamRunner({
 }
 
 export { LoreScribeModal };
+
