@@ -242,7 +242,9 @@ conversation_id: ${finalConversationId}`;
           ]
         : messages;
 
-      const chatResponse = await fetch('/api/chat', {
+      // Use absolute URL for production compatibility
+      const baseUrl = req.url ? new URL(req.url).origin : '';
+      const chatResponse = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
