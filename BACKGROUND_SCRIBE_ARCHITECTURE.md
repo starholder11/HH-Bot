@@ -5,7 +5,7 @@
 
 ## Executive Summary
 
-This document defines the technical architecture for the Background Scribe system - an agentic service that automatically converts ongoing conversations into living narrative documents. The system integrates with the existing lore chat modal, S3 text assets, and Redis context management to provide seamless conversation-to-document synthesis.
+This document defines the technical architecture for the Background Scribe system - a real-time agentic service that converts conversations into living narrative documents with call-and-response cadence. The system triggers immediately on each conversation turn, uses pure S3 storage (no Git), and provides near-instantaneous document updates for dynamic storytelling experiences.
 
 ---
 
@@ -19,11 +19,11 @@ This document defines the technical architecture for the Background Scribe syste
 - **Continue Conversation**: Button that loads S3 text content into modal
 
 ### What We Need 🔨
-- **Background Document Tracking**: Redis-based state for active scribe sessions
-- **Conversation Message Capture**: System to track and accumulate conversation turns
-- **Background Summarizer Service**: Periodic conversion of messages to narrative content
-- **Scribe Control APIs**: Start/stop/toggle endpoints for scribe management
-- **Document Update Pipeline**: Automatic S3 asset updates with OAI sync
+- **Real-Time Trigger System**: Immediate Lambda invocation on each conversation turn
+- **Conversation Message Streaming**: Direct message-to-narrative conversion (no buffering)
+- **High-Frequency Summarizer**: Lambda function optimized for <2 second execution
+- **Pure S3 Workflow**: No Git commits, pure S3 text asset updates
+- **Call-Response Cadence**: Document updates within seconds of user messages
 
 ---
 
@@ -31,50 +31,49 @@ This document defines the technical architecture for the Background Scribe syste
 
 ### 1. Redis Data Model Extensions
 
-#### Background Documents Registry
+#### Real-Time Scribe Registry
 ```typescript
 // Key: `scribe:active:{conversationId}`
-interface ActiveBackgroundDoc {
+interface ActiveScribeSession {
   conversationId: string;
   textAssetId: string;        // S3 UUID
   slug: string;               // Human-readable identifier
   title: string;
   scribeEnabled: boolean;
-  lastMessageCount: number;   // Track processed messages
   lastUpdateAt: string;       // ISO timestamp
   userId: string;
   tenantId: string;
   createdAt: string;
+  currentContent: string;     // Cache current document state
 }
 
-// Key: `scribe:messages:{conversationId}`
-interface ConversationMessages {
+// Key: `scribe:trigger:{conversationId}:{messageId}`
+interface ScribeTrigger {
   conversationId: string;
-  messages: Array<{
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: string;
-    processed: boolean;       // Track summarizer processing
-  }>;
-  totalCount: number;
-  lastActivity: string;
+  messageId: string;
+  userMessage: string;
+  assistantResponse: string;
+  timestamp: string;
+  processed: boolean;
 }
 ```
 
 #### Redis Operations
 ```typescript
 class ScribeRedisService extends RedisContextService {
-  // Background document management
-  async registerBackgroundDoc(doc: ActiveBackgroundDoc): Promise<void>
-  async getActiveBackgroundDocs(): Promise<ActiveBackgroundDoc[]>
-  async updateBackgroundDocState(conversationId: string, updates: Partial<ActiveBackgroundDoc>): Promise<void>
-  async disableBackgroundDoc(conversationId: string): Promise<void>
-
-  // Message accumulation
-  async addConversationMessage(conversationId: string, message: ConversationMessage): Promise<void>
-  async getUnprocessedMessages(conversationId: string, fromCount: number): Promise<ConversationMessage[]>
-  async markMessagesProcessed(conversationId: string, messageIds: string[]): Promise<void>
+  // Real-time scribe session management
+  async registerScribeSession(session: ActiveScribeSession): Promise<void>
+  async getActiveScribeSessions(): Promise<ActiveScribeSession[]>
+  async updateScribeSession(conversationId: string, updates: Partial<ActiveScribeSession>): Promise<void>
+  async disableScribeSession(conversationId: string): Promise<void>
+  
+  // Immediate trigger system
+  async triggerScribeUpdate(trigger: ScribeTrigger): Promise<void>
+  async getUnprocessedTriggers(): Promise<ScribeTrigger[]>
+  async markTriggerProcessed(conversationId: string, messageId: string): Promise<void>
+  
+  // Lambda invocation
+  async invokeSummarizerLambda(conversationId: string, messageId: string): Promise<void>
 }
 ```
 
@@ -92,48 +91,42 @@ export class BackgroundSummarizer {
     this.openai = getOpenAIClient();
   }
 
-  // Main processing loop
-  async processActiveDocuments(): Promise<void> {
-    const activeDocs = await this.redis.getActiveBackgroundDocs();
-
-    for (const doc of activeDocs) {
-      if (!doc.scribeEnabled) continue;
-
-      try {
-        await this.updateDocument(doc);
-      } catch (error) {
-        console.error(`[Summarizer] Failed to update ${doc.slug}:`, error);
-        // Continue processing other documents
-      }
+  // Real-time processing - triggered immediately on conversation turns
+  async processConversationTurn(conversationId: string, messageId: string): Promise<void> {
+    const session = await this.redis.getScribeSession(conversationId);
+    if (!session?.scribeEnabled) return;
+    
+    const trigger = await this.redis.getTrigger(conversationId, messageId);
+    if (!trigger || trigger.processed) return;
+    
+    try {
+      await this.updateDocumentRealtime(session, trigger);
+      await this.redis.markTriggerProcessed(conversationId, messageId);
+    } catch (error) {
+      console.error(`[Summarizer] Failed real-time update for ${session.slug}:`, error);
+      throw error; // Lambda will retry
     }
   }
 
-  // Document update logic
-  async updateDocument(doc: ActiveBackgroundDoc): Promise<void> {
-    // Get new unprocessed messages
-    const newMessages = await this.redis.getUnprocessedMessages(
-      doc.conversationId,
-      doc.lastMessageCount
-    );
-
-    if (newMessages.length === 0) return;
-
-    // Load current document content
-    const currentAsset = await getMediaAsset(doc.textAssetId);
+  // Real-time document update - processes single conversation turn immediately
+  async updateDocumentRealtime(session: ActiveScribeSession, trigger: ScribeTrigger): Promise<void> {
+    console.log(`[Summarizer] Real-time update for ${session.slug}: ${trigger.messageId}`);
+    
+    // Load current document content from S3
+    const currentAsset = await getMediaAsset(session.textAssetId);
     if (!currentAsset) {
-      console.warn(`[Summarizer] Text asset ${doc.textAssetId} not found`);
-      return;
+      throw new Error(`Text asset ${session.textAssetId} not found`);
     }
-
-    // Generate updated narrative content
-    const updatedContent = await this.generateNarrativeUpdate(
-      newMessages,
+    
+    // Generate immediate narrative update from this conversation turn
+    const conversationTurn = `User: ${trigger.userMessage}\n\nAssistant: ${trigger.assistantResponse}`;
+    const updatedContent = await this.generateRealtimeUpdate(
+      conversationTurn,
       currentAsset.content || '',
-      doc.title,
-      this.detectConversationStyle(newMessages)
+      session.title
     );
-
-    // Update S3 text asset
+    
+    // Update S3 text asset immediately
     const updatedAsset = {
       ...currentAsset,
       content: updatedContent,
@@ -141,39 +134,49 @@ export class BackgroundSummarizer {
       metadata: {
         ...currentAsset.metadata,
         last_scribe_update: new Date().toISOString(),
-        message_count: doc.lastMessageCount + newMessages.length
+        last_message_id: trigger.messageId,
+        scribe_version: 'realtime'
       }
     };
-
-    await saveMediaAsset(doc.textAssetId, updatedAsset);
-
-    // Update tracking state
-    await this.redis.updateBackgroundDocState(doc.conversationId, {
-      lastMessageCount: doc.lastMessageCount + newMessages.length,
+    
+    await saveMediaAsset(session.textAssetId, updatedAsset);
+    
+    // Update Redis session cache
+    await this.redis.updateScribeSession(session.conversationId, {
+      currentContent: updatedContent,
       lastUpdateAt: new Date().toISOString()
     });
-
-    // Mark messages as processed
-    await this.redis.markMessagesProcessed(
-      doc.conversationId,
-      newMessages.map(m => m.id)
-    );
-
-    console.log(`[Summarizer] Updated ${doc.slug}: +${newMessages.length} messages`);
+    
+    console.log(`[Summarizer] Real-time updated ${session.slug} in <2s`);
   }
 }
 ```
 
 #### Narrative Generation Strategy
 ```typescript
-async generateNarrativeUpdate(
-  newMessages: ConversationMessage[],
+// Real-time single-turn processing
+async generateRealtimeUpdate(
+  conversationTurn: string,
   existingContent: string,
-  documentTitle: string,
-  style: 'literary' | 'factual' | 'conversational'
+  documentTitle: string
 ): Promise<string> {
-  const systemPrompt = this.buildSystemPrompt(style);
-  const updatePrompt = this.buildUpdatePrompt(newMessages, existingContent, documentTitle);
+  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe. 
+Take this single conversation turn and seamlessly weave it into the existing document. 
+Write in flowing, engaging prose that captures the essence of the discussion.
+Maintain narrative coherence while integrating new information naturally.
+Respond with the complete updated document.`;
+
+  const updatePrompt = `
+DOCUMENT TITLE: ${documentTitle}
+
+CURRENT DOCUMENT:
+${existingContent}
+
+NEW CONVERSATION TURN TO INTEGRATE:
+${conversationTurn}
+
+TASK: Seamlessly integrate this conversation turn into the document. Maintain the flow and add new insights naturally. Return the complete updated document.
+`;
 
   const response = await this.openai.chat.completions.create({
     model: 'gpt-4o',
@@ -181,8 +184,8 @@ async generateNarrativeUpdate(
       { role: 'system', content: systemPrompt },
       { role: 'user', content: updatePrompt }
     ],
-    temperature: style === 'literary' ? 0.8 : 0.3,
-    max_tokens: 2000
+    temperature: 0.7,
+    max_tokens: 8000
   });
 
   return response.choices[0]?.message?.content || existingContent;
@@ -383,7 +386,7 @@ export class SummarizerWorker {
     this.summarizer = new BackgroundSummarizer();
   }
 
-  start(intervalMs: number = 20000) { // 20 seconds
+  start(intervalMs: number = 5000) { // 5 seconds for real-time feel
     if (this.isRunning) return;
 
     this.isRunning = true;
@@ -563,18 +566,18 @@ const ScribeEditor = ({ documentData, scribeEnabled, onScribeToggle, onSave }: S
 
 ### 6. Deployment Strategy
 
-#### Recommended: Lambda + CloudWatch Events
-**Pros:**
-- Serverless scaling
-- No infrastructure management
-- Built-in retry and DLQ handling
-- Cost-effective for periodic processing
+#### Real-Time Lambda Architecture
+**Approach:**
+- **Immediate invocation** on each conversation turn (not periodic polling)
+- **Event-driven triggers** from agent-lore route
+- **Sub-2 second execution** for call-and-response cadence
+- **Pure S3 workflow** - no Git commits, no webhook dependencies
 
 **Implementation:**
-1. Deploy `lambda-background-summarizer` with 2-minute CloudWatch trigger
-2. Function processes all active documents in single invocation
-3. Uses existing Redis and S3 infrastructure
-4. Logs to CloudWatch for monitoring
+1. Deploy `lambda-background-summarizer` with async invocation capability
+2. Agent-lore route triggers Lambda immediately after each conversation turn
+3. Lambda processes single conversation turn and updates S3 text asset
+4. UI sees updates within 3-5 seconds of user message
 
 #### Alternative: ECS Background Service
 **Pros:**
@@ -597,12 +600,12 @@ graph TD
     D --> E[Stream response back to modal]
     E --> F[Add assistant response to Redis store]
 
-    G[CloudWatch Timer - 20sec] --> H[Background Summarizer Lambda]
-    H --> I[Get active background docs from Redis]
-    I --> J[For each doc: get unprocessed messages]
+    G[Agent-Lore Route] --> H[Trigger Lambda Immediately]
+    H --> I[Background Summarizer Lambda]
+    I --> J[Process single conversation turn]
     J --> K[Generate narrative update with OpenAI]
-    K --> L[Update S3 text asset]
-    L --> M[Mark messages as processed in Redis]
+    K --> L[Update S3 text asset immediately]
+    L --> M[Update Redis session cache]
     L --> N[Trigger OAI File Search sync]
 
     O[User toggles scribe in UI] --> P[/api/chat/background-doc/toggle]
@@ -622,10 +625,10 @@ graph TD
 - **Processing State**: Last update times, message counts
 - **TTL**: 7 days for conversation data, 24 hours for active sessions
 
-#### Git (Publication Path)
-- **Optional**: Scribe documents can be committed to Git for timeline publication
-- **Manual**: User-initiated via existing formalization flow
-- **Unchanged**: Existing webhook → OAI → LanceDB path remains intact
+#### No Git Dependencies
+- **Pure S3 workflow**: Scribe documents live entirely in S3 text assets
+- **No commits**: Real-time updates bypass Git entirely for speed
+- **OAI-only sync**: Direct S3 → OAI File Search integration
 
 ---
 
@@ -666,11 +669,11 @@ graph TD
 - [ ] No message loss or duplicate processing
 - [ ] Integration with existing OAI sync pipeline
 
-### Performance Requirements
-- [ ] Background processing completes within 60 seconds per document
-- [ ] Redis operations < 100ms latency
-- [ ] S3 updates complete within 5 seconds
-- [ ] UI remains responsive during background updates
+### Performance Requirements  
+- [ ] Real-time processing completes within 2-3 seconds per conversation turn
+- [ ] Redis operations < 50ms latency
+- [ ] S3 updates complete within 1 second
+- [ ] Document updates visible in UI within 5 seconds of user message
 
 ### Reliability Requirements
 - [ ] 99.9% uptime for background processing
