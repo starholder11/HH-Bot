@@ -54,7 +54,7 @@ export function useConversationalStream(
           return;
         }
 
-        
+
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
@@ -77,7 +77,7 @@ export function useConversationalStream(
 
         while (true) {
           const { done, value } = await reader.read();
-          
+
           if (done || controller.signal.aborted) {
             // Stream completed normally, call onDone
             if (!controller.signal.aborted) {
@@ -108,7 +108,7 @@ export function useConversationalStream(
                   return;
                 }
               } catch (e) {
-                
+
               }
             }
           }
@@ -119,7 +119,7 @@ export function useConversationalStream(
           onTextDeltaRef.current('Sorry, I encountered an error. Please try again.');
           onDoneRef.current(); // Make sure to call onDone on error
         } else {
-          
+
         }
       } finally {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);

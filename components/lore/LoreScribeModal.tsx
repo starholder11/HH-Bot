@@ -785,11 +785,11 @@ export default function LoreScribeModal({
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        
+
         // Add chunk to buffer and process complete lines
         buffer += chunk;
         const lines = buffer.split('\n');
-        
+
         // Keep the last line in buffer (might be incomplete)
         buffer = lines.pop() || '';
 
@@ -798,10 +798,10 @@ export default function LoreScribeModal({
             try {
               const dataStr = line.slice(6);
               const data = JSON.parse(dataStr);
-              
+
               if (data.type === 'content') {
                 assistantMessage += data.delta;
-                
+
                 // Update last assistant message
                 if (setMessages) {
                   setMessages(prev => {

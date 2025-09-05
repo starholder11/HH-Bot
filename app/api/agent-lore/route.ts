@@ -289,6 +289,12 @@ conversation_id: ${finalConversationId}`;
 
     } catch (error) {
       console.error('[agent-lore] Chat failed:', error);
+      console.error('[agent-lore] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        lastMessage: lastMessage.content,
+        hasDocumentContext: !!documentContext
+      });
       return NextResponse.json({
         type: 'error',
         message: 'Sorry, I had trouble responding. Please try again.'
