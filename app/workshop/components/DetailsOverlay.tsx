@@ -36,18 +36,18 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
 
     if (r && ['image', 'video', 'audio', 'layout'].includes(r.content_type)) {
       setIsLoadingAsset(true);
-      
+
       // Different content types use different API endpoints
-      const apiEndpoint = r.content_type === 'audio' 
+      const apiEndpoint = r.content_type === 'audio'
         ? `/api/audio-labeling/songs/${r.id}`
         : `/api/media-assets/${r.id}`;
-      
+
       fetch(apiEndpoint)
         .then(async (res) => {
           if (cancelled) return;
 
           const json = await res.json();
-          
+
           // Handle different response formats
           if (r.content_type === 'audio') {
             // Audio API returns song data directly
@@ -93,6 +93,8 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
     setIsLoadingText(false);
 
     if (r && r.content_type === 'text') {
+      // Helper functions
+      const isUUID = (id: string): boolean => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       const extractSlugFromResult = (res: UnifiedSearchResult): string | null => {
         try {
           const parentUnknown: unknown = (res as any)?.metadata?.parent_slug;
@@ -110,22 +112,37 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
         return null;
       };
 
-      const slug = extractSlugFromResult(r);
-      if (!slug) return;
-
       setIsLoadingText(true);
 
-      // If this is an S3 text asset (UUID id), load directly from media-assets API
-      const isUUID = (id: string): boolean => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      // UUID-first path for S3-based text assets
       if (typeof r.id === 'string' && isUUID(r.id)) {
+        console.log('[DetailsOverlay] Loading S3 text asset:', r.id);
         fetch(`/api/media-assets/${r.id}`, { cache: 'no-store' })
           .then(async (res) => {
             if (cancelled) return;
+
             const json = await res.json();
+            console.log('[DetailsOverlay] S3 API response:', {
+              ok: res.ok,
+              status: res.status,
+              success: json?.success,
+              hasAsset: !!json?.asset,
+              hasContent: !!json?.asset?.content,
+              contentLength: json?.asset?.content?.length || 0
+            });
+
             if (!res.ok || !json?.success) {
               throw new Error(json?.error || 'Failed to load S3 text asset');
             }
-            if (!cancelled) setFullText(json.asset?.content || '');
+
+            if (!cancelled) {
+              const content = json.asset?.content || '';
+              console.log('[DetailsOverlay] Setting fullText:', {
+                contentLength: content.length,
+                preview: content.substring(0, 100) + '...'
+              });
+              setFullText(content);
+            }
           })
           .catch((e) => {
             if (!cancelled) setTextError((e as Error).message);
@@ -137,6 +154,12 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
       }
 
       // Legacy Git-based text path using slug
+      const slug = extractSlugFromResult(r);
+      if (!slug) {
+        if (!cancelled) setIsLoadingText(false);
+        return;
+      }
+
       fetch(`/api/internal/get-content/${encodeURIComponent(slug)}`, { cache: 'no-store' })
         .then(async (res) => {
           if (cancelled) return; // Don't update state if component unmounted
