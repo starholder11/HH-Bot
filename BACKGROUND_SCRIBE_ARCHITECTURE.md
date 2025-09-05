@@ -29,7 +29,23 @@ This document defines the technical architecture for the Background Scribe syste
 
 ## Technical Architecture
 
-### 1. Redis Data Model Extensions
+### Leveraging Existing Infrastructure
+
+**Reuse Opportunities from AGENTIC_SYSTEM_ARCHITECTURE.md:**
+- ✅ **RedisContextService**: Extend existing user context and workflow state management
+- ✅ **Correlation ID System**: Use existing `corr_<timestamp>_<random>` tracing
+- ✅ **SSE Streaming**: Leverage existing Server-Sent Events infrastructure  
+- ✅ **Tool Registry**: Add scribe tools to existing `ComprehensiveTools.ts`
+- ✅ **ECS Backend**: Use existing Fargate service for summarizer orchestration
+- ✅ **Lambda Workers**: Follow existing `lambda-generic-ingest` pattern
+
+**Hybrid Architecture Decision:**
+- **Real-time triggers**: Use existing SSE system to trigger summarization
+- **Background processing**: Lambda for heavy OpenAI processing (like existing video processor)
+- **State management**: Extend Redis context service for scribe sessions
+- **UI integration**: Add scribe tools to existing `__agentApi` system
+
+### 1. Redis Data Model Extensions (Leveraging Existing Context Service)
 
 #### Real-Time Scribe Registry
 ```typescript
@@ -58,47 +74,305 @@ interface ScribeTrigger {
 }
 ```
 
-#### Redis Operations
+#### Redis Operations (Extending Existing RedisContextService)
 ```typescript
 class ScribeRedisService extends RedisContextService {
-  // Real-time scribe session management
-  async registerScribeSession(session: ActiveScribeSession): Promise<void>
-  async getActiveScribeSessions(): Promise<ActiveScribeSession[]>
-  async updateScribeSession(conversationId: string, updates: Partial<ActiveScribeSession>): Promise<void>
-  async disableScribeSession(conversationId: string): Promise<void>
+  // Extend existing context with scribe data
+  async addScribeToUserContext(userId: string, tenantId: string, session: ActiveScribeSession): Promise<void> {
+    const context = await this.getUserContext(userId, tenantId);
+    if (context) {
+      context.sessionHistory.push({
+        timestamp: new Date().toISOString(),
+        eventType: 'scribe_started',
+        data: { conversationId: session.conversationId, title: session.title },
+        workflowId: session.conversationId
+      });
+      await this.updateUserContext(context);
+    }
+  }
   
-  // Immediate trigger system
-  async triggerScribeUpdate(trigger: ScribeTrigger): Promise<void>
-  async getUnprocessedTriggers(): Promise<ScribeTrigger[]>
-  async markTriggerProcessed(conversationId: string, messageId: string): Promise<void>
+  // Use existing workflow state for scribe sessions
+  async createScribeWorkflow(session: ActiveScribeSession): Promise<string> {
+    return await this.createWorkflowState(
+      session.userId,
+      session.tenantId,
+      'scribe_session',
+      session.conversationId,
+      { scribeSession: session }
+    );
+  }
   
-  // Lambda invocation
-  async invokeSummarizerLambda(conversationId: string, messageId: string): Promise<void>
+  // Lambda invocation using existing correlation system
+  async invokeSummarizerLambda(conversationId: string, trigger: ScribeTrigger): Promise<void> {
+    const correlationId = this.generateCorrelationId();
+    
+    // Use existing Lambda invoke pattern
+    await this.invokeLambdaFunction('background-summarizer', {
+      conversationId,
+      trigger,
+      correlationId
+    });
+  }
 }
 ```
 
-### 2. Background Summarizer Service
+### 2. Scribe Tools Integration (Extending Existing Tool System)
 
-#### Core Service Architecture
+#### Add to ComprehensiveTools.ts
 ```typescript
-// File: services/lore/BackgroundSummarizer.ts
-export class BackgroundSummarizer {
-  private redis: ScribeRedisService;
-  private openai: OpenAI;
-
-  constructor() {
-    this.redis = new ScribeRedisService(process.env.REDIS_URL);
-    this.openai = getOpenAIClient();
-  }
-
-  // Real-time processing - triggered immediately on conversation turns
-  async processConversationTurn(conversationId: string, messageId: string): Promise<void> {
-    const session = await this.redis.getScribeSession(conversationId);
-    if (!session?.scribeEnabled) return;
+// File: services/tools/ComprehensiveTools.ts (additions)
+export class ComprehensiveTools {
+  // ... existing tools ...
+  
+  // Scribe management tools
+  async startScribe(params: {
+    title: string;
+    conversationId?: string;
+    userId?: string;
+    tenantId?: string;
+  }) {
+    const correlationId = this.contextService.generateCorrelationId();
+    console.log(`[${correlationId}] Starting scribe: ${params.title}`);
     
+    // Create S3 text asset + Redis workflow state
+    const response = await fetch('/api/chat/background-doc/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });
+    
+    return await response.json();
+  }
+  
+  async toggleScribe(params: {
+    conversationId: string;
+    enabled: boolean;
+  }) {
+    // Use existing workflow state update pattern
+    const workflowState = await this.contextService.getWorkflowState(params.conversationId);
+    if (workflowState) {
+      workflowState.context.scribeEnabled = params.enabled;
+      await this.contextService.updateWorkflowState(workflowState);
+    }
+    
+    return { success: true, enabled: params.enabled };
+  }
+  
+  async triggerScribeUpdate(params: {
+    conversationId: string;
+    userMessage: string;
+    assistantResponse: string;
+  }) {
+    const correlationId = this.contextService.generateCorrelationId();
+    
+    // Use existing Lambda invocation pattern (like video processor)
+    await this.invokeLambda('background-summarizer', {
+      ...params,
+      correlationId,
+      timestamp: new Date().toISOString()
+    });
+    
+    return { triggered: true, correlationId };
+  }
+}
+```
+
+### 3. Background Summarizer Service (Following Lambda Worker Pattern)
+
+#### Lambda Implementation (Like Existing Video Processor)
+```typescript
+// File: lambda-background-summarizer/index.js
+const { getOpenAIClient } = require('./openai-client');
+const { getMediaAsset, saveMediaAsset } = require('./s3-client');
+
+exports.handler = async (event) => {
+  const { conversationId, trigger, correlationId } = event;
+  
+  console.log(`[${correlationId}] Summarizer triggered for conversation: ${conversationId}`);
+  
+  try {
+    // Get workflow state from Redis (existing pattern)
+    const workflowState = await getWorkflowState(conversationId);
+    if (!workflowState?.context?.scribeSession?.scribeEnabled) {
+      console.log(`[${correlationId}] Scribe disabled for ${conversationId}, skipping`);
+      return { statusCode: 200, body: 'Scribe disabled' };
+    }
+    
+    const session = workflowState.context.scribeSession;
+    
+    // Load current S3 text asset (existing pattern)
+    const currentAsset = await getMediaAsset(session.textAssetId);
+    if (!currentAsset) {
+      throw new Error(`Text asset ${session.textAssetId} not found`);
+    }
+    
+    // Generate narrative update using OpenAI
+    const conversationTurn = `User: ${trigger.userMessage}\n\nAssistant: ${trigger.assistantResponse}`;
+    const updatedContent = await generateRealtimeUpdate(
+      conversationTurn,
+      currentAsset.content || '',
+      session.title,
+      correlationId
+    );
+    
+    // Update S3 text asset (existing pattern)
+    const updatedAsset = {
+      ...currentAsset,
+      content: updatedContent,
+      updated_at: new Date().toISOString(),
+      metadata: {
+        ...currentAsset.metadata,
+        last_scribe_update: new Date().toISOString(),
+        last_message_id: trigger.messageId,
+        correlation_id: correlationId
+      }
+    };
+    
+    await saveMediaAsset(session.textAssetId, updatedAsset);
+    
+    // Update workflow state (existing pattern)
+    workflowState.context.scribeSession.lastUpdateAt = new Date().toISOString();
+    await updateWorkflowState(workflowState);
+    
+    console.log(`[${correlationId}] ✅ Real-time scribe update completed for ${session.slug}`);
+    
+    return { 
+      statusCode: 200, 
+      body: JSON.stringify({ 
+        success: true, 
+        updated: session.slug,
+        correlationId 
+      }) 
+    };
+    
+  } catch (error) {
+    console.error(`[${correlationId}] ❌ Summarizer failed:`, error);
+    return { 
+      statusCode: 500, 
+      body: JSON.stringify({ 
+        error: error.message, 
+        correlationId 
+      }) 
+    };
+  }
+};
+
+async function generateRealtimeUpdate(conversationTurn, existingContent, documentTitle, correlationId) {
+  console.log(`[${correlationId}] Generating narrative update for: ${documentTitle}`);
+  
+  const openai = getOpenAIClient();
+  
+  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe. 
+Take this single conversation turn and seamlessly weave it into the existing document. 
+Write in flowing, engaging prose that captures the essence of the discussion.
+Maintain narrative coherence while integrating new information naturally.
+Respond with the complete updated document.`;
+
+  const updatePrompt = `
+DOCUMENT TITLE: ${documentTitle}
+
+CURRENT DOCUMENT:
+${existingContent}
+
+NEW CONVERSATION TURN TO INTEGRATE:
+${conversationTurn}
+
+TASK: Seamlessly integrate this conversation turn into the document. Maintain the flow and add new insights naturally. Return the complete updated document.
+`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: updatePrompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 8000
+  });
+
+  return response.choices[0]?.message?.content || existingContent;
+}
+```
+
+### 4. Agent-Lore Integration (Using Existing SSE + Tool System)
+
+#### Enhanced Agent-Lore Route (Following Existing Agent Pattern)
+```typescript
+// File: app/api/agent-lore/route.ts (enhanced with existing patterns)
+
+export async function POST(req: NextRequest) {
+  const correlationId = generateCorrelationId();
+  console.log(`[${correlationId}] Agent-lore request received`);
+  
+  try {
+    const { messages, documentContext, conversationId, scribeEnabled } = await req.json();
+    
+    // Use existing scribe intent detection
+    const lastMessage = messages[messages.length - 1];
+    const scribeIntent = detectScribeIntent(lastMessage.content);
+    
+    if (scribeIntent.isStart) {
+      // Use existing tool system for scribe start
+      const tools = new ComprehensiveTools(contextService);
+      const result = await tools.startScribe({
+        title: scribeIntent.extractedTitle || 'Conversation Summary',
+        conversationId: conversationId || correlationId,
+        userId: 'current-user',
+        tenantId: 'default'
+      });
+      
+      return NextResponse.json({
+        type: 'scribe_started',
+        ...result,
+        correlationId
+      });
+    }
+    
+    // Regular conversation - proxy to chat with context
+    const chatResponse = await fetch(`${baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: lastMessage.content,
+        context: documentContext,
+        correlationId
+      })
+    });
+    
+    // After successful response, trigger scribe update if enabled
+    if (scribeEnabled && conversationId) {
+      // Use existing tool system to trigger Lambda
+      const tools = new ComprehensiveTools(contextService);
+      await tools.triggerScribeUpdate({
+        conversationId,
+        userMessage: lastMessage.content,
+        assistantResponse: '', // Will be populated from stream
+        correlationId
+      });
+    }
+    
+    // Return existing SSE stream
+    return new Response(chatResponse.body, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'X-Correlation-ID': correlationId
+      }
+    });
+    
+  } catch (error) {
+    console.error(`[${correlationId}] Agent-lore failed:`, error);
+    return NextResponse.json({
+      type: 'error',
+      message: 'Sorry, I had trouble responding. Please try again.',
+      correlationId
+    });
+  }
+}
+
     const trigger = await this.redis.getTrigger(conversationId, messageId);
     if (!trigger || trigger.processed) return;
-    
+
     try {
       await this.updateDocumentRealtime(session, trigger);
       await this.redis.markTriggerProcessed(conversationId, messageId);
@@ -111,13 +385,13 @@ export class BackgroundSummarizer {
   // Real-time document update - processes single conversation turn immediately
   async updateDocumentRealtime(session: ActiveScribeSession, trigger: ScribeTrigger): Promise<void> {
     console.log(`[Summarizer] Real-time update for ${session.slug}: ${trigger.messageId}`);
-    
+
     // Load current document content from S3
     const currentAsset = await getMediaAsset(session.textAssetId);
     if (!currentAsset) {
       throw new Error(`Text asset ${session.textAssetId} not found`);
     }
-    
+
     // Generate immediate narrative update from this conversation turn
     const conversationTurn = `User: ${trigger.userMessage}\n\nAssistant: ${trigger.assistantResponse}`;
     const updatedContent = await this.generateRealtimeUpdate(
@@ -125,7 +399,7 @@ export class BackgroundSummarizer {
       currentAsset.content || '',
       session.title
     );
-    
+
     // Update S3 text asset immediately
     const updatedAsset = {
       ...currentAsset,
@@ -138,15 +412,15 @@ export class BackgroundSummarizer {
         scribe_version: 'realtime'
       }
     };
-    
+
     await saveMediaAsset(session.textAssetId, updatedAsset);
-    
+
     // Update Redis session cache
     await this.redis.updateScribeSession(session.conversationId, {
       currentContent: updatedContent,
       lastUpdateAt: new Date().toISOString()
     });
-    
+
     console.log(`[Summarizer] Real-time updated ${session.slug} in <2s`);
   }
 }
@@ -160,8 +434,8 @@ async generateRealtimeUpdate(
   existingContent: string,
   documentTitle: string
 ): Promise<string> {
-  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe. 
-Take this single conversation turn and seamlessly weave it into the existing document. 
+  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe.
+Take this single conversation turn and seamlessly weave it into the existing document.
 Write in flowing, engaging prose that captures the essence of the discussion.
 Maintain narrative coherence while integrating new information naturally.
 Respond with the complete updated document.`;
@@ -669,7 +943,7 @@ graph TD
 - [ ] No message loss or duplicate processing
 - [ ] Integration with existing OAI sync pipeline
 
-### Performance Requirements  
+### Performance Requirements
 - [ ] Real-time processing completes within 2-3 seconds per conversation turn
 - [ ] Redis operations < 50ms latency
 - [ ] S3 updates complete within 1 second
@@ -682,5 +956,27 @@ graph TD
 - [ ] Clear error reporting and recovery paths
 
 ---
+
+## Reuse Strategy Summary
+
+**Maximum Infrastructure Reuse:**
+- ✅ **Redis Workflow State**: Use existing `workflow:<executionId>` pattern for scribe sessions
+- ✅ **Correlation ID Tracing**: Follow existing `corr_<timestamp>_<random>` system  
+- ✅ **Lambda Worker Pattern**: Copy `lambda-video-processor` structure for summarizer
+- ✅ **Tool System Integration**: Add scribe tools to existing `ComprehensiveTools.ts`
+- ✅ **SSE Streaming**: Leverage existing agent streaming infrastructure
+- ✅ **Error Handling**: Use existing circuit breaker and retry patterns
+- ✅ **UI Patterns**: Follow existing `__agentApi` handler conventions
+
+**Net New Components (Minimal):**
+- 🔨 **Lambda Function**: `lambda-background-summarizer` (copy existing structure)
+- 🔨 **API Endpoints**: `/api/chat/background-doc/*` (simple CRUD)
+- 🔨 **Scribe Tools**: Add 3 methods to existing `ComprehensiveTools.ts`
+
+**Implementation Approach:**
+1. **Extend existing services** rather than create parallel systems
+2. **Follow established patterns** for consistency and reliability  
+3. **Reuse battle-tested infrastructure** for Redis, Lambda, S3, correlation tracing
+4. **Minimize new code** by copying proven patterns like video processor
 
 This architecture builds on existing infrastructure while adding the agentic summarization capabilities defined in the narrative lore specifications.
