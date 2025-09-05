@@ -110,9 +110,28 @@ function ScribeEditor({
         conversation_id: documentData.conversation_id
       };
 
-      // Create S3 text asset instead of git-based
+      // Update existing S3 text asset or create new one
+      // First try to find existing text asset by conversation_id or slug
+      let existingAssetId = null;
+      try {
+        const assetsResponse = await fetch('/api/media-assets?type=text');
+        if (assetsResponse.ok) {
+          const assetsData = await assetsResponse.json();
+          const existingAsset = assetsData.assets?.find((asset: any) => 
+            asset.metadata?.conversation_id === documentData.conversation_id ||
+            asset.metadata?.slug === documentData.slug
+          );
+          if (existingAsset) {
+            existingAssetId = existingAsset.id;
+            console.log('[scribe] Found existing S3 text asset to update:', existingAssetId);
+          }
+        }
+      } catch (e) {
+        console.warn('[scribe] Failed to check for existing asset:', e);
+      }
+
       const s3TextAsset = {
-        id: crypto.randomUUID(),
+        id: existingAssetId || crypto.randomUUID(),
         media_type: 'text',
         title: title || documentData.title,
         content: content,
@@ -173,9 +192,14 @@ function ScribeEditor({
         updated_at: new Date().toISOString(),
       };
 
-      console.log('[scribe] Saving S3 text asset:', { id: s3TextAsset.id, slug: s3TextAsset.metadata.slug });
-      const response = await fetch('/api/media-assets', {
-        method: 'POST',
+      console.log('[scribe] Saving S3 text asset:', { 
+        id: s3TextAsset.id, 
+        slug: s3TextAsset.metadata.slug,
+        isUpdate: !!existingAssetId
+      });
+      
+      const response = await fetch(existingAssetId ? `/api/media-assets/${existingAssetId}` : '/api/media-assets', {
+        method: existingAssetId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(s3TextAsset)
       });
