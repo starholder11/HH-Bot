@@ -25,6 +25,9 @@ interface LoreScribeModalProps {
   documentContext?: string;
   conversationId?: string;
   greetingContext?: string;
+  // Real S3 data to prevent UUID garbage overwriting
+  documentTitle?: string;
+  documentActualSlug?: string;
   // AgentChat state integration
   messages?: Msg[];
   setMessages?: (messages: Msg[]) => void;
@@ -471,6 +474,9 @@ export default function LoreScribeModal({
   documentContext,
   conversationId,
   greetingContext,
+  // Real S3 data to prevent UUID garbage overwriting
+  documentTitle,
+  documentActualSlug,
   // AgentChat state (when integrated)
   messages: externalMessages,
   setMessages: externalSetMessages,
@@ -511,12 +517,17 @@ export default function LoreScribeModal({
       if (documentContext && documentContext.length > 0) {
         // For Continue Conversation, documentSlug should be the UUID
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(documentSlug);
-        console.log('🔍 [MODAL] Loading from Continue Conversation:', { documentSlug, isUUID });
+        console.log('🔍 [MODAL] Loading from Continue Conversation:', { 
+          documentSlug, 
+          isUUID, 
+          realTitle: documentTitle, 
+          realSlug: documentActualSlug 
+        });
         
         setDocumentData({
           id: isUUID ? documentSlug : undefined, // Set ID for S3 assets
-          slug: documentSlug,
-          title: documentSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          slug: documentActualSlug || documentSlug, // Use REAL slug from S3, not UUID
+          title: documentTitle || 'Untitled Document', // Use REAL title from S3, not UUID garbage
           mdx: documentContext,
           scribe_enabled: true, // Enable scribe for continue conversation
           conversation_id: conversationId || `conv_${Date.now()}`

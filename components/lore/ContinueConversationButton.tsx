@@ -113,6 +113,9 @@ export default function ContinueConversationButton({
           documentContext={documentData.content}
           conversationId={documentData.conversationId}
           greetingContext={`I see you want to continue exploring "${documentData.title}". I've loaded the document into the Scribe tab. What would you like to discuss about this content?`}
+          // Pass the REAL title and slug from S3 data
+          documentTitle={documentData.title}
+          documentActualSlug={documentData.slug}
         />
       )}
     </>
