@@ -2271,7 +2271,18 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                       }
                       const cats = categories.split(',').map(s => s.trim()).filter(Boolean);
 
-                      // Create S3 text asset
+                      // Use the helper function to create the text asset properly
+                      const textAsset = {
+                        slug: finalSlug,
+                        title: finalTitle,
+                        content: md,
+                        categories: cats,
+                        source: 'layout',
+                        status: 'draft',
+                        layout_id: layoutId,
+                      };
+
+                      console.log('[DOC] Creating text asset with helper:', textAsset);
                       const s3TextAsset = {
                         id: crypto.randomUUID(),
                         media_type: 'text',
@@ -2340,7 +2351,16 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                         body: JSON.stringify(s3TextAsset)
                       });
                       if (!res.ok) {
-                        throw new Error(`Save failed (${res.status})`);
+                        let errorDetails = '';
+                        try {
+                          const errorJson = await res.json();
+                          errorDetails = JSON.stringify(errorJson, null, 2);
+                          console.error('[DOC] Save failed with details:', errorJson);
+                        } catch {
+                          errorDetails = await res.text();
+                          console.error('[DOC] Save failed with text:', errorDetails);
+                        }
+                        throw new Error(`Save failed (${res.status}): ${errorDetails}`);
                       }
                       let json: any = null;
                       try { json = await res.json(); } catch {}
