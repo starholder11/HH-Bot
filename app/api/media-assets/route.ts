@@ -164,6 +164,15 @@ export async function POST(request: NextRequest) {
         vectorStoreFileId: (vectorStoreFile as any)?.id,
         fileName: vectorName
       });
+
+      // Also insert into LanceDB on create (best-effort; non-fatal)
+      try {
+        const { ingestText } = await import('@/lib/ingestion');
+        await ingestText(asset.id, asset.title || asset.metadata?.slug || asset.id, content, false);
+        console.log(`[media-assets] ✅ LanceDB inserted text asset: ${asset.id}`);
+      } catch (ldErr) {
+        console.warn('[media-assets] ⚠️ LanceDB insert failed (non-fatal):', (ldErr as any)?.message || ldErr);
+      }
     } else {
       console.log(`[media-assets] Skipping OAI sync - not a text asset`);
     }
@@ -306,6 +315,15 @@ export async function PUT(request: NextRequest) {
           vectorStoreFileId: (vectorStoreFile as any)?.id,
           fileName: vectorName
         });
+
+        // Upsert into LanceDB on update (best-effort; non-fatal)
+        try {
+          const { ingestText } = await import('@/lib/ingestion');
+          await ingestText(asset.id, asset.title || asset.metadata?.slug || asset.id, content, true);
+          console.log(`[media-assets] ✅ LanceDB upserted text asset: ${asset.id}`);
+        } catch (ldErr) {
+          console.warn('[media-assets] ⚠️ LanceDB upsert failed (non-fatal):', (ldErr as any)?.message || ldErr);
+        }
       } catch (oaiError) {
         console.error(`[media-assets] ❌ FORCE OAI sync FAILED:`, oaiError);
         throw oaiError; // Re-throw to see the error

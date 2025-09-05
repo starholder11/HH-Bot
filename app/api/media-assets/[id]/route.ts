@@ -149,6 +149,15 @@ export async function PUT(
           vectorStoreFileId: (vectorStoreFile as any)?.id,
           fileName: vectorName,
         });
+
+        // Also upsert into LanceDB on update (best-effort; non-fatal)
+        try {
+          const { ingestText } = await import('@/lib/ingestion');
+          await ingestText(id, (updatedAsset as any).title || slug, content, true);
+          console.log(`[media-assets/[id]] ✅ LanceDB upserted text asset: ${id}`);
+        } catch (ldErr) {
+          console.warn('[media-assets/[id]] ⚠️ LanceDB upsert failed (non-fatal):', (ldErr as any)?.message || ldErr);
+        }
       } else {
         console.log(`[media-assets/[id]] PUT - Skipping OAI sync (not text)`);
       }
