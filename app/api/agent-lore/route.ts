@@ -367,7 +367,7 @@ conversation_id: ${finalConversationId}`;
         
         return NextResponse.json({
           type: 'scribe_editing',
-          message: `Working on your editing request: "${scribeIntent.editInstructions}". Check the Scribe tab for updates.`,
+          message: `I've passed your editing instructions to the scribe: "${scribeIntent.editInstructions}". The AI is now reworking the document in the background. You should see the updated content appear in the Scribe tab shortly. The changes will be applied to the entire document based on your request.`,
           textAssetId,
           editInstructions: scribeIntent.editInstructions
         });

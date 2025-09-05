@@ -930,6 +930,11 @@ export default function LoreScribeModal({
           if (setMessages) {
             setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
           }
+        } else if (result.type === 'scribe_editing') {
+          // Add acknowledgment message for scribe editing
+          if (setMessages) {
+            setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
+          }
         } else if (result.type === 'error') {
           if (setMessages) {
             setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
