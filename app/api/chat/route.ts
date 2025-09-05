@@ -10,14 +10,23 @@ export async function POST(req: NextRequest) {
   try {
     const openai = getOpenAIClient();
     console.log('🔵 API: Chat endpoint called')
-    const { message, previousResponseId } = await req.json()
+    const { message, messages, previousResponseId, context } = await req.json()
     console.log('🔵 API: Received message:', message)
+    console.log('🔵 API: Received messages array:', messages?.length || 0)
+    console.log('🔵 API: Received context length:', context?.length || 0)
     console.log('🔵 API: Previous response ID:', previousResponseId)
 
-    if (!message || typeof message !== 'string') {
+    // Support both single message and messages array (for contextual conversations)
+    const finalMessage = message || (messages && messages[messages.length - 1]?.content);
+    if (!finalMessage || typeof finalMessage !== 'string') {
       console.log('🔴 API: Invalid message format')
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
+
+    // If context is provided, prepend it to the message
+    const contextualMessage = context 
+      ? `Context: ${context.substring(0, 500)}...\n\nUser: ${finalMessage}`
+      : finalMessage;
 
     // Create a streaming response
     const stream = new ReadableStream({
@@ -34,7 +43,7 @@ export async function POST(req: NextRequest) {
             input: [
               {
                 role: "user",
-                content: message
+                content: contextualMessage
               }
             ],
             previous_response_id: previousResponseId || undefined,
