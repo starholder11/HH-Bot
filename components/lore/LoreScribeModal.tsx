@@ -451,6 +451,10 @@ export default function LoreScribeModal({
           scribe_enabled: true, // Enable scribe for continue conversation
           conversation_id: conversationId || `conv_${Date.now()}`
         });
+        // Switch to scribe tab when loading from Continue Conversation
+        if (initialTab === 'scribe') {
+          setActiveTab('scribe');
+        }
       } else {
         // Otherwise load from API
         loadDocumentData();

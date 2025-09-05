@@ -68,6 +68,11 @@ export default function ContinueConversationButton({
             content = data.content || '';
             actualSlug = slug;
           }
+        } else {
+          console.warn(`Git-based text asset not found: ${slug}, status: ${response.status}`);
+          // For missing Git assets, still try to open modal with title only
+          content = `# ${title}\n\n*This document appears to be from a conversation or scribe session that may not have been committed to the Git timeline yet.*`;
+          actualSlug = slug;
         }
       }
       
