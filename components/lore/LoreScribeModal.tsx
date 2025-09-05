@@ -27,6 +27,7 @@ interface LoreScribeModalProps {
   greetingContext?: string;
   // AgentChat state integration
   messages?: Msg[];
+  setMessages?: (messages: Msg[]) => void;
   input?: string;
   setInput?: (input: string) => void;
   busy?: boolean;
@@ -407,6 +408,7 @@ export default function LoreScribeModal({
   greetingContext,
   // AgentChat state (when integrated)
   messages: externalMessages,
+  setMessages: externalSetMessages,
   input: externalInput,
   setInput: externalSetInput,
   busy: externalBusy,
@@ -427,7 +429,7 @@ export default function LoreScribeModal({
   const [internalLastResponseId, setInternalLastResponseId] = useState<string | null>(null);
 
   const messages = externalMessages || internalMessages;
-  const setMessages = externalMessages ? undefined : setInternalMessages;
+  const setMessages = externalSetMessages || setInternalMessages;
   const input = externalInput !== undefined ? externalInput : internalInput;
   const setInput = externalSetInput || setInternalInput;
   const busy = externalBusy !== undefined ? externalBusy : internalBusy;
@@ -611,13 +613,7 @@ export default function LoreScribeModal({
   const send = async () => {
     if (!input.trim() || busy) return;
 
-    // If external onSend is provided (integrated mode), use it instead
-    if (externalOnSend) {
-      externalOnSend();
-      return;
-    }
-
-    // Standalone mode - handle streaming ourselves
+    // Always use modal-specific agent route that stays in modal context
     const next = [...messages, { role: 'user', content: input.trim() } as Msg];
     if (setMessages) {
       setMessages(next);
@@ -806,14 +802,8 @@ export default function LoreScribeModal({
               if (data.type === 'content') {
                 assistantMessage += data.delta;
                 
-                // In integrated mode (external messages), use parent's message handling
-                // In standalone mode, update local messages
-                if (externalMessages && !setMessages) {
-                  // Integrated mode - this should be handled by parent AgentChat
-                  // But since we're in the modal, we need to trigger the parent's delta handler
-                  // For now, we'll accumulate and set at the end
-                } else if (setMessages) {
-                  // Standalone mode - update local messages
+                // Update last assistant message
+                if (setMessages) {
                   setMessages(prev => {
                     const updated = [...prev];
                     const lastMsg = updated[updated.length - 1];
@@ -835,23 +825,6 @@ export default function LoreScribeModal({
         }
       }
 
-      // After stream ends, add the complete assistant message in integrated mode
-      if (externalMessages && !setMessages && assistantMessage) {
-        // We can't directly update external messages, so we'll use the onDelta approach
-        // This is a workaround - ideally AgentChat should handle the streaming
-      } else if (setMessages && assistantMessage) {
-        // Ensure final message is set in standalone mode
-        setMessages(prev => {
-          const updated = [...prev];
-          const lastMsg = updated[updated.length - 1];
-          if (lastMsg?.role === 'assistant') {
-            updated[updated.length - 1] = { ...lastMsg, content: assistantMessage };
-          } else {
-            updated.push({ role: 'assistant', content: assistantMessage });
-          }
-          return updated;
-        });
-      }
 
     } catch (error) {
       console.error('Agent-lore request failed:', error);

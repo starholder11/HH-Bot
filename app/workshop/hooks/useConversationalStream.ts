@@ -7,8 +7,7 @@ export function useConversationalStream(
   onTextDelta: (delta: string) => void,
   onDone: () => void,
   lastResponseId: string | null,
-  setLastResponseId: (id: string | null) => void,
-  apiEndpoint: string = '/api/chat'
+  setLastResponseId: (id: string | null) => void
 ) {
   const runningRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -56,14 +55,13 @@ export function useConversationalStream(
         }
 
         
-        const response = await fetch(apiEndpoint, {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             message: lastUserMessage.content,
-            messages: messages,
             previousResponseId: lastResponseId,
           }),
           signal: controller.signal,
@@ -134,5 +132,5 @@ export function useConversationalStream(
     return () => {
       controller.abort();
     };
-  }, [messages, lastResponseId, setLastResponseId, apiEndpoint]);
+  }, [messages, lastResponseId, setLastResponseId]);
 }

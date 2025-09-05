@@ -242,16 +242,7 @@ conversation_id: ${finalConversationId}`;
           ]
         : messages;
 
-      // Use absolute URL for server-to-server call to avoid relative path issues in prod
-      const baseUrl = (() => {
-        try {
-          const u = new URL(req.url);
-          return `${u.protocol}//${u.host}`;
-        } catch {
-          return '';
-        }
-      })();
-      const chatResponse = await fetch(`${baseUrl}/api/chat`, {
+      const chatResponse = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -265,12 +256,12 @@ conversation_id: ${finalConversationId}`;
         throw new Error('Chat response failed');
       }
 
-      // Wrap and forward upstream SSE, then append an explicit done signal
+      // Stream the response back to the modal
+      const encoder = new TextEncoder();
       const readable = new ReadableStream({
         async start(controller) {
           const reader = chatResponse.body?.getReader();
           if (!reader) {
-            controller.enqueue(new TextEncoder().encode('data: {"type":"done"}\n\n'));
             controller.close();
             return;
           }
@@ -279,14 +270,11 @@ conversation_id: ${finalConversationId}`;
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
-              if (value) controller.enqueue(value);
+              controller.enqueue(value);
             }
-          } catch (err) {
-            console.warn('[agent-lore] upstream stream error, ending gracefully:', err);
+          } catch (error) {
+            console.error('[agent-lore] Stream error:', error);
           } finally {
-            try {
-              controller.enqueue(new TextEncoder().encode('data: {"type":"done"}\n\n'));
-            } catch {}
             controller.close();
           }
         }
@@ -294,10 +282,8 @@ conversation_id: ${finalConversationId}`;
 
       return new Response(readable, {
         headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache, no-transform',
-          'Connection': 'keep-alive',
-          'X-Accel-Buffering': 'no'
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked'
         }
       });
 
