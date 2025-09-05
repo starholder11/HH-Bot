@@ -316,7 +316,12 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       asset,
-      message: 'Asset updated successfully'
+      message: 'Asset updated successfully',
+      debug: {
+        mediaType: asset.media_type,
+        isTextAsset: isTextAsset(asset),
+        oaiSyncTriggered: asset.media_type === 'text'
+      }
     });
 
   } catch (error) {
