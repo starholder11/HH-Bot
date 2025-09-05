@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { LoreScribeModal } from './LoreScribeModal';
 
@@ -32,14 +32,12 @@ export default function ContinueConversationButton({
   const [isLoading, setIsLoading] = useState(false);
 
   // Only show for S3 text assets (UUID format)
-  if (contentType !== 'text') {
-    return null;
-  }
+  const isUUID = useMemo(() => 
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug), 
+    [slug]
+  );
 
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-  console.log('[ContinueConversation] Button check:', { slug, title, isUUID, contentType });
-
-  if (!isUUID) {
+  if (contentType !== 'text' || !isUUID) {
     return null; // Only show for S3 text assets
   }
 
