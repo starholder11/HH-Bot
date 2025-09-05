@@ -120,22 +120,32 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
       // Check if this is an S3 text asset (UUID) or Git-based text asset (slug)
       if (r.id && isUUID(r.id)) {
         // S3 text asset - use media-assets API
-        fetch(`/api/media-assets/${r.id}`)
+        console.log('[DetailsOverlay] Loading S3 text asset:', r.id);
+        fetch(`/api/media-assets/${r.id}`, { cache: 'no-store' })
           .then(async (res) => {
             if (cancelled) return;
 
             const json = await res.json();
+            console.log('[DetailsOverlay] S3 API response:', { 
+              ok: res.ok, 
+              status: res.status, 
+              success: json?.success,
+              hasAsset: !!json?.asset,
+              hasContent: !!json?.asset?.content,
+              contentLength: json?.asset?.content?.length || 0
+            });
+            
             if (!res.ok || !json?.success) {
               throw new Error(json?.error || 'Failed to load S3 text asset');
             }
 
             if (!cancelled) {
-              console.log('[DetailsOverlay] S3 text loaded:', {
-                assetId: r.id,
-                contentLength: json.asset?.content?.length || 0,
-                hasContent: !!json.asset?.content
+              const content = json.asset?.content || '';
+              console.log('[DetailsOverlay] Setting fullText:', { 
+                contentLength: content.length,
+                preview: content.substring(0, 100) + '...'
               });
-              setFullText(json.asset?.content || '');
+              setFullText(content);
             }
           })
           .catch((e) => {
@@ -248,19 +258,14 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
               <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
                 {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
                 {!isLoadingText && textError && <div className="text-red-400">{textError}</div>}
-                {!isLoadingText && !textError && (
-                  <>
-                    {(() => {
-                      console.log('[DetailsOverlay] Text display debug:', {
-                        hasFullText: !!fullText,
-                        fullTextLength: fullText?.length || 0,
-                        previewLength: r.preview?.length || 0,
-                        descriptionLength: r.description?.length || 0,
-                        assetId: r.id
-                      });
-                      return fullText || toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'));
-                    })()}
-                  </>
+                {!isLoadingText && !textError && fullText && (
+                  <div>{fullText}</div>
+                )}
+                {!isLoadingText && !textError && !fullText && (
+                  <div className="text-neutral-400">Full text not available - showing preview:</div>
+                )}
+                {!isLoadingText && !textError && !fullText && (
+                  <div>{toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'))}</div>
                 )}
               </div>
             </div>

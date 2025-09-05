@@ -217,10 +217,14 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
             <div className="text-sm leading-6 text-neutral-200 whitespace-pre-wrap">
               {isLoadingText && <div className="text-neutral-400">Loading full text…</div>}
               {!isLoadingText && textError && <div className="text-red-400">{textError}</div>}
-              {!isLoadingText && !textError && (
-                <>
-                  {fullText || toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'))}
-                </>
+              {!isLoadingText && !textError && fullText && (
+                <div>{fullText}</div>
+              )}
+              {!isLoadingText && !textError && !fullText && (
+                <div className="text-neutral-400">Full text not available - showing preview:</div>
+              )}
+              {!isLoadingText && !textError && !fullText && (
+                <div>{toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'))}</div>
               )}
             </div>
           ) : (
