@@ -145,28 +145,25 @@ export async function POST(request: NextRequest) {
     
     if (isTextAsset(asset)) {
       console.log(`[media-assets] 🔥 STARTING OAI sync for text asset: ${asset.id}`);
-      try {
-        // Use exact same approach as working git-based OAI sync
-        const content = (asset as any).content || '';
-        const slug = asset.metadata?.slug || asset.id;
-        const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
-        const vectorName = `s3-${slug}-${hash}.md`;
-        
-        const vectorStoreFile = await uploadFileToVectorStore(content, vectorName);
-        console.log(`[media-assets] ✅ OAI sync completed:`, {
-          assetId: asset.id,
-          slug: asset.metadata.slug,
-          vectorStoreFileId: (vectorStoreFile as any)?.id,
-          fileName: vectorName
-        });
-      } catch (oaiError) {
-        console.error(`[media-assets] ❌ OAI sync failed for text asset ${asset.id}:`, oaiError);
-        console.error(`[media-assets] ❌ OAI error details:`, {
-          message: oaiError instanceof Error ? oaiError.message : 'Unknown error',
-          stack: oaiError instanceof Error ? oaiError.stack : 'No stack'
-        });
-        // Don't fail the save operation if OAI sync fails
-      }
+      // Remove try-catch to see actual OAI errors
+      const content = (asset as any).content || '';
+      const slug = asset.metadata?.slug || asset.id;
+      const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
+      const vectorName = `s3-${slug}-${hash}.md`;
+      
+      console.log(`[media-assets] About to call uploadFileToVectorStore with:`, {
+        contentLength: content.length,
+        vectorName,
+        slug
+      });
+      
+      const vectorStoreFile = await uploadFileToVectorStore(content, vectorName);
+      console.log(`[media-assets] ✅ OAI sync completed:`, {
+        assetId: asset.id,
+        slug: asset.metadata.slug,
+        vectorStoreFileId: (vectorStoreFile as any)?.id,
+        fileName: vectorName
+      });
     } else {
       console.log(`[media-assets] Skipping OAI sync - not a text asset`);
     }
@@ -288,28 +285,25 @@ export async function PUT(request: NextRequest) {
     
     if (isTextAsset(asset)) {
       console.log(`[media-assets] 🔥 STARTING OAI sync for updated text asset: ${asset.id}`);
-      try {
-        // Use exact same approach as working git-based OAI sync
-        const content = (asset as any).content || '';
-        const slug = asset.metadata?.slug || asset.id;
-        const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
-        const vectorName = `s3-${slug}-${hash}.md`;
-        
-        const vectorStoreFile = await uploadFileToVectorStore(content, vectorName);
-        console.log(`[media-assets] ✅ OAI update sync completed:`, {
-          assetId: asset.id,
-          slug: asset.metadata.slug,
-          vectorStoreFileId: (vectorStoreFile as any)?.id,
-          fileName: vectorName
-        });
-      } catch (oaiError) {
-        console.error(`[media-assets] ❌ OAI sync failed for updated text asset ${asset.id}:`, oaiError);
-        console.error(`[media-assets] ❌ OAI update error details:`, {
-          message: oaiError instanceof Error ? oaiError.message : 'Unknown error',
-          stack: oaiError instanceof Error ? oaiError.stack : 'No stack'
-        });
-        // Don't fail the update operation if OAI sync fails
-      }
+      // Remove try-catch to see actual OAI errors
+      const content = (asset as any).content || '';
+      const slug = asset.metadata?.slug || asset.id;
+      const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
+      const vectorName = `s3-${slug}-${hash}.md`;
+      
+      console.log(`[media-assets] About to call uploadFileToVectorStore with:`, {
+        contentLength: content.length,
+        vectorName,
+        slug
+      });
+      
+      const vectorStoreFile = await uploadFileToVectorStore(content, vectorName);
+      console.log(`[media-assets] ✅ OAI update sync completed:`, {
+        assetId: asset.id,
+        slug: asset.metadata.slug,
+        vectorStoreFileId: (vectorStoreFile as any)?.id,
+        fileName: vectorName
+      });
     } else {
       console.log(`[media-assets] PUT - Skipping OAI sync - not a text asset`);
     }
