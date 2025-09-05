@@ -442,16 +442,91 @@ export default function LoreScribeModal({
   // Load document data when modal opens
   useEffect(() => {
     if (documentSlug && isOpen) {
-      loadDocumentData();
+      // If documentContext is provided, use it directly (from Continue Conversation)
+      if (documentContext && documentContext.length > 0) {
+        setDocumentData({
+          slug: documentSlug,
+          title: documentSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          mdx: documentContext,
+          scribe_enabled: true, // Enable scribe for continue conversation
+          conversation_id: conversationId || `conv_${Date.now()}`
+        });
+      } else {
+        // Otherwise load from API
+        loadDocumentData();
+      }
     }
-  }, [documentSlug, isOpen]);
+  }, [documentSlug, isOpen, documentContext, conversationId]);
 
   // Add greeting message when opening with context
   useEffect(() => {
     if (greetingContext && isOpen && messages.length === 0 && setMessages) {
-      setMessages([{ role: 'assistant', content: greetingContext }]);
+      // Generate a contextual greeting based on the document content
+      const generateContextualGreeting = async () => {
+        if (documentContext && documentContext.length > 200) {
+          try {
+            // Send the content to the lore agent to generate a contextual greeting
+            const response = await fetch('/api/agent-lore', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messages: [{
+                  role: 'user',
+                  content: `Based on this document content, give me a brief greeting and tell me something interesting about what's in this text. Keep it conversational and engaging. Here's the content: ${documentContext.substring(0, 1000)}...`
+                }],
+                documentContext: documentContext,
+                conversationId: conversationId,
+                scribeEnabled: true
+              })
+            });
+
+            if (response.ok && response.headers.get('content-type')?.includes('text/plain')) {
+              // Handle streaming response
+              const reader = response.body?.getReader();
+              if (reader) {
+                const decoder = new TextDecoder();
+                let greetingText = '';
+                let buffer = '';
+
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+
+                  const chunk = decoder.decode(value, { stream: true });
+                  buffer += chunk;
+                  const lines = buffer.split('\n');
+                  buffer = lines.pop() || '';
+
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      try {
+                        const data = JSON.parse(line.slice(6));
+                        if (data.type === 'content') {
+                          greetingText += data.delta;
+                        }
+                      } catch {}
+                    }
+                  }
+                }
+
+                if (greetingText.trim()) {
+                  setMessages([{ role: 'assistant', content: greetingText.trim() }]);
+                  return;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Failed to generate contextual greeting:', error);
+          }
+        }
+        
+        // Fallback to simple greeting
+        setMessages([{ role: 'assistant', content: greetingContext }]);
+      };
+
+      generateContextualGreeting();
     }
-  }, [greetingContext, isOpen, setMessages]);
+  }, [greetingContext, isOpen, setMessages, documentContext, conversationId]);
 
   const loadDocumentData = async () => {
     if (!documentSlug) return;
