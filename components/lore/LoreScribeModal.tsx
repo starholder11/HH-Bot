@@ -110,24 +110,31 @@ function ScribeEditor({
         conversation_id: documentData.conversation_id
       };
 
-      // Update existing S3 text asset or create new one
-      // First try to find existing text asset by conversation_id or slug
+      // For scribe, we should update the existing text asset that's referenced in the documentData
+      // The documentData should contain the ID of the text asset created by scribe start
       let existingAssetId = null;
-      try {
-        const assetsResponse = await fetch('/api/media-assets?type=text');
-        if (assetsResponse.ok) {
-          const assetsData = await assetsResponse.json();
-          const existingAsset = assetsData.assets?.find((asset: any) => 
-            asset.metadata?.conversation_id === documentData.conversation_id ||
-            asset.metadata?.slug === documentData.slug
-          );
-          if (existingAsset) {
-            existingAssetId = existingAsset.id;
-            console.log('[scribe] Found existing S3 text asset to update:', existingAssetId);
+
+      // Check if documentData has an ID (new S3-based scribe)
+      if ((documentData as any)?.id) {
+        existingAssetId = (documentData as any).id;
+        console.log('[scribe] Using existing S3 text asset ID from documentData:', existingAssetId);
+      } else if (documentData?.slug) {
+        // Fallback: try to find by slug for backward compatibility
+        try {
+          const assetsResponse = await fetch('/api/media-assets?type=text');
+          if (assetsResponse.ok) {
+            const assetsData = await assetsResponse.json();
+            const existingAsset = assetsData.assets?.find((asset: any) =>
+              asset.metadata?.slug === documentData.slug
+            );
+            if (existingAsset) {
+              existingAssetId = existingAsset.id;
+              console.log('[scribe] Found existing S3 text asset by slug:', existingAssetId);
+            }
           }
+        } catch (e) {
+          console.warn('[scribe] Failed to check for existing asset:', e);
         }
-      } catch (e) {
-        console.warn('[scribe] Failed to check for existing asset:', e);
       }
 
       const s3TextAsset = {
@@ -192,12 +199,12 @@ function ScribeEditor({
         updated_at: new Date().toISOString(),
       };
 
-      console.log('[scribe] Saving S3 text asset:', { 
-        id: s3TextAsset.id, 
+      console.log('[scribe] Saving S3 text asset:', {
+        id: s3TextAsset.id,
         slug: s3TextAsset.metadata.slug,
         isUpdate: !!existingAssetId
       });
-      
+
       const response = await fetch(existingAssetId ? `/api/media-assets/${existingAssetId}` : '/api/media-assets', {
         method: existingAssetId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -662,7 +669,7 @@ export default function LoreScribeModal({
       // Check if it's a special scribe response
       const contentType = response.headers.get('content-type');
       console.log('🔍 [MODAL SEND] Checking response type, contentType:', contentType);
-      
+
       if (contentType?.includes('application/json')) {
         const result = await response.json();
         console.log('🔍 [MODAL SEND] Parsed JSON result:', result);
@@ -674,6 +681,7 @@ export default function LoreScribeModal({
 
           // Update document data and switch to scribe tab
           const newDocData = {
+            id: result.id, // CRITICAL: Store the UUID for S3 text asset updates
             slug: result.slug,
             title: result.title,
             mdx: `# ${result.title}\n\n*The scribe will populate this document as your conversation continues...*`,
