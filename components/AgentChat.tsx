@@ -89,7 +89,12 @@ function classifyIntent(message: string): 'task' | 'conversational' {
     /\bstory\b/i,
     /\blore\b/i,
     /\bmyth\b|\blegend\b/i,
-    /\bcharacter\b|\bbackstory\b/i
+    /\bcharacter\b|\bbackstory\b/i,
+    // Scribe commands should stay in conversational mode (lore modal)
+    /\b(tell|have|ask|instruct|command|direct)\s+(?:the\s+)?scribe\b/i,
+    /\bscribe[,:]\s+/i,
+    /\b(start|begin|create|activate|enable|turn\s+on)\s+(scribe|background\s+doc|document|documentation)\b/i,
+    /\b(stop|end|pause|disable|turn\s+off|deactivate)\s+(scribe|background\s+doc|document|documentation)\b/i
   ];
   for (const pattern of conversationalOverrides) {
     if (pattern.test(msg)) return 'conversational';
@@ -616,8 +621,7 @@ export default function AgentChat() {
           initialTab="lore"
           messages={messages}
           setMessages={setMessages}
-          input={input}
-          setInput={setInput}
+          // Don't share input state - let modal manage its own
           busy={busy}
           setBusy={setBusy}
           lastResponseId={lastResponseId}
