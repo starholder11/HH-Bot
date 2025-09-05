@@ -1033,8 +1033,8 @@ export default function LoreScribeModal({
         <div className="flex gap-2">
           <input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+            onChange={(e) => { e.stopPropagation(); setInput(e.target.value); }}
+            onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); } }}
             placeholder="Ask about Starholder lore, or use 'start scribe' to begin documentation..."
             className="flex-1 bg-neutral-900 border border-neutral-700 rounded-md px-3 py-2 text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={busy}
@@ -1065,14 +1065,16 @@ export default function LoreScribeModal({
   );
 
   return (
-        <Dialog open={isOpen} onOpenChange={(open) => {
-          // Only close if explicitly set to false, prevent accidental closure
-          if (!open) onClose();
+        <Dialog open={isOpen} onOpenChange={() => {
+          // Ignore automatic close attempts; explicit close button controls closing
         }}>
       <DialogContent 
         onOpenAutoFocus={(e) => e.preventDefault()} 
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
+        onKeyDownCapture={(e) => { e.stopPropagation(); }}
         className="max-w-5xl w-[92vw] h-[85vh] p-0 bg-neutral-950 border-neutral-800 flex flex-col"
       >
         <DialogTitle className="sr-only">Lore Chat & Scribe</DialogTitle>
