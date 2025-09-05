@@ -280,13 +280,10 @@ export async function PUT(request: NextRequest) {
     console.log(`[media-assets] PUT - Checking if asset is text asset:`, {
       mediaType: asset.media_type,
       isTextAsset: isTextAsset(asset),
-      hasContent: !!(asset as any).content,
-      assetKeys: Object.keys(asset),
-      fullAsset: asset
+      hasContent: !!(asset as any).content
     });
     
-    // Force OAI sync for all text media_type assets (bypass isTextAsset check)
-    if (asset.media_type === 'text') {
+    if (isTextAsset(asset)) {
       console.log(`[media-assets] 🔥 STARTING OAI sync for updated text asset: ${asset.id}`);
       // Remove try-catch to see actual OAI errors
       const content = (asset as any).content || '';
