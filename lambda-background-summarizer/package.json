@@ -3,20 +3,9 @@
   "version": "1.0.0",
   "description": "AWS Lambda function for real-time conversation summarization",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.400.0",
+    "@aws-sdk/client-secrets-manager": "^3.400.0",
     "openai": "^4.0.0"
-  },
-  "keywords": [
-    "aws",
-    "lambda",
-    "openai",
-    "summarization",
-    "starholder"
-  ],
-  "author": "",
-  "license": "MIT"
+  }
 }

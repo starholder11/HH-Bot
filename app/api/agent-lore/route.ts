@@ -41,8 +41,8 @@ async function findTextAssetByConversationId(conversationId: string): Promise<st
   }
 }
 
-// Helper function to trigger Lambda summarizer
-async function triggerScribeUpdate(conversationId: string, userMessage: string, assistantResponse: string, correlationId: string) {
+// Helper function to trigger Lambda summarizer via API
+async function triggerScribeUpdate(conversationId: string, userMessage: string, assistantResponse: string, correlationId: string, req: NextRequest) {
   console.log(`[${correlationId}] Triggering scribe update for conversation: ${conversationId}`);
   
   // Find the text asset for this conversation
@@ -52,23 +52,25 @@ async function triggerScribeUpdate(conversationId: string, userMessage: string, 
     return;
   }
   
-  // Invoke Lambda asynchronously
-  const AWS = require('aws-sdk');
-  const lambda = new AWS.Lambda({ region: process.env.AWS_REGION || 'us-east-1' });
-  
-  await lambda.invoke({
-    FunctionName: 'background-summarizer',
-    InvocationType: 'Event', // Async invocation
-    Payload: JSON.stringify({
-      textAssetId,
-      userMessage,
-      assistantResponse,
-      conversationId,
-      correlationId
-    })
-  }).promise();
-  
-  console.log(`[${correlationId}] ✅ Lambda triggered for text asset: ${textAssetId}`);
+  // Trigger via internal API endpoint (no AWS SDK dependency)
+  try {
+    const baseUrl = new URL(req.url).origin;
+    await fetch(`${baseUrl}/api/internal/trigger-scribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        textAssetId,
+        userMessage,
+        assistantResponse,
+        conversationId,
+        correlationId
+      })
+    });
+    
+    console.log(`[${correlationId}] ✅ Scribe trigger sent for text asset: ${textAssetId}`);
+  } catch (error) {
+    console.warn(`[${correlationId}] Scribe trigger failed:`, error);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -357,7 +359,8 @@ conversation_id: ${finalConversationId}`;
                   conversationId,
                   lastMessage.content,
                   assistantResponse.trim(),
-                  correlationId
+                  correlationId,
+                  req
                 );
               } catch (error) {
                 console.warn(`[${correlationId}] Scribe trigger failed (non-blocking):`, error);
