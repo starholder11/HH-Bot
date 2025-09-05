@@ -2235,23 +2235,73 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
   return createPortal(
     <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 rte-modal" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
-          <div className="flex items-center justify-between p-3 border-b border-neutral-700">
-            <div className="text-neutral-200 text-sm">{isMarkdown ? 'Edit Markdown' : 'Edit Rich Text'}</div>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1 text-xs text-neutral-300" title="Commit to Git on save">
-                <input
-                  type="checkbox"
-                  className="rounded"
-                  defaultChecked={(()=>{ try { return localStorage.getItem('text-assets-commit-on-save') === 'true'; } catch { return false; } })()}
-                  onChange={(e)=>{ try { localStorage.setItem('text-assets-commit-on-save', e.target.checked ? 'true' : 'false'); } catch {} }}
-                />
-                Commit on save
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-neutral-700">
+          <div>
+            <h3 className="text-lg font-semibold text-white">
+              {isMarkdown ? 'Edit Document' : 'Edit Rich Text'}
+            </h3>
+            <p className="text-sm text-neutral-400">
+              {isMarkdown ? 'Markdown document editor' : 'Rich text editor'}
+            </p>
+          </div>
+        </div>
+
+        {/* Form Fields */}
+        <div className="p-4 border-b border-neutral-700">
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">
+                Title
               </label>
-              <button className="px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded" onClick={() => onClose()}>Cancel</button>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Document title"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">
+                Slug
+              </label>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="document-slug"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">
+                Categories
+              </label>
+              <input
+                type="text"
+                value={categories}
+                onChange={(e) => setCategories(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="comma separated"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end items-center gap-2">
+            <button 
+              className="px-4 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 rounded text-white" 
+              onClick={() => onClose()}
+            >
+              Cancel
+            </button>
               {isMarkdown ? (
                 <button
                   disabled={saving}
-                  className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white"
+                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 rounded text-white"
                   onClick={async () => {
                     try {
                       setSaving(true);
@@ -2425,30 +2475,22 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                       setSaving(false);
                     }
                   }}
-                >{saving ? 'Saving…' : 'Save'}</button>
+                >{saving ? 'Saving...' : 'Save'}</button>
               ) : (
-                <button className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(html)}>Save</button>
+                <button className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 rounded text-white" onClick={() => onSave(html)}>Save</button>
               )}
             </div>
           </div>
-        <div className="flex-1 overflow-hidden p-3">
+        {/* Document Editor with proper scrolling - matching scribe modal */}
+        <div className="flex-1 p-4 min-h-0">
           {isMarkdown ? (
-            <div className="h-full w-full grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-2">
-                <input className="px-2 py-1 bg-white border border-neutral-300 rounded text-sm" placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
-                <input className="px-2 py-1 bg-white border border-neutral-300 rounded text-sm" placeholder="Slug (optional)" value={slug} onChange={(e)=>setSlug(e.target.value)} />
-                <input className="px-2 py-1 bg-white border border-neutral-300 rounded text-sm" placeholder="Categories (comma separated)" value={categories} onChange={(e)=>setCategories(e.target.value)} />
-                <textarea
-                  className="w-full h-full px-2 py-1 bg-white text-neutral-900 border border-neutral-300 rounded text-sm font-mono"
-                  value={md}
-                  onChange={(e) => setMd(e.target.value)}
-                  placeholder="# Title\n\nBody..."
-                />
-              </div>
-              <div className="w-full h-full bg-white text-neutral-900 border border-neutral-300 rounded text-sm p-3 overflow-auto">
-                <pre className="whitespace-pre-wrap break-words text-sm">{md}</pre>
-              </div>
-            </div>
+            <textarea
+              value={md}
+              onChange={(e) => setMd(e.target.value)}
+              className="w-full h-full bg-neutral-900 border border-neutral-700 rounded-md p-4 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 [scrollbar-width:thin] [scrollbar-color:#3f3f46_transparent]"
+              placeholder="# Document Title\n\nStart writing..."
+              spellCheck={false}
+            />
           ) : (
             <div className="h-full w-full flex flex-col bg-white rounded border border-neutral-300 text-neutral-900">
               <div className="flex-1 overflow-auto quill-container">

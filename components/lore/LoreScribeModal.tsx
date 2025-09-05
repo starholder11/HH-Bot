@@ -356,17 +356,7 @@ function ScribeEditor({
           </div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <label className="flex items-center gap-2 text-sm text-neutral-300">
-            <input
-              type="checkbox"
-              checked={commitOnSave}
-              onChange={(e) => setCommitOnSave(e.target.checked)}
-              className="rounded"
-            />
-            Commit on save
-          </label>
-
+        <div className="flex justify-end items-center">
           <div className="flex gap-2">
             <Button
               onClick={handleToggle}
