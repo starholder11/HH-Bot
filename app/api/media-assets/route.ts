@@ -283,29 +283,35 @@ export async function PUT(request: NextRequest) {
       hasContent: !!(asset as any).content
     });
     
-    if (isTextAsset(asset)) {
-      console.log(`[media-assets] 🔥 STARTING OAI sync for updated text asset: ${asset.id}`);
-      // Remove try-catch to see actual OAI errors
+    // FORCE OAI sync for ANY text media_type - bypass all checks
+    if (asset.media_type === 'text') {
+      console.log(`[media-assets] 🔥 FORCING OAI sync for text asset: ${asset.id}`);
       const content = (asset as any).content || '';
       const slug = asset.metadata?.slug || asset.id;
       const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
       const vectorName = `s3-${slug}-${hash}.md`;
       
-      console.log(`[media-assets] About to call uploadFileToVectorStore with:`, {
+      console.log(`[media-assets] FORCE OAI - About to call uploadFileToVectorStore:`, {
         contentLength: content.length,
         vectorName,
-        slug
+        slug,
+        contentPreview: content.substring(0, 100)
       });
       
-      const vectorStoreFile = await uploadFileToVectorStore(content, vectorName);
-      console.log(`[media-assets] ✅ OAI update sync completed:`, {
-        assetId: asset.id,
-        slug: asset.metadata.slug,
-        vectorStoreFileId: (vectorStoreFile as any)?.id,
-        fileName: vectorName
-      });
+      try {
+        const vectorStoreFile = await uploadFileToVectorStore(content, vectorName);
+        console.log(`[media-assets] ✅ FORCE OAI sync completed:`, {
+          assetId: asset.id,
+          slug: asset.metadata.slug,
+          vectorStoreFileId: (vectorStoreFile as any)?.id,
+          fileName: vectorName
+        });
+      } catch (oaiError) {
+        console.error(`[media-assets] ❌ FORCE OAI sync FAILED:`, oaiError);
+        throw oaiError; // Re-throw to see the error
+      }
     } else {
-      console.log(`[media-assets] PUT - Skipping OAI sync - not a text asset`);
+      console.log(`[media-assets] PUT - Skipping OAI sync - not a text asset (media_type: ${asset.media_type})`);
     }
 
     console.log(`[media-assets] Updated ${body.media_type} asset: ${body.id}`);
@@ -317,7 +323,9 @@ export async function PUT(request: NextRequest) {
       debug: {
         mediaType: asset.media_type,
         isTextAsset: isTextAsset(asset),
-        oaiSyncTriggered: asset.media_type === 'text'
+        oaiSyncTriggered: asset.media_type === 'text',
+        assetContent: (asset as any).content ? 'HAS_CONTENT' : 'NO_CONTENT',
+        assetKeys: Object.keys(asset)
       }
     });
 
