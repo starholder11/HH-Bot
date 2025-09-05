@@ -130,6 +130,11 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
             }
 
             if (!cancelled) {
+              console.log('[DetailsOverlay] S3 text loaded:', {
+                assetId: r.id,
+                contentLength: json.asset?.content?.length || 0,
+                hasContent: !!json.asset?.content
+              });
               setFullText(json.asset?.content || '');
             }
           })
@@ -245,7 +250,16 @@ export default function DetailsOverlay({ r, onClose, onSearch }: {
                 {!isLoadingText && textError && <div className="text-red-400">{textError}</div>}
                 {!isLoadingText && !textError && (
                   <>
-                    {fullText || toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'))}
+                    {(() => {
+                      console.log('[DetailsOverlay] Text display debug:', {
+                        hasFullText: !!fullText,
+                        fullTextLength: fullText?.length || 0,
+                        previewLength: r.preview?.length || 0,
+                        descriptionLength: r.description?.length || 0,
+                        assetId: r.id
+                      });
+                      return fullText || toDisplayText(r.preview, toDisplayText(r.description, 'No content available.'));
+                    })()}
                   </>
                 )}
               </div>
