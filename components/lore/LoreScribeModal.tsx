@@ -326,37 +326,6 @@ function ScribeEditor({
               {scribeEnabled ? 'AI updating document' : 'Manual editing mode'}
             </p>
           </div>
-        </div>
-
-        {/* Title and Slug input fields */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Document title"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-1">
-              Slug
-            </label>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="document-slug"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end items-center">
           <div className="flex gap-2">
             <Button
               onClick={handleToggle}
@@ -381,6 +350,34 @@ function ScribeEditor({
             >
               Go to Layout
             </Button>
+          </div>
+        </div>
+
+        {/* Title and Slug input fields */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">
+              Title
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Document title"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">
+              Slug
+            </label>
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="document-slug"
+            />
           </div>
         </div>
       </div>

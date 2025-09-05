@@ -2234,70 +2234,25 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
 
   return createPortal(
     <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 rte-modal" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-[70vw] h-[70vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-neutral-700">
-          <div>
-            <h3 className="text-lg font-semibold text-white">
-              {isMarkdown ? 'Edit Document' : 'Edit Rich Text'}
-            </h3>
-            <p className="text-sm text-neutral-400">
-              {isMarkdown ? 'Markdown document editor' : 'Rich text editor'}
-            </p>
-          </div>
-        </div>
-
-        {/* Form Fields */}
-        <div className="p-4 border-b border-neutral-700">
-          <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="bg-neutral-950 border border-neutral-800 rounded-lg max-w-5xl w-[92vw] h-[85vh] p-0 flex flex-col">
+        {/* Header with form fields and buttons */}
+        <div className="flex-shrink-0 p-4 border-b border-neutral-800">
+          <div className="flex justify-between items-start mb-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
-                Title
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Document title"
-              />
+              <h3 className="text-lg font-semibold text-white">
+                {isMarkdown ? 'Edit Document' : 'Edit Rich Text'}
+              </h3>
+              <p className="text-sm text-neutral-400">
+                {isMarkdown ? 'Markdown document editor' : 'Rich text editor'}
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
-                Slug
-              </label>
-              <input
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="document-slug"
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">
-                Categories
-              </label>
-              <input
-                type="text"
-                value={categories}
-                onChange={(e) => setCategories(e.target.value)}
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="comma separated"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end items-center gap-2">
-            <button 
-              className="px-4 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 rounded text-white" 
-              onClick={() => onClose()}
-            >
-              Cancel
-            </button>
+            <div className="flex gap-2">
+              <button 
+                className="px-4 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 rounded text-white" 
+                onClick={() => onClose()}
+              >
+                Cancel
+              </button>
               {isMarkdown ? (
                 <button
                   disabled={saving}
@@ -2481,6 +2436,42 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
               )}
             </div>
           </div>
+          
+          {/* Form Fields in header */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Title</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Document title"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Slug</label>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="document-slug"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Categories</label>
+              <input
+                type="text"
+                value={categories}
+                onChange={(e) => setCategories(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="comma separated"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Document Editor with proper scrolling - matching scribe modal */}
         <div className="flex-1 p-4 min-h-0">
           {isMarkdown ? (
