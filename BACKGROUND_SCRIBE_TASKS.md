@@ -40,24 +40,24 @@ const { readJsonFromS3, writeJsonToS3 } = require('./lib/s3-utils');
 exports.handler = async (event) => {
   const { conversationId, userMessage, assistantResponse, textAssetId } = event;
   const correlationId = event.correlationId || `corr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  
+
   console.log(`[${correlationId}] Background summarizer triggered for: ${conversationId}`);
-  
+
   try {
     // Load current S3 text asset (existing pattern)
     const assetKey = `media-labeling/assets/${textAssetId}.json`;
     const currentAsset = await readJsonFromS3(assetKey);
-    
+
     if (!currentAsset || currentAsset.media_type !== 'text') {
       throw new Error(`Text asset ${textAssetId} not found or invalid`);
     }
-    
+
     // Check if scribe is still enabled
     if (!currentAsset.metadata?.scribe_enabled) {
       console.log(`[${correlationId}] Scribe disabled for ${textAssetId}, skipping`);
       return { statusCode: 200, body: 'Scribe disabled' };
     }
-    
+
     // Generate narrative update using OpenAI
     const conversationTurn = `User: ${userMessage}\n\nAssistant: ${assistantResponse}`;
     const updatedContent = await generateRealtimeUpdate(
@@ -66,7 +66,7 @@ exports.handler = async (event) => {
       currentAsset.title,
       correlationId
     );
-    
+
     // Update S3 text asset (existing pattern)
     const updatedAsset = {
       ...currentAsset,
@@ -79,11 +79,11 @@ exports.handler = async (event) => {
         character_count: updatedContent.length
       }
     };
-    
+
     await writeJsonToS3(assetKey, updatedAsset);
-    
+
     console.log(`[${correlationId}] ✅ Scribe update completed: ${currentAsset.metadata.slug}`);
-    
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -93,7 +93,7 @@ exports.handler = async (event) => {
         correlationId
       })
     };
-    
+
   } catch (error) {
     console.error(`[${correlationId}] ❌ Summarizer failed:`, error);
     return {
@@ -108,11 +108,11 @@ exports.handler = async (event) => {
 
 async function generateRealtimeUpdate(conversationTurn, existingContent, documentTitle, correlationId) {
   console.log(`[${correlationId}] Generating narrative update for: ${documentTitle}`);
-  
+
   const openai = getOpenAIClient();
-  
-  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe. 
-Take this single conversation turn and seamlessly weave it into the existing document. 
+
+  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe.
+Take this single conversation turn and seamlessly weave it into the existing document.
 Write in flowing, engaging prose that captures the essence of the discussion.
 Maintain narrative coherence while integrating new information naturally.
 Respond with the complete updated document.`;
@@ -162,7 +162,7 @@ cp -r lambda-video-processor lambda-background-summarizer
 **Priority**: High | **Estimated Time**: 3 hours
 **Status**: Missing - need to capture and trigger
   const correlationId = this.contextService.generateCorrelationId();
-  
+
   // Use existing workflow state update pattern
   const workflowState = await this.contextService.getWorkflowState(params.conversationId);
   if (workflowState) {
@@ -170,7 +170,7 @@ cp -r lambda-video-processor lambda-background-summarizer
     workflowState.updatedAt = new Date().toISOString();
     await this.contextService.updateWorkflowState(workflowState);
   }
-  
+
   return { success: true, enabled: params.enabled, correlationId };
 }
 
@@ -180,11 +180,11 @@ async triggerScribeUpdate(params: {
   assistantResponse: string;
 }) {
   const correlationId = this.contextService.generateCorrelationId();
-  
+
   // Use existing Lambda invocation pattern
   const AWS = require('aws-sdk');
   const lambda = new AWS.Lambda({ region: process.env.AWS_REGION || 'us-east-1' });
-  
+
   await lambda.invoke({
     FunctionName: 'background-summarizer',
     InvocationType: 'Event', // Async
@@ -200,7 +200,7 @@ async triggerScribeUpdate(params: {
       correlationId
     })
   }).promise();
-  
+
   return { triggered: true, correlationId };
 }
 ```
@@ -217,7 +217,7 @@ async triggerScribeUpdate(params: {
 **Priority**: High | **Estimated Time**: 6 hours
 
 #### Technical Spec
-**Files**: 
+**Files**:
 - `app/api/chat/background-doc/start/route.ts` (new)
 - `app/api/chat/background-doc/toggle/route.ts` (new)
 
@@ -232,14 +232,14 @@ import { RedisContextService } from '@/services/context/RedisContextService';
 export async function POST(req: NextRequest) {
   try {
     const { conversationId, title, userId = 'default-user', tenantId = 'default', correlationId } = await req.json();
-    
+
     console.log(`[${correlationId}] Creating scribe session: ${title}`);
-    
+
     // Create S3 text asset (existing pattern)
     const textAssetId = randomUUID();
     const slug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').slice(0, 50);
     const initialContent = `# ${title}\n\n*The scribe will populate this document as your conversation continues...*`;
-    
+
     const textAsset = {
       id: textAssetId,
       media_type: 'text',
@@ -280,9 +280,9 @@ export async function POST(req: NextRequest) {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    
+
     await saveMediaAsset(textAssetId, textAsset);
-    
+
     // Create workflow state using existing Redis service
     const contextService = new RedisContextService();
     const workflowId = await contextService.createWorkflowState(
@@ -305,9 +305,9 @@ export async function POST(req: NextRequest) {
         }
       }
     );
-    
+
     console.log(`[${correlationId}] ✅ Scribe session created: ${slug}`);
-    
+
     return NextResponse.json({
       success: true,
       textAssetId,
@@ -317,7 +317,7 @@ export async function POST(req: NextRequest) {
       workflowId,
       correlationId
     });
-    
+
   } catch (error) {
     console.error('Background doc start failed:', error);
     return NextResponse.json(
@@ -337,35 +337,35 @@ import { RedisContextService } from '@/services/context/RedisContextService';
 export async function POST(req: NextRequest) {
   try {
     const { conversationId, scribeEnabled, correlationId } = await req.json();
-    
+
     console.log(`[${correlationId}] Toggling scribe for ${conversationId}: ${scribeEnabled}`);
-    
+
     // Update workflow state using existing Redis service
     const contextService = new RedisContextService();
     const workflowState = await contextService.getWorkflowState(conversationId);
-    
+
     if (!workflowState) {
       return NextResponse.json(
         { success: false, error: 'Scribe session not found' },
         { status: 404 }
       );
     }
-    
+
     // Update scribe enabled state
     workflowState.context.scribeSession.scribeEnabled = scribeEnabled;
     workflowState.updatedAt = new Date().toISOString();
-    
+
     await contextService.updateWorkflowState(workflowState);
-    
+
     console.log(`[${correlationId}] ✅ Scribe toggled: ${scribeEnabled}`);
-    
+
     return NextResponse.json({
       success: true,
       scribeEnabled,
       conversationId,
       correlationId
     });
-    
+
   } catch (error) {
     console.error('Background doc toggle failed:', error);
     return NextResponse.json(
@@ -397,17 +397,17 @@ if (scribeEnabled && conversationId) {
   try {
     // Use existing tool system to trigger Lambda
     const tools = new ComprehensiveTools(contextService);
-    
+
     // Capture the complete assistant response (need to collect from stream)
     const assistantResponse = await captureStreamedResponse(chatResponse);
-    
+
     await tools.triggerScribeUpdate({
       conversationId,
       userMessage: lastMessage.content,
       assistantResponse,
       correlationId
     });
-    
+
     console.log(`[${correlationId}] ✅ Scribe update triggered for ${conversationId}`);
   } catch (error) {
     console.warn(`[${correlationId}] Scribe trigger failed (non-blocking):`, error);
@@ -421,20 +421,20 @@ if (scribeEnabled && conversationId) {
 async function captureStreamedResponse(response: Response): Promise<string> {
   const reader = response.body?.getReader();
   if (!reader) return '';
-  
+
   const decoder = new TextDecoder();
   let fullResponse = '';
   let buffer = '';
-  
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    
+
     const chunk = decoder.decode(value, { stream: true });
     buffer += chunk;
     const lines = buffer.split('\n');
     buffer = lines.pop() || '';
-    
+
     for (const line of lines) {
       if (line.startsWith('data: ')) {
         try {
@@ -446,7 +446,7 @@ async function captureStreamedResponse(response: Response): Promise<string> {
       }
     }
   }
-  
+
   return fullResponse;
 }
 ```
@@ -470,24 +470,24 @@ async function captureStreamedResponse(response: Response): Promise<string> {
 // Add to existing window.__agentApi object
 window.__agentApi = {
   // ... existing handlers (searchUnified, pinToCanvas, etc.) ...
-  
+
   startScribe: async (payload) => {
     try {
       console.log(`[${payload.correlationId}] UI: Starting scribe`);
-      
+
       const response = await fetch('/api/chat/background-doc/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       if (!response.ok) throw new Error(`Start scribe failed: ${response.status}`);
-      
+
       const result = await response.json();
-      
+
       // Show success notification (existing pattern)
       showToast(`✅ Scribe started for "${result.title}"`);
-      
+
       // Acknowledge completion (existing pattern)
       await fetch('/api/agent/ack', {
         method: 'POST',
@@ -498,34 +498,34 @@ window.__agentApi = {
           artifacts: { textAssetId: result.textAssetId, slug: result.slug }
         })
       });
-      
+
       console.log(`[${payload.correlationId}] ✅ startScribe ack sent`);
       return result;
-      
+
     } catch (error) {
       console.error(`[${payload.correlationId}] startScribe failed:`, error);
       showToast(`❌ Failed to start scribe: ${error.message}`);
       throw error;
     }
   },
-  
+
   toggleScribe: async (payload) => {
     try {
       console.log(`[${payload.correlationId}] UI: Toggling scribe`);
-      
+
       const response = await fetch('/api/chat/background-doc/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       if (!response.ok) throw new Error(`Toggle scribe failed: ${response.status}`);
-      
+
       const result = await response.json();
-      
+
       // Show status notification (existing pattern)
       showToast(`${result.enabled ? '✅ Scribe enabled' : '⏸️ Scribe paused'}`);
-      
+
       // Acknowledge completion (existing pattern)
       await fetch('/api/agent/ack', {
         method: 'POST',
@@ -536,10 +536,10 @@ window.__agentApi = {
           artifacts: { enabled: result.enabled }
         })
       });
-      
+
       console.log(`[${payload.correlationId}] ✅ toggleScribe ack sent`);
       return result;
-      
+
     } catch (error) {
       console.error(`[${payload.correlationId}] toggleScribe failed:`, error);
       showToast(`❌ Failed to toggle scribe: ${error.message}`);
@@ -574,11 +574,11 @@ const { readJsonFromS3, writeJsonToS3 } = require('./lib/s3-utils');
 
 exports.handler = async (event) => {
   const { conversationId, trigger, correlationId } = event;
-  
+
   console.log(`[${correlationId}] Background summarizer triggered`);
   console.log(`[${correlationId}] Conversation: ${conversationId}`);
   console.log(`[${correlationId}] Message: ${trigger.messageId}`);
-  
+
   try {
     // Get workflow state from Redis (existing pattern)
     const workflowState = await getWorkflowStateFromRedis(conversationId);
@@ -586,17 +586,17 @@ exports.handler = async (event) => {
       console.log(`[${correlationId}] Scribe disabled, skipping`);
       return { statusCode: 200, body: 'Scribe disabled' };
     }
-    
+
     const session = workflowState.context.scribeSession;
-    
+
     // Load current S3 text asset (existing pattern)
     const assetKey = `media-labeling/assets/${session.textAssetId}.json`;
     const currentAsset = await readJsonFromS3(assetKey);
-    
+
     if (!currentAsset) {
       throw new Error(`Text asset ${session.textAssetId} not found`);
     }
-    
+
     // Generate narrative update using OpenAI
     const conversationTurn = `User: ${trigger.userMessage}\n\nAssistant: ${trigger.assistantResponse}`;
     const updatedContent = await generateRealtimeUpdate(
@@ -605,7 +605,7 @@ exports.handler = async (event) => {
       session.title,
       correlationId
     );
-    
+
     // Update S3 text asset (existing pattern)
     const updatedAsset = {
       ...currentAsset,
@@ -618,14 +618,14 @@ exports.handler = async (event) => {
         correlation_id: correlationId
       }
     };
-    
+
     await writeJsonToS3(assetKey, updatedAsset);
-    
+
     // Update workflow state (existing pattern)
     session.lastUpdateAt = new Date().toISOString();
     session.currentContent = updatedContent;
     await updateWorkflowStateInRedis(conversationId, workflowState);
-    
+
     // Trigger OAI sync (existing pattern)
     try {
       await triggerOAISync(session.textAssetId, updatedContent, session.slug);
@@ -633,9 +633,9 @@ exports.handler = async (event) => {
     } catch (oaiError) {
       console.warn(`[${correlationId}] OAI sync failed (non-blocking):`, oaiError);
     }
-    
+
     console.log(`[${correlationId}] ✅ Scribe update completed: ${session.slug}`);
-    
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -645,7 +645,7 @@ exports.handler = async (event) => {
         correlationId
       })
     };
-    
+
   } catch (error) {
     console.error(`[${correlationId}] ❌ Summarizer failed:`, error);
     return {
@@ -660,11 +660,11 @@ exports.handler = async (event) => {
 
 async function generateRealtimeUpdate(conversationTurn, existingContent, documentTitle, correlationId) {
   console.log(`[${correlationId}] Generating narrative update`);
-  
+
   const openai = getOpenAIClient();
-  
-  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe. 
-Take this single conversation turn and seamlessly weave it into the existing document. 
+
+  const systemPrompt = `You are a real-time narrative synthesizer for the Starholder universe.
+Take this single conversation turn and seamlessly weave it into the existing document.
 Write in flowing, engaging prose that captures the essence of the discussion.
 Maintain narrative coherence while integrating new information naturally.
 Respond with the complete updated document.`;
@@ -743,32 +743,32 @@ CMD ["index.handler"]
 const ScribeEditor = ({ documentData, scribeEnabled, onScribeToggle, onSave }) => {
   const [lastScribeUpdate, setLastScribeUpdate] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
   // Poll for scribe updates (existing polling pattern)
   useEffect(() => {
     if (!scribeEnabled || !documentData?.id) return;
-    
+
     const interval = setInterval(async () => {
       try {
         setIsUpdating(true);
-        
+
         // Check if document has been updated by background service
         const response = await fetch(`/api/media-assets/${documentData.id}`, {
           cache: 'no-store'
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           const asset = data.asset;
           const lastUpdate = asset?.metadata?.last_scribe_update;
-          
+
           if (lastUpdate && lastUpdate !== lastScribeUpdate) {
             console.log('📝 Scribe update detected, refreshing content');
             setLastScribeUpdate(lastUpdate);
-            
+
             // Update content (preserve user cursor position)
             setContent(asset.content || '');
-            
+
             // Show subtle notification
             showToast('📝 Document updated by scribe', { duration: 2000 });
           }
@@ -779,10 +779,10 @@ const ScribeEditor = ({ documentData, scribeEnabled, onScribeToggle, onSave }) =
         setIsUpdating(false);
       }
     }, 5000); // Poll every 5 seconds
-    
+
     return () => clearInterval(interval);
   }, [scribeEnabled, documentData?.id, lastScribeUpdate]);
-  
+
   // Enhanced header with scribe status
   const renderHeader = () => (
     <div className="flex justify-between items-center p-4 border-b border-neutral-800">
@@ -792,16 +792,16 @@ const ScribeEditor = ({ documentData, scribeEnabled, onScribeToggle, onSave }) =
         </h3>
         <div className="flex items-center gap-2 text-sm text-neutral-400">
           <div className={`w-2 h-2 rounded-full ${
-            scribeEnabled 
-              ? isUpdating 
-                ? 'bg-yellow-500 animate-pulse' 
+            scribeEnabled
+              ? isUpdating
+                ? 'bg-yellow-500 animate-pulse'
                 : 'bg-green-500'
               : 'bg-neutral-600'
           }`} />
           <span>
-            {scribeEnabled 
-              ? isUpdating 
-                ? 'AI updating document...' 
+            {scribeEnabled
+              ? isUpdating
+                ? 'AI updating document...'
                 : 'AI monitoring conversation'
               : 'Manual editing mode'
             }
@@ -813,7 +813,7 @@ const ScribeEditor = ({ documentData, scribeEnabled, onScribeToggle, onSave }) =
           )}
         </div>
       </div>
-      
+
       <div className="flex gap-2">
         <Button
           onClick={handleToggleScribe}
@@ -821,10 +821,10 @@ const ScribeEditor = ({ documentData, scribeEnabled, onScribeToggle, onSave }) =
           size="sm"
           disabled={isToggling}
         >
-          {isToggling 
-            ? '⏳' 
-            : scribeEnabled 
-              ? "Stop Scribe" 
+          {isToggling
+            ? '⏳'
+            : scribeEnabled
+              ? "Stop Scribe"
               : "Start Scribe"
           }
         </Button>
@@ -832,7 +832,7 @@ const ScribeEditor = ({ documentData, scribeEnabled, onScribeToggle, onSave }) =
       </div>
     </div>
   );
-  
+
   // ... rest of existing component
 };
 ```
@@ -926,7 +926,7 @@ Resources:
 // Add to existing conversationalPatterns array
 const conversationalPatterns = [
   // ... existing patterns ...
-  
+
   // Scribe command patterns (conversational, not task)
   /\b(start|begin|create|activate|enable)\s+(scribe|background\s+doc|document|documentation)\b/i,
   /\b(stop|end|pause|disable|deactivate)\s+(scribe|background\s+doc|document|documentation)\b/i,

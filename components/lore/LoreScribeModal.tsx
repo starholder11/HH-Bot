@@ -56,6 +56,8 @@ function ScribeEditor({
   const [isToggling, setIsToggling] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [commitOnSave, setCommitOnSave] = useState(false);
+  const [lastScribeUpdate, setLastScribeUpdate] = useState<string | null>(null);
+  const [isScribeUpdating, setIsScribeUpdating] = useState(false);
 
   // Update content when documentData changes
   useEffect(() => {
@@ -69,6 +71,48 @@ function ScribeEditor({
       setSlug(documentData.slug);
     }
   }, [documentData?.mdx, documentData?.title, documentData?.slug]);
+
+  // Real-time scribe update polling
+  useEffect(() => {
+    if (!scribeEnabled || !(documentData as any)?.id) return;
+    
+    const interval = setInterval(async () => {
+      try {
+        setIsScribeUpdating(true);
+        
+        // Check for scribe updates from Lambda
+        const response = await fetch(`/api/media-assets/${(documentData as any).id}`, {
+          cache: 'no-store'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const asset = data.asset;
+          const lastUpdate = asset?.metadata?.last_scribe_update;
+          
+          if (lastUpdate && lastUpdate !== lastScribeUpdate) {
+            console.log('📝 Scribe update detected, refreshing content');
+            setLastScribeUpdate(lastUpdate);
+            
+            // Update content with new scribe content
+            setContent(asset.content || '');
+            
+            // Brief visual feedback
+            const event = new CustomEvent('scribe-updated', { 
+              detail: { timestamp: lastUpdate, slug: asset.metadata?.slug }
+            });
+            window.dispatchEvent(event);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check for scribe updates:', error);
+      } finally {
+        setIsScribeUpdating(false);
+      }
+    }, 5000); // Poll every 5 seconds for updates
+    
+    return () => clearInterval(interval);
+  }, [scribeEnabled, (documentData as any)?.id, lastScribeUpdate]);
 
   const handleToggle = async () => {
     if (!documentData?.slug) return;
@@ -323,9 +367,28 @@ function ScribeEditor({
             <h3 className="text-lg font-semibold text-white">
               {title || 'Untitled Document'}
             </h3>
-            <p className="text-sm text-neutral-400">
-              {scribeEnabled ? 'AI updating document' : 'Manual editing mode'}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-neutral-400">
+              <div className={`w-2 h-2 rounded-full ${
+                scribeEnabled 
+                  ? isScribeUpdating 
+                    ? 'bg-yellow-500 animate-pulse' 
+                    : 'bg-green-500'
+                  : 'bg-neutral-600'
+              }`} />
+              <span>
+                {scribeEnabled 
+                  ? isScribeUpdating 
+                    ? 'AI updating document...' 
+                    : 'AI monitoring conversation'
+                  : 'Manual editing mode'
+                }
+              </span>
+              {lastScribeUpdate && (
+                <span className="text-xs text-neutral-500">
+                  Last AI update: {new Date(lastScribeUpdate).toLocaleTimeString()}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { saveMediaAsset } from '@/lib/media-storage';
+import { saveMediaAsset, listMediaAssets } from '@/lib/media-storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Generate correlation ID for tracing
+function generateCorrelationId(): string {
+  return `corr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 // Detect scribe intents in messages
 function detectScribeIntent(message: string) {
@@ -21,8 +26,54 @@ function detectScribeIntent(message: string) {
   return { isStart, isStop, extractedTitle };
 }
 
+// Helper function to find text asset by conversation ID
+async function findTextAssetByConversationId(conversationId: string): Promise<string | null> {
+  try {
+    const { assets } = await listMediaAssets('text', { loadAll: true });
+    const textAsset = assets.find((asset: any) => 
+      asset.metadata?.conversation_id === conversationId && 
+      asset.metadata?.scribe_enabled === true
+    );
+    return textAsset?.id || null;
+  } catch (error) {
+    console.error('Failed to find text asset by conversation ID:', error);
+    return null;
+  }
+}
+
+// Helper function to trigger Lambda summarizer
+async function triggerScribeUpdate(conversationId: string, userMessage: string, assistantResponse: string, correlationId: string) {
+  console.log(`[${correlationId}] Triggering scribe update for conversation: ${conversationId}`);
+  
+  // Find the text asset for this conversation
+  const textAssetId = await findTextAssetByConversationId(conversationId);
+  if (!textAssetId) {
+    console.warn(`[${correlationId}] No scribe-enabled text asset found for conversation: ${conversationId}`);
+    return;
+  }
+  
+  // Invoke Lambda asynchronously
+  const AWS = require('aws-sdk');
+  const lambda = new AWS.Lambda({ region: process.env.AWS_REGION || 'us-east-1' });
+  
+  await lambda.invoke({
+    FunctionName: 'background-summarizer',
+    InvocationType: 'Event', // Async invocation
+    Payload: JSON.stringify({
+      textAssetId,
+      userMessage,
+      assistantResponse,
+      conversationId,
+      correlationId
+    })
+  }).promise();
+  
+  console.log(`[${correlationId}] ✅ Lambda triggered for text asset: ${textAssetId}`);
+}
+
 export async function POST(req: NextRequest) {
-  console.log('🔍 [AGENT-LORE] POST request received');
+  const correlationId = generateCorrelationId();
+  console.log(`[${correlationId}] Agent-lore request received`);
   try {
     const { messages, documentContext, conversationId, scribeEnabled } = await req.json();
     console.log('🔍 [AGENT-LORE] Request body parsed:', {
@@ -258,8 +309,8 @@ conversation_id: ${finalConversationId}`;
         throw new Error('Chat response failed');
       }
 
-      // Stream the response back to the modal
-      const encoder = new TextEncoder();
+      // Stream the response back to the modal and capture for scribe
+      let assistantResponse = '';
       const readable = new ReadableStream({
         async start(controller) {
           const reader = chatResponse.body?.getReader();
@@ -269,11 +320,50 @@ conversation_id: ${finalConversationId}`;
           }
 
           try {
+            const decoder = new TextDecoder();
+            let buffer = '';
+
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
+              
+              // Pass through to client
               controller.enqueue(value);
+              
+              // Capture assistant response for scribe processing
+              if (scribeEnabled && conversationId) {
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                  if (line.startsWith('data: ')) {
+                    try {
+                      const data = JSON.parse(line.slice(6));
+                      if (data.type === 'content') {
+                        assistantResponse += data.delta;
+                      }
+                    } catch {}
+                  }
+                }
+              }
             }
+            
+            // After stream completes, trigger scribe update if enabled
+            if (scribeEnabled && conversationId && assistantResponse.trim()) {
+              try {
+                await triggerScribeUpdate(
+                  conversationId,
+                  lastMessage.content,
+                  assistantResponse.trim(),
+                  correlationId
+                );
+              } catch (error) {
+                console.warn(`[${correlationId}] Scribe trigger failed (non-blocking):`, error);
+              }
+            }
+            
           } catch (error) {
             console.error('[agent-lore] Stream error:', error);
           } finally {
