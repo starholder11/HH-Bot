@@ -79,7 +79,8 @@ export default function ContinueConversationButton({
         slug: actualSlug,
         title: textAsset.title || title,
         content,
-        conversationId
+        conversationId,
+        uuid: textAsset.id // Store UUID for modal
       });
       setIsModalOpen(true);
 
@@ -107,7 +108,7 @@ export default function ContinueConversationButton({
         <LoreScribeModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          documentSlug={documentData.slug}
+          documentSlug={(documentData as any).uuid || documentData.id} // Pass UUID as documentSlug for S3 assets
           initialTab="lore"
           documentContext={documentData.content}
           conversationId={documentData.conversationId}

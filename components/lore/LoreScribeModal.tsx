@@ -507,8 +507,10 @@ export default function LoreScribeModal({
     if (documentSlug && isOpen) {
       // If documentContext is provided, use it directly (from Continue Conversation)
       if (documentContext && documentContext.length > 0) {
-        // For Continue Conversation, documentSlug is the UUID
+        // For Continue Conversation, documentSlug should be the UUID
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(documentSlug);
+        console.log('🔍 [MODAL] Loading from Continue Conversation:', { documentSlug, isUUID });
+        
         setDocumentData({
           id: isUUID ? documentSlug : undefined, // Set ID for S3 assets
           slug: documentSlug,
