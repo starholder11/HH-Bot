@@ -265,36 +265,13 @@ conversation_id: ${finalConversationId}`;
         throw new Error('Chat response failed');
       }
 
-      // Stream the response back to the modal as EventStream
-      const readable = new ReadableStream({
-        async start(controller) {
-          const reader = chatResponse.body?.getReader();
-          if (!reader) {
-            controller.close();
-            return;
-          }
-
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              controller.enqueue(value);
-            }
-          } catch (error) {
-            console.error('[agent-lore] Stream error:', error);
-          } finally {
-            controller.enqueue(new TextEncoder().encode('data: {"type": "done"}\n\n'));
-            controller.close();
-          }
-        }
-      });
-
-      return new Response(readable, {
+      // Pipe upstream SSE stream through directly
+      return new Response(chatResponse.body, {
         headers: {
           'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'no-cache, no-transform',
           'Connection': 'keep-alive',
-          'Transfer-Encoding': 'chunked'
+          'X-Accel-Buffering': 'no'
         }
       });
 
