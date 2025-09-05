@@ -158,7 +158,7 @@ export async function uploadS3TextAssetToVectorStore(textAsset: any) {
 
     console.log(`📤 Uploading S3 text asset to vector store: ${vectorName}`);
 
-    // Include metadata in the file content for better search context
+    // Include metadata header ONLY for vector store upload (not in actual asset)
     const metadataHeader = `---
 title: ${textAsset.title}
 slug: ${slug}
@@ -168,8 +168,8 @@ updated: ${textAsset.updated_at}
 ---
 
 `;
-
-    const fullContent = metadataHeader + content;
+    
+    const vectorStoreContent = metadataHeader + content; // Only for OAI upload
 
     // Use direct OpenAI client (exactly like other working Vercel routes)
     const openai = new OpenAI({ 
@@ -178,8 +178,8 @@ updated: ${textAsset.updated_at}
 
     console.log(`📤 Creating file for vector store...`);
 
-    // Convert string content to Buffer for upload
-    const buffer = Buffer.from(fullContent, 'utf8');
+    // Convert string content to Buffer for upload (use vectorStoreContent, not original content)
+    const buffer = Buffer.from(vectorStoreContent, 'utf8');
     const file = new File([buffer], vectorName, { type: 'text/markdown' });
 
     // Step 1 – upload raw file to /files endpoint
