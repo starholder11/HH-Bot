@@ -67,12 +67,14 @@ exports.handler = async (event) => {
     } else {
       // Regular conversation integration mode
       const conversationTurn = `User: ${userMessage}\n\nAssistant: ${assistantResponse}`;
-      updatedContent = await generateNarrativeUpdate(
+      const narrativeResult = await generateNarrativeUpdate(
         conversationTurn,
         currentAsset.content || '',
         currentAsset.title,
         correlationId
       );
+      updatedContent = narrativeResult.content || narrativeResult; // Handle both old and new format
+      newTitle = narrativeResult.newTitle || null;
     }
 
     // Update S3 text asset
@@ -114,6 +116,9 @@ async function generateNarrativeUpdate(conversationTurn, existingContent, docume
 Take this conversation turn and seamlessly weave it into the existing document.
 Write in flowing, engaging prose that captures the essence of the discussion.
 Maintain narrative coherence while integrating new information naturally.
+
+IMPORTANT: If the document currently has a generic title like "New Document" or if this is the first substantial content, suggest a proper title by starting your response with "TITLE: [descriptive title]" on the first line, followed by a blank line, then the document content. The title should capture the essence of what the document is about.
+
 Return the complete updated document.`;
 
   const updatePrompt = `
@@ -137,7 +142,20 @@ Integrate this conversation naturally into the document. Return the complete upd
     max_tokens: 8000
   });
 
-  return response.choices[0]?.message?.content || existingContent;
+  let result = response.choices[0]?.message?.content || existingContent;
+  
+  // Check if AI suggested a new title (same logic as editing)
+  let newTitle = null;
+  if (result.startsWith('TITLE: ')) {
+    const lines = result.split('\n');
+    const titleLine = lines[0];
+    newTitle = titleLine.replace('TITLE: ', '').trim();
+    // Remove title line and blank line from content
+    result = lines.slice(2).join('\n');
+    console.log(`[${correlationId}] AI suggested new title during narrative update: "${newTitle}"`);
+  }
+  
+  return { content: result, newTitle };
 }
 
 async function generateDocumentEdit(editInstructions, existingContent, documentTitle, correlationId) {

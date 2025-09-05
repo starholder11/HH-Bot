@@ -1122,10 +1122,16 @@ export default function LoreScribeModal({
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'lore' | 'scribe')} className="h-full flex flex-col min-h-0">
           <div className="flex items-center border-b border-neutral-800 bg-neutral-900 flex-shrink-0">
             <TabsList className="grid grid-cols-2 bg-transparent border-0 rounded-none flex-1">
-              <TabsTrigger value="lore" className="data-[state=active]:bg-neutral-800">
+              <TabsTrigger 
+                value="lore" 
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-neutral-400 hover:text-neutral-200 transition-colors"
+              >
                 Lore
               </TabsTrigger>
-              <TabsTrigger value="scribe" className="data-[state=active]:bg-neutral-800">
+              <TabsTrigger 
+                value="scribe" 
+                className="data-[state=active]:bg-green-600 data-[state=active]:text-white text-neutral-400 hover:text-neutral-200 transition-colors"
+              >
                 Scribe
               </TabsTrigger>
             </TabsList>
@@ -1133,7 +1139,8 @@ export default function LoreScribeModal({
               variant="ghost" 
               size="sm" 
               onClick={onClose}
-              className="mr-2 text-neutral-400 hover:text-white"
+              className="mr-2 text-neutral-300 hover:text-white hover:bg-red-600 transition-colors px-2 py-1"
+              title="Close modal"
             >
               ✕
             </Button>

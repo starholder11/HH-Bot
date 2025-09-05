@@ -152,22 +152,15 @@ export async function POST(req: NextRequest) {
       console.log('🔍 [AGENT-LORE] Processing scribe start command');
       // Handle start scribe command - implement directly since backend tool isn't working
       const finalConversationId = conversationId || `conv_${Date.now()}`;
-      // Generate contextual names from the command
-      const baseTitle = (scribeIntent.extractedTitle && String(scribeIntent.extractedTitle).trim()) || 'Conversation Summary';
+      // Generate generic title - AI will set the real title based on content analysis
       const ts = Date.now();
       const rand = Math.random().toString(36).slice(2, 6);
       
-      // Create short, contextual title (agent can change this later)
-      const title = baseTitle.length > 50 ? baseTitle.substring(0, 47) + '...' : baseTitle;
+      // Start with generic title - AI will replace with proper title after analyzing content
+      const title = 'New Document'; // Simple, generic title
       
-      // Create stable slug (should NOT change after creation)
-      const slug = baseTitle
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .substring(0, 30) + `-${ts}-${rand}`; // Limit slug length
+      // Create stable slug from timestamp (should NOT change after creation)
+      const slug = `document-${ts}-${rand}`; // Simple, stable slug
 
       console.log('[agent-lore] Starting scribe directly:', { title, slug, conversationId: finalConversationId });
 
