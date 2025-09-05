@@ -1548,18 +1548,7 @@ function renderItem(
               <div className="flex justify-between items-start mb-3">
                 <h3 className="text-lg font-semibold text-black">{title}</h3>
                 <ContinueConversationButton
-                  slug={(() => {
-                    // Handle both UUID (S3) and slug-based (git) references
-                    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assetId);
-                    if (isUUID) {
-                      // For S3 text assets, use the slug from metadata if available
-                      const metadata = (it as any).textMetadata;
-                      return metadata?.slug || assetId;
-                    } else {
-                      // For git-based assets, extract slug from text_timeline/ format
-                      return assetId.replace('text_timeline/', '');
-                    }
-                  })()}
+                  slug={assetId} // Pass the actual assetId (UUID for S3, slug for Git)
                   title={title}
                   contentType="text"
                   variant="outline"

@@ -519,7 +519,7 @@ export default function LoreScribeModal({
             console.error('Failed to generate contextual greeting:', error);
           }
         }
-        
+
         // Fallback to simple greeting
         setMessages([{ role: 'assistant', content: greetingContext }]);
       };

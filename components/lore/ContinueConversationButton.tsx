@@ -13,9 +13,9 @@ interface ContinueConversationButtonProps {
   className?: string;
 }
 
-export default function ContinueConversationButton({ 
-  slug, 
-  title, 
+export default function ContinueConversationButton({
+  slug,
+  title,
   contentType = 'text',
   variant = 'outline',
   size = 'sm',
@@ -35,22 +35,24 @@ export default function ContinueConversationButton({
   if (contentType !== 'text') {
     return null;
   }
-  
+
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+  console.log('[ContinueConversation] Button check:', { slug, title, isUUID, contentType });
+  
   if (!isUUID) {
     return null; // Only show for S3 text assets
   }
 
   const handleContinueConversation = async () => {
     if (isLoading) return;
-    
+
     // Only work with UUID-based S3 text assets
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
     if (!isUUID) {
       console.warn('Continue Conversation only works with S3 text assets (UUID), got:', slug);
       return;
     }
-    
+
     setIsLoading(true);
     try {
       // Load S3 text asset by UUID
@@ -58,22 +60,22 @@ export default function ContinueConversationButton({
       if (!response.ok) {
         throw new Error(`Failed to load S3 text asset: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (!data.success || !data.asset?.media_type === 'text') {
         throw new Error('Invalid S3 text asset response');
       }
-      
+
       const textAsset = data.asset;
       const content = textAsset.content || '';
       const actualSlug = textAsset.metadata?.slug || slug;
-      
+
       if (!content) {
         throw new Error('S3 text asset has no content');
       }
-      
+
       const conversationId = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      
+
       setDocumentData({
         id: textAsset.id,
         slug: actualSlug,
@@ -82,7 +84,7 @@ export default function ContinueConversationButton({
         conversationId
       });
       setIsModalOpen(true);
-      
+
     } catch (error) {
       console.error('Error loading S3 text content:', error);
       alert(`Failed to load document: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -93,7 +95,7 @@ export default function ContinueConversationButton({
 
   return (
     <>
-      <Button 
+      <Button
         onClick={handleContinueConversation}
         variant={variant}
         size={size}
@@ -102,7 +104,7 @@ export default function ContinueConversationButton({
       >
         {isLoading ? '⏳' : '💬'} Continue Conversation
       </Button>
-      
+
       {isModalOpen && documentData && (
         <LoreScribeModal
           isOpen={isModalOpen}
