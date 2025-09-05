@@ -241,14 +241,16 @@ function ConversationalStreamRunner({
   onDone,
   lastResponseId,
   setLastResponseId,
+  apiEndpoint,
 }: {
   messages: Msg[];
   onDelta: (d: string) => void;
   onDone: () => void;
   lastResponseId: string | null;
   setLastResponseId: (id: string | null) => void;
+  apiEndpoint?: string;
 }) {
-  useConversationalStream(messages, onDelta, onDone, lastResponseId, setLastResponseId);
+  useConversationalStream(messages, onDelta, onDone, lastResponseId, setLastResponseId, apiEndpoint);
   return null;
 }
 
@@ -567,6 +569,7 @@ export default function AgentChat() {
         <ConversationalStreamRunner
           key={runId}
           messages={pendingMessages}
+          apiEndpoint={showLoreModal ? '/api/agent-lore' : '/api/chat'}
           onDelta={(delta) => {
             console.log('🟢 AgentChat: ConversationalStreamRunner onDelta called with:', delta);
             // Accumulate assistant text in last assistant message
