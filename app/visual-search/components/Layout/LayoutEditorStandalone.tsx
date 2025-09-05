@@ -2271,20 +2271,29 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                       }
                       const cats = categories.split(',').map(s => s.trim()).filter(Boolean);
 
-                      // Use the helper function to create the text asset properly
-                      const textAsset = {
-                        slug: finalSlug,
-                        title: finalTitle,
-                        content: md,
-                        categories: cats,
-                        source: 'layout',
-                        status: 'draft',
-                        layout_id: layoutId,
-                      };
+                      // Get existing item to check if we're editing an existing S3 text asset
+                      let existingAssetId = null;
+                      if (setEdited && rteTargetId) {
+                        setEdited(prev => {
+                          const existingItem = prev.layout_data.items.find((i: any) => i.id === rteTargetId);
+                          if (existingItem) {
+                            const refId = (existingItem as any)?.refId || (existingItem as any)?.contentId;
+                            if (refId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refId)) {
+                              existingAssetId = refId;
+                            }
+                          }
+                          return prev; // Don't update, just peek
+                        });
+                      }
 
-                      console.log('[DOC] Creating text asset with helper:', textAsset);
+                      console.log('[DOC] Edit check:', { 
+                        rteTargetId, 
+                        existingAssetId,
+                        isUpdate: !!existingAssetId 
+                      });
+
                       const s3TextAsset = {
-                        id: crypto.randomUUID(),
+                        id: existingAssetId || crypto.randomUUID(), // Use existing UUID if editing
                         media_type: 'text',
                         title: finalTitle,
                         content: md,
@@ -2344,11 +2353,18 @@ function RteModal({ initialHtml, onClose, onSave, mode = 'html', initialMarkdown
                         updated_at: new Date().toISOString(),
                       };
 
-                      console.log('[DOC] Saving S3 text asset:', { id: s3TextAsset.id, slug: finalSlug, title: finalTitle });
-                      const res = await fetch('/api/media-assets', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(s3TextAsset)
+                      console.log('[DOC] Saving S3 text asset:', { 
+                        id: s3TextAsset.id, 
+                        slug: finalSlug, 
+                        title: finalTitle,
+                        isUpdate: !!existingAssetId,
+                        method: existingAssetId ? 'PUT' : 'POST'
+                      });
+                      
+                      const res = await fetch(existingAssetId ? `/api/media-assets/${existingAssetId}` : '/api/media-assets', { 
+                        method: existingAssetId ? 'PUT' : 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify(s3TextAsset) 
                       });
                       if (!res.ok) {
                         let errorDetails = '';
