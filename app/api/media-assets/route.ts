@@ -137,20 +137,32 @@ export async function POST(request: NextRequest) {
     await saveMediaAsset(body.id, asset);
 
     // Sync text assets to OAI File Search for immediate lore agent visibility
+    console.log(`[media-assets] Checking if asset is text asset:`, {
+      mediaType: asset.media_type,
+      isTextAsset: isTextAsset(asset),
+      hasContent: !!(asset as any).content
+    });
+    
     if (isTextAsset(asset)) {
+      console.log(`[media-assets] 🔥 STARTING OAI sync for text asset: ${asset.id}`);
       try {
-        console.log(`[media-assets] Syncing text asset to OAI vector store: ${asset.id}`);
         const vectorStoreFile = await uploadS3TextAssetToVectorStore(asset);
-        console.log(`[media-assets] OAI sync completed:`, {
+        console.log(`[media-assets] ✅ OAI sync completed:`, {
           assetId: asset.id,
           slug: asset.metadata.slug,
           vectorStoreFileId: (vectorStoreFile as any)?.id,
           fileName: `s3-${asset.metadata.slug}-${crypto.createHash('sha256').update(asset.content).digest('hex').slice(0, 8)}.md`
         });
       } catch (oaiError) {
-        console.warn(`[media-assets] OAI sync failed for text asset ${asset.id} (non-blocking):`, oaiError);
+        console.error(`[media-assets] ❌ OAI sync failed for text asset ${asset.id}:`, oaiError);
+        console.error(`[media-assets] ❌ OAI error details:`, {
+          message: oaiError instanceof Error ? oaiError.message : 'Unknown error',
+          stack: oaiError instanceof Error ? oaiError.stack : 'No stack'
+        });
         // Don't fail the save operation if OAI sync fails
       }
+    } else {
+      console.log(`[media-assets] Skipping OAI sync - not a text asset`);
     }
 
     // Maintain a lightweight layouts index for fast listing
