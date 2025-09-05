@@ -3,6 +3,8 @@ import { getMediaAsset, listMediaAssets, saveMediaAsset, deleteMediaAsset, type 
 import { getS3Client, getBucketName } from '@/lib/s3-config';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { readJsonFromS3 } from '@/lib/s3-upload';
+import crypto from 'crypto';
+import { uploadFileToVectorStore } from '@/lib/openai-sync';
 
 export async function GET(
   request: NextRequest,
@@ -116,6 +118,44 @@ export async function PUT(
     };
 
     await saveMediaAsset(id, updatedAsset);
+
+    // Sync text assets to OAI File Search (mirror POST logic)
+    try {
+      const isText = (updatedAsset as any)?.media_type === 'text';
+      console.log(`[media-assets/[id]] PUT - OAI check`, {
+        id,
+        mediaType: (updatedAsset as any)?.media_type,
+        isText,
+        hasContent: !!(updatedAsset as any)?.content,
+      });
+
+      if (isText) {
+        console.log(`[media-assets/[id]] 🔥 STARTING OAI sync for updated text asset: ${id}`);
+        const content: string = ((updatedAsset as any)?.content as string) || '';
+        const slug: string = ((updatedAsset as any)?.metadata?.slug as string) || id;
+        const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
+        const vectorName = `s3-${slug}-${hash}.md`;
+
+        console.log(`[media-assets/[id]] About to call uploadFileToVectorStore`, {
+          contentLength: content.length,
+          vectorName,
+          slug,
+        });
+
+        const vectorStoreFile = await uploadFileToVectorStore(content, vectorName);
+        console.log(`[media-assets/[id]] ✅ OAI update sync completed`, {
+          assetId: id,
+          slug,
+          vectorStoreFileId: (vectorStoreFile as any)?.id,
+          fileName: vectorName,
+        });
+      } else {
+        console.log(`[media-assets/[id]] PUT - Skipping OAI sync (not text)`);
+      }
+    } catch (oaiError) {
+      console.error('[media-assets/[id]] ❌ OAI sync failed on PUT:', oaiError);
+      throw oaiError;
+    }
 
     // Ensure layouts index contains this layout for fast Workshop listing
     try {
