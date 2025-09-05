@@ -242,7 +242,16 @@ conversation_id: ${finalConversationId}`;
           ]
         : messages;
 
-      const chatResponse = await fetch('/api/chat', {
+      // Use absolute URL for server-to-server call to avoid relative path issues in prod
+      const baseUrl = (() => {
+        try {
+          const u = new URL(req.url);
+          return `${u.protocol}//${u.host}`;
+        } catch {
+          return '';
+        }
+      })();
+      const chatResponse = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -256,8 +265,7 @@ conversation_id: ${finalConversationId}`;
         throw new Error('Chat response failed');
       }
 
-      // Stream the response back to the modal
-      const encoder = new TextEncoder();
+      // Stream the response back to the modal as EventStream
       const readable = new ReadableStream({
         async start(controller) {
           const reader = chatResponse.body?.getReader();
@@ -275,6 +283,7 @@ conversation_id: ${finalConversationId}`;
           } catch (error) {
             console.error('[agent-lore] Stream error:', error);
           } finally {
+            controller.enqueue(new TextEncoder().encode('data: {"type": "done"}\n\n'));
             controller.close();
           }
         }
@@ -282,7 +291,9 @@ conversation_id: ${finalConversationId}`;
 
       return new Response(readable, {
         headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
           'Transfer-Encoding': 'chunked'
         }
       });
