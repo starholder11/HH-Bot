@@ -265,8 +265,34 @@ conversation_id: ${finalConversationId}`;
         throw new Error('Chat response failed');
       }
 
-      // Pipe upstream SSE stream through directly
-      return new Response(chatResponse.body, {
+      // Wrap and forward upstream SSE, then append an explicit done signal
+      const readable = new ReadableStream({
+        async start(controller) {
+          const reader = chatResponse.body?.getReader();
+          if (!reader) {
+            controller.enqueue(new TextEncoder().encode('data: {"type":"done"}\n\n'));
+            controller.close();
+            return;
+          }
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (value) controller.enqueue(value);
+            }
+          } catch (err) {
+            console.warn('[agent-lore] upstream stream error, ending gracefully:', err);
+          } finally {
+            try {
+              controller.enqueue(new TextEncoder().encode('data: {"type":"done"}\n\n'));
+            } catch {}
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(readable, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache, no-transform',
