@@ -100,9 +100,15 @@ function ScribeEditor({
             // Update content with new scribe content
             setContent(asset.content || '');
             
+            // Update title if it was changed by AI
+            if (asset.title && asset.title !== title) {
+              console.log('📝 Scribe title update detected:', asset.title);
+              setTitle(asset.title);
+            }
+            
             // Brief visual feedback
             const event = new CustomEvent('scribe-updated', { 
-              detail: { timestamp: lastUpdate, slug: asset.metadata?.slug }
+              detail: { timestamp: lastUpdate, slug: asset.metadata?.slug, title: asset.title }
             });
             window.dispatchEvent(event);
           }
