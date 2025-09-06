@@ -1019,7 +1019,25 @@ export default function LoreScribeModal({
           }
         }
       }
-
+      // Client-side fallback: if scribe is enabled and we captured assistant text, trigger the summarizer directly
+      try {
+        if ((documentData?.scribe_enabled || false) && (documentData?.conversation_id || conversationId) && assistantMessage.trim()) {
+          console.log('🔍 [MODAL] Client fallback: triggering scribe summarizer');
+          await fetch('/api/internal/trigger-scribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              textAssetId: (documentData as any)?.id,
+              userMessage: input.trim(),
+              assistantResponse: assistantMessage.trim(),
+              conversationId: documentData?.conversation_id || conversationId,
+              correlationId: `client_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+            })
+          });
+        }
+      } catch (e) {
+        console.warn('🔍 [MODAL] Client fallback scribe trigger failed:', e);
+      }
 
     } catch (error) {
       console.error('Agent-lore request failed:', error);
