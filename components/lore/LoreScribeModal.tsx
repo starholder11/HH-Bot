@@ -1091,7 +1091,7 @@ export default function LoreScribeModal({
           <input
             value={input}
             onChange={(e) => { e.stopPropagation(); setInput(e.target.value); }}
-            onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); } }}
+            onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Ask about Starholder lore, or use 'start scribe' to begin documentation..."
             className="flex-1 bg-neutral-900 border border-neutral-700 rounded-md px-3 py-2 text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={busy}
