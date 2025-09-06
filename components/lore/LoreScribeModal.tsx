@@ -1063,6 +1063,28 @@ export default function LoreScribeModal({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
+  // Global Enter-to-send for Lore tab to handle focus ambiguity inside modal
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'lore') return;
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || (target as any).isContentEditable)) {
+        // Allow inline input handler (which already submits on Enter) to execute
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      if (busy) return;
+      if (!input || input.trim().length === 0) return;
+      send();
+    };
+
+    // Use capture to win over other modal-level handlers
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [isOpen, activeTab, input, busy]);
+
     // Render chat interface for Lore tab
   const renderLoreTab = () => (
     <div className="h-full flex flex-col max-h-[75vh]">
