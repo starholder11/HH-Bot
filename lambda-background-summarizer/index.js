@@ -77,11 +77,32 @@ exports.handler = async (event) => {
       newTitle = narrativeResult.newTitle || null;
     }
 
+    // Enforce short, intelligent title policy without touching slug
+    let finalTitle = currentAsset.title || 'New Document';
+    if (newTitle) {
+      finalTitle = normalizeShortTitle(newTitle);
+    }
+
+    // If title is still generic/too long/undesirable, generate a short title from content
+    if (isGenericOrBadTitle(finalTitle)) {
+      try {
+        const fallbackSource = (updatedContent && updatedContent.trim().length > 0)
+          ? updatedContent
+          : `${currentAsset.title || ''}\n\n${currentAsset.content || ''}`;
+        const generated = await generateShortTitleFromContent(fallbackSource, correlationId);
+        if (generated) {
+          finalTitle = generated;
+        }
+      } catch (fallbackErr) {
+        console.warn(`[${correlationId}] Title fallback generation failed:`, fallbackErr);
+      }
+    }
+
     // Update S3 text asset
     const updatedAsset = {
       ...currentAsset,
       content: updatedContent,
-      title: newTitle || currentAsset.title, // Update title if AI suggested one, but keep slug unchanged
+      title: finalTitle, // Keep slug unchanged; only title may change
       updated_at: new Date().toISOString(),
       metadata: {
         ...currentAsset.metadata,
@@ -89,7 +110,7 @@ exports.handler = async (event) => {
         word_count: updatedContent.split(/\s+/).filter(w => w.length > 0).length,
         character_count: updatedContent.length,
         // Note: slug is intentionally NOT changed to maintain stable references
-        title_updated_by_ai: !!newTitle
+        title_updated_by_ai: (finalTitle || '').trim() !== (currentAsset.title || '').trim()
       }
     };
 
@@ -109,6 +130,91 @@ exports.handler = async (event) => {
   }
 };
 
+function normalizeShortTitle(raw) {
+  if (!raw) return 'New Document';
+  let t = String(raw)
+    .replace(/^\s*TITLE:\s*/i, '')
+    .replace(/^"|"$/g, '')
+    .replace(/^'|'$/g, '')
+    .trim();
+
+  // Replace em-dash/colon with space, collapse whitespace
+  t = t.replace(/[–—:]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Keep it short: 3-6 words preferred; hard cap at 8 words or 60 chars
+  const words = t.split(' ').filter(Boolean);
+  if (words.length > 8) {
+    t = words.slice(0, 8).join(' ');
+  }
+  if (t.length > 60) {
+    t = t.slice(0, 60).trim();
+  }
+
+  // Title case-lite: capitalize first letter of words longer than 2 chars
+  t = t
+    .split(' ')
+    .map((w, idx) => {
+      if (w.length <= 2 && idx !== 0) return w.toLowerCase();
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })
+    .join(' ')
+    .trim();
+
+  // Avoid empties or generic
+  if (!t || isGenericOrBadTitle(t)) return 'New Document';
+  return t;
+}
+
+function isGenericOrBadTitle(title) {
+  if (!title) return true;
+  const t = String(title).trim();
+  const generic = new Set([
+    'New Document',
+    'Untitled',
+    'Untitled Document',
+    'Document',
+  ]);
+  if (generic.has(t)) return true;
+  // Overly long
+  if (t.length > 70) return true;
+  // Too many words
+  if (t.split(/\s+/).filter(Boolean).length > 10) return true;
+  return false;
+}
+
+async function generateShortTitleFromContent(content, correlationId) {
+  try {
+    const openaiClient = await getOpenAIClient();
+    const systemPrompt = `You generate short, evocative document titles.
+Rules:
+- 3 to 6 words
+- No punctuation other than spaces
+- No quotes
+- Descriptive and specific to the document content
+- Output ONLY the title, nothing else`;
+
+    const userPrompt = `Content:\n${(content || '').slice(0, 4000)}\n\nTitle:`;
+
+    const resp = await openaiClient.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.5,
+      max_tokens: 30,
+    });
+
+    let candidate = resp.choices[0]?.message?.content || '';
+    candidate = normalizeShortTitle(candidate);
+    console.log(`[${correlationId}] Generated short title: "${candidate}"`);
+    if (!isGenericOrBadTitle(candidate)) return candidate;
+  } catch (err) {
+    console.warn(`[${correlationId}] Short title generation failed:`, err);
+  }
+  return null;
+}
+
 async function generateNarrativeUpdate(conversationTurn, existingContent, documentTitle, correlationId) {
   const openaiClient = await getOpenAIClient();
 
@@ -117,7 +223,13 @@ Take this conversation turn and seamlessly weave it into the existing document.
 Write in flowing, engaging prose that captures the essence of the discussion.
 Maintain narrative coherence while integrating new information naturally.
 
-IMPORTANT: If the document currently has a generic title like "New Document" or if this is the first substantial content, suggest a proper title by starting your response with "TITLE: [descriptive title]" on the first line, followed by a blank line, then the document content. The title should capture the essence of what the document is about.
+IMPORTANT: If the document currently has a generic title like "New Document" or if this is the first substantial content, suggest a short, intelligent title by starting your response with "TITLE: [new title]" on the first line, followed by a blank line, then the document content.
+
+TITLE RULES:
+- 3 to 6 words
+- No punctuation other than spaces
+- No quotes
+- Descriptive and specific to this document
 
 Return the complete updated document.`;
 
@@ -143,28 +255,28 @@ Integrate this conversation naturally into the document. Return the complete upd
   });
 
   let result = response.choices[0]?.message?.content || existingContent;
-  
+
   // Check if AI suggested a new title (same logic as editing)
   let newTitle = null;
   if (result.startsWith('TITLE: ')) {
     const lines = result.split('\n');
     const titleLine = lines[0];
-    newTitle = titleLine.replace('TITLE: ', '').trim();
+    newTitle = normalizeShortTitle(titleLine.replace('TITLE: ', '').trim());
     // Remove title line and blank line from content
     result = lines.slice(2).join('\n');
     console.log(`[${correlationId}] AI suggested new title during narrative update: "${newTitle}"`);
   }
-  
+
   return { content: result, newTitle };
 }
 
 async function generateDocumentEdit(editInstructions, existingContent, documentTitle, correlationId) {
   console.log(`[${correlationId}] Generating document edit for: ${documentTitle}`);
   console.log(`[${correlationId}] Edit instructions: ${editInstructions}`);
-  
+
   const openaiClient = await getOpenAIClient();
-  
-  const systemPrompt = `You are a master document editor for the Starholder universe. 
+
+  const systemPrompt = `You are a master document editor for the Starholder universe.
 You receive specific editing instructions and apply them to existing documents with precision and creativity.
 Follow the user's editing directions exactly while maintaining narrative coherence and the document's voice.
 You can rework sections, change tone, add dialogue, restructure content, or make any requested modifications.
@@ -186,7 +298,7 @@ TASK: Apply the editing instructions to the document. Make the requested changes
 `;
 
   console.log(`[${correlationId}] Calling OpenAI for document editing`);
-  
+
   const response = await openaiClient.chat.completions.create({
     model: 'gpt-4o',
     messages: [
@@ -198,18 +310,18 @@ TASK: Apply the editing instructions to the document. Make the requested changes
   });
 
   let result = response.choices[0]?.message?.content || existingContent;
-  
+
   // Check if AI suggested a new title
   let newTitle = null;
   if (result.startsWith('TITLE: ')) {
     const lines = result.split('\n');
     const titleLine = lines[0];
-    newTitle = titleLine.replace('TITLE: ', '').trim();
+    newTitle = normalizeShortTitle(titleLine.replace('TITLE: ', '').trim());
     // Remove title line and blank line from content
     result = lines.slice(2).join('\n');
     console.log(`[${correlationId}] AI suggested new title: "${newTitle}"`);
   }
-  
+
   console.log(`[${correlationId}] Document edit completed: ${result.length} chars`);
   return { content: result, newTitle };
 }
