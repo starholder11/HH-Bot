@@ -788,8 +788,8 @@ export default function LoreScribeModal({
         messages: next,
         documentContext: documentData?.mdx,
         conversationId: documentData?.conversation_id || conversationId,
-        // If we have a scribe conversation ID, default to enabled unless explicitly disabled
-        scribeEnabled: documentData?.scribe_enabled !== false && (documentData?.conversation_id || conversationId),
+        // Ensure strict boolean (not a string) so backend logic is reliable
+        scribeEnabled: Boolean(documentData?.scribe_enabled !== false && !!(documentData?.conversation_id || conversationId)),
         documentId: (documentData as any)?.id // Pass document ID for editing
       };
 
