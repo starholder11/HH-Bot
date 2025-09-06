@@ -78,36 +78,36 @@ function ScribeEditor({
   // Real-time scribe update polling
   useEffect(() => {
     if (!scribeEnabled || !(documentData as any)?.id) return;
-    
+
     const interval = setInterval(async () => {
       try {
         setIsScribeUpdating(true);
-        
+
         // Check for scribe updates from Lambda
         const response = await fetch(`/api/media-assets/${(documentData as any).id}`, {
           cache: 'no-store'
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           const asset = data.asset;
           const lastUpdate = asset?.metadata?.last_scribe_update;
-          
+
           if (lastUpdate && lastUpdate !== lastScribeUpdate) {
             console.log('📝 Scribe update detected, refreshing content');
             setLastScribeUpdate(lastUpdate);
-            
+
             // Update content with new scribe content
             setContent(asset.content || '');
-            
+
             // Update title if it was changed by AI
             if (asset.title && asset.title !== title) {
               console.log('📝 Scribe title update detected:', asset.title);
               setTitle(asset.title);
             }
-            
+
             // Brief visual feedback
-            const event = new CustomEvent('scribe-updated', { 
+            const event = new CustomEvent('scribe-updated', {
               detail: { timestamp: lastUpdate, slug: asset.metadata?.slug, title: asset.title }
             });
             window.dispatchEvent(event);
@@ -119,7 +119,7 @@ function ScribeEditor({
         setIsScribeUpdating(false);
       }
     }, 5000); // Poll every 5 seconds for updates
-    
+
     return () => clearInterval(interval);
   }, [scribeEnabled, (documentData as any)?.id, lastScribeUpdate]);
 
@@ -380,16 +380,16 @@ function ScribeEditor({
             </h3>
             <div className="flex items-center gap-2 text-sm text-neutral-400">
               <div className={`w-2 h-2 rounded-full ${
-                scribeEnabled 
-                  ? isScribeUpdating 
-                    ? 'bg-yellow-500 animate-pulse' 
+                scribeEnabled
+                  ? isScribeUpdating
+                    ? 'bg-yellow-500 animate-pulse'
                     : 'bg-green-500'
                   : 'bg-neutral-600'
               }`} />
               <span>
-                {scribeEnabled 
-                  ? isScribeUpdating 
-                    ? 'AI updating document...' 
+                {scribeEnabled
+                  ? isScribeUpdating
+                    ? 'AI updating document...'
                     : 'AI monitoring conversation'
                   : 'Manual editing mode'
                 }
@@ -523,13 +523,13 @@ export default function LoreScribeModal({
       if (documentContext && documentContext.length > 0) {
         // For Continue Conversation, documentSlug should be the UUID
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(documentSlug);
-        console.log('🔍 [MODAL] Loading from Continue Conversation:', { 
-          documentSlug, 
-          isUUID, 
-          realTitle: documentTitle, 
-          realSlug: documentActualSlug 
+        console.log('🔍 [MODAL] Loading from Continue Conversation:', {
+          documentSlug,
+          isUUID,
+          realTitle: documentTitle,
+          realSlug: documentActualSlug
         });
-        
+
         setDocumentData({
           id: isUUID ? documentSlug : undefined, // Set ID for S3 assets
           slug: documentActualSlug || documentSlug, // Use REAL slug from S3, not UUID
@@ -788,10 +788,11 @@ export default function LoreScribeModal({
         messages: next,
         documentContext: documentData?.mdx,
         conversationId: documentData?.conversation_id || conversationId,
-        scribeEnabled: documentData?.scribe_enabled || false,
+        // If we have a scribe conversation ID, default to enabled unless explicitly disabled
+        scribeEnabled: documentData?.scribe_enabled !== false && (documentData?.conversation_id || conversationId),
         documentId: (documentData as any)?.id // Pass document ID for editing
       };
-      
+
       console.log('🔍 [MODAL] Sending to agent-lore:', {
         documentId: requestPayload.documentId,
         conversationId: requestPayload.conversationId,
@@ -799,22 +800,22 @@ export default function LoreScribeModal({
         hasDocumentContext: !!requestPayload.documentContext,
         documentData: documentData
       });
-      
+
       console.log('🔍 [MODAL] Making request to /api/agent-lore...');
-      
+
       // Add timeout to prevent hanging
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
+
       const response = await fetch('/api/agent-lore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestPayload),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       console.log('🔍 [MODAL] Response received:', {
         ok: response.ok,
         status: response.status,
@@ -1124,8 +1125,8 @@ export default function LoreScribeModal({
         <Dialog open={isOpen} onOpenChange={() => {
           // Ignore automatic close attempts; explicit close button controls closing
         }}>
-      <DialogContent 
-        onOpenAutoFocus={(e) => e.preventDefault()} 
+      <DialogContent
+        onOpenAutoFocus={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
@@ -1139,22 +1140,22 @@ export default function LoreScribeModal({
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'lore' | 'scribe')} className="h-full flex flex-col min-h-0">
           <div className="flex items-center border-b border-neutral-800 bg-neutral-900 flex-shrink-0">
             <TabsList className="grid grid-cols-2 bg-transparent border-0 rounded-none flex-1">
-              <TabsTrigger 
-                value="lore" 
+              <TabsTrigger
+                value="lore"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-neutral-400 hover:text-neutral-200 transition-colors"
               >
                 Lore
               </TabsTrigger>
-              <TabsTrigger 
-                value="scribe" 
+              <TabsTrigger
+                value="scribe"
                 className="data-[state=active]:bg-green-600 data-[state=active]:text-white text-neutral-400 hover:text-neutral-200 transition-colors"
               >
                 Scribe
               </TabsTrigger>
             </TabsList>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onClose}
               className="mr-2 text-neutral-300 hover:text-white hover:bg-red-600 transition-colors px-2 py-1"
               title="Close modal"
